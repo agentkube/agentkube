@@ -1,0 +1,22 @@
+{
+  "name": "agentkube",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.1",
+    "express": "^4.21.1",
+    "typescript": "^5.7.2"
+  }
+}
