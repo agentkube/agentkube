@@ -8,15 +8,22 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "bun-types": "latest",
+    "prisma": "^6.0.1"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@prisma/client": "^6.0.1",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "express": "^4.21.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

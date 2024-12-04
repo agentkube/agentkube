@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Postgres Server",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "agentkube",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpass"
+    }
+  }
+}

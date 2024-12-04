@@ -1,0 +1,80 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String    // Hashed password
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  apiKeys       ApiKey[]
+  organization  Organization? @relation(fields: [orgId], references: [id])
+  orgId         String?
+  role          UserRole  @default(USER)
+
+  @@map("users")
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  users     User[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("organizations")
+}
+
+model ApiKey {
+  id                String    @id @default(cuid())
+  key               String    @unique // The actual API key value (hashed)
+  name              String    // A friendly name for the API key
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  createdAt         DateTime  @default(now())
+  lastUsedAt        DateTime?
+  expiresAt         DateTime?
+  isActive          Boolean   @default(true)
+  cluster           Cluster?  // Changed to optional single cluster relation
+
+  @@map("api_keys")
+}
+
+model Cluster {
+  id                String    @id @default(cuid())
+  clusterName       String
+  accessType        AccessType @default(READ_ONLY)
+  externalEndpoint  String
+  apiKey            ApiKey    @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKeyId          String    @unique  // Make this unique to enforce one-to-one
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastHeartbeat     DateTime?
+  status            ClusterStatus @default(PENDING)
+
+  @@map("clusters")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum AccessType {
+  READ_ONLY
+  READ_WRITE
+}
+
+enum ClusterStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  ERROR
+}
