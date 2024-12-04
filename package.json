@@ -10,6 +10,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9",
     "bun-types": "latest",
     "prisma": "^6.0.1"
   },
@@ -23,6 +24,7 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "morgan": "^1.10.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

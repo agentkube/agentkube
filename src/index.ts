@@ -2,6 +2,7 @@ import express, { Request, Response, Application } from 'express';
 import cors from 'cors';
 import routes from '../routes/routes';
 import { prisma } from '../connectors/prisma';
+import morgan from 'morgan';
 
 const app: Application = express();
 const port = process.env.PORT || 8765;
@@ -9,6 +10,7 @@ const port = process.env.PORT || 8765;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(morgan('dev'));
 
 // Health check
 app.get('/healthz', (_: Request, res: Response) => {
