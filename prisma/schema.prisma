@@ -8,16 +8,18 @@ generator client {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String         @id @default(cuid())
+  email         String         @unique
   name          String?
   password      String    // Hashed password
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  role          UserRole       @default(USER)
   apiKeys       ApiKey[]
-  organization  Organization? @relation(fields: [orgId], references: [id])
-  orgId         String?
-  role          UserRole  @default(USER)
+  members       Member[]       // Organizations user belongs to
+  sentInvites   Invite[]       @relation("Inviter")
+  receivedInvites Invite[]     @relation("InviteEmail")
+  subscription  Subscription?
 
   @@map("users")
 }
@@ -25,46 +27,117 @@ model User {
 model Organization {
   id        String    @id @default(cuid())
   name      String
-  users     User[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  members   Member[]
+  invites   Invite[]
 
   @@map("organizations")
 }
 
+model Member {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId     String
+  role      MemberRole
+  joinedAt  DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, orgId])
+  @@map("members")
+}
+
+model Invite {
+  id        String      @id @default(cuid())
+  email     String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId     String
+  inviter   User        @relation("Inviter", fields: [inviterId], references: [id])
+  inviterId String
+  invitedUser User?     @relation("InviteEmail", fields: [email], references: [email])
+  role      MemberRole
+  token     String      @unique
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+  status    InviteStatus @default(PENDING)
+
+  @@map("invites")
+}
+
 model ApiKey {
-  id                String    @id @default(cuid())
-  key               String    @unique // The actual API key value (hashed)
-  name              String    // A friendly name for the API key
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId            String
-  createdAt         DateTime  @default(now())
-  lastUsedAt        DateTime?
-  expiresAt         DateTime?
-  isActive          Boolean   @default(true)
-  cluster           Cluster?  // Changed to optional single cluster relation
+  id          String    @id @default(cuid())
+  key         String    @unique
+  name        String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  cluster     Cluster?
 
   @@map("api_keys")
 }
 
 model Cluster {
-  id                String    @id @default(cuid())
+  id                String        @id @default(cuid())
   clusterName       String
-  accessType        AccessType @default(READ_ONLY)
+  accessType        AccessType    @default(READ_ONLY)
   externalEndpoint  String
-  apiKey            ApiKey    @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-  apiKeyId          String    @unique  // Make this unique to enforce one-to-one
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  lastHeartbeat     DateTime?
-  status            ClusterStatus @default(PENDING)
+  apiKey           ApiKey        @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKeyId         String        @unique
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  lastHeartbeat    DateTime?
+  status           ClusterStatus @default(PENDING)
 
   @@map("clusters")
+}
+
+model Plan {
+  id            String        @id @default(cuid())
+  name          String
+  planType      PlanType
+  monthlyPrice  Decimal
+  yearlyPrice   Decimal
+  maxClusters   Int
+  isPopular     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id          String            @id @default(cuid())
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String            @unique
+  plan        Plan              @relation(fields: [planId], references: [id])
+  planId      String
+  billingPeriod BillingPeriod
+  startDate   DateTime
+  endDate     DateTime?
+  status      SubscriptionStatus
+  amount      Decimal
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  canceledAt  DateTime?
+
+  @@map("subscriptions")
 }
 
 enum UserRole {
   ADMIN
   USER
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
 
 enum AccessType {
@@ -77,4 +150,30 @@ enum ClusterStatus {
   ACTIVE
   INACTIVE
   ERROR
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELED
+}
+
+enum PlanType {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  PAST_DUE
 }

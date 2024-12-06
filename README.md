@@ -1,4 +1,103 @@
-# agentkube
+# Agentkube
+
+```mermaid
+erDiagram
+    User ||--o{ ApiKey : "has"
+    User ||--o| Subscription : "has"
+    User ||--o{ Member : "is"
+    User ||--o{ Invite : "receives"
+    Organization ||--o{ Member : "has"
+    Organization ||--o{ Invite : "creates"
+    ApiKey ||--o| Cluster : "has"
+    Subscription }|--|| Plan : "subscribes to"
+
+    User {
+        string id PK
+        string email
+        string name
+        string password
+        datetime createdAt
+        datetime updatedAt
+        enum role
+    }
+
+    Organization {
+        string id PK
+        string name
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Member {
+        string id PK
+        string userId FK
+        string orgId FK
+        enum role
+        datetime joinedAt
+        datetime updatedAt
+    }
+
+    Invite {
+        string id PK
+        string email
+        string orgId FK
+        string inviterId FK
+        enum role
+        string token
+        datetime expiresAt
+        datetime createdAt
+        enum status
+    }
+
+    ApiKey {
+        string id PK
+        string key
+        string name
+        string userId FK
+        datetime createdAt
+        datetime lastUsedAt
+        datetime expiresAt
+        boolean isActive
+    }
+
+    Cluster {
+        string id PK
+        string clusterName
+        enum accessType
+        string externalEndpoint
+        string apiKeyId FK
+        datetime createdAt
+        datetime updatedAt
+        datetime lastHeartbeat
+        enum status
+    }
+
+    Plan {
+        string id PK
+        string name
+        enum planType
+        decimal monthlyPrice
+        decimal yearlyPrice
+        int maxClusters
+        boolean isPopular
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Subscription {
+        string id PK
+        string userId FK
+        string planId FK
+        enum billingPeriod
+        datetime startDate
+        datetime endDate
+        string status
+        decimal amount
+        datetime createdAt
+        datetime updatedAt
+        datetime canceledAt
+    }
+```
 
 To install dependencies:
 
