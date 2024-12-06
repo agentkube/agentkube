@@ -86,15 +86,31 @@ export const listApiKeys = async (req: Request, res: Response) => {
 
     const apiKeys = await prisma.apiKey.findMany({
       where: { userId },
-      include: {
-        cluster: true
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        isActive: true,
+        cluster: {
+          select: {
+            id: true,
+            clusterName: true,
+            accessType: true,
+            externalEndpoint: true,
+            status: true,
+            lastHeartbeat: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }
       }
     });
 
-    // Remove hashed keys from response
-    const sanitizedApiKeys = apiKeys.map(({ key, ...rest }) => rest);
-
-    res.json(sanitizedApiKeys);
+    // The cluster will automatically be null if it doesn't exist
+    // No need to sanitize the key field since we're using select instead of include
+    res.json(apiKeys);
   } catch (error) {
     console.error('Error fetching API keys:', error);
     res.status(500).json({ error: 'Failed to fetch API keys' });
@@ -105,9 +121,8 @@ export const revokeApiKey = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    await prisma.apiKey.update({
-      where: { id },
-      data: { isActive: false }
+    await prisma.apiKey.delete({
+      where: { id }
     });
 
     res.status(200).json({ message: `Apikey '${id}' has been revoked`});
@@ -151,5 +166,53 @@ export const validateApiKey = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error validating API key:', error);
     res.status(500).json({ error: 'Failed to validate API key' });
+  }
+};
+
+export const getApiKeyById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const apiKey = await prisma.apiKey.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        isActive: true,
+        userId: true,
+        cluster: {
+          select: {
+            id: true,
+            clusterName: true,
+            accessType: true,
+            externalEndpoint: true,
+            status: true,
+            lastHeartbeat: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!apiKey) {
+      res.status(404).json({ error: 'API key not found' });
+      return;
+    }
+
+    res.json(apiKey);
+  } catch (error) {
+    console.error('Error fetching API key:', error);
+    res.status(500).json({ error: 'Failed to fetch API key' });
   }
 };

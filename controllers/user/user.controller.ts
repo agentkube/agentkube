@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, orgId } = req.body;
+    const { email, password, name } = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -16,7 +16,6 @@ export const createUser = async (req: Request, res: Response) => {
       return;
     }
 
-    // // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
@@ -25,14 +24,17 @@ export const createUser = async (req: Request, res: Response) => {
         email,
         password: hashedPassword,
         name,
-        orgId
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        role: true
       }
     });
 
-    // // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
-
-    res.status(201).json(userWithoutPassword);
+    res.status(201).json(user);
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ error: 'Failed to create user' });
@@ -48,7 +50,12 @@ export const getUsers = async (_: Request, res: Response) => {
         name: true,
         createdAt: true,
         role: true,
-        organization: true,
+        members: {
+          select: {
+            organization: true,
+            role: true
+          }
+        },
         apiKeys: {
           select: {
             id: true,
@@ -79,13 +86,26 @@ export const getUserById = async (req: Request, res: Response) => {
         name: true,
         createdAt: true,
         role: true,
-        organization: true,
+        members: {
+          select: {
+            organization: true,
+            role: true
+          }
+        },
         apiKeys: {
           select: {
             id: true,
             name: true,
             createdAt: true,
             isActive: true
+          }
+        },
+        subscription: {
+          select: {
+            plan: true,
+            status: true,
+            billingPeriod: true,
+            endDate: true
           }
         }
       }
@@ -108,12 +128,29 @@ export const updateUser = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { email, name, role } = req.body;
 
+
+    if (email) {
+      const existingUser = await prisma.user.findUnique({
+        where: { 
+          email,
+          NOT: {
+            id
+          }
+        }
+      });
+
+      if (existingUser) {
+        res.status(400).json({ error: 'Email already in use' });
+        return;
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
-        email,
-        name,
-        role
+        ...(email && { email }),
+        ...(name && { name }),
+        ...(role && { role })
       },
       select: {
         id: true,
@@ -121,7 +158,12 @@ export const updateUser = async (req: Request, res: Response) => {
         name: true,
         createdAt: true,
         role: true,
-        organization: true
+        members: {
+          select: {
+            organization: true,
+            role: true
+          }
+        }
       }
     });
 
@@ -144,5 +186,55 @@ export const deleteUser = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+};
+
+
+export const getUserByEmail = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        role: true,
+        members: {
+          select: {
+            organization: true,
+            role: true
+          }
+        },
+        apiKeys: {
+          select: {
+            id: true,
+            name: true,
+            createdAt: true,
+            isActive: true
+          }
+        },
+        subscription: {
+          select: {
+            plan: true,
+            status: true,
+            billingPeriod: true,
+            endDate: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user by email:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
   }
 };
