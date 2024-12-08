@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../connectors/prisma';
+import { decryptApiKey } from '../../utils/encryption';
 
 // Get all clusters for an organization by orgId
 export const getOrganizationClusters = async (req: Request, res: Response) => {
@@ -31,19 +32,22 @@ export const getOrganizationClusters = async (req: Request, res: Response) => {
           select: {
             id: true,
             name: true,
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true
-              }
-            }
+            key: true 
           }
         }
       }
     });
 
-    res.json(clusters);
+    // Decrypt API keys before sending response
+    const clustersWithDecryptedKeys = clusters.map(cluster => ({
+      ...cluster,
+      apiKey: cluster.apiKey ? {
+        ...cluster.apiKey,
+        key: decryptApiKey(cluster.apiKey.key)
+      } : null
+    }));
+
+    res.json(clustersWithDecryptedKeys);
   } catch (error) {
     console.error('Error fetching organization clusters:', error);
     res.status(500).json({ error: 'Failed to fetch organization clusters' });

@@ -1,16 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../connectors/prisma';
-import crypto from 'crypto';
-
-// Generate a secure API key
-const generateApiKey = () => {
-  return `ak_${crypto.randomBytes(32).toString('hex')}`;
-};
-
-// Hash API key for storage
-const hashApiKey = (apiKey: string) => {
-  return crypto.createHash('sha256').update(apiKey).digest('hex');
-};
+import { generateApiKey , encryptApiKey, decryptApiKey } from '../../utils/encryption';
 
 export const createApiKey = async (req: Request, res: Response) => {
   try {
@@ -18,21 +8,21 @@ export const createApiKey = async (req: Request, res: Response) => {
 
     // Generate new API key
     const apiKeyValue = generateApiKey();
-    const hashedKey = hashApiKey(apiKeyValue);
+    const encryptedKey = encryptApiKey(apiKeyValue);
 
     // Create API key record
     const apiKey = await prisma.apiKey.create({
       data: {
-        key: hashedKey,
+        key: encryptedKey,
         name,
         userId
       }
     });
 
-    // Return the unhashed API key only once
+    // Return the unencrypted API key only once
     res.status(201).json({
       ...apiKey,
-      key: apiKeyValue // Send the original API key value
+      key: apiKeyValue
     });
   } catch (error) {
     console.error('Error creating API key:', error);
@@ -40,31 +30,96 @@ export const createApiKey = async (req: Request, res: Response) => {
   }
 };
 
-export const registerCluster = async (req: Request, res: Response) => {
+export const validateApiKey = async (req: Request, res: Response) => {
   try {
-    const { clusterName, accessType, externalEndpoint } = req.body;
-    const apiKey = req.headers.authorization?.split(' ')[1];
+    const apiKey = req.headers["x-api-key"] as string;
 
     if (!apiKey) {
       res.status(401).json({ error: 'API key is required' });
       return;
     }
 
-    const hashedKey = hashApiKey(apiKey);
+    const apiKeys = await prisma.apiKey.findMany(); // Get all API keys
+    let foundApiKey = null;
 
-    // Find API key record
-    const apiKeyRecord = await prisma.apiKey.findUnique({
-      where: { key: hashedKey }
+    // Find matching API key by decrypting and comparing
+    for (const key of apiKeys) {
+      try {
+        const decryptedKey = decryptApiKey(key.key);
+        if (decryptedKey === apiKey) {
+          foundApiKey = key;
+          break;
+        }
+      } catch (e) {
+        // Skip invalid encrypted keys
+        continue;
+      }
+    }
+
+    if (!foundApiKey || !foundApiKey.isActive) {
+      res.status(401).json({ error: 'Invalid or inactive API key' });
+      return;
+    }
+
+    // Update last used timestamp
+    await prisma.apiKey.update({
+      where: { id: foundApiKey.id },
+      data: { lastUsedAt: new Date() }
     });
+
+    const { key, ...safeApiKeyData } = foundApiKey;
+    res.json(safeApiKeyData);
+  } catch (error) {
+    console.error('Error validating API key:', error);
+    res.status(500).json({ error: 'Failed to validate API key' });
+  }
+};
+
+export const registerCluster = async (req: Request, res: Response) => {
+  try {
+    const { clusterName, accessType, externalEndpoint } = req.body;
+    const apiKey = req.headers["x-api-key"] as string;
+
+    if (!apiKey) {
+      res.status(401).json({ error: 'API key is required' });
+      return;
+    }
+
+    // Find the API key by decrypting and comparing
+    const apiKeys = await prisma.apiKey.findMany();
+    let apiKeyRecord = null;
+
+    for (const key of apiKeys) {
+      try {
+        const decryptedKey = decryptApiKey(key.key);
+        if (decryptedKey === apiKey) {
+          apiKeyRecord = key;
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
 
     if (!apiKeyRecord || !apiKeyRecord.isActive) {
       res.status(401).json({ error: 'Invalid or inactive API key' });
       return;
     }
 
-    // Create or update cluster registration
-    const cluster = await prisma.cluster.create({
-      data: {
+    // Upsert cluster registration
+    const cluster = await prisma.cluster.upsert({
+      where: {
+        apiKeyId: apiKeyRecord.id
+      },
+      update: {
+        clusterName,
+        accessType: accessType || 'READ_ONLY',
+        externalEndpoint,
+        status: 'ACTIVE',
+        updatedAt: new Date(),
+        lastHeartbeat: new Date()
+      },
+      create: {
         clusterName,
         accessType: accessType || 'READ_ONLY',
         externalEndpoint,
@@ -80,6 +135,7 @@ export const registerCluster = async (req: Request, res: Response) => {
   }
 };
 
+// The following functions remain mostly unchanged as they don't directly handle the encrypted key
 export const listApiKeys = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
@@ -108,8 +164,6 @@ export const listApiKeys = async (req: Request, res: Response) => {
       }
     });
 
-    // The cluster will automatically be null if it doesn't exist
-    // No need to sanitize the key field since we're using select instead of include
     res.json(apiKeys);
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -125,47 +179,10 @@ export const revokeApiKey = async (req: Request, res: Response) => {
       where: { id }
     });
 
-    res.status(200).json({ message: `Apikey '${id}' has been revoked`});
+    res.status(200).json({ message: `API key '${id}' has been revoked` });
   } catch (error) {
     console.error('Error revoking API key:', error);
     res.status(500).json({ error: 'Failed to revoke API key' });
-  }
-};
-
-export const validateApiKey = async (req: Request, res: Response) => {
-  try {
-    const apiKey = req.headers["x-api-key"] as string;
-
-    if (!apiKey) {
-      res.status(401).json({ error: 'API key is required' });
-      return;
-    }
-
-    const hashedKey = hashApiKey(apiKey);
-
-    const apiKeyRecord = await prisma.apiKey.findUnique({
-      where: { key: hashedKey },
-      include: {
-        cluster: true
-      }
-    });
-
-    if (!apiKeyRecord || !apiKeyRecord.isActive) {
-      res.status(401).json({ error: 'Invalid or inactive API key' });
-      return;
-    }
-
-    // Update last used timestamp
-    await prisma.apiKey.update({
-      where: { id: apiKeyRecord.id },
-      data: { lastUsedAt: new Date() }
-    });
-
-    const { key, ...safeApiKeyData } = apiKeyRecord;
-    res.json(safeApiKeyData);
-  } catch (error) {
-    console.error('Error validating API key:', error);
-    res.status(500).json({ error: 'Failed to validate API key' });
   }
 };
 
