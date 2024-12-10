@@ -4,8 +4,8 @@ import * as apiKeyController from '../controllers/apikey/apikey.controller';
 import * as orgController from '../controllers/organization/organization.controller';
 import * as clusterController from '../controllers/cluster/cluster.controller';
 import * as billingController from '../controllers/billing/billing.controller';
-
-
+import * as chatController from '../controllers/chat/chat.controller';
+import sseMiddleware from '../middleware/sse.middleware';
 // import { validateApiKey } from '../middleware/auth';
 
 const router = Router();
@@ -59,5 +59,11 @@ router.get('/users/:userId/subscription', billingController.getUserSubscription)
 router.patch('/users/:userId/subscription', billingController.updateSubscription);
 router.post('/users/:userId/subscription/cancel', billingController.cancelSubscription);
 router.delete('/users/:userId/subscription', billingController.deleteSubscription);
+
+
+// Chat routes
+router.post('/chat', chatController.chat);
+router.post('/chat/stream', sseMiddleware, chatController.chatStream);
+router.post('/chat/test-stream', sseMiddleware, chatController.testChatStream);
 
 export default router;
