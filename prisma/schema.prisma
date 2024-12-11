@@ -7,6 +7,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
+
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -20,7 +22,8 @@ model User {
   sentInvites   Invite[]       @relation("Inviter")
   receivedInvites Invite[]     @relation("InviteEmail")
   subscription  Subscription?
-
+  responseProtocols ResponseProtocol[]
+  
   @@map("users")
 }
 
@@ -31,9 +34,11 @@ model Organization {
   updatedAt DateTime  @updatedAt
   members   Member[]
   invites   Invite[]
+  responseProtocols ResponseProtocol[]
 
   @@map("organizations")
 }
+
 
 model Member {
   id        String    @id @default(cuid())
@@ -176,4 +181,78 @@ enum SubscriptionStatus {
   CANCELED
   EXPIRED
   PAST_DUE
+}
+
+
+// Response Protocol
+enum StepReferenceType {
+  STEP
+  FINAL
+  STOP
+}
+
+model ResponseProtocol {
+  id          String         @id @default(cuid())
+  name        String
+  description String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  steps       Step[]
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId       String
+  createdBy   User          @relation(fields: [userId], references: [id])
+  userId      String
+  isActive    Boolean       @default(true)
+  version     Int           @default(1)
+
+  @@map("response_protocols")
+}
+
+model Step {
+  id          String          @id @default(cuid())
+  number      Int
+  title       String
+  details     String          @db.Text // Using Text for potentially longer content
+  protocol    ResponseProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  protocolId  String
+  commands    Command[]
+  nextSteps   NextStep[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([protocolId, number])
+  @@index([number])
+  @@map("steps")
+}
+
+model Command {
+  id          String    @id @default(cuid())
+  format      String
+  docString   String    @db.Text
+  example     String
+  readOnly    Boolean   @default(false)
+  step        Step      @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  stepId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  order       Int       @default(0)
+
+  @@index([stepId])
+  @@map("commands")
+}
+
+model NextStep {
+  id              String            @id @default(cuid())
+  referenceType   StepReferenceType
+  targetStepNumber Int?            // For referencing other steps
+  conditions      String[]          // Array of condition strings
+  isUnconditional Boolean          @default(false)
+  step            Step             @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  stepId          String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  order           Int              @default(0)
+
+  @@index([stepId])
+  @@map("next_steps")
 }

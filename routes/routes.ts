@@ -6,6 +6,8 @@ import * as clusterController from '../controllers/cluster/cluster.controller';
 import * as billingController from '../controllers/billing/billing.controller';
 import * as chatController from '../controllers/chat/chat.controller';
 import sseMiddleware from '../middleware/sse.middleware';
+import * as responseProtocolController from '../controllers/response-protocol/response-protocol.controller';
+
 // import { validateApiKey } from '../middleware/auth';
 
 const router = Router();
@@ -65,5 +67,12 @@ router.delete('/users/:userId/subscription', billingController.deleteSubscriptio
 router.post('/chat', chatController.chat);
 router.post('/chat/stream', sseMiddleware, chatController.chatStream);
 router.post('/chat/test-stream', sseMiddleware, chatController.testChatStream);
+
+// Response Protocol routes
+router.post('/organizations/protocols', responseProtocolController.createResponseProtocol);
+router.get('/organizations/:orgId/protocols', responseProtocolController.getOrganizationProtocols);
+router.get('/protocols/:id', responseProtocolController.getResponseProtocol);
+router.patch('/protocols/:id', responseProtocolController.updateResponseProtocol);
+router.delete('/protocols/:id', responseProtocolController.deleteResponseProtocol);
 
 export default router;
