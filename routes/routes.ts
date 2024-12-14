@@ -7,6 +7,7 @@ import * as billingController from '../controllers/billing/billing.controller';
 import * as chatController from '../controllers/chat/chat.controller';
 import sseMiddleware from '../middleware/sse.middleware';
 import * as responseProtocolController from '../controllers/response-protocol/response-protocol.controller';
+import * as investigationController from '../controllers/investigate/investigate.controller';
 
 // import { validateApiKey } from '../middleware/auth';
 
@@ -74,5 +75,13 @@ router.get('/organizations/:orgId/protocols', responseProtocolController.getOrga
 router.get('/protocols/:id', responseProtocolController.getResponseProtocol);
 router.patch('/protocols/:id', responseProtocolController.updateResponseProtocol);
 router.delete('/protocols/:id', responseProtocolController.deleteResponseProtocol);
+
+
+// Investigation routes
+router.post('/investigations', investigationController.createInvestigation);
+router.post('/investigations/:id', investigationController.getInvestigation);
+router.get('/organizations/:orgId/investigations', investigationController.getOrganizationInvestigations);
+router.post('/investigations/:id/cancel', investigationController.cancelInvestigation);
+
 
 export default router;

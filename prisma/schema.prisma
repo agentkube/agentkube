@@ -97,6 +97,7 @@ model Cluster {
   updatedAt        DateTime      @updatedAt
   lastHeartbeat    DateTime?
   status           ClusterStatus @default(PENDING)
+  investigations   Investigation[]
 
   @@map("clusters")
 }
@@ -204,7 +205,8 @@ model ResponseProtocol {
   userId      String
   isActive    Boolean       @default(true)
   version     Int           @default(1)
-
+  investigations Investigation[] 
+  
   @@map("response_protocols")
 }
 
@@ -255,4 +257,19 @@ model NextStep {
 
   @@index([stepId])
   @@map("next_steps")
+}
+
+model Investigation {
+  id                String           @id @default(cuid())
+  protocol          ResponseProtocol @relation(fields: [protocolId], references: [id])
+  protocolId        String
+  cluster           Cluster         @relation(fields: [clusterId], references: [id])
+  clusterId         String
+  status            String          @default("PENDING")
+  currentStepNumber Int             @default(1)
+  results           Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("investigations")
 }
