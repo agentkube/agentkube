@@ -67,6 +67,7 @@ router.delete('/users/:userId/subscription', billingController.deleteSubscriptio
 // Chat routes
 router.post('/chat', chatController.chat);
 router.post('/chat/stream', sseMiddleware, chatController.chatStream);
+router.post('/chat/parse-intent', chatController.parseIntent);
 router.post('/chat/test-stream', sseMiddleware, chatController.testChatStream);
 
 // Response Protocol routes

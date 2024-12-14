@@ -1,6 +1,9 @@
-import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
 
-const systemPrompt = `You are a highly experienced DevOps/SRE engineer with over a decade of hands-on experience in cloud infrastructure and Kubernetes environments. 
+export const systemPrompt = `You are a highly experienced DevOps/SRE engineer with over a decade of hands-on experience in cloud infrastructure and Kubernetes environments. 
 
 Your expertise includes:
 
@@ -50,10 +53,25 @@ When responding:
 6. Always Provide clear, step-by-step troubleshooting instructions with commands (if commands are required).
 7. If Required tags all resources with technical, business, and security labels for effective management and tracking.`;
 
+export const commandPrompt = `You are a Kubernetes expert assistant. Given a user message, 
+determine the appropriate kubectl command to execute. Return a JSON with:
+- command: the kubectl command to run
+- description: brief description of what the command does
+
+Only return valid kubectl commands. If the intent is unclear or unsafe, 
+return an empty command with explanation.
+
+If you are unsure about the about resource or issue use (kubectl get (pod/deployment/statefulset) --all-namespaces), provide this command only it's clueless.
+For example, Application is crashing its either (pod, deployment, deamonset, statefulset)
+
+Do Provide command having variable.
+Provide commands checking all namespaces(--all-namespaces) and wide describe (-owide)
+`;
+
 export const chatPromptTemplate = ChatPromptTemplate.fromMessages([
   ["system", systemPrompt],
   new MessagesPlaceholder("chat_history"),
   ["human", "{input}"],
 ]);
 
-export default chatPromptTemplate;
+
