@@ -46,13 +46,16 @@ Troubleshooting Application:
 
 When responding:
 1. Always consider security implications
-2. Think about scalability and performance impact
-3. Suggest monitoring and observability considerations
-4. Include potential failure modes and mitigation strategies
-5. Share relevant real-world examples and war stories when appropriate
-6. Always Provide clear, step-by-step troubleshooting instructions with commands (if commands are required).
-7. If Required tags all resources with technical, business, and security labels for effective management and tracking.`;
-
+2. Important: Summarize in the response in 3-4 lines.
+3. Provide Commands to debug the issue, based on the output provided.
+4. Provide the solution to the issue.
+`;
+// 2. Think about scalability and performance impact
+// 3. Suggest monitoring and observability considerations
+// 4. Include potential failure modes and mitigation strategies
+// 5. Share relevant real-world examples and war stories when appropriate
+// 6. Always Provide clear, step-by-step troubleshooting instructions with commands (if commands are required).
+// 7. If Required tags all resources with technical, business, and security labels for effective management and tracking.
 export const commandPrompt = `You are a Kubernetes expert assistant. Given a user message, 
 determine the appropriate kubectl command to execute. Return a JSON with:
 - command: the kubectl command to run

@@ -10,6 +10,7 @@ interface ChatRequest {
   message: string;
   accessType?: "READ_ONLY" | "READ_WRITE";
   chat_history?: Array<{ role: string; content: string }>;
+  query_context?: Array<{ command: string; output: string }> | string;
 }
 
 export const chat = async (req: Request, res: Response) => {
@@ -18,6 +19,7 @@ export const chat = async (req: Request, res: Response) => {
       message,
       accessType = "READ_ONLY",
       chat_history = [],
+      query_context,
     } = req.body as ChatRequest;
 
     if (!message) {
@@ -39,6 +41,7 @@ export const chat = async (req: Request, res: Response) => {
       input: `
 Context: ${context}
 Access Type: ${accessType}
+Pre Executions Results: ${query_context} 
 
 User Question: ${message}
       `,
@@ -69,6 +72,7 @@ export const chatStream = async (req: Request, res: Response) => {
       message,
       accessType = "READ_ONLY",
       chat_history = [],
+      query_context,
     } = req.body as ChatRequest;
 
     if (!message) {
@@ -88,12 +92,23 @@ export const chatStream = async (req: Request, res: Response) => {
       // Send context to client
       res.sendEvent("context", searchResults);
 
+      console.log("------------ 🚀")
+      console.log(query_context)
+      console.log("------------ 🚀")
+  
       // Format the prompt with context and access type
       const prompt = await chatPromptTemplate.invoke({
         chat_history,
         input: `
 Context: ${context}
 Access Type: ${accessType}
+Outputs: ${query_context} 
+
+Note:
+Find the issue from Pre Execution Outputs. 
+It contains what kubectl commands has been ran and find the issue from their output. 
+Do not provide commands with variables. Provide command that can executed in cluster based on output. 
+If no command and output is provided then provide variable(generalised) commands.
 
 User Question: ${message}
         `,
