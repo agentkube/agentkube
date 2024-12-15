@@ -91,10 +91,6 @@ export const chatStream = async (req: Request, res: Response) => {
 
       // Send context to client
       res.sendEvent("context", searchResults);
-
-      console.log("------------ 🚀")
-      console.log(query_context)
-      console.log("------------ 🚀")
   
       // Format the prompt with context and access type
       const prompt = await chatPromptTemplate.invoke({
