@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
-import { chatPromptTemplate } from "../../internal/prompt";
 import { getEmbeddings } from "../../internal/embedding";
 import { getVectorStore } from "../../connectors/qdrant";
-import { commandPrompt } from "../../internal/prompt";
+import { chatPromptTemplate, commandPrompt, investigationPrompt } from "../../internal/prompt";
 import { OpenAIModel, OpenAIstreamingModel } from "../../services/openai/openai.services";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { testContent2 } from "../content/content";
@@ -282,6 +281,56 @@ export const parseIntent = async (req: Request, res: Response) => {
     
   } catch (error) {
     console.error("Error in parse intent controller:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+
+interface InvestigationRequest {
+  commands: Array<{
+    command: string;
+    output: string;
+  }>;
+}
+
+export const getInvestigationSummary = async (req: Request, res: Response) => {
+  try {
+    const { commands } = req.body as InvestigationRequest;
+
+    if (!commands || !Array.isArray(commands)) {
+      res.status(400).json({ error: "Commands array is required" });
+      return;
+    }
+
+    // Format the commands and outputs for the prompt
+    const commandHistory = commands
+      .map(cmd => `Command: ${cmd.command}\nOutput:\n${cmd.output}`)
+      .join("\n\n");
+
+    const result = await OpenAIModel.invoke([
+      new SystemMessage(investigationPrompt),
+      new HumanMessage(`Analyze these kubectl commands and their outputs:\n\n${commandHistory}`)
+    ]);
+
+    // Parse the response as JSON
+    try {
+      const parsedResponse = JSON.parse(result.content as string);
+      res.json({
+        description: parsedResponse.description,
+        summary: parsedResponse.summary
+      });
+    } catch (parseError) {
+      console.error("Error parsing LLM response:", parseError);
+      res.status(500).json({
+        description: "Failed to parse investigation summary",
+        summary: "Error analyzing command outputs"
+      });
+    }
+  } catch (error) {
+    console.error("Error in investigation summary controller:", error);
     res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : "Unknown error",

@@ -71,6 +71,39 @@ Do Provide command having variable.
 Provide commands checking all namespaces(--all-namespaces) and wide describe (-owide)
 `;
 
+export const investigationPrompt = `You are a Kubernetes expert assistant analyzing command outputs.
+Given a series of kubectl commands and their outputs, provide a concise analysis.
+
+Return ONLY a JSON response with these exact fields:
+{
+  "description": "One-line technical description of the current state",
+  "summary": "A markdown-formatted string containing:
+    
+    Namespace: <namespace>
+    Resource Type: <type>
+    Resource Name: <name>
+    Status: <status>
+    Age: <age>
+    
+    Additional relevant details like restarts, conditions, etc."
+}
+
+Focus on:
+- Identifying the key issue or state from the outputs
+- Keeping descriptions technical and precise
+- Formatting the summary nicely with markdown
+- Including exact values from command outputs
+- Adding any relevant additional context in the summary
+
+Example summary format:
+"Namespace: default
+Resource Type: Pod
+Resource Name: api-gateway
+Status: CrashLoopBackOff
+Age: 25m
+Restarts: 9 (most recent: 4m ago)
+`;
+
 export const chatPromptTemplate = ChatPromptTemplate.fromMessages([
   ["system", systemPrompt],
   new MessagesPlaceholder("chat_history"),
