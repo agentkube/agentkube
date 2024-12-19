@@ -1,0 +1,84 @@
+---
+name: View cluster namespaces and running pods
+description: Standardized response protocol for handling critical system alerts and incidents
+steps:
+  - title: Get Application Namespace
+    number: 1
+    commands:
+      - docString: Retrieves detailed information about the alert
+        example: '!check_alert ALERT-123'
+        format: kubectl get namespaces
+        readOnly: true
+      - docString: Fetches system metrics for the specified timeframe
+        example: '!get_metrics SYS-456 30m'
+        format: kubectl get pods
+        readOnly: true
+      - docString: Sets the severity level of the alert
+        example: '!set_severity ALERT-123 critical'
+        format: kubectl get deployment
+        readOnly: false
+    details: Get all the relevant namespaces.
+    nextSteps:
+      - referenceType: STEP
+        conditions:
+          - severity === 'critical'
+          - systemType === 'production'
+        isUnconditional: false
+        targetStepNumber: 2
+      - conditions:
+          - severity === 'low'
+          - autoResolution === true
+        isUnconditional: false
+        referenceType: FINAL
+    
+    
+  - title: Critical Response Initiation
+    number: 2
+    details: Initiate emergency response procedures and notify relevant team members
+    commands:
+          - docString: Sends emergency notification to specified team
+            example: '!notify_team TEAM-789 ALERT-123'
+            format: kubectl get services
+  
+            readOnly: false
+          - docString: Creates a formal incident from the alert
+            example: '!create_incident ALERT-123'
+            format: kubectl get replicaset
+  
+            readOnly: false
+          - docString: Initiates emergency bridge call
+            example: '!start_bridge INC-456'
+            format: kubectl get configmap
+  
+            readOnly: false
+    nextSteps:
+      - conditions:
+          - teamResponded === true
+          - incidentCreated === true
+        isUnconditional: false
+        referenceType: FINAL
+    
+  - title: Resolution and Documentation
+    number: 3
+    commands:
+      - docString: Updates the incident status
+        example: '!update_status INC-456 resolved'
+        format: kubectl get secret
+        readOnly: false
+      - docString: Adds resolution notes to the incident
+        example: '!add_resolution INC-456 ''Fixed by restarting service'''
+        format: kubectl get serviceaccount
+        readOnly: false
+      - docString: Schedules a post-incident review
+        example: '!schedule_review INC-456 2024-12-15'
+        format: kubectl get nodes
+        readOnly: false
+    details: Document incident resolution steps and perform post-incident tasks
+    nextSteps:
+      - conditions:
+          - incidentResolved === true
+          - documentationComplete === true
+        isUnconditional: true
+        referenceType: STOP
+    
+    

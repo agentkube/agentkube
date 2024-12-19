@@ -83,6 +83,9 @@ router.post('/investigations', investigationController.createInvestigation);
 router.post('/investigations/:id', investigationController.getInvestigation);
 router.get('/organizations/:orgId/investigations', investigationController.getOrganizationInvestigations);
 router.post('/investigations/:id/cancel', investigationController.cancelInvestigation);
+router.post('/investigations/:id/further-investigate', investigationController.FurtherInvestigate);
+
+
 // Investigation -> Chat routes 
 router.post('/investigation/summary', chatController.getInvestigationSummary);
 

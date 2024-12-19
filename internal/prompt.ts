@@ -102,7 +102,38 @@ Resource Name: api-gateway
 Status: CrashLoopBackOff
 Age: 25m
 Restarts: 9 (most recent: 4m ago)
+
+Example summary format 2:
+Provide the 2-3 lines of logs where the issues is in the Resource..
+Provide 1-2 line summary based on the logs.
 `;
+
+export const furtherInvestigation = `As a Kubernetes expert, analyze these investigation summaries and suggest the next command.
+Include monitoring and deeper investigation of potential issues.
+
+Rules:
+1. For READ_ONLY access type, only use get, describe, logs commands
+2. For repeated monitoring, suggest appropriate intervals
+3. Focus on: pending resources, errors, misconfigurations, performance
+4. Return ONLY a valid JSON object with these fields:
+   - command: string with kubectl command
+   - description: string explaining why this command is needed
+   - shouldRepeat: boolean indicating if command should be repeated
+   - repeatInterval: number of seconds between repetitions (if shouldRepeat is true)
+
+Example response format:
+{
+  "command": "kubectl describe pod nginx-pod",
+  "description": "Investigating pod status",
+  "shouldRepeat": true,
+  "repeatInterval": 30
+}
+
+IMPORTANT: 
+- Response must be valid JSON
+- No markdown or code blocks
+- Keep description concise
+- Suggest monitoring for resources showing issues`;
 
 export const chatPromptTemplate = ChatPromptTemplate.fromMessages([
   ["system", systemPrompt],
