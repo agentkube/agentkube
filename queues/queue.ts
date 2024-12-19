@@ -1,4 +1,4 @@
-// src/queue/queue.ts
+// queues/queue.ts
 import { Queue, Worker, Job, QueueEvents } from "bullmq";
 import { prisma } from "../connectors/prisma";
 import redis from "../connectors/redis";
@@ -10,10 +10,10 @@ import {
   InvestigationStatus,
   InvestigationResult,
 } from "../types/investigation.types";
-
+import { generateInvestigationSummary } from "../utils/investigation_summary";
 // Create queue instance
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const investigationQueue = new Queue<InvestigationJobData>(
   "investigation-queue",
@@ -50,7 +50,7 @@ const worker = new Worker<InvestigationJobData, JobCompletionResult>(
         protocolId,
         currentStepNumber,
         clusterId,
-        commandResults,
+        // commandResults,
       } = job.data;
 
       console.log("Job being added to Worker", investigationId);
@@ -89,6 +89,8 @@ const worker = new Worker<InvestigationJobData, JobCompletionResult>(
 
         const stepResults: CommandResult[] = [];
         for (const command of currentStep.commands) {
+
+          // TODO the command that is provided is valid kubectl command or suggested one
 
           const executionResult = await executeClusterCommand(
             command.format.split(" ").slice(1),
@@ -146,11 +148,17 @@ const worker = new Worker<InvestigationJobData, JobCompletionResult>(
           );
         }
 
+      /**
+       * Analyzes kubectl commands and their outputs to generate an investigation summary
+       */  
+        const investigationSummary = await generateInvestigationSummary(stepResults);
 
         allResults.push({
           stepNumber: currentStep.number,
           commands: stepResults,
           timestamp: new Date().toISOString(),
+          description: investigationSummary.description,
+          summary: investigationSummary.summary,
         })
 
         await updateInvestigationStatus(
@@ -209,7 +217,7 @@ const worker = new Worker<InvestigationJobData, JobCompletionResult>(
   }
 );
 
-const executeClusterCommand = async (
+export const executeClusterCommand = async (
   command: string[],
   externalEndpoint: string
 ): Promise<CommandResult> => {
@@ -221,7 +229,7 @@ const executeClusterCommand = async (
         Accept: "application/json",
       },
       body: JSON.stringify({
-        args: command,
+        command: command,
       }),
     });
 
@@ -245,7 +253,7 @@ const executeClusterCommand = async (
 
 // Helper function to update investigation status
 
-async function updateInvestigationStatus(
+export async function updateInvestigationStatus(
   investigationId: string,
   status: InvestigationStatus,
   error?: InvestigationResult["error"],

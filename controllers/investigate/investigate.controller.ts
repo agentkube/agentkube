@@ -3,6 +3,8 @@ import { Request, Response } from 'express';
 import prisma from '../../connectors/prisma';
 import { investigationQueue } from '../../queues/queue';
 import { InvestigationStatus } from '../../types/investigation.types';
+import { furtherInvestigationQueue } from '../../queues/further-investigate.queue';
+import { parseSummary } from '../../utils/parse_intent_summary';
 
 // Create a new investigation
 export const createInvestigation = async (req: Request, res: Response) => {
@@ -378,6 +380,142 @@ export const cancelInvestigation = async (req: Request, res: Response) => {
     console.error('Failed to cancel investigation:', error);
     res.status(500).json({
       error: 'Failed to cancel investigation'
+    });
+  }
+};
+
+
+
+// Smart investigation
+export const SmartInvestigation = async (req: Request, res: Response) => {
+  try {
+  
+    const { clusterId, userId } = req.body;
+
+    
+    if (!userId || !clusterId) {
+      res.status(400).json({
+        error: 'Missing required fields: clusterId and user authentication are required'
+      });
+      return;
+    }
+
+    const cluster = await prisma.cluster.findUnique({
+      where: { id: clusterId },
+    });
+
+    if (!cluster) {
+      res.status(404).json({
+        error: 'cluster not found'
+      });
+      return;
+    }
+
+    
+
+
+  } catch (error) {
+    console.error('Failed to cancel investigation:', error);
+    res.status(500).json({
+      error: 'Failed to cancel investigation'
+    });
+  }
+};
+
+export const FurtherInvestigate = async (req: Request, res: Response) => {
+  try {
+    const investigationId = req.params.id;
+    const { clusterId, message } = req.body;
+
+    // Validate request
+    if (!clusterId || !investigationId) {
+      res.status(400).json({
+        error: 'Missing required fields: clusterId and investigationId are required'
+      });
+      return;
+    }
+
+    // Get cluster
+    const cluster = await prisma.cluster.findUnique({
+      where: { id: clusterId },
+    });
+
+    if (!cluster) {
+      res.status(404).json({
+        error: 'Cluster not found'
+      });
+      return;
+    }
+
+    // Get current investigation with results
+    const investigation = await prisma.investigation.findUnique({
+      where: { id: investigationId }
+    });
+
+    if (!investigation) {
+      res.status(404).json({
+        error: 'Investigation not found'
+      });
+      return;
+    }
+
+    // Safely extract and validate steps from investigation results
+    const resultsData = investigation.results as unknown as { 
+      steps: Array<{
+        stepNumber: number;
+        commands: Array<{
+          command: string;
+          output: string;
+          error: boolean;
+          timestamp: string;
+        }>;
+        timestamp: string;
+        description: string;
+        summary: string;
+      }>;
+    };
+
+    if (!resultsData?.steps || !Array.isArray(resultsData.steps)) {
+      res.status(400).json({
+        error: 'Investigation has no valid results to analyze'
+      });
+      return;
+    }
+
+    // Get next command suggestion based on investigation results
+    const nextStep = await parseSummary({
+      summaries: resultsData.steps,
+      message,
+      accessType: "READ_ONLY"
+    });
+
+    if (!nextStep.command) {
+      res.status(400).json({
+        error: 'Failed to generate next investigation step'
+      });
+      return;
+    }
+
+    // Add job to further investigation queue
+    const job = await furtherInvestigationQueue.add('further-investigate', {
+      investigationId,
+      clusterId,
+      results: {
+        steps: resultsData.steps
+      }
+    });
+
+    res.status(200).json({
+      message: 'Further investigation initiated',
+      jobId: job.id,
+      nextStep
+    });
+
+  } catch (error) {
+    console.error('Failed to initiate further investigation:', error);
+    res.status(500).json({
+      error: 'Failed to initiate further investigation',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };

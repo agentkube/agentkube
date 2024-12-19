@@ -43,6 +43,8 @@ export interface StepResult {
   stepNumber: number;
   commands: CommandResult[];
   timestamp: string;
+  description: string;
+  summary: string;
 }
 
 // Queue and job related types
