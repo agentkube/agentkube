@@ -67,6 +67,7 @@ return an empty command with explanation.
 If you are unsure about the about resource or issue use (kubectl get (pod/deployment/statefulset) --all-namespaces), provide this command only it's clueless.
 For example, Application is crashing its either (pod, deployment, deamonset, statefulset)
 
+When you provide logs command, only provide last 10, 20 or max 100 lines.
 Do Provide command having variable.
 Provide commands checking all namespaces(--all-namespaces) and wide describe (-owide)
 `;
@@ -120,6 +121,7 @@ Rules:
    - description: string explaining why this command is needed
    - shouldRepeat: boolean indicating if command should be repeated
    - repeatInterval: number of seconds between repetitions (if shouldRepeat is true)
+5. When you provide logs command, only provide last 10, 20 or max 100 lines.
 
 Example response format:
 {

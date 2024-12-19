@@ -60,14 +60,21 @@ export const createResponseProtocol = async (req: Request, res: Response) => {
         }
       }
     });
-
-    res.status(201).json(protocol);
+    if (protocol.id){
+      res.status(201).json({
+        message: `Response protocol ${protocol.id} created successfully`
+      });
+    }
   } catch (error) {
     console.error('Error creating response protocol:', error);
     res.status(500).json({ error: 'Failed to create response protocol' });
   }
 };
 
+    // TODO while patching compare it previous if new changes are added patch it
+    // TODO otherwise remove those content for other table and patch it
+    // For example while patching there can a step removed, if patch it in Protocol its removed but will it be removed from NextStep tables
+    
 // Update a response protocol
 export const updateResponseProtocol = async (req: Request, res: Response) => {
   try {
