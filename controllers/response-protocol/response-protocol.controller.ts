@@ -286,12 +286,11 @@ export const deleteResponseProtocol = async (req: Request, res: Response) => {
     }
 
     // Soft delete by setting isActive to false
-    await prisma.responseProtocol.update({
-      where: { id },
-      data: { isActive: false }
+    await prisma.responseProtocol.delete({
+      where: { id }
     });
 
-    res.status(204).json({ message: "Response Protocol deleted successfully."});
+    res.status(200).json({ message: "Response Protocol deleted successfully."});
   } catch (error) {
     console.error('Error deleting response protocol:', error);
     res.status(500).json({ error: 'Failed to delete response protocol' });
