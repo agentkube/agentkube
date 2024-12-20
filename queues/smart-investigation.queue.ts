@@ -175,7 +175,7 @@ const worker = new Worker<SmartInvestigationJobData>(
       let allResults: StepResult[] = [];
 
       // Execute 5 investigation steps
-      const numberOfSteps = 5;
+      const numberOfSteps = 3;
       for (let i = 0; i < numberOfSteps; i++) {
         // Get next step suggestion
         const nextStep = await getNextSmartInvestigationStep(
