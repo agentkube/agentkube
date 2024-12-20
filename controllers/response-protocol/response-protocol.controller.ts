@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import prisma from '../../connectors/prisma';
 import { Prisma as PrismaClient, StepReferenceType } from '@prisma/client';
+import { parse, stringify } from 'yaml';
+// import { Step, Command } from '@prisma/client';
 // Create a new response protocol
-
 export const createResponseProtocol = async (req: Request, res: Response) => {
   try {
     const { userId, orgId, name, description, steps } = req.body;
@@ -301,5 +302,176 @@ export const deleteResponseProtocol = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting response protocol:', error);
     res.status(500).json({ error: 'Failed to delete response protocol' });
+  }
+};
+
+
+// Import YAML and create response protocol
+export const importYamlProtocol = async (req: Request, res: Response) => {
+  try {
+    const { userId, orgId, yamlContent } = req.body;
+
+    // Parse YAML content using the yaml package
+    const protocol = parse(yamlContent) as any;
+
+    // Transform YAML data to match our schema
+    const transformedData = {
+      userId,
+      orgId,
+      name: protocol.name,
+      description: protocol.description,
+      steps: protocol.steps.map((step: any) => ({
+        number: step.number,
+        title: step.title,
+        details: step.details || '',
+        commands: step.commands.map((cmd: any, cmdIndex: number) => ({
+          format: cmd.format,
+          docString: cmd.docString || '',
+          example: cmd.example || '',
+          readOnly: cmd.readOnly || false,
+          order: cmdIndex
+        })),
+        nextSteps: (step.nextSteps || []).map((next: any, nextIndex: number) => ({
+          referenceType: next.referenceType as StepReferenceType,
+          targetStepNumber: next.targetStepNumber,
+          conditions: next.conditions || [],
+          isUnconditional: next.isUnconditional || false,
+          order: nextIndex
+        }))
+      }))
+    };
+
+    // Create protocol using existing createResponseProtocol logic
+    const createdProtocol = await prisma.responseProtocol.create({
+      data: {
+        name: transformedData.name,
+        description: transformedData.description,
+        organization: {
+          connect: { id: orgId }
+        },
+        createdBy: {
+          connect: { id: userId }
+        },
+        steps: {
+          create: transformedData.steps.map((step: any) => ({
+            number: step.number,
+            title: step.title,
+            details: step.details,
+            commands: {
+              create: step.commands
+            },
+            nextSteps: {
+              create: step.nextSteps
+            }
+          }))
+        }
+      },
+      include: {
+        steps: {
+          include: {
+            commands: {
+              orderBy: {
+                order: 'asc'
+              }
+            },
+            nextSteps: {
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          }
+        }
+      }
+    });
+
+    res.status(201).json({
+      message: `Response protocol ${createdProtocol.id} created successfully from YAML`,
+      protocol: createdProtocol
+    });
+  } catch (error) {
+    console.error('Error importing YAML protocol:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ error: `Failed to import YAML protocol: ${error.message}` });
+    } else {
+      res.status(500).json({ error: 'Failed to import YAML protocol' });
+    }
+  }
+};
+
+// Export response protocol as YAML
+export const exportYamlProtocol = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch protocol with all related data
+    const protocol = await prisma.responseProtocol.findUnique({
+      where: { id },
+      include: {
+        steps: {
+          include: {
+            commands: {
+              orderBy: {
+                order: 'asc'
+              }
+            },
+            nextSteps: {
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          },
+          orderBy: {
+            number: 'asc'
+          }
+        }
+      }
+    });
+
+    if (!protocol) {
+      res.status(404).json({ error: 'Response protocol not found' });
+      return;
+    }
+
+    // Transform data for YAML export
+    const yamlData = {
+      name: protocol.name,
+      description: protocol.description,
+      steps: protocol.steps.map(step => ({
+        title: step.title,
+        number: step.number,
+        details: step.details,
+        commands: step.commands.map(cmd => ({
+          docString: cmd.docString,
+          example: cmd.example,
+          format: cmd.format,
+          readOnly: cmd.readOnly
+        })),
+        nextSteps: step.nextSteps.map(next => ({
+          referenceType: next.referenceType,
+          conditions: next.conditions,
+          isUnconditional: next.isUnconditional,
+          ...(next.targetStepNumber && { targetStepNumber: next.targetStepNumber })
+        }))
+      }))
+    };
+
+    // Convert to YAML using the yaml package
+    const yamlContent = stringify(yamlData, {
+      indent: 2,
+      lineWidth: -1  // Don't wrap lines
+    });
+
+    // Set headers for YAML download
+    res.setHeader('Content-Type', 'text/yaml');
+    res.setHeader('Content-Disposition', `attachment; filename="protocol-${id}.yaml"`);
+    res.send(yamlContent);
+
+  } catch (error) {
+    console.error('Error exporting protocol as YAML:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ error: `Failed to export protocol as YAML: ${error.message}` });
+    } else {
+      res.status(500).json({ error: 'Failed to export protocol as YAML' });
+    }
   }
 };

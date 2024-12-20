@@ -4,8 +4,11 @@ import prisma from '../../connectors/prisma';
 import { investigationQueue } from '../../queues/queue';
 import { InvestigationStatus } from '../../types/investigation.types';
 import { furtherInvestigationQueue } from '../../queues/further-investigate.queue';
+import { smartInvestigationQueue } from '../../queues/smart-investigation.queue';
 import { parseSummary } from '../../utils/parse_intent_summary';
-
+import { OpenAIModel } from '../../services/openai/openai.services'
+import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { InvestigationType, Prisma } from '@prisma/client';
 // Create a new investigation
 export const createInvestigation = async (req: Request, res: Response) => {
   try {
@@ -389,35 +392,149 @@ export const cancelInvestigation = async (req: Request, res: Response) => {
 // Smart investigation
 export const SmartInvestigation = async (req: Request, res: Response) => {
   try {
-  
-    const { clusterId, userId } = req.body;
+    const { clusterId, userId, message } = req.body;
 
-    
-    if (!userId || !clusterId) {
+    console.log(req.body);
+
+    // Validate request
+    if (!clusterId || !userId) {
       res.status(400).json({
         error: 'Missing required fields: clusterId and user authentication are required'
       });
       return;
     }
 
-    const cluster = await prisma.cluster.findUnique({
-      where: { id: clusterId },
-    });
-
-    if (!cluster) {
-      res.status(404).json({
-        error: 'cluster not found'
+    if (!message) {
+      res.status(400).json({
+        error: 'Message is required to understand what to investigate'
       });
       return;
     }
 
-    
+    // Get cluster and verify access
+    const cluster = await prisma.cluster.findUnique({
+      where: { id: clusterId },
+      include: {
+        apiKey: {
+          include: {
+            user: {
+              include: {
+                members: true
+              }
+            }
+          }
+        }
+      }
+    });
 
+    if (!cluster) {
+      res.status(404).json({
+        error: 'Cluster not found'
+      });
+      return;
+    }
+
+    // Verify user has access to the cluster's organization
+    const hasAccess = cluster.apiKey.user.members.some(
+      member => member.userId === userId
+    );
+
+    if (!hasAccess) {
+      res.status(403).json({
+        error: 'You do not have access to this cluster'
+      });
+      return;
+    }
+
+    // Check cluster status
+    if (cluster.status !== 'ACTIVE') {
+      res.status(400).json({
+        error: 'Cluster is not active'
+      });
+      return;
+    }
+
+    // Generate investigation name and description using OpenAI
+    const prompt = `Given this Kubernetes investigation request: "${message}"
+    Generate a JSON response with:
+    1. A concise name (max 60 chars) summarizing the investigation focus
+    2. A detailed description (1-2 sentences) explaining what will be investigated and why
+    Format: {"name": "string", "description": "string"}`;
+
+    const result = await OpenAIModel.invoke([
+      new SystemMessage("You are a Kubernetes expert helping to name and describe cluster investigations. Be technical but clear."),
+      new HumanMessage(prompt)
+    ]);
+
+    let investigationName = 'Smart Cluster Investigation';
+    let investigationDescription = 'Automated investigation of cluster state and potential issues';
+
+    try {
+      const parsed = JSON.parse(result.content as string);
+      investigationName = parsed.name;
+      investigationDescription = parsed.description;
+    } catch (error) {
+      console.error('Failed to parse OpenAI response, using default name and description:', error);
+    }
+
+    // Prepare the serialized results
+    const serializedResults = {
+      steps: [],
+      status: 'PENDING',
+      startedAt: new Date().toISOString(),
+      investigationFocus: message,
+      metadata: {
+        originalMessage: message,
+        createdBy: userId,
+        clusterName: cluster.clusterName,
+        generatedName: investigationName,
+        generatedDescription: investigationDescription
+      }
+    };
+
+    const createData: Prisma.InvestigationUncheckedCreateInput = {
+      type: InvestigationType.SMART,
+      name: investigationName,
+      description: investigationDescription,
+      status: 'PENDING',
+      currentStepNumber: 1,
+      results: serializedResults,
+      clusterId,
+      protocolId: "cm4m854v700020xszsprbnv46"
+    };
+
+    // Create smart investigation
+    const investigation = await prisma.investigation.create({
+      data: createData,
+      include: {
+        cluster: true
+      }
+    });
+
+
+
+    // Add to queue with special flag for smart investigation and message
+    const job = await smartInvestigationQueue.add('smart-investigate', {
+      investigationId: investigation.id,
+      clusterId,
+      message,
+      results: {
+        steps: []
+      }
+    });
+
+    res.status(201).json({
+      message: 'Smart investigation created successfully',
+      investigation,
+      jobId: job.id,
+      focus: message
+    });
 
   } catch (error) {
-    console.error('Failed to cancel investigation:', error);
+    console.error('Failed to create smart investigation:', error);
     res.status(500).json({
-      error: 'Failed to cancel investigation'
+      error: 'Failed to create smart investigation',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };

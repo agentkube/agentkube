@@ -7,130 +7,127 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
-
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  password      String    // Hashed password
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  role          UserRole       @default(USER)
-  apiKeys       ApiKey[]
-  members       Member[]       // Organizations user belongs to
-  sentInvites   Invite[]       @relation("Inviter")
-  receivedInvites Invite[]     @relation("InviteEmail")
-  subscription  Subscription?
+  id                String             @id @default(cuid())
+  email             String             @unique
+  name              String?
+  password          String // Hashed password
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  role              UserRole           @default(USER)
+  apiKeys           ApiKey[]
+  members           Member[] // Organizations user belongs to
+  sentInvites       Invite[]           @relation("Inviter")
+  receivedInvites   Invite[]           @relation("InviteEmail")
+  subscription      Subscription?
   responseProtocols ResponseProtocol[]
-  
+
   @@map("users")
 }
 
 model Organization {
-  id        String    @id @default(cuid())
-  name      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  members   Member[]
-  invites   Invite[]
+  id                String             @id @default(cuid())
+  name              String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  members           Member[]
+  invites           Invite[]
   responseProtocols ResponseProtocol[]
 
   @@map("organizations")
 }
 
-
 model Member {
-  id        String    @id @default(cuid())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  id           String       @id @default(cuid())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId     String
-  role      MemberRole
-  joinedAt  DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  orgId        String
+  role         MemberRole
+  joinedAt     DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@unique([userId, orgId])
   @@map("members")
 }
 
 model Invite {
-  id        String      @id @default(cuid())
-  email     String
+  id           String       @id @default(cuid())
+  email        String
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId     String
-  inviter   User        @relation("Inviter", fields: [inviterId], references: [id])
-  inviterId String
-  invitedUser User?     @relation("InviteEmail", fields: [email], references: [email])
-  role      MemberRole
-  token     String      @unique
-  expiresAt DateTime
-  createdAt DateTime    @default(now())
-  status    InviteStatus @default(PENDING)
+  orgId        String
+  inviter      User         @relation("Inviter", fields: [inviterId], references: [id])
+  inviterId    String
+  invitedUser  User?        @relation("InviteEmail", fields: [email], references: [email])
+  role         MemberRole
+  token        String       @unique
+  expiresAt    DateTime
+  createdAt    DateTime     @default(now())
+  status       InviteStatus @default(PENDING)
 
   @@map("invites")
 }
 
 model ApiKey {
-  id          String    @id @default(cuid())
-  key         String    @unique
-  name        String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  createdAt   DateTime  @default(now())
-  lastUsedAt  DateTime?
-  expiresAt   DateTime?
-  isActive    Boolean   @default(true)
-  cluster     Cluster?
+  id         String    @id @default(cuid())
+  key        String    @unique
+  name       String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  isActive   Boolean   @default(true)
+  cluster    Cluster?
 
   @@map("api_keys")
 }
 
 model Cluster {
-  id                String        @id @default(cuid())
-  clusterName       String
-  accessType        AccessType    @default(READ_ONLY)
-  externalEndpoint  String
-  apiKey           ApiKey        @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-  apiKeyId         String        @unique
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id               String          @id @default(cuid())
+  clusterName      String
+  accessType       AccessType      @default(READ_ONLY)
+  externalEndpoint String
+  apiKey           ApiKey          @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKeyId         String          @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   lastHeartbeat    DateTime?
-  status           ClusterStatus @default(PENDING)
+  status           ClusterStatus   @default(PENDING)
   investigations   Investigation[]
 
   @@map("clusters")
 }
 
 model Plan {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
   planType      PlanType
   monthlyPrice  Decimal
   yearlyPrice   Decimal
   maxClusters   Int
-  isPopular     Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  isPopular     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
 
   @@map("plans")
 }
 
 model Subscription {
-  id          String            @id @default(cuid())
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String            @unique
-  plan        Plan              @relation(fields: [planId], references: [id])
-  planId      String
+  id            String             @id @default(cuid())
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String             @unique
+  plan          Plan               @relation(fields: [planId], references: [id])
+  planId        String
   billingPeriod BillingPeriod
-  startDate   DateTime
-  endDate     DateTime?
-  status      SubscriptionStatus
-  amount      Decimal
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  canceledAt  DateTime?
+  startDate     DateTime
+  endDate       DateTime?
+  status        SubscriptionStatus
+  amount        Decimal
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  canceledAt    DateTime?
 
   @@map("subscriptions")
 }
@@ -184,7 +181,6 @@ enum SubscriptionStatus {
   PAST_DUE
 }
 
-
 // Response Protocol
 enum StepReferenceType {
   STEP
@@ -193,34 +189,34 @@ enum StepReferenceType {
 }
 
 model ResponseProtocol {
-  id          String         @id @default(cuid())
-  name        String
-  description String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  steps       Step[]
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId       String
-  createdBy   User          @relation(fields: [userId], references: [id])
-  userId      String
-  isActive    Boolean       @default(true)
-  version     Int           @default(1)
-  investigations Investigation[] 
-  
+  id             String          @id @default(cuid())
+  name           String
+  description    String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  steps          Step[]
+  organization   Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId          String
+  createdBy      User            @relation(fields: [userId], references: [id])
+  userId         String
+  isActive       Boolean         @default(true)
+  version        Int             @default(1)
+  investigations Investigation[]
+
   @@map("response_protocols")
 }
 
 model Step {
-  id          String          @id @default(cuid())
-  number      Int
-  title       String
-  details     String          @db.Text // Using Text for potentially longer content
-  protocol    ResponseProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
-  protocolId  String
-  commands    Command[]
-  nextSteps   NextStep[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id         String           @id @default(cuid())
+  number     Int
+  title      String
+  details    String           @db.Text // Using Text for potentially longer content
+  protocol   ResponseProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  protocolId String
+  commands   Command[]
+  nextSteps  NextStep[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@unique([protocolId, number])
   @@index([number])
@@ -228,48 +224,56 @@ model Step {
 }
 
 model Command {
-  id          String    @id @default(cuid())
-  format      String
-  docString   String    @db.Text
-  example     String
-  readOnly    Boolean   @default(false)
-  step        Step      @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  stepId      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  order       Int       @default(0)
+  id        String   @id @default(cuid())
+  format    String
+  docString String   @db.Text
+  example   String
+  readOnly  Boolean  @default(false)
+  step      Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  stepId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Int      @default(0)
 
   @@index([stepId])
   @@map("commands")
 }
 
 model NextStep {
-  id              String            @id @default(cuid())
-  referenceType   StepReferenceType
-  targetStepNumber Int?            // For referencing other steps
-  conditions      String[]          // Array of condition strings
-  isUnconditional Boolean          @default(false)
-  step            Step             @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  stepId          String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  order           Int              @default(0)
+  id               String            @id @default(cuid())
+  referenceType    StepReferenceType
+  targetStepNumber Int? // For referencing other steps
+  conditions       String[] // Array of condition strings
+  isUnconditional  Boolean           @default(false)
+  step             Step              @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  stepId           String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  order            Int               @default(0)
 
   @@index([stepId])
   @@map("next_steps")
 }
 
+enum InvestigationType {
+  PROTOCOL_BASED
+  SMART
+}
+
 model Investigation {
   id                String           @id @default(cuid())
+  type              InvestigationType @default(PROTOCOL_BASED)
   protocol          ResponseProtocol @relation(fields: [protocolId], references: [id])
   protocolId        String
-  cluster           Cluster         @relation(fields: [clusterId], references: [id])
+  cluster           Cluster          @relation(fields: [clusterId], references: [id])
   clusterId         String
-  status            String          @default("PENDING")
-  currentStepNumber Int             @default(1)
+  status            String           @default("PENDING")
+  currentStepNumber Int              @default(1)
   results           Json?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  name              String? // For smart investigations
+  description       String? // For smart investigations
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@map("investigations")
 }

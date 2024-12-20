@@ -34,6 +34,7 @@
     "ioredis": "^5.4.1",
     "morgan": "^1.10.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "yaml": "^2.6.1"
   }
 }

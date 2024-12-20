@@ -76,6 +76,8 @@ router.get('/organizations/:orgId/protocols', responseProtocolController.getOrga
 router.get('/protocols/:id', responseProtocolController.getResponseProtocol);
 router.patch('/protocols/:id', responseProtocolController.updateResponseProtocol);
 router.delete('/protocols/:id', responseProtocolController.deleteResponseProtocol);
+router.post('/protocols/import-yaml', responseProtocolController.importYamlProtocol);
+router.get('/protocols/:id/export-yaml', responseProtocolController.exportYamlProtocol);
 
 
 // Investigation routes
@@ -84,7 +86,7 @@ router.post('/investigations/:id', investigationController.getInvestigation);
 router.get('/organizations/:orgId/investigations', investigationController.getOrganizationInvestigations);
 router.post('/investigations/:id/cancel', investigationController.cancelInvestigation);
 router.post('/investigations/:id/further-investigate', investigationController.FurtherInvestigate);
-
+router.post('/investigation/smart-investigate', investigationController.SmartInvestigation);
 
 // Investigation -> Chat routes 
 router.post('/investigation/summary', chatController.getInvestigationSummary);

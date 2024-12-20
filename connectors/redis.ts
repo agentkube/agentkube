@@ -1,9 +1,25 @@
-import Redis from 'ioredis';
+// connectors/redis.ts
+import IORedis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redisOptions = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null, 
+  enableReadyCheck: false,    
+  retryStrategy: (times: number) => {
+    if (times > 3) {
+      return null; 
+    }
+    return Math.min(times * 1000, 3000); 
+  }
+};
 
+const redis = new IORedis(redisOptions);
+
+// Handle connection events
 redis.on('connect', () => {
-  console.log('Successfully connected to Redis');
+  console.log('Connected to Redis');
 });
 
 redis.on('error', (error) => {
@@ -11,3 +27,4 @@ redis.on('error', (error) => {
 });
 
 export default redis;
+export { redisOptions };
