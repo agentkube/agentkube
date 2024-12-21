@@ -8,6 +8,7 @@ import * as chatController from '../controllers/chat/chat.controller';
 import sseMiddleware from '../middleware/sse.middleware';
 import * as responseProtocolController from '../controllers/response-protocol/response-protocol.controller';
 import * as investigationController from '../controllers/investigate/investigate.controller';
+import * as shareController from '../controllers/share/share.controller';
 
 // import { validateApiKey } from '../middleware/auth';
 
@@ -87,6 +88,12 @@ router.get('/organizations/:orgId/investigations', investigationController.getOr
 router.post('/investigations/:id/cancel', investigationController.cancelInvestigation);
 router.post('/investigations/:id/further-investigate', investigationController.FurtherInvestigate);
 router.post('/investigation/smart-investigate', investigationController.SmartInvestigation);
+
+
+// Share Routes
+router.post('/investigation/create-link', shareController.createShareableLink);
+router.get('/investigation/share/:shareToken', shareController.getSharedInvestigation);
+router.post('/investigation/share/:shareToken/revoke', shareController.revokeShareableLink);
 
 // Investigation -> Chat routes 
 router.post('/investigation/summary', chatController.getInvestigationSummary);

@@ -91,6 +91,8 @@ const worker = new Worker<InvestigationJobData, JobCompletionResult>(
         for (const command of currentStep.commands) {
 
           // TODO the command that is provided is valid kubectl command or suggested one
+          // TODO format is the suggestion that is needed
+          // Suggestion are based on docString, example and format, if it's runnable kubectl command then we run it.
 
           const executionResult = await executeClusterCommand(
             command.format.split(" ").slice(1),

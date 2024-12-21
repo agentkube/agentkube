@@ -8,19 +8,20 @@ generator client {
 }
 
 model User {
-  id                String             @id @default(cuid())
-  email             String             @unique
-  name              String?
-  password          String // Hashed password
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  role              UserRole           @default(USER)
-  apiKeys           ApiKey[]
-  members           Member[] // Organizations user belongs to
-  sentInvites       Invite[]           @relation("Inviter")
-  receivedInvites   Invite[]           @relation("InviteEmail")
-  subscription      Subscription?
-  responseProtocols ResponseProtocol[]
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  name                 String?
+  password             String // Hashed password
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  role                 UserRole              @default(USER)
+  apiKeys              ApiKey[]
+  members              Member[] // Organizations user belongs to
+  sentInvites          Invite[]              @relation("Inviter")
+  receivedInvites      Invite[]              @relation("InviteEmail")
+  subscription         Subscription?
+  responseProtocols    ResponseProtocol[]
+  sharedInvestigations SharedInvestigation[]
 
   @@map("users")
 }
@@ -261,19 +262,35 @@ enum InvestigationType {
 }
 
 model Investigation {
-  id                String           @id @default(cuid())
-  type              InvestigationType @default(PROTOCOL_BASED)
-  protocol          ResponseProtocol @relation(fields: [protocolId], references: [id])
+  id                String                @id @default(cuid())
+  type              InvestigationType     @default(PROTOCOL_BASED)
+  protocol          ResponseProtocol      @relation(fields: [protocolId], references: [id])
   protocolId        String
-  cluster           Cluster          @relation(fields: [clusterId], references: [id])
+  cluster           Cluster               @relation(fields: [clusterId], references: [id])
   clusterId         String
-  status            String           @default("PENDING")
-  currentStepNumber Int              @default(1)
+  status            String                @default("PENDING")
+  currentStepNumber Int                   @default(1)
   results           Json?
   name              String? // For smart investigations
   description       String? // For smart investigations
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  sharedLinks       SharedInvestigation[]
 
   @@map("investigations")
+}
+
+model SharedInvestigation {
+  id              String        @id @default(cuid())
+  shareToken      String        @unique
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  investigationId String
+  createdBy       User          @relation(fields: [userId], references: [id])
+  userId          String
+  createdAt       DateTime      @default(now())
+  expiresAt       DateTime?
+  isActive        Boolean       @default(true)
+  viewCount       Int           @default(0)
+
+  @@map("shared_investigations")
 }
