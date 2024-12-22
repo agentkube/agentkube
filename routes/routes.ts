@@ -9,6 +9,7 @@ import sseMiddleware from '../middleware/sse.middleware';
 import * as responseProtocolController from '../controllers/response-protocol/response-protocol.controller';
 import * as investigationController from '../controllers/investigate/investigate.controller';
 import * as shareController from '../controllers/share/share.controller';
+import * as docusignController from '../controllers/docusign/docusign.controller';
 
 // import { validateApiKey } from '../middleware/auth';
 
@@ -97,6 +98,13 @@ router.post('/investigation/share/:shareToken/revoke', shareController.revokeSha
 
 // Investigation -> Chat routes 
 router.post('/investigation/summary', chatController.getInvestigationSummary);
+
+
+router.get('/docusign/consent', docusignController.getConsentUrl);
+router.post('/docusign/token', docusignController.getAccessToken);
+router.post('/docusign/userinfo', docusignController.getUserInfo);
+// router.post('/docusign/userinfo', docusignController.getDocuSignUserInfo);
+
 
 
 export default router;
