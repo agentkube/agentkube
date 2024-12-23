@@ -100,9 +100,10 @@ router.post('/investigation/share/:shareToken/revoke', shareController.revokeSha
 router.post('/investigation/summary', chatController.getInvestigationSummary);
 
 
-router.get('/docusign/consent', docusignController.getConsentUrl);
+router.post('/docusign/consent', docusignController.getConsentUrl);
 router.post('/docusign/token', docusignController.getAccessToken);
 router.post('/docusign/userinfo', docusignController.getUserInfo);
+router.post('/docusign/sendenvelope', docusignController.sendEnvelopeREST);
 // router.post('/docusign/userinfo', docusignController.getDocuSignUserInfo);
 
 
