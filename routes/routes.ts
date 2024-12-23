@@ -10,6 +10,7 @@ import * as responseProtocolController from '../controllers/response-protocol/re
 import * as investigationController from '../controllers/investigate/investigate.controller';
 import * as shareController from '../controllers/share/share.controller';
 import * as docusignController from '../controllers/docusign/docusign.controller';
+import * as alertController from '../controllers/alerts/alerts.controller';
 
 // import { validateApiKey } from '../middleware/auth';
 
@@ -106,6 +107,11 @@ router.post('/docusign/userinfo', docusignController.getUserInfo);
 router.post('/docusign/sendenvelope', docusignController.sendEnvelopeREST);
 // router.post('/docusign/userinfo', docusignController.getDocuSignUserInfo);
 
-
+// alert routes
+router.post('/organizations/:orgId/alerts', alertController.createAlertIntegration);
+router.get('/organizations/:orgId/alerts', alertController.getOrganizationAlertIntegrations);
+router.patch('/alerts/:id', alertController.updateAlertIntegration);
+router.delete('/alerts/:id', alertController.deleteAlertIntegration);
+router.post('/alerts/:id/test', alertController.testAlertIntegration);
 
 export default router;

@@ -34,6 +34,7 @@ model Organization {
   members           Member[]
   invites           Invite[]
   responseProtocols ResponseProtocol[]
+  alertConfigurations AlertConfiguration[]
 
   @@map("organizations")
 }
@@ -293,4 +294,40 @@ model SharedInvestigation {
   viewCount       Int           @default(0)
 
   @@map("shared_investigations")
+}
+
+
+enum AlertIntegrationType {
+  SLACK
+  TEAMS
+  DISCORD
+  MATTERMOST
+  ROCKETCHAT
+  PAGERDUTY
+  OPSGENIE
+  VICTOROPS
+  SERVICENOW
+  DATADOG
+  NEWRELIC
+  PROMETHEUS
+  EMAIL
+  JIRA
+  LINEAR
+  MONDAY
+  WEBHOOK
+}
+
+model AlertConfiguration {
+  id             String             @id @default(cuid())
+  name           String
+  type           AlertIntegrationType
+  config         Json               
+  enabled        Boolean            @default(true)
+  organization   Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([orgId])
+  @@map("alert_configurations")
 }
