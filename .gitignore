@@ -173,3 +173,4 @@ storage
 prisma/migrations
 
 keys
+.env.production
