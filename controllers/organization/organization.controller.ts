@@ -109,6 +109,10 @@ export const getOrganizationById = async (req: Request, res: Response) => {
             token: true,
             status: true,
           },
+          distinct: ["email"],
+          orderBy: {
+            createdAt: "desc",
+          },
         },
       },
     });
@@ -120,7 +124,7 @@ export const getOrganizationById = async (req: Request, res: Response) => {
 
     const transformedOrg = {
       ...organization,
-      members: organization?.members.map((member) => ({
+      members: organization.members.map((member) => ({
         ...member,
         status: organization.invites.some(
           (invite) => invite.email === member.user.email
@@ -359,8 +363,17 @@ export const addMember = async (req: Request, res: Response) => {
     const { orgId } = req.params;
     const { email, role, inviterId } = req.body;
 
-    // Transaction to handle user creation/invite/member
     const result = await prisma.$transaction(async (prisma) => {
+      // Check for existing pending invite
+      const existingInvite = await prisma.invite.findFirst({
+        where: {
+          email,
+          orgId,
+          inviterId,
+          status: "PENDING",
+        },
+      });
+
       // Check/create user
       let user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
@@ -373,24 +386,30 @@ export const addMember = async (req: Request, res: Response) => {
         });
       }
 
-      // Create member with PENDING status
-      const member = await prisma.member.create({
-        data: {
+      // Create or update member
+      const member = await prisma.member.upsert({
+        where: {
+          userId_orgId: {
+            userId: user.id,
+            orgId,
+          },
+        },
+        update: { role },
+        create: {
           userId: user.id,
           orgId,
           role,
         },
       });
 
-      // Create invite
-      const token = randomBytes(32).toString("hex");
-      const invite = await prisma.invite.create({
+      // Reuse existing token or create new invite
+      const invite = existingInvite || await prisma.invite.create({
         data: {
           email,
           orgId,
           inviterId,
           role,
-          token,
+          token: randomBytes(32).toString("hex"),
           expiresAt: addDays(new Date(), 7),
           status: "PENDING",
         },
@@ -416,15 +435,28 @@ export const addMember = async (req: Request, res: Response) => {
   }
 };
 
+
 // Join organization through invite link
 export const joinOrganization = async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    const { userId } = req.body;
+    const { email } = req.body;
 
-    // Find and validate invite
+    // Get user first
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
     const invite = await prisma.invite.findUnique({
       where: { token },
+      include: {
+        organization: true
+      }
     });
 
     if (!invite) {
@@ -437,30 +469,41 @@ export const joinOrganization = async (req: Request, res: Response) => {
       return;
     }
 
+    if (invite.email !== email) {
+      res.status(400).json({ error: "Email does not match invite" });
+      return;
+    }
+
     if (invite.expiresAt < new Date()) {
       await prisma.invite.update({
         where: { id: invite.id },
-        data: { status: "EXPIRED" },
+        data: { status: "EXPIRED" }
       });
       res.status(400).json({ error: "Invite has expired" });
       return;
     }
 
-    // Add member and update invite status in a transaction
     const result = await prisma.$transaction(async (prisma) => {
-      // Create member
-      const member = await prisma.member.create({
-        data: {
-          userId,
-          orgId: invite.orgId,
-          role: invite.role,
+      const member = await prisma.member.upsert({
+        where: {
+          userId_orgId: {
+            userId: user.id,
+            orgId: invite.orgId
+          }
         },
+        update: {
+          role: invite.role
+        },
+        create: {
+          userId: user.id,
+          orgId: invite.orgId,
+          role: invite.role
+        }
       });
 
-      // Update invite status
       await prisma.invite.update({
         where: { id: invite.id },
-        data: { status: "ACCEPTED" },
+        data: { status: "ACCEPTED" }
       });
 
       return member;
