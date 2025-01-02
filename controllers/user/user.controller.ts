@@ -192,7 +192,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const getUserByEmail = async (req: Request, res: Response) => {
   try {
-    const { email } = req.params;
+    const { email } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { email },

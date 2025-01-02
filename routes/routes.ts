@@ -19,6 +19,7 @@ const router = Router();
 // User routes
 router.post('/users', userController.createUser);
 router.get('/users', userController.getUsers);
+router.post('/user/email', userController.getUserByEmail);
 router.get('/users/:id', userController.getUserById);
 router.put('/users/:id', userController.updateUser);
 router.delete('/users/:id', userController.deleteUser);

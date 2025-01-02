@@ -27,6 +27,10 @@ ENV NODE_ENV=production \
     REDIS_PORT=$REDIS_PORT \
     REDIS_URL=$REDIS_URL
 
+
 EXPOSE 8765
 
-CMD ["bun", "run", "src/index.ts"]
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]
