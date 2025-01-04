@@ -204,7 +204,8 @@ model ResponseProtocol {
   isActive       Boolean         @default(true)
   version        Int             @default(1)
   investigations Investigation[]
-
+  stats ResponseProtocolStats?
+  
   @@map("response_protocols")
 }
 
@@ -330,4 +331,21 @@ model AlertConfiguration {
 
   @@index([orgId])
   @@map("alert_configurations")
+}
+
+model ResponseProtocolStats {
+  id                   String           @id @default(cuid())
+  protocol             ResponseProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  protocolId           String           @unique
+  totalExecutions      Int              @default(0)
+  lastExecutionStatus  String?          // PENDING, COMPLETED, FAILED, etc.
+  lastExecutionTime    DateTime?
+  successfulExecutions Int              @default(0)
+  failedExecutions     Int              @default(0)
+  pendingExecutions    Int              @default(0)
+  averageExecutionTime Float?           // in seconds
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("response_protocol_stats")
 }

@@ -11,6 +11,7 @@ import {
   InvestigationResult,
 } from "../types/investigation.types";
 import { generateInvestigationSummary } from "../utils/investigation_summary";
+import { updateProtocolStats } from "controllers/response-protocol/response-protocol-stats";
 // Create queue instance
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -171,7 +172,6 @@ const worker = new Worker<InvestigationJobData, JobCompletionResult>(
           currentStep.number
         );
 
-        await delay(30000);
         // console.log(stepResults)
 
       } // END OF STEPS
@@ -285,10 +285,17 @@ export async function updateInvestigationStatus(
   //   updateData.completedAt = new Date();
   // }
 
-  await prisma.investigation.update({
+  const investigation = await prisma.investigation.update({
     where: { id: investigationId },
     data: updateData,
+    select: {
+      protocolId: true
+    }
   });
+
+  if (status === 'COMPLETED' || status === 'FAILED') {
+    await updateProtocolStats(investigation.protocolId);
+  }
 }
 
 // Helper function to evaluate conditions

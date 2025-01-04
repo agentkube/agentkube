@@ -82,6 +82,7 @@ router.patch('/protocols/:id', responseProtocolController.updateResponseProtocol
 router.delete('/protocols/:id', responseProtocolController.deleteResponseProtocol);
 router.post('/protocols/import-yaml', responseProtocolController.importYamlProtocol);
 router.get('/protocols/:id/export-yaml', responseProtocolController.exportYamlProtocol);
+router.get('/protocols/:protocolId/stats', responseProtocolController.getProtocolStats);
 
 
 // Investigation routes

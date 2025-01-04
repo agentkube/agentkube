@@ -182,7 +182,7 @@ export const deleteUser = async (req: Request, res: Response) => {
       where: { id }
     });
 
-    res.status(204).send();
+    res.status(200).send({ message: "user has been deleted."});
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ error: 'Failed to delete user' });

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../../connectors/prisma';
 import { Prisma as PrismaClient, StepReferenceType } from '@prisma/client';
 import { parse, stringify } from 'yaml';
+import { updateProtocolStats } from './response-protocol-stats';
 // import { Step, Command } from '@prisma/client';
 // Create a new response protocol
 export const createResponseProtocol = async (req: Request, res: Response) => {
@@ -188,7 +189,8 @@ export const getResponseProtocol = async (req: Request, res: Response) => {
             name: true,
             email: true
           }
-        }
+        },
+        stats: true
       }
     });
 
@@ -473,5 +475,35 @@ export const exportYamlProtocol = async (req: Request, res: Response) => {
     } else {
       res.status(500).json({ error: 'Failed to export protocol as YAML' });
     }
+  }
+};
+
+
+export const getProtocolStats = async (req: Request, res: Response) => {
+  try {
+    const { protocolId } = req.params;
+
+    // Get or create stats
+    const stats = await prisma.responseProtocolStats.findUnique({
+      where: {
+        protocolId,
+      },
+    });
+
+    if (!stats) {
+      // If no stats exist, calculate them now
+      await updateProtocolStats(protocolId);
+      const freshStats = await prisma.responseProtocolStats.findUnique({
+        where: {
+          protocolId,
+        },
+      });
+      res.json(freshStats);
+    } else {
+      res.json(stats);
+    }
+  } catch (error) {
+    console.error('Error fetching protocol stats:', error);
+    res.status(500).json({ error: 'Failed to fetch protocol statistics' });
   }
 };
