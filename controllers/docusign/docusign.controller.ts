@@ -215,14 +215,14 @@ export const sendEnvelopeREST = async (
         <body>
           <div class="header">
             <h1>Investigation Report</h1>
-            <p>Protocol: ${investigation.protocol.name}</p>
+            <p>Protocol: ${investigation.protocol?.name}</p>
             <p>Cluster: ${investigation.cluster.clusterName}</p>
             <p>Investigation ID: ${investigation_id}</p>
           </div>
 
           <div class="section">
             <div class="section-title">Description</div>
-            <p>${investigation.protocol.description}</p>
+            <p>${investigation.protocol?.description}</p>
           </div>
 
           <div class="section">
@@ -255,7 +255,7 @@ export const sendEnvelopeREST = async (
 
     // Create envelope payload
     const envelopePayload = {
-      emailSubject: `Investigation Report Review - ${investigation.protocol.name}`,
+      emailSubject: `Investigation Report Review - ${investigation.protocol?.name}`,
       status: 'sent',
       documents: [{
         documentBase64: Buffer.from(documentHtml).toString('base64'),
@@ -311,7 +311,7 @@ export const sendEnvelopeREST = async (
       data,
       investigation: {
         id: investigation_id,
-        name: investigation.protocol.name,
+        name: investigation.protocol?.name,
         status: status
       }
     });

@@ -176,7 +176,7 @@ export const getInvestigation = async (req: Request, res: Response) => {
       }
     });
 
-    if (!investigation || investigation.protocol.organization.members.length === 0) {
+    if (!investigation || investigation.protocol?.organization.members.length === 0) {
       res.status(404).json({
         error: 'Investigation not found'
       });
@@ -199,7 +199,7 @@ export const getInvestigation = async (req: Request, res: Response) => {
       ...investigation,
       jobState,
       progress,
-      currentStep: investigation.protocol.steps.find(
+      currentStep: investigation.protocol?.steps.find(
         step => step.number === investigation.currentStepNumber
       ),
       results: investigation.results as Record<string, any> // Type assertion for results JSON
@@ -297,7 +297,7 @@ export const getOrganizationInvestigations = async (req: Request, res: Response)
         ...investigation,
         jobState,
         progress,
-        currentStep: investigation.protocol.steps.find(
+        currentStep: investigation.protocol?.steps.find(
           step => step.number === investigation.currentStepNumber
         )
       };
@@ -344,7 +344,7 @@ export const cancelInvestigation = async (req: Request, res: Response) => {
       }
     });
 
-    if (!investigation || investigation.protocol.organization.members.length === 0) {
+    if (!investigation || investigation.protocol?.organization.members.length === 0) {
       res.status(404).json({
         error: 'Investigation not found'
       });

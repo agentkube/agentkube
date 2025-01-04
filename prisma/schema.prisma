@@ -266,8 +266,8 @@ enum InvestigationType {
 model Investigation {
   id                String                @id @default(cuid())
   type              InvestigationType     @default(PROTOCOL_BASED)
-  protocol          ResponseProtocol      @relation(fields: [protocolId], references: [id])
-  protocolId        String
+  protocol          ResponseProtocol?      @relation(fields: [protocolId], references: [id])
+  protocolId        String?
   cluster           Cluster               @relation(fields: [clusterId], references: [id])
   clusterId         String
   status            String                @default("PENDING")

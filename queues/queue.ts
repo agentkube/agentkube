@@ -294,7 +294,9 @@ export async function updateInvestigationStatus(
   });
 
   if (status === 'COMPLETED' || status === 'FAILED') {
-    await updateProtocolStats(investigation.protocolId);
+    if (investigation.protocolId){
+      await updateProtocolStats(investigation.protocolId);
+    }
   }
 }
 
