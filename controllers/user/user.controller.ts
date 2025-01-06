@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import prisma from '../../connectors/prisma';
 import bcrypt from 'bcryptjs';
+import { BillingPeriod, SubscriptionStatus, PlanType } from '@prisma/client';
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, planType = PlanType.FREE } = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -18,19 +19,43 @@ export const createUser = async (req: Request, res: Response) => {
 
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
-    // Create user
+    // Create user with subscription
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name,
+        subscription: {
+          create: {
+            plan: {
+              create: {
+                name: `${planType} Plan`,
+                planType: planType,
+                monthlyPrice: 0,
+                yearlyPrice: 0,
+                maxClusters: planType === PlanType.FREE ? 1 : 5
+              }
+            },
+            billingPeriod: BillingPeriod.MONTHLY,
+            startDate: new Date(),
+            status: SubscriptionStatus.ACTIVE,
+            amount: 0
+          }
+        }
       },
       select: {
         id: true,
         email: true,
         name: true,
         createdAt: true,
-        role: true
+        role: true,
+        subscription: {
+          select: {
+            plan: true,
+            status: true,
+            billingPeriod: true
+          }
+        }
       }
     });
 
