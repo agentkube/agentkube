@@ -32,7 +32,7 @@ router.get('/api-keys/:id', verifyAuthToken, apiKeyController.getApiKeyById);
 
 
 // Cluster registration (requires API key)
-router.post('/register-cluster', verifyAuthToken, apiKeyController.registerCluster);
+router.post('/register-cluster', apiKeyController.registerCluster);
 
 // API Key validation
 router.get('/validate-key', verifyAuthToken, apiKeyController.validateApiKey);
