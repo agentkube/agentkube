@@ -12,67 +12,67 @@ import * as shareController from '../controllers/share/share.controller';
 import * as docusignController from '../controllers/docusign/docusign.controller';
 import * as alertController from '../controllers/alerts/alerts.controller';
 // import { validateApiKey } from '../middleware/auth';
-
+import { verifyAuthToken } from 'middleware/auth.middleware';
 const router = Router();
 
 
 // User routes
-router.post('/users', userController.createUser);
-router.get('/users', userController.getUsers);
-router.post('/user/email', userController.getUserByEmail);
-router.get('/users/:id', userController.getUserById);
-router.put('/users/:id', userController.updateUser);
-router.delete('/users/:id', userController.deleteUser);
+router.post('/users', verifyAuthToken, userController.createUser);
+router.get('/users', verifyAuthToken, userController.getUsers);
+router.post('/user/email', verifyAuthToken, userController.getUserByEmail);
+router.get('/users/:id', verifyAuthToken, userController.getUserById);
+router.put('/users/:id', verifyAuthToken, userController.updateUser);
+router.delete('/users/:id', verifyAuthToken, userController.deleteUser);
 
 // API Key routes
-router.post('/api-keys', apiKeyController.createApiKey);
-router.get('/users/:userId/api-keys', apiKeyController.listApiKeys);
-router.delete('/api-keys/:id', apiKeyController.revokeApiKey);
-router.get('/api-keys/:id', apiKeyController.getApiKeyById);
+router.post('/api-keys', verifyAuthToken, apiKeyController.createApiKey);
+router.get('/users/:userId/api-keys', verifyAuthToken, apiKeyController.listApiKeys);
+router.delete('/api-keys/:id', verifyAuthToken, apiKeyController.revokeApiKey);
+router.get('/api-keys/:id', verifyAuthToken, apiKeyController.getApiKeyById);
 
 
 // Cluster registration (requires API key)
-router.post('/register-cluster', apiKeyController.registerCluster);
+router.post('/register-cluster', verifyAuthToken, apiKeyController.registerCluster);
 
 // API Key validation
-router.get('/validate-key', apiKeyController.validateApiKey);
+router.get('/validate-key', verifyAuthToken, apiKeyController.validateApiKey);
 
 
 // Organization routes
-router.post('/organizations', orgController.createOrganization);
-router.get('/organizations', orgController.getOrganizations);
-router.get('/organizations/:id', orgController.getOrganizationById);
-router.get('/organizations/user/:userId', orgController.getOrganizationsByUserId);
-router.get('/organizations/email/:email', orgController.getOrganizationsByUserEmail);
-router.delete('/organizations/:id', orgController.deleteOrganization);
-router.delete('/organizations/email/:email', orgController.deleteOrganizationsByUserEmail);
-router.patch('/organizations/:id', orgController.updateOrganization);
-router.delete('/organizations/:orgId/members/:userId', orgController.deleteMember);
-router.post('/organizations/:orgId/members', orgController.addMember);
-router.post('/organizations/join/:token', orgController.joinOrganization);
+router.post('/organizations', verifyAuthToken, orgController.createOrganization);
+router.get('/organizations', verifyAuthToken, orgController.getOrganizations);
+router.get('/organizations/:id', verifyAuthToken, orgController.getOrganizationById);
+router.get('/organizations/user/:userId', verifyAuthToken, orgController.getOrganizationsByUserId);
+router.get('/organizations/email/:email', verifyAuthToken, orgController.getOrganizationsByUserEmail);
+router.delete('/organizations/:id', verifyAuthToken, orgController.deleteOrganization);
+router.delete('/organizations/email/:email', verifyAuthToken, orgController.deleteOrganizationsByUserEmail);
+router.patch('/organizations/:id', verifyAuthToken, orgController.updateOrganization);
+router.delete('/organizations/:orgId/members/:userId', verifyAuthToken, orgController.deleteMember);
+router.post('/organizations/:orgId/members', verifyAuthToken, orgController.addMember);
+router.post('/organizations/join/:token', verifyAuthToken, orgController.joinOrganization);
 
-router.get('/members/:memberId/invite-token', orgController.getInviteTokenByMemberId);
+router.get('/members/:memberId/invite-token', verifyAuthToken, orgController.getInviteTokenByMemberId);
 
 // Cluster routes
-router.get('/organizations/:orgId/clusters', clusterController.getOrganizationClusters);
-router.get('/organizations/:orgId/users/:email/clusters', clusterController.getOrganizationClustersByEmail);
-router.delete('/clusters/:id', clusterController.removeCluster);
-router.get('/clusters/:id/health', clusterController.checkClusterHealth);
-router.get('/organizations/:orgId/clusters/health', clusterController.checkAllClustersHealth);
+router.get('/organizations/:orgId/clusters', verifyAuthToken, clusterController.getOrganizationClusters);
+router.get('/organizations/:orgId/users/:email/clusters', verifyAuthToken, clusterController.getOrganizationClustersByEmail);
+router.delete('/clusters/:id', verifyAuthToken, clusterController.removeCluster);
+router.get('/clusters/:id/health', verifyAuthToken, clusterController.checkClusterHealth);
+router.get('/organizations/:orgId/clusters/health', verifyAuthToken, clusterController.checkAllClustersHealth);
 
 
 // Billing routes
-router.get('/users/:userId/subscription', billingController.getUserSubscription);
-router.patch('/users/:userId/subscription', billingController.updateSubscription);
-router.post('/users/:userId/subscription/cancel', billingController.cancelSubscription);
-router.delete('/users/:userId/subscription', billingController.deleteSubscription);
+router.get('/users/:userId/subscription', verifyAuthToken, billingController.getUserSubscription);
+router.patch('/users/:userId/subscription', verifyAuthToken, billingController.updateSubscription);
+router.post('/users/:userId/subscription/cancel', verifyAuthToken, billingController.cancelSubscription);
+router.delete('/users/:userId/subscription', verifyAuthToken, billingController.deleteSubscription);
 
 
 // Chat routes
-router.post('/chat', chatController.chat);
-router.post('/chat/stream', sseMiddleware, chatController.chatStream);
-router.post('/chat/parse-intent', chatController.parseIntent);
-router.post('/chat/test-stream', sseMiddleware, chatController.testChatStream);
+router.post('/chat', verifyAuthToken, chatController.chat);
+router.post('/chat/stream', sseMiddleware, verifyAuthToken, chatController.chatStream);
+router.post('/chat/parse-intent', verifyAuthToken, chatController.parseIntent);
+router.post('/chat/test-stream', sseMiddleware, verifyAuthToken, chatController.testChatStream);
 
 // Response Protocol routes
 router.post('/organizations/protocols', responseProtocolController.createResponseProtocol);
@@ -86,12 +86,12 @@ router.get('/protocols/:protocolId/stats', responseProtocolController.getProtoco
 
 
 // Investigation routes
-router.post('/investigations', investigationController.createInvestigation);
-router.post('/investigations/:id', investigationController.getInvestigation);
-router.get('/organizations/:orgId/investigations', investigationController.getOrganizationInvestigations);
-router.post('/investigations/:id/cancel', investigationController.cancelInvestigation);
-router.post('/investigations/:id/further-investigate', investigationController.FurtherInvestigate);
-router.post('/investigation/smart-investigate', investigationController.SmartInvestigation);
+router.post('/investigations', verifyAuthToken, investigationController.createInvestigation);
+router.post('/investigations/:id', verifyAuthToken, investigationController.getInvestigation);
+router.get('/organizations/:orgId/investigations', verifyAuthToken, investigationController.getOrganizationInvestigations);
+router.post('/investigations/:id/cancel', verifyAuthToken, investigationController.cancelInvestigation);
+router.post('/investigations/:id/further-investigate', verifyAuthToken, investigationController.FurtherInvestigate);
+router.post('/investigation/smart-investigate', verifyAuthToken, investigationController.SmartInvestigation);
 
 
 // Share Routes
@@ -100,20 +100,20 @@ router.get('/investigation/share/:shareToken', shareController.getSharedInvestig
 router.post('/investigation/share/:shareToken/revoke', shareController.revokeShareableLink);
 
 // Investigation -> Chat routes 
-router.post('/investigation/summary', chatController.getInvestigationSummary);
+router.post('/investigation/summary',verifyAuthToken, chatController.getInvestigationSummary);
 
 
-router.post('/docusign/consent', docusignController.getConsentUrl);
-router.post('/docusign/token', docusignController.getAccessToken);
-router.post('/docusign/userinfo', docusignController.getUserInfo);
-router.post('/docusign/sendenvelope', docusignController.sendEnvelopeREST);
+router.post('/docusign/consent', verifyAuthToken, docusignController.getConsentUrl);
+router.post('/docusign/token', verifyAuthToken, docusignController.getAccessToken);
+router.post('/docusign/userinfo', verifyAuthToken, docusignController.getUserInfo);
+router.post('/docusign/sendenvelope', verifyAuthToken, docusignController.sendEnvelopeREST);
 // router.post('/docusign/userinfo', docusignController.getDocuSignUserInfo);
 
 // alert routes
-router.post('/organizations/:orgId/alerts', alertController.createAlertIntegration);
-router.get('/organizations/:orgId/alerts', alertController.getOrganizationAlertIntegrations);
-router.patch('/alerts/:id', alertController.updateAlertIntegration);
-router.delete('/alerts/:id', alertController.deleteAlertIntegration);
-router.post('/alerts/:id/test', alertController.testAlertIntegration);
+router.post('/organizations/:orgId/alerts', verifyAuthToken, alertController.createAlertIntegration);
+router.get('/organizations/:orgId/alerts', verifyAuthToken, alertController.getOrganizationAlertIntegrations);
+router.patch('/alerts/:id', verifyAuthToken, alertController.updateAlertIntegration);
+router.delete('/alerts/:id', verifyAuthToken, alertController.deleteAlertIntegration);
+router.post('/alerts/:id/test', verifyAuthToken, alertController.testAlertIntegration);
 
 export default router;
