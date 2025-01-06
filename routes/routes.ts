@@ -11,10 +11,10 @@ import * as investigationController from '../controllers/investigate/investigate
 import * as shareController from '../controllers/share/share.controller';
 import * as docusignController from '../controllers/docusign/docusign.controller';
 import * as alertController from '../controllers/alerts/alerts.controller';
-
 // import { validateApiKey } from '../middleware/auth';
 
 const router = Router();
+
 
 // User routes
 router.post('/users', userController.createUser);

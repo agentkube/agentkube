@@ -4,7 +4,7 @@ import routes from "../routes/routes";
 import { prisma } from "../connectors/prisma";
 import morgan from "morgan";
 import redis from "../connectors/redis";
-
+import { verifyAuthToken } from '../middleware/auth.middleware';
 const app: Application = express();
 const port = process.env.PORT || 8765;
 
@@ -19,7 +19,9 @@ app.get("/healthz", (_: Request, res: Response) => {
 });
 
 // API routes
-app.use("/api", routes);
+app.use("/api", 
+  verifyAuthToken, 
+  routes);
 
 // Start server
 const startServer = async () => {
