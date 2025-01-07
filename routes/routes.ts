@@ -17,7 +17,7 @@ const router = Router();
 
 
 // User routes
-router.post('/users', verifyAuthToken, userController.createUser);
+router.post('/users', userController.createUser);
 router.get('/users', verifyAuthToken, userController.getUsers);
 router.post('/user/email', verifyAuthToken, userController.getUserByEmail);
 router.get('/users/:id', verifyAuthToken, userController.getUserById);

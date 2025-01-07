@@ -203,11 +203,59 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // First, find all clusters owned by the user's API keys
+    const userClusters = await prisma.cluster.findMany({
+      where: {
+        apiKey: {
+          userId: id
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    // Delete all investigations associated with user's clusters
+    if (userClusters.length > 0) {
+      await prisma.investigation.deleteMany({
+        where: {
+          clusterId: {
+            in: userClusters.map(cluster => cluster.id)
+          }
+        }
+      });
+    }
+
+    // Delete user's protocols (this will cascade to delete protocol stats)
+    await prisma.responseProtocol.deleteMany({
+      where: {
+        userId: id
+      }
+    });
+
+    // Delete user's sent and received invites
+    await prisma.invite.deleteMany({
+      where: {
+        OR: [
+          { inviterId: id },
+          { email: { equals: (await prisma.user.findUnique({ where: { id }, select: { email: true } }))?.email } }
+        ]
+      }
+    });
+
+    // Delete shared investigations
+    await prisma.sharedInvestigation.deleteMany({
+      where: {
+        userId: id
+      }
+    });
+
+    // Finally delete the user (this will cascade delete API keys, which cascade to clusters)
     await prisma.user.delete({
       where: { id }
     });
 
-    res.status(200).send({ message: "user has been deleted."});
+    res.status(200).json({ message: "User and all associated data has been deleted" });
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ error: 'Failed to delete user' });
