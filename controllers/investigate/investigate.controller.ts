@@ -29,9 +29,7 @@ export const createInvestigation = async (req: Request, res: Response) => {
         organization: {
           include: {
             members: {
-              where: {
-                userId: userId
-              }
+              where: { userId }
             }
           }
         },
@@ -46,7 +44,6 @@ export const createInvestigation = async (req: Request, res: Response) => {
         }
       }
     });
-
 
     if (!protocol || protocol.organization.members.length === 0) {
       res.status(403).json({
@@ -90,39 +87,87 @@ export const createInvestigation = async (req: Request, res: Response) => {
       return;
     }
 
-    // Create investigation record
+    // Create initial investigation record
     const investigation = await prisma.investigation.create({
       data: {
         protocolId,
         clusterId,
-        status: 'PENDING' as InvestigationStatus,
+        status: 'PENDING',
         currentStepNumber: 1,
         results: {
           steps: [],
-          status: 'PENDING' as InvestigationStatus,
+          status: 'PENDING',
           startedAt: new Date().toISOString()
         }
+      },
+      include: {
+        protocol: {
+          include: {
+            steps: {
+              include: {
+                commands: true,
+                nextSteps: true
+              }
+            }
+          }
+        },
+        cluster: true
       }
     });
 
-    // Add to queue
-    const job = await investigationQueue.add('runInvestigation', {
-      investigationId: investigation.id,
-      protocolId,
-      currentStepNumber: 1,
-      clusterId,
-      commandResults: []
-    });
-
+    // Return the investigation data that will be processed by WASM
     res.status(201).json({
       message: 'Investigation created successfully',
-      investigation,
-      jobId: job.id
+      investigation
     });
+
   } catch (error) {
     console.error('Failed to create investigation:', error);
     res.status(500).json({
       error: 'Failed to create investigation'
+    });
+  }
+};
+
+// Add an endpoint to update investigation results from WASM
+export const updateInvestigationResults = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, currentStepNumber, results } = req.body;
+
+    // Get existing investigation
+    const currentInvestigation = await prisma.investigation.findUnique({
+      where: { id }
+    });
+
+    if (!currentInvestigation) {
+      res.status(404).json({
+        error: 'Investigation not found'
+      });
+      return;
+    }
+
+    // Merge existing results with new results
+    let updatedResults = currentInvestigation.results as any;
+    if (results?.steps) {
+      updatedResults.steps = [...(updatedResults.steps || []), ...results.steps];
+    }
+
+    const investigation = await prisma.investigation.update({
+      where: { id },
+      data: {
+        status,
+        currentStepNumber,
+        results: updatedResults,
+        updatedAt: new Date()
+      }
+    });
+
+    res.status(200).json(investigation);
+  } catch (error) {
+    console.error('Failed to update investigation results:', error);
+    res.status(500).json({
+      error: 'Failed to update investigation results'
     });
   }
 };
