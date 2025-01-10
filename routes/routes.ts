@@ -14,10 +14,11 @@ import * as alertController from "../controllers/alerts/alerts.controller";
 import { OpenAIModel } from "../services/openai/openai.services";
 import { investigationPrompt } from "../internal/prompt";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import prisma from '../connectors/prisma';
+import prisma from "../connectors/prisma";
 // import { validateApiKey } from '../middleware/auth';
 import { verifyAuthToken } from "middleware/auth.middleware";
 import { updateProtocolStats } from "controllers/response-protocol/response-protocol-stats";
+import { CommandResult } from "types/investigation.types";
 const router = Router();
 
 // User routes
@@ -318,40 +319,49 @@ router.post("/investigation/step/summary", async (req, res) => {
   }
 });
 
+interface EvaluationResponse {
+  satisfied: boolean;
+  reason: string;
+}
+
+interface RequestBody {
+  conditions: string[];
+  results: CommandResult[];
+}
+
 router.post("/investigation/evaluate-condition", async (req, res) => {
   try {
-    const { conditions, results } = req.body;
+    const { conditions, results } = req.body as RequestBody;
 
-    if (
-      !conditions ||
-      !Array.isArray(conditions) ||
-      !results ||
-      !Array.isArray(results)
-    ) {
+    // Input validation
+    if (!conditions?.length || !results?.length) {
       res.status(400).json({
         satisfied: false,
-        reason: "Invalid input: conditions and results arrays are required",
+        reason:
+          "Invalid input: non-empty conditions and results arrays are required",
       });
       return;
     }
 
-    // Format the data for the OpenAI prompt
-    const commandOutputs = results.map((result) => ({
-      command: result.command,
-      output: result.output,
-      timestamp: result.timestamp,
+    // Format command outputs with safety checks
+    const commandOutputs = results.map((result: CommandResult) => ({
+      command: String(result.command || ""),
+      output: String(result.output || ""),
+      timestamp: result.timestamp || new Date().toISOString(),
     }));
 
     const prompt = `
 Analyze the following kubectl command outputs and evaluate if they satisfy these conditions:
 
 Conditions to check:
-${conditions.map((condition, index) => `${index + 1}. ${condition}`).join("\n")}
+${conditions
+  .map((condition: string, index: number) => `${index + 1}. ${condition}`)
+  .join("\n")}
 
 Command outputs:
 ${commandOutputs
   .map(
-    (output) => `
+    (output: CommandResult) => `
 Command: ${output.command}
 Output: ${output.output}
 Timestamp: ${output.timestamp}
@@ -359,42 +369,69 @@ Timestamp: ${output.timestamp}
   )
   .join("\n")}
 
-Please evaluate if ALL conditions are satisfied based on the command outputs.
-Respond with a JSON object containing:
+You must respond with a valid JSON object in exactly this format:
 {
-  "satisfied": boolean (true if ALL conditions are met, false otherwise),
-  "reason": string (explanation of the evaluation)
+  "satisfied": boolean,
+  "reason": string
 }`;
 
     const result = await OpenAIModel.invoke([
-      new SystemMessage(`You are a Kubernetes expert evaluating command outputs against conditions. 
-          Always respond with valid JSON containing "satisfied" (boolean) and "reason" (string) fields.`),
+      new SystemMessage(
+        `You are a Kubernetes expert evaluating command outputs against conditions. 
+         You must respond with valid JSON containing exactly two fields:
+         "satisfied" (boolean) and "reason" (string).
+         Do not include any other text or formatting in your response.`
+      ),
       new HumanMessage(prompt),
     ]);
 
-    let evaluation;
+    // Enhanced response parsing
+    let evaluation: EvaluationResponse;
     try {
-      evaluation = JSON.parse(result.content as string);
+      const content = result.content?.toString().trim() || "";
+
+      // Remove any markdown code block formatting if present
+      const jsonStr = content
+        .replace(/^```json\s*/, "")
+        .replace(/\s*```$/, "")
+        .trim();
+
+      const parsed = JSON.parse(jsonStr) as EvaluationResponse;
+
+      // Validate expected fields
+      if (
+        typeof parsed.satisfied !== "boolean" ||
+        typeof parsed.reason !== "string"
+      ) {
+        throw new Error("Invalid response structure");
+      }
+
+      evaluation = parsed;
     } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", result.content);
+      console.error("Parse error:", parseError);
+      console.error("Raw content:", result.content);
+
+      // Fallback response
       evaluation = {
         satisfied: false,
-        reason: "Failed to evaluate conditions",
+        reason: "Failed to process evaluation results. Please try again.",
       };
     }
 
+    // Send normalized response
     res.json({
       satisfied: Boolean(evaluation.satisfied),
       reason: String(evaluation.reason || "Condition evaluation completed"),
     });
   } catch (error) {
-    console.error("Condition evaluation error:", error);
+    console.error("Evaluation error:", error);
 
+    // Ensure consistent error response
     res.status(500).json({
       satisfied: false,
       reason:
         error instanceof Error
-          ? error.message
+          ? `Evaluation failed: ${error.message}`
           : "Unknown error during evaluation",
     });
   }
@@ -415,7 +452,6 @@ router.post("/investigation/next-step", async (req, res) => {
       new SystemMessage(systemPrompt),
       new HumanMessage(message),
     ]);
-
 
     let parsed;
     try {
@@ -447,23 +483,23 @@ router.post("/investigation/next-step", async (req, res) => {
   }
 });
 
-router.post('/protocols/:protocolId/stats', async (req, res) => {
+router.post("/protocols/:protocolId/stats", async (req, res) => {
   try {
     const { protocolId } = req.params;
     const success = await updateProtocolStats(protocolId);
-    
+
     if (!success) {
-      res.status(500).json({ error: 'Failed to update protocol stats' });
+      res.status(500).json({ error: "Failed to update protocol stats" });
       return;
     }
-    
-    res.json({ message: 'Protocol stats updated successfully' });
+
+    res.json({ message: "Protocol stats updated successfully" });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update protocol stats' });
+    res.status(500).json({ error: "Failed to update protocol stats" });
   }
 });
 
-router.put('/protocols/:protocolId/stats/update', async (req, res) => {
+router.put("/protocols/:protocolId/stats/update", async (req, res) => {
   try {
     const { protocolId } = req.params;
     const { status, executionTime } = req.body;
@@ -474,16 +510,16 @@ router.put('/protocols/:protocolId/stats/update', async (req, res) => {
         lastExecutionStatus: status,
         lastExecutionTime: new Date(),
         averageExecutionTime: {
-          increment: executionTime
+          increment: executionTime,
         },
         totalExecutions: {
-          increment: status === 'COMPLETED' ? 1 : 0
+          increment: status === "COMPLETED" ? 1 : 0,
         },
         successfulExecutions: {
-          increment: status === 'COMPLETED' ? 1 : 0
+          increment: status === "COMPLETED" ? 1 : 0,
         },
         failedExecutions: {
-          increment: status === 'FAILED' ? 1 : 0
+          increment: status === "FAILED" ? 1 : 0,
         },
         updatedAt: new Date(),
       },
@@ -492,16 +528,16 @@ router.put('/protocols/:protocolId/stats/update', async (req, res) => {
         lastExecutionStatus: status,
         lastExecutionTime: new Date(),
         averageExecutionTime: executionTime,
-        totalExecutions: status === 'COMPLETED' ? 1 : 0,
-        successfulExecutions: status === 'COMPLETED' ? 1 : 0,
-        failedExecutions: status === 'FAILED' ? 1 : 0,
+        totalExecutions: status === "COMPLETED" ? 1 : 0,
+        successfulExecutions: status === "COMPLETED" ? 1 : 0,
+        failedExecutions: status === "FAILED" ? 1 : 0,
       },
     });
 
-    res.json({ message: 'Stats updated' });
+    res.json({ message: "Stats updated" });
   } catch (error) {
-    console.error('Error updating stats:', error);
-    res.status(500).json({ error: 'Failed to update stats' });
+    console.error("Error updating stats:", error);
+    res.status(500).json({ error: "Failed to update stats" });
   }
 });
 
