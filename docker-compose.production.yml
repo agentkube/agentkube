@@ -26,6 +26,8 @@ services:
       - postgres
       - redis
       - qdrant
+    volumes:
+      - ./keys/private.key:/app/keys/private.key
 
   postgres:
     image: postgres:16
