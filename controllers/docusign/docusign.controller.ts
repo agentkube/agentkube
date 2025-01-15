@@ -173,7 +173,7 @@ export const sendEnvelopeREST = async (
 
     // Format investigation results
     const results = investigation.results as Record<string, any>;
-    const status = results?.status || investigation.status;
+    const status =  investigation.status || "UNKNOWN" ;
     const startedAt = results?.startedAt || investigation.createdAt;
     const completedAt = results?.completedAt || investigation.updatedAt;
 
