@@ -1,21 +1,41 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
+	"github.com/agentkube/operator/internal/multiplexer"
+	"github.com/agentkube/operator/internal/stateless"
+	"github.com/agentkube/operator/pkg/config"
+	"github.com/agentkube/operator/pkg/kubeconfig"
+	"github.com/agentkube/operator/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
-// WebSocket upgrader
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	// Allow connections from any origin
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+// WebSocketHandler is the shared multiplexer instance
+var wsMultiplexer *multiplexer.Multiplexer
+
+// ClusterManager is the shared cluster manager instance
+var clusterManager *stateless.ClusterManager
+
+// InitializeWebSocketHandler initializes the WebSocket handler with the given kubeconfig store
+func InitializeWebSocketHandler(kubeConfigStore kubeconfig.ContextStore, cfg config.Config) {
+	wsMultiplexer = multiplexer.NewMultiplexer(kubeConfigStore)
+	clusterManager = stateless.NewClusterManager(kubeConfigStore, cfg.EnableDynamicClusters)
+}
+
+// WebSocketHandler handles WebSocket connections
+
+func WebSocketHandler(c *gin.Context) {
+	if wsMultiplexer == nil {
+		logger.Log(logger.LevelError, nil, nil, "WebSocket multiplexer not initialized")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+
+	}
+
+	// Handle the WebSocket connection
+	wsMultiplexer.HandleClientWebSocket(c.Writer, c.Request)
+
 }
 
 // PingHandler handles the ping endpoint
@@ -32,33 +52,58 @@ func HomeHandler(c *gin.Context) {
 	})
 }
 
-// WebSocketHandler handles WebSocket connections
-func WebSocketHandler(c *gin.Context) {
-	// Upgrade HTTP connection to WebSocket
-	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		log.Printf("Failed to upgrade connection: %v", err)
+// ParseKubeConfigHandler handles requests to parse kubeconfig
+func ParseKubeConfigHandler(c *gin.Context) {
+	if clusterManager == nil {
+		logger.Log(logger.LevelError, nil, nil, "Cluster manager not initialized")
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	defer ws.Close()
 
-	// Register client, manage connections etc.
-	// This is just a simple example - you may want to implement a more robust solution
+	clusterManager.ParseKubeConfig(c)
+}
 
-	// Simple echo websocket handler
-	for {
-		messageType, message, err := ws.ReadMessage()
-		if err != nil {
-			log.Printf("Error reading WebSocket message: %v", err)
-			break
-		}
+// ProxyHandler handles proxy requests to Kubernetes API
 
-		log.Printf("Received WebSocket message: %s", message)
+func ProxyHandler(c *gin.Context) {
+	if clusterManager == nil {
+		logger.Log(logger.LevelError, nil, nil, "Cluster manager not initialized")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
-		// Echo the message back
-		if err := ws.WriteMessage(messageType, message); err != nil {
-			log.Printf("Error writing WebSocket message: %v", err)
-			break
-		}
+	contextKey, err := clusterManager.GetContextKeyFromRequest(c)
+	if err != nil {
+		logger.Log(logger.LevelError, nil, err, "getting context key")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get the context from the store
+	context, err := clusterManager.GetContext(contextKey)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"contextKey": contextKey}, err, "getting context")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Context not found"})
+		return
+	}
+
+	// Extract only the path part that should be forwarded to the Kubernetes API
+	path := c.Param("path")
+
+	// Log the path for debugging
+	logger.Log(logger.LevelInfo, map[string]string{
+		"contextKey": contextKey,
+		"path":       path,
+		"fullPath":   c.Request.URL.Path,
+	}, nil, "proxying request")
+
+	// Modify the request path to only include the part after /clusters/{clusterName}
+	c.Request.URL.Path = path
+
+	// Proxy the request to the Kubernetes API
+	if err := context.ProxyRequest(c.Writer, c.Request); err != nil {
+		logger.Log(logger.LevelError, map[string]string{"contextKey": contextKey}, err, "proxying request")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to proxy request"})
+		return
 	}
 }
