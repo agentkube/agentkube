@@ -51,7 +51,7 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 					"status":     "running",
 					"port":       cfg.Port,
 					"in_cluster": cfg.InCluster,
-					"version":    "1.0.0", // You may want to make this configurable
+					"version":    "1.0.0",
 				})
 			})
 
@@ -64,31 +64,35 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 
 			// Keep the original proxy route as well for API compatibility
 			v1.Any("/clusters/:clusterName/*path", handlers.ProxyHandler)
+
+			// Search endpoint for cluster resources
+			v1.POST("/cluster/:clusterName/search", handlers.SearchResources)
+
+			// Port forward routes
+			portforwardGroup := v1.Group("/portforward")
+			{
+				// Start port forward
+				portforwardGroup.POST("/start", func(c *gin.Context) {
+					portforward.StartPortForward(kubeConfigStore, cacheSvc, c.Writer, c.Request)
+				})
+
+				// Stop or delete port forward
+				portforwardGroup.POST("/stop", func(c *gin.Context) {
+					portforward.StopOrDeletePortForward(cacheSvc, c.Writer, c.Request)
+				})
+
+				// Get all port forwards
+				portforwardGroup.GET("/", func(c *gin.Context) {
+					portforward.GetPortForwards(cacheSvc, c.Writer, c.Request)
+				})
+
+				// Get port forward by ID
+				portforwardGroup.GET("/:id", func(c *gin.Context) {
+					portforward.GetPortForwardByID(cacheSvc, c.Writer, c.Request)
+				})
+			}
 		}
 
-		// Port forward routes
-		portforwardGroup := api.Group("/portforward")
-		{
-			// Start port forward
-			portforwardGroup.POST("/start", func(c *gin.Context) {
-				portforward.StartPortForward(kubeConfigStore, cacheSvc, c.Writer, c.Request)
-			})
-
-			// Stop or delete port forward
-			portforwardGroup.POST("/stop", func(c *gin.Context) {
-				portforward.StopOrDeletePortForward(cacheSvc, c.Writer, c.Request)
-			})
-
-			// Get all port forwards
-			portforwardGroup.GET("/", func(c *gin.Context) {
-				portforward.GetPortForwards(cacheSvc, c.Writer, c.Request)
-			})
-
-			// Get port forward by ID
-			portforwardGroup.GET("/id", func(c *gin.Context) {
-				portforward.GetPortForwardByID(cacheSvc, c.Writer, c.Request)
-			})
-		}
 	}
 
 	return router
