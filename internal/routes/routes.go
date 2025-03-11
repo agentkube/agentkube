@@ -68,6 +68,45 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			// Search endpoint for cluster resources
 			v1.POST("/cluster/:clusterName/search", handlers.SearchResources)
 
+			// Canvas endpoint
+			v1.POST("/cluster/:clusterName/canvas", handlers.GetCanvasNodes)
+
+			metricsGroup := v1.Group("/cluster/:clusterName/metrics")
+			{
+				// Get available metrics sources
+				metricsGroup.GET("/sources", handlers.GetMetricsSourcesHandler)
+
+				// Prometheus endpoints
+				prometheusGroup := metricsGroup.Group("/prometheus")
+				{
+					prometheusGroup.GET("/status", handlers.GetPrometheusStatusHandler)
+					prometheusGroup.POST("/install", handlers.InstallPrometheusHandler)
+					prometheusGroup.POST("/uninstall", handlers.UninstallPrometheusHandler)
+				}
+
+				// OpenCost endpoints
+				openCostGroup := metricsGroup.Group("/opencost")
+				{
+					openCostGroup.GET("/status", handlers.GetOpenCostStatusHandler)
+					openCostGroup.POST("/install", handlers.InstallOpenCostHandler)
+					openCostGroup.POST("/uninstall", handlers.UninstallOpenCostHandler)
+				}
+			}
+
+			// Trivy security scanning routes
+			trivyGroup := v1.Group("/cluster/:clusterName/trivy")
+			{
+				// Installation and status
+				trivyGroup.POST("/install", handlers.InstallTrivyOperator)
+				trivyGroup.POST("/uninstall", handlers.UninstallTrivyOperator)
+				trivyGroup.GET("/status", handlers.GetTrivyStatus)
+
+				// Reports
+				trivyGroup.GET("/vulnerabilities", handlers.GetVulnerabilityReports)
+				trivyGroup.GET("/compliance", handlers.GetClusterComplianceReports)
+				trivyGroup.GET("/config-audit", handlers.GetConfigAuditReports)
+			}
+
 			// Port forward routes
 			portforwardGroup := v1.Group("/portforward")
 			{
