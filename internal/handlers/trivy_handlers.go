@@ -365,3 +365,68 @@ func GetTrivyStatus(c *gin.Context) {
 		"cluster":   clusterName,
 	})
 }
+
+// GetComplianceDetails handles retrieving detailed information about a specific compliance report
+func GetComplianceDetails(c *gin.Context) {
+	// Get context from the cluster manager
+	if clusterManager == nil {
+		logger.Log(logger.LevelError, nil, nil, "Cluster manager not initialized")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Get the cluster context key from the request
+	clusterName := c.Param("clusterName")
+	if clusterName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cluster name is required"})
+		return
+	}
+
+	// Get the report name from the request
+	reportName := c.Param("reportName")
+	if reportName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Report name is required"})
+		return
+	}
+
+	// Get the context from the store
+	context, err := clusterManager.GetContext(clusterName)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"clusterName": clusterName}, err, "getting context")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Context not found"})
+		return
+	}
+
+	// Get REST config for the context
+	restConfig, err := context.RESTConfig()
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"clusterName": clusterName}, err, "getting REST config")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get REST config: %v", err)})
+		return
+	}
+
+	// Create Trivy controller
+	trivyController, err := trivy.NewController(restConfig)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"clusterName": clusterName}, err, "creating Trivy controller")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to create Trivy controller: %v", err),
+		})
+		return
+	}
+
+	// Get detailed compliance report
+	reportDetails, err := trivyController.GetComplianceDetails(c.Request.Context(), reportName)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"clusterName": clusterName, "reportName": reportName}, err, "getting compliance details")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to get compliance details: %v", err),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"report":  reportDetails,
+		"cluster": clusterName,
+	})
+}

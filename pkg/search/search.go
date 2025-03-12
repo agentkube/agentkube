@@ -31,6 +31,7 @@ var standardResources = map[string][]string{
 		"deployments",
 		"statefulsets",
 		"daemonsets",
+		"replicasets",
 	},
 	"batch": {
 		"jobs",

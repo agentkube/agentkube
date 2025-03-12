@@ -235,6 +235,82 @@ func (c *Controller) GetClusterComplianceReports(ctx context.Context) ([]Simplif
 	return reports, nil
 }
 
+// GetComplianceDetails retrieves detailed information about a specific compliance report
+func (c *Controller) GetComplianceDetails(ctx context.Context, reportName string) (map[string]interface{}, error) {
+	// Create dynamic client to interact with CRDs
+	dynamicClient, err := dynamic.NewForConfig(c.restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client: %v", err)
+	}
+
+	// Define the GVR for ClusterComplianceReports
+	complianceReportsGVR := schema.GroupVersionResource{
+		Group:    "aquasecurity.github.io",
+		Version:  "v1alpha1",
+		Resource: "clustercompliancereports",
+	}
+
+	// Get the specific compliance report
+	report, err := dynamicClient.Resource(complianceReportsGVR).Get(ctx, reportName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get compliance report %s: %v", reportName, err)
+	}
+
+	// Extract the compliance checks from the report status
+	reportStatus, found, err := unstructured.NestedMap(report.Object, "status")
+	if err != nil || !found {
+		return nil, fmt.Errorf("failed to extract status from report: %v", err)
+	}
+
+	// Create a simplified representation with just the necessary details
+	result := map[string]interface{}{
+		"name":              report.GetName(),
+		"creationTimestamp": report.GetCreationTimestamp().Time,
+		"group":             report.GroupVersionKind().Group,
+		"version":           report.GroupVersionKind().Version,
+	}
+
+	// Extract summary information if available
+	summaryReport, found, _ := unstructured.NestedMap(reportStatus, "summaryReport")
+	if found {
+		result["summaryReport"] = summaryReport
+	}
+
+	// Extract checks if available
+	controlChecks, found, _ := unstructured.NestedSlice(summaryReport, "controlCheck")
+	if found {
+		// Process controlChecks into a more usable format
+		processedChecks := make([]map[string]interface{}, 0, len(controlChecks))
+
+		for _, checkObj := range controlChecks {
+			checkMap, ok := checkObj.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			// Create a simplified check object with the core information
+			check := map[string]interface{}{
+				"id":       checkMap["id"],
+				"name":     checkMap["name"],
+				"severity": checkMap["severity"],
+			}
+
+			// Try to extract other useful information
+			if totalFail, ok := checkMap["totalFail"].(float64); ok {
+				check["totalFail"] = int(totalFail)
+			} else {
+				check["totalFail"] = 0
+			}
+
+			processedChecks = append(processedChecks, check)
+		}
+
+		result["controlChecks"] = processedChecks
+	}
+
+	return result, nil
+}
+
 // ConfigAuditReport represents a simplified config audit report
 type ConfigAuditReport struct {
 	Name      string `json:"name"`

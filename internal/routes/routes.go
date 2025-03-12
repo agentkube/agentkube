@@ -104,6 +104,7 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 				// Reports
 				trivyGroup.GET("/vulnerabilities", handlers.GetVulnerabilityReports)
 				trivyGroup.GET("/compliance", handlers.GetClusterComplianceReports)
+				trivyGroup.GET("/compliance/:reportName", handlers.GetComplianceDetails)
 				trivyGroup.GET("/config-audit", handlers.GetConfigAuditReports)
 			}
 
