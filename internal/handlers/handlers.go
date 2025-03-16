@@ -5,6 +5,7 @@ import (
 
 	"github.com/agentkube/operator/internal/multiplexer"
 	"github.com/agentkube/operator/internal/stateless"
+	"github.com/agentkube/operator/pkg/command"
 	"github.com/agentkube/operator/pkg/config"
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/logger"
@@ -17,25 +18,31 @@ var wsMultiplexer *multiplexer.Multiplexer
 // ClusterManager is the shared cluster manager instance
 var clusterManager *stateless.ClusterManager
 
+// Command executor instance
+var cmdExecutor *command.CommandExecutor
+
 // InitializeWebSocketHandler initializes the WebSocket handler with the given kubeconfig store
 func InitializeWebSocketHandler(kubeConfigStore kubeconfig.ContextStore, cfg config.Config) {
 	wsMultiplexer = multiplexer.NewMultiplexer(kubeConfigStore)
 	clusterManager = stateless.NewClusterManager(kubeConfigStore, cfg.EnableDynamicClusters)
 }
 
-// WebSocketHandler handles WebSocket connections
+// InitializeCommandExecutor initializes the command executor with the given kubeconfig store
+func InitializeCommandExecutor(kubeConfigStore kubeconfig.ContextStore) {
+	cmdExecutor = command.NewCommandExecutor(kubeConfigStore)
+	logger.Log(logger.LevelInfo, nil, nil, "Command executor initialized")
+}
 
+// WebSocketHandler handles WebSocket connections
 func WebSocketHandler(c *gin.Context) {
 	if wsMultiplexer == nil {
 		logger.Log(logger.LevelError, nil, nil, "WebSocket multiplexer not initialized")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
-
 	}
 
 	// Handle the WebSocket connection
 	wsMultiplexer.HandleClientWebSocket(c.Writer, c.Request)
-
 }
 
 // PingHandler handles the ping endpoint
@@ -64,7 +71,6 @@ func ParseKubeConfigHandler(c *gin.Context) {
 }
 
 // ProxyHandler handles proxy requests to Kubernetes API
-
 func ProxyHandler(c *gin.Context) {
 	if clusterManager == nil {
 		logger.Log(logger.LevelError, nil, nil, "Cluster manager not initialized")
@@ -106,4 +112,52 @@ func ProxyHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to proxy request"})
 		return
 	}
+}
+
+// KubectlHandler handles requests to execute kubectl commands in a specific cluster
+func KubectlHandler(c *gin.Context) {
+
+	// if cmdExecutor == nil {
+	// 	logger.Log(logger.LevelError, nil, nil, "Command executor not initialized")
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Command executor not initialized"})
+	// 	return
+	// }
+
+	// Get cluster name directly from the URL path parameter
+	clusterName := c.Param("clusterName")
+	if clusterName == "" {
+		logger.Log(logger.LevelError, nil, nil, "missing cluster name")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing cluster name"})
+		return
+	}
+
+	// Parse the command from request body
+	var req struct {
+		Command []string `json:"command"`
+		Timeout int      `json:"timeout,omitempty"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Log(logger.LevelError, nil, err, "binding request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format: " + err.Error()})
+		return
+	}
+
+	// Create command request with the cluster context name
+	cmdReq := command.CommandRequest{
+		Context: clusterName,
+		Command: req.Command,
+		Timeout: req.Timeout,
+	}
+
+	// Execute the command
+	result, err := cmdExecutor.ExecuteKubectlCommand(cmdReq)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"clusterName": clusterName}, err, "executing command")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Return the result directly (no need to wrap it again)
+	c.JSON(http.StatusOK, result)
 }

@@ -68,6 +68,8 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			// Search endpoint for cluster resources
 			v1.POST("/cluster/:clusterName/search", handlers.SearchResources)
 
+			v1.POST("/cluster/:clusterName/kubectl", handlers.KubectlHandler)
+
 			// Canvas endpoint
 			v1.POST("/cluster/:clusterName/canvas", handlers.GetCanvasNodes)
 
