@@ -18,6 +18,8 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 
 	// Initialize WebSocket handler
 	handlers.InitializeWebSocketHandler(kubeConfigStore, cfg)
+	// Initialize Helm handler
+	helmHandler := handlers.NewHelmHandler(kubeConfigStore, cacheSvc)
 
 	// Create default gin router with Logger and Recovery middleware
 	router := gin.Default()
@@ -72,6 +74,28 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 
 			// Canvas endpoint
 			v1.POST("/cluster/:clusterName/canvas", handlers.GetCanvasNodes)
+
+			helmGroup := v1.Group("/cluster/:clusterName/helm")
+			{
+				// Repository management
+				helmGroup.GET("/repositories", helmHandler.ListReposHandler)
+				helmGroup.POST("/repositories", helmHandler.AddRepoHandler)
+				helmGroup.PUT("/repositories", helmHandler.UpdateRepoHandler)
+				helmGroup.DELETE("/repositories", helmHandler.RemoveRepoHandler)
+
+				// Charts
+				helmGroup.GET("/charts", helmHandler.ListChartsHandler)
+
+				// Releases
+				helmGroup.GET("/releases", helmHandler.ListReleasesHandler)
+				helmGroup.GET("/release", helmHandler.GetReleaseHandler)
+				helmGroup.GET("/release/history", helmHandler.GetReleaseHistoryHandler)
+				helmGroup.POST("/release/install", helmHandler.InstallReleaseHandler)
+				helmGroup.POST("/release/upgrade", helmHandler.UpgradeReleaseHandler)
+				helmGroup.POST("/release/rollback", helmHandler.RollbackReleaseHandler)
+				helmGroup.DELETE("/release", helmHandler.UninstallReleaseHandler)
+				helmGroup.GET("/release/status", helmHandler.GetActionStatusHandler)
+			}
 
 			metricsGroup := v1.Group("/cluster/:clusterName/metrics")
 			{

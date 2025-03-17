@@ -1,0 +1,180 @@
+{
+  "general": {
+    "autoSave": true,
+    "checkForUpdates": true,
+    "telemetryEnabled": false,
+    "defaultNamespace": "default",
+    "confirmExit": true
+  },
+  "kubeconfig": {
+    "path": "$HOME/.kube/config",
+    "externalPaths": [
+      "$HOME/.kube/config.d/",
+      "$HOME/.kube/additional-configs/"
+    ],
+    "contextAutoRefresh": true,
+    "contextRefreshInterval": 300,
+    "autoSwitchNamespace": true
+  },
+  "shortcuts": {
+    "toggleSidebar": "Ctrl+B",
+    "quickOpen": "Ctrl+P",
+    "search": "Ctrl+F",
+    "newTerminal": "Ctrl+Shift+T",
+    "refreshView": "F5",
+    "goToPods": "Alt+1",
+    "goToDeployments": "Alt+2",
+    "goToServices": "Alt+3",
+    "goToVolumes": "Alt+4"
+  },
+  "appearance": {
+    "theme": "dark",
+    "themeOptions": ["light", "dark", "dark-emerald", "dark-violet"],
+    "fontSize": 14,
+    "fontFamily": "Inter, sans-serif",
+    "compactMode": false,
+    "showStatusBar": true,
+    "accentColor": "#3B82F6"
+  },
+  "mcpServer": {
+    "enabled": false,
+    "serverName": "default-mcp",
+    "type": "sse",
+    "serverUrl": "https://mcp.example.com",
+    "apiKey": "",
+    "credentials": {
+      "username": "",
+      "password": ""
+    },
+    "retryOnFailure": true,
+    "maxRetries": 3
+  },
+  "docs": {
+    "links": [
+      {
+        "name": "User Guide",
+        "url": "https://docs.agentkube.io/guide/"
+      },
+      {
+        "name": "API Reference",
+        "url": "https://docs.agentkube.io/api/"
+      },
+      {
+        "name": "Kubernetes Documentation",
+        "url": "https://kubernetes.io/docs/home/"
+      },
+      {
+        "name": "Troubleshooting",
+        "url": "https://docs.agentkube.io/troubleshooting/"
+      }
+    ],
+    "showHelpTips": true
+  },
+  "aiIntegration": {
+    "models": [
+      {
+        "id": "gpt-4o",
+        "model_name": "gpt-4o",
+        "provider": "openai",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-turbo",
+        "model_name": "gpt-4-turbo",
+        "provider": "openai",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo",
+        "model_name": "gpt-3.5-turbo",
+        "provider": "openai",
+        "enabled": true
+      },
+      {
+        "id": "claude-3-opus",
+        "model_name": "claude-3-opu",
+        "provider": "anthropic",
+        "enabled": false
+      },
+      {
+        "id": "claude-3-sonnet",
+        "model_name": "claude-3-sonnet",
+        "provider": "anthropic",
+        "enabled": false
+      },
+      {
+        "id": "claude-3-haiku",
+        "model_name": "Claude 3 Haiku",
+        "provider": "anthropic",
+        "enabled": false
+      },
+      {
+        "id": "gemini-pro",
+        "model_name": "gemini-pro",
+        "provider": "google",
+        "enabled": false
+      }
+    ],
+    "defaultModel": "gpt-3.5-turbo",
+    "credentials": {
+      "openAI": {
+        "apiKey": "",
+        "organization": ""
+      },
+      "anthropic": {
+        "apiKey": ""
+      },
+      "google": {
+        "apiKey": ""
+      },
+      "azure": {
+        "apiKey": "",
+        "baseURL": "",
+        "deploymentName": ""
+      },
+      "openRouter": {
+        "apiKey": ""
+      }
+    },
+    "settings": {
+      "streaming": true,
+      "maxTokens": 4096,
+      "temperature": 0.7,
+      "contextSize": 8192
+    }
+  },
+  "terminal": {
+    "shell": "bash",
+    "fontFamily": "Menlo, Monaco, 'Courier New', monospace",
+    "fontSize": 12,
+    "cursorStyle": "block",
+    "cursorBlink": true,
+    "scrollback": 10000
+  },
+  "editor": {
+    "wordWrap": true,
+    "autoIndent": true,
+    "tabSize": 2,
+    "insertSpaces": true,
+    "formatOnSave": true,
+    "minimap": {
+      "enabled": true,
+      "side": "right"
+    }
+  },
+  "debugging": {
+    "verbose": false,
+    "logLevel": "info",
+    "logPath": "$HOME/.agentkube/logs"
+  },
+  "advanced": {
+    "proxySettings": {
+      "enabled": false,
+      "httpProxy": "",
+      "httpsProxy": "",
+      "noProxy": "localhost,127.0.0.1"
+    },
+    "customCommands": [],
+    "experimentalFeatures": false
+  }
+}
