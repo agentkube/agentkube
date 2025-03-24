@@ -32,10 +32,10 @@ type ShellMessage struct {
 }
 
 // ResizeData represents terminal dimensions
-type ResizeData struct {
-	Width  int `json:"width"`
-	Height int `json:"height"`
-}
+// type ResizeData struct {
+// 	Width  int `json:"width"`
+// 	Height int `json:"height"`
+// }
 
 // SystemShellHandler provides access to the user's system shell with kubectl context set
 func SystemShellHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc {

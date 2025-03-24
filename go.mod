@@ -3,6 +3,7 @@ module github.com/agentkube/operator
 go 1.24.1
 
 require (
+	github.com/creack/pty v1.1.18
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.22.0

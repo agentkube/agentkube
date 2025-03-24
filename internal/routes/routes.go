@@ -73,6 +73,7 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			// Terminal endpoint for shell access
 			v1.GET("/exec", handlers.TerminalHandler(kubeConfigStore))
 			v1.GET("/shell", handlers.SystemShellHandler(kubeConfigStore))
+			v1.GET("/terminal", handlers.TermHandler())
 			// Canvas endpoint
 			v1.POST("/cluster/:clusterName/canvas", handlers.GetCanvasNodes)
 
