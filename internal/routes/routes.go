@@ -40,8 +40,6 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 		apiRoot = router.Group("")
 	}
 
-	// router.Any("/clusters/:clusterName/*path", handlers.ProxyHandler)
-
 	// API routes
 	api := apiRoot.Group("/api")
 	{
@@ -72,9 +70,14 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 
 			v1.POST("/cluster/:clusterName/kubectl", handlers.KubectlHandler)
 
+			// Terminal endpoint for shell access
+			v1.GET("/exec", handlers.TerminalHandler(kubeConfigStore))
+			v1.GET("/shell", handlers.SystemShellHandler(kubeConfigStore))
 			// Canvas endpoint
 			v1.POST("/cluster/:clusterName/canvas", handlers.GetCanvasNodes)
 
+			v1.GET("/proxy/helm-values", helmHandler.HelmValuesProxyHandler)
+			v1.GET("/proxy/helm-versions", helmHandler.HelmVersionsProxyHandler)
 			helmGroup := v1.Group("/cluster/:clusterName/helm")
 			{
 				// Repository management
@@ -101,6 +104,8 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			{
 				// Get available metrics sources
 				metricsGroup.GET("/sources", handlers.GetMetricsSourcesHandler)
+				// Get pod metrics
+				metricsGroup.GET("/pods/:namespace/:podName", handlers.GetPodMetricsHandler)
 
 				// Prometheus endpoints
 				prometheusGroup := metricsGroup.Group("/prometheus")

@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/agentkube/operator/pkg/cache"
@@ -556,4 +557,82 @@ func (h *HelmHandler) getHelmHandler(c *gin.Context, namespace string) (*helm.Ha
 	}
 
 	return helmHandler, nil
+}
+
+// HelmValuesProxyHandler is a handler for proxying Helm chart values from Artifact Hub
+func (h *HelmHandler) HelmValuesProxyHandler(c *gin.Context) {
+	packageID := c.Query("package")
+	version := c.Query("version")
+
+	if packageID == "" || version == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "package ID and version are required"})
+		return
+	}
+
+	// Create URL to fetch values from Artifact Hub
+	url := fmt.Sprintf("https://artifacthub.io/api/v1/packages/%s/%s/values", packageID, version)
+
+	// Make request to Artifact Hub
+	resp, err := http.Get(url)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to fetch values: %v", err)})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Check if response is successful
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(resp.StatusCode, gin.H{"error": fmt.Sprintf("failed to fetch values, status: %d", resp.StatusCode)})
+		return
+	}
+
+	// Read response body
+	valuesData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read values: %v", err)})
+		return
+	}
+
+	// Set content type header (important for YAML)
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.String(http.StatusOK, string(valuesData))
+}
+
+// HelmVersionsProxyHandler is a handler for proxying Helm chart versions from Artifact Hub
+func (h *HelmHandler) HelmVersionsProxyHandler(c *gin.Context) {
+	repoName := c.Query("repo")
+	chartName := c.Query("chart")
+
+	if repoName == "" || chartName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "repository name and chart name are required"})
+		return
+	}
+
+	// Create URL to fetch versions from Artifact Hub
+	url := fmt.Sprintf("https://artifacthub.io/api/v1/packages/helm/%s/%s/feed/rss", repoName, chartName)
+
+	// Make request to Artifact Hub
+	resp, err := http.Get(url)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to fetch versions: %v", err)})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Check if response is successful
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(resp.StatusCode, gin.H{"error": fmt.Sprintf("failed to fetch versions, status: %d", resp.StatusCode)})
+		return
+	}
+
+	// Read response body
+	versionsData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read versions: %v", err)})
+		return
+	}
+
+	// Set content type header for XML
+	c.Header("Content-Type", "application/xml; charset=utf-8")
+	c.String(http.StatusOK, string(versionsData))
 }
