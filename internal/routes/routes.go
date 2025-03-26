@@ -74,6 +74,13 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			v1.GET("/exec", handlers.TerminalHandler(kubeConfigStore))
 			v1.GET("/shell", handlers.SystemShellHandler(kubeConfigStore))
 			v1.GET("/terminal", handlers.TermHandler())
+
+			v1.GET("/externalUrl", handlers.ExternalURLHandler())
+			v1.POST("/cluster/:clusterName/externalShell", handlers.ExternalShellHandler(kubeConfigStore))
+
+			// Start the terminal cleanup task
+			handlers.StartTerminalCleanupTask()
+
 			// Canvas endpoint
 			v1.POST("/cluster/:clusterName/canvas", handlers.GetCanvasNodes)
 
