@@ -245,7 +245,7 @@ function App() {
               </div>
               <Footer />
             </div>
-            <TailwindIndicator />
+            {/* <TailwindIndicator /> */}
           </NamespaceProvider>
         </DrawerProvider>
       </ClusterProvider>
