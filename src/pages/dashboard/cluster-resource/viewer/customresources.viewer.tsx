@@ -152,10 +152,10 @@ const CustomResourceViewer = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleEdit}>
+          {/* <Button variant="outline" onClick={handleEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
-          </Button>
+          </Button> */}
           <Button variant="outline" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
             <Trash className="h-4 w-4" />
           </Button>
