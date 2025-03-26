@@ -22,6 +22,7 @@ export function Menu() {
 
     appWindow.close()
   }, []);
+  
   const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryState>({
     history: [location.pathname],
     currentIndex: 0

@@ -2,7 +2,8 @@ import React from 'react';
 import { Minus, Play } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ConditionalStep, AvailableCommands } from '@/components/customs';
+import ConditionalStep from './conditional-step.component';
+import AvailableCommands from './available-command.component';
 import { Input } from "@/components/ui/input";
 import type { Command, NextStep, ProtocolStep as Step } from '@/types/protocols';
 

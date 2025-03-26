@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { MetricsPerNamespace } from "@/types/cluster";
-import { getClusterNamespacedMetrics } from "@/api/internal/metrics";
+// import { getClusterNamespacedMetrics } from "@/api/internal/metrics";
 import { useNamespace } from '@/contexts/useNamespace';
 import { listResources } from '@/api/internal/resources';
 import { ChartProps, charts, PodMetricsProps } from './charts/charts.monitorspotlight';
@@ -36,8 +36,8 @@ const MonitorSpotlight: React.FC<MonitorSpotlightProps> = ({ query }) => {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const data = await getClusterNamespacedMetrics();
-        setMetrics(data);
+        // const data = await getClusterNamespacedMetrics();
+        // setMetrics(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch metrics');
       } finally {
@@ -57,17 +57,17 @@ const MonitorSpotlight: React.FC<MonitorSpotlightProps> = ({ query }) => {
       }
 
       try {
-        const response = await listResources(
-          selectedNamespaces,
-          'pods'
-        );
-        const podNames = response.map((pod: any) => pod.name);
-        setPods(podNames);
+        // const response = await listResources(
+        //   selectedNamespaces,
+        //   'pods'
+        // );
+        // const podNames = response.map((pod: any) => pod.name);
+        // setPods(podNames);
 
         // Reset selected pod if it's not in the new pod list
-        if (selectedPod && !podNames.includes(selectedPod)) {
-          setSelectedPod('');
-        }
+        // if (selectedPod && !podNames.includes(selectedPod)) {
+        //   setSelectedPod('');
+        // }
       } catch (err) {
         console.error('Failed to fetch pods:', err);
         setPods([]);
