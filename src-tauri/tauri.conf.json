@@ -1,18 +1,18 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "agentkube-tauri-platform",
+  "productName": "agentkube",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.agentkube.app",
   "build": {
     "frontendDist": "../build",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
     "windows": [
       {
-        "title": "agentkube-tauri-platform",
+        "title": "agentkube",
         "width": 800,
         "height": 600,
         "resizable": true,
