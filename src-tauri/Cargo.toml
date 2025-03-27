@@ -1,10 +1,10 @@
 [package]
-name = "app"
+name = "agentkube"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "A Kubernetes Management IDE"
+authors = ["siddhantprateek"]
+license = "MIT"
+repository = "github.com/agentkube/platform"
 edition = "2021"
 rust-version = "1.71"
 
@@ -21,7 +21,7 @@ tauri-build = { version = "2.0.0-rc.13", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.0.0-rc.17", features = [] }
+tauri = { version = "2.0.0-rc.17", features = ["protocol-asset"] }
 tauri-plugin-log = "2.0.0-rc"
-tauri-plugin-http = "2.0.0-rc"
+tauri-plugin-http = { version = "2.0.0-rc", features = ["unsafe-headers"] }
 tauri-plugin-cors-fetch = "2.1.1"

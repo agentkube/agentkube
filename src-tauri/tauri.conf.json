@@ -6,29 +6,56 @@
   "mainBinaryName": "agentkube",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:5422",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Agentkube",
-        "width": 800,
-        "height": 600,
+        "width": 1400,
+        "height": 900,
         "resizable": true,
         "fullscreen": false,
         "hiddenTitle": true
       }
     ],
     "security": {
-      "csp": null,
-
+      "csp": "default-src 'self' http://localhost:4688 http://localhost:65001",
+      "assetProtocol": {
+        "scope": [
+          "**"
+        ],
+        "enable": true
+      },
       "capabilities": [
         {
           "identifier": "http:default",
           "description": "Allows making HTTP requests to specific domains",
-          "permissions": [{ "identifier": "http:default", "allow": ["http://localhost:4688/**", "http://localhost:65001/**"] }]
+          "windows": ["main"],
+          "permissions": [
+            {
+              "identifier": "http:default",
+              "allow": [
+                "http://localhost:1420/*",
+                "http://localhost:4688/*",
+                "http://localhost:65001/*"
+              ]
+            }
+          ]
+        },
+        {
+          "identifier": "cors-fetch:default",
+          "description": "Allows CORS fetch requests",
+          "windows": ["main"],
+          "permissions": [
+            {
+              "identifier": "cors-fetch:default",
+              "allow": ["http://localhost:1420/*", "http://localhost:4688/*", "http://localhost:65001/*"]
+            }
+          ]
         }
       ]
     }

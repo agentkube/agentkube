@@ -5,9 +5,39 @@
   "windows": [
     "main"
   ],
+  "local": true,
   "permissions": [
     "core:default",
     "http:default",
-    "cors-fetch:default"
+    "cors-fetch:default",
+    "cors-fetch:allow-cors-request",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "http://localhost:1420/*"
+        },
+        {
+          "url": "http://localhost:4688/*"
+        },
+        {
+          "url": "http://localhost:65001/*"
+        }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        {
+          "url": "http://localhost:1420/*"
+        },
+        {
+          "url": "http://localhost:4688/*"
+        },
+        {
+          "url": "http://localhost:65001/*"
+        }
+      ]
+    }
   ]
 }
