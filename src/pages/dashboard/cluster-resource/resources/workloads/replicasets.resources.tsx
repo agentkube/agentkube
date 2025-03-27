@@ -207,7 +207,7 @@ const ReplicaSets: React.FC = () => {
     if (!currentContext || !replicaSet.metadata?.name || !replicaSet.metadata?.namespace) return;
 
     // Delete with orphan propagation policy to avoid deleting pods
-    await fetch(`/operator/clusters/${currentContext.name}/apis/apps/v1/namespaces/${replicaSet.metadata.namespace}/replicasets/${replicaSet.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${replicaSet.metadata.namespace}/replicasets/${replicaSet.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

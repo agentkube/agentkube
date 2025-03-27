@@ -73,7 +73,7 @@ export async function getPodMetrics(
   podName: string
 ): Promise<PodMetrics> {
   try {
-    const response = await fetch(`/operator/cluster/${clusterName}/metrics/pods/${namespace}/${podName}`, {
+    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/metrics/pods/${namespace}/${podName}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -150,7 +150,7 @@ export async function getNamespacePodMetrics(
   namespace: string
 ): Promise<PodMetrics[]> {
   try {
-    const response = await fetch(`/operator/cluster/${clusterName}/metrics/namespaces/${namespace}/pods`, {
+    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/metrics/namespaces/${namespace}/pods`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

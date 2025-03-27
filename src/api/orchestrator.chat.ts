@@ -97,7 +97,7 @@ export const chatStream = async (
   callbacks: ChatStreamCallbacks
 ): Promise<void> => {
   try {
-    const response = await fetch('/orchestrator/api/chat', {
+    const response = await fetch('http://localhost:4688/api/v1/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export const completionStream = async (
   callbacks: ChatStreamCallbacks
 ): Promise<void> => {
   try {
-    const response = await fetch('/orchestrator/api/completion', {
+    const response = await fetch('http://localhost:4688/api/v1/api/completion', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -280,7 +280,7 @@ export const executeCommand = async (
   command: string,
   kubecontext?: string
 ): Promise<ExecuteCommandResponse> => {
-  const response = await fetch('/orchestrator/api/execute', {
+  const response = await fetch('http://localhost:4688/api/v1/api/execute', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -302,7 +302,7 @@ export const listConversations = async (
   skip = 0,
   limit = 100
 ): Promise<{ conversations: Conversation[], total: number }> => {
-  const response = await fetch(`/orchestrator/api/conversations?skip=${skip}&limit=${limit}`);
+  const response = await fetch(`http://localhost:4688/api/v1/api/conversations?skip=${skip}&limit=${limit}`);
   
   if (!response.ok) {
     throw new Error(`Failed to list conversations: ${response.status}`);
@@ -317,7 +317,7 @@ export const listConversations = async (
 export const createConversation = async (
   request: ConversationCreateRequest
 ): Promise<Conversation> => {
-  const response = await fetch('/orchestrator/api/conversations', {
+  const response = await fetch('http://localhost:4688/api/v1/api/conversations', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -338,7 +338,7 @@ export const createConversation = async (
 export const getConversation = async (
   conversationId: string
 ): Promise<ConversationWithMessages> => {
-  const response = await fetch(`/orchestrator/api/conversations/${conversationId}`);
+  const response = await fetch(`http://localhost:4688/api/v1/api/conversations/${conversationId}`);
   
   if (!response.ok) {
     throw new Error(`Failed to get conversation: ${response.status}`);
@@ -354,7 +354,7 @@ export const updateConversation = async (
   conversationId: string,
   request: ConversationUpdateRequest
 ): Promise<Conversation> => {
-  const response = await fetch(`/orchestrator/api/conversations/${conversationId}`, {
+  const response = await fetch(`http://localhost:4688/api/v1/api/conversations/${conversationId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
@@ -375,7 +375,7 @@ export const updateConversation = async (
 export const deleteConversation = async (
   conversationId: string
 ): Promise<{ status: string, id: string }> => {
-  const response = await fetch(`/orchestrator/api/conversations/${conversationId}`, {
+  const response = await fetch(`http://localhost:4688/api/v1/api/conversations/${conversationId}`, {
     method: 'DELETE'
   });
   

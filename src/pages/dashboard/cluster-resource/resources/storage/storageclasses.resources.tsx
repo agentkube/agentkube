@@ -207,7 +207,7 @@ const StorageClasses: React.FC = () => {
     }
 
     // Create the new StorageClass
-    await fetch(`/operator/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ const StorageClasses: React.FC = () => {
     }
 
     // Apply the patch
-    await fetch(`/operator/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',
@@ -314,7 +314,7 @@ const StorageClasses: React.FC = () => {
     ];
 
     // Apply the patch
-    await fetch(`/operator/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',

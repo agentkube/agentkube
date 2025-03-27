@@ -212,7 +212,7 @@ const Roles: React.FC = () => {
 
       if (!currentContext) return;
       // Create the new Role
-      await fetch(`/operator/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/namespaces/${activeRole.metadata.namespace}/roles`, {
+      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/namespaces/${activeRole.metadata.namespace}/roles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

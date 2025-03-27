@@ -173,7 +173,7 @@ const DaemonSets: React.FC = () => {
     const annotations = daemonSet.spec?.template?.metadata?.annotations || {};
     const restartedAt = new Date().toISOString();
 
-    await fetch(`/operator/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -237,7 +237,7 @@ const DaemonSets: React.FC = () => {
   const deleteDaemonSet = async (daemonSet: V1DaemonSet) => {
     if (!currentContext || !daemonSet.metadata?.name || !daemonSet.metadata?.namespace) return;
 
-    await fetch(`/operator/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

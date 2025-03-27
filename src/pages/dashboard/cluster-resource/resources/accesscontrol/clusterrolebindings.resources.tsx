@@ -215,7 +215,7 @@ const ClusterRoleBindings: React.FC = () => {
       if (!currentContext) return;
 
       // Create the new ClusterRoleBinding
-      await fetch(`/operator/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/clusterrolebindings`, {
+      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/clusterrolebindings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

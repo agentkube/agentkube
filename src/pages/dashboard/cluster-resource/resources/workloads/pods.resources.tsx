@@ -245,7 +245,7 @@ const Pods: React.FC = () => {
     // This implementation depends on your Kubernetes API setup
     // Option 1: If you have a direct API for pod restart:
     /*
-    await fetch(`/operator/clusters/${currentContext.name}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}/restart`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}/restart`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ const Pods: React.FC = () => {
     const restartedAt = new Date().toISOString();
 
     // Update pod with restart annotation
-    await fetch(`/operator/clusters/${currentContext.name}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -321,7 +321,7 @@ const Pods: React.FC = () => {
   const deletePod = async (pod: V1Pod) => {
     if (!currentContext || !pod.metadata?.name || !pod.metadata?.namespace) return;
 
-    await fetch(`/operator/clusters/${currentContext.name}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -415,12 +415,12 @@ const Pods: React.FC = () => {
     }
 
     try {
-      const metricsApiUrl = `/operator/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/pods`;
+      const metricsApiUrl = `http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/pods`;
 
       // If specific namespaces are selected, use a comma-separated list
       // if (selectedNamespaces.length > 0) {
       //   const namespaceQuery = selectedNamespaces.join(',');
-      //   // metricsApiUrl = `/operator/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/pods?fieldSelector=metadata.namespace in (${namespaceQuery})`;
+      //   // metricsApiUrl = `http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/pods?fieldSelector=metadata.namespace in (${namespaceQuery})`;
       // }
 
       const response = await fetch(metricsApiUrl, {

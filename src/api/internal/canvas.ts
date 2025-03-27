@@ -78,7 +78,7 @@ export async function getResourceCanvas(
     };
 
     // Make API request to the canvas endpoint
-    const response = await fetch(`/operator/cluster/${clusterName}/canvas`, {
+    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/canvas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -223,7 +223,7 @@ const IngressClasses: React.FC = () => {
     }
 
     // Apply the patch
-    await fetch(`/operator/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',
@@ -250,7 +250,7 @@ const IngressClasses: React.FC = () => {
     ];
 
     // Apply the patch
-    await fetch(`/operator/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',

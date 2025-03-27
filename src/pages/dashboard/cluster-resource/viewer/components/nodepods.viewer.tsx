@@ -128,7 +128,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
     }
 
     try {
-      const metricsApiUrl = `/operator/clusters/${clusterName}/apis/metrics.k8s.io/v1beta1/pods`;
+      const metricsApiUrl = `http://localhost:4688/api/v1/clusters/${clusterName}/apis/metrics.k8s.io/v1beta1/pods`;
 
       const response = await fetch(metricsApiUrl, {
         method: 'GET',

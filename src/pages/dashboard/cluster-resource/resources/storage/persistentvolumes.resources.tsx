@@ -192,7 +192,7 @@ const PersistentVolumes: React.FC = () => {
     };
 
     // Create the new PV
-    await fetch(`/operator/clusters/${currentContext.name}/api/v1/persistentvolumes`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/persistentvolumes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

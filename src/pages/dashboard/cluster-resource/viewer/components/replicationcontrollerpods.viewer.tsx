@@ -194,7 +194,7 @@ const ReplicationControllerPods: React.FC<ReplicationControllerPodsProps> = ({
     }
 
     try {
-      const metricsApiUrl = `/operator/clusters/${clusterName}/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods`;
+      const metricsApiUrl = `http://localhost:4688/api/v1/clusters/${clusterName}/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods`;
 
       const response = await fetch(metricsApiUrl, {
         method: 'GET',

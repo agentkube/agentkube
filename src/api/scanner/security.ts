@@ -56,7 +56,7 @@ export const scanImage = async (
 export const getVulnerabilityReports = async (
   clusterName: string
 ): Promise<VulnerabilityReportsApiResponse> => {
-  const response = await fetch(`/operator/cluster/${clusterName}/trivy/vulnerabilities`, {
+  const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/trivy/vulnerabilities`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ export const getVulnerabilityReports = async (
 export const getClusterComplianceReports = async (
   clusterName: string
 ): Promise<ComplianceReportsApiResponse> => {
-  const response = await fetch(`/operator/cluster/${clusterName}/trivy/compliance`, {
+  const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/trivy/compliance`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export const getComplianceDetails = async (
   clusterName: string,
   reportName: string
 ): Promise<any> => {
-  const response = await fetch(`/operator/cluster/${clusterName}/trivy/compliance/${reportName}`, {
+  const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/trivy/compliance/${reportName}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ export const getComplianceDetails = async (
 export const getConfigAuditReports = async (
   clusterName: string
 ): Promise<any> => {
-  const response = await fetch(`/operator/cluster/${clusterName}/trivy/config-audit`, {
+  const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/trivy/config-audit`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ export const getConfigAuditReports = async (
 export const getTrivyStatus = async (
   clusterName: string
 ): Promise<any> => {
-  const response = await fetch(`/operator/cluster/${clusterName}/trivy/status`, {
+  const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/trivy/status`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -173,7 +173,7 @@ export const getTrivyStatus = async (
 export const installTrivyOperator = async (
   clusterName: string
 ): Promise<any> => {
-  const response = await fetch(`/operator/cluster/${clusterName}/trivy/install`, {
+  const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/trivy/install`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -196,7 +196,7 @@ export const installTrivyOperator = async (
 export const uninstallTrivyOperator = async (
   clusterName: string
 ): Promise<any> => {
-  const response = await fetch(`/operator/cluster/${clusterName}/trivy/uninstall`, {
+  const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/trivy/uninstall`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

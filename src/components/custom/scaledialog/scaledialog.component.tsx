@@ -93,7 +93,7 @@ const ScaleDialog: React.FC<ScaleDialogProps> = ({
           .replace('{{namespace}}', resource.metadata.namespace)
           .replace('{{name}}', resource.metadata.name);
 
-        const response = await fetch(`/operator/clusters/${currentContext.name}/${apiPath}`, {
+        const response = await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/${apiPath}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/strategic-merge-patch+json',

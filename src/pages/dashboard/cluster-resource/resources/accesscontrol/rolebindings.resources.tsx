@@ -220,7 +220,7 @@ const RoleBindings: React.FC = () => {
       if (!currentContext) return;
 
       // Create the new RoleBinding
-      await fetch(`/operator/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/namespaces/${activeRoleBinding.metadata.namespace}/rolebindings`, {
+      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/namespaces/${activeRoleBinding.metadata.namespace}/rolebindings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -220,7 +220,7 @@ const ClusterRoles: React.FC = () => {
       // Create the new ClusterRole
       if (!currentContext) return;
 
-      await fetch(`/operator/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/clusterroles`, {
+      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/clusterroles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

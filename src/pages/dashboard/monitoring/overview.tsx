@@ -200,7 +200,7 @@ const PodMonitoringOverview = () => {
     if (!currentContext || !namespace || !podName) return;
     
     try {
-      const metricsApiUrl = `/operator/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods/${podName}`;
+      const metricsApiUrl = `http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods/${podName}`;
       
       const response = await fetch(metricsApiUrl, {
         method: 'GET',

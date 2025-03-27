@@ -191,7 +191,7 @@ const Jobs: React.FC = () => {
       }
 
       // Create the new job
-      await fetch(`/operator/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs`, {
+      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,7 +249,7 @@ const Jobs: React.FC = () => {
     if (!currentContext || !job.metadata?.name || !job.metadata?.namespace) return;
 
     // The propagationPolicy: "Background" ensures pods will be deleted
-    await fetch(`/operator/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -296,7 +296,7 @@ const Jobs: React.FC = () => {
     if (!currentContext || !job.metadata?.name || !job.metadata?.namespace) return;
 
     // Set completions and parallelism to 0 to stop running pods
-    await fetch(`/operator/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',

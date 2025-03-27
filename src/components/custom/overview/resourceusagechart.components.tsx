@@ -42,7 +42,7 @@ const ResourceUsageChart = () => {
 
         // Fetch node metrics
         try {
-          const response = await fetch(`/operator/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
+          const response = await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ const ResourceUsageChart = () => {
     if (!currentContext) return;
 
     try {
-      const response = await fetch(`/operator/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
+      const response = await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

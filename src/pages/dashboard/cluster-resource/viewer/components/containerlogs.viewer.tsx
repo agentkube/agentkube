@@ -263,7 +263,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
 
       // Get Pods Logs
       const response = await fetch(
-        `/operator/clusters/${clusterName}/api/v1/namespaces/${namespace}/pods/${podName}/log?${params.toString()}`,
+        `http://localhost:4688/api/v1/clusters/${clusterName}/api/v1/namespaces/${namespace}/pods/${podName}/log?${params.toString()}`,
         {
           method: 'GET',
           headers: {

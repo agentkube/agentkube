@@ -196,7 +196,7 @@ const PersistentVolumeClaims: React.FC = () => {
     };
 
     // Create the new PVC
-    await fetch(`/operator/clusters/${currentContext.name}/api/v1/namespaces/${pvc.metadata.namespace}/persistentvolumeclaims`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/namespaces/${pvc.metadata.namespace}/persistentvolumeclaims`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

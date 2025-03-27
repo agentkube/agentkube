@@ -282,7 +282,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     const createSessionAndConnect = async () => {
       try {
         // Get session from API
-        const response = await fetch(`${baseUrl}/operator/terminal`, {
+        const response = await fetch(`${baseUrl}http://localhost:4688/api/v1/terminal`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -296,7 +296,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         const session = await response.json();
         
         // Now create the WebSocket URL with the session credentials
-        const wsUrl = `${wsProtocol}//${host}/operator/terminal?id=${encodeURIComponent(session.id)}&shellToken=${encodeURIComponent(session.shellToken)}`;
+        const wsUrl = `${wsProtocol}//${host}http://localhost:4688/api/v1/terminal?id=${encodeURIComponent(session.id)}&shellToken=${encodeURIComponent(session.shellToken)}`;
         
         // Connect to the WebSocket
         const connectionId = await terminalApi.connect(

@@ -178,7 +178,7 @@ const StatefulSets: React.FC = () => {
     const annotations = statefulSet.spec?.template?.metadata?.annotations || {};
     const restartedAt = new Date().toISOString();
 
-    await fetch(`/operator/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -270,7 +270,7 @@ const StatefulSets: React.FC = () => {
     // This could be enhanced with a radio button selection in the dialog
     const deletePolicy = "Background"; // or "Orphan" to keep PVCs
 
-    await fetch(`/operator/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

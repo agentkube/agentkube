@@ -172,7 +172,7 @@ const CronJobs: React.FC = () => {
     const currentlySuspended = cronJob.spec?.suspend === true;
     const apiVersion = cronJob.apiVersion?.includes('v1beta1') ? 'v1beta1' : 'v1';
 
-    await fetch(`/operator/clusters/${currentContext.name}/apis/batch/${apiVersion}/namespaces/${cronJob.metadata.namespace}/cronjobs/${cronJob.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/${apiVersion}/namespaces/${cronJob.metadata.namespace}/cronjobs/${cronJob.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -255,7 +255,7 @@ const CronJobs: React.FC = () => {
     };
 
     // Create the job
-    await fetch(`/operator/clusters/${currentContext.name}/apis/batch/v1/namespaces/${cronJob.metadata.namespace}/jobs`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/v1/namespaces/${cronJob.metadata.namespace}/jobs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -310,7 +310,7 @@ const CronJobs: React.FC = () => {
 
     const apiVersion = cronJob.apiVersion?.includes('v1beta1') ? 'v1beta1' : 'v1';
 
-    await fetch(`/operator/clusters/${currentContext.name}/apis/batch/${apiVersion}/namespaces/${cronJob.metadata.namespace}/cronjobs/${cronJob.metadata.name}`, {
+    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/${apiVersion}/namespaces/${cronJob.metadata.namespace}/cronjobs/${cronJob.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
