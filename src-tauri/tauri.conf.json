@@ -1,10 +1,11 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "agentkube",
+  "productName": "Agentkube",
   "version": "0.1.0",
-  "identifier": "com.agentkube.app",
+  "identifier": "platform.agentkube.app",
+  "mainBinaryName": "agentkube",
   "build": {
-    "frontendDist": "../build",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
@@ -12,15 +13,24 @@
   "app": {
     "windows": [
       {
-        "title": "agentkube",
+        "title": "Agentkube",
         "width": 800,
         "height": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "hiddenTitle": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+
+      "capabilities": [
+        {
+          "identifier": "http:default",
+          "description": "Allows making HTTP requests to specific domains",
+          "permissions": [{ "identifier": "http:default", "allow": ["http://localhost:4688/**", "http://localhost:65001/**"] }]
+        }
+      ]
     }
   },
   "bundle": {
@@ -32,6 +42,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Agentkube, Inc.",
+    "homepage": "https://agentkube.com",
+    "copyright": "© 2025 Agentkube, Inc. All rights reserved.",
+    "license": "MIT",
+    "category": "Productivity",
+    "shortDescription": "Agentkube: AI-powered Kubernetes management platform.",
+    "longDescription": "Agentkube: AI-powered Kubernetes management platform"
   }
 }

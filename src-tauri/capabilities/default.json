@@ -6,6 +6,8 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "http:default",
+    "cors-fetch:default"
   ]
 }
