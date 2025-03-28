@@ -261,7 +261,7 @@ const PodMonitoringOverview = () => {
     const errorMessage = error || namespacesError;
     return (
       <div className="p-6">
-        <Alert variant="destructive" className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <Alert variant="destructive" className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error loading monitoring data</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
@@ -354,7 +354,7 @@ const PodMonitoringOverview = () => {
         
         {/* Pod Basic Info (if pod is selected) */}
         {podDetails && (
-          <Card className="mb-6 bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <CardHeader className="pb-3">
               <CardTitle>Pod Information</CardTitle>
             </CardHeader>
@@ -380,7 +380,7 @@ const PodMonitoringOverview = () => {
         {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* CPU Usage Chart */}
-          <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center">
                 <Cpu className="mr-2 h-5 w-5 text-blue-500" />
@@ -440,7 +440,7 @@ const PodMonitoringOverview = () => {
           </Card>
           
           {/* Memory Usage Chart */}
-          <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center">
                 <HardDrive className="mr-2 h-5 w-5 text-emerald-500" />
@@ -502,7 +502,7 @@ const PodMonitoringOverview = () => {
         
         {/* Network Chart */}
         {/* Note: This is preserved from your original design, but populated with placeholders since your API doesn't include network metrics */}
-        <Card className="mb-6 bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center">
               <Activity className="mr-2 h-5 w-5 text-purple-500" />
@@ -568,7 +568,7 @@ const PodMonitoringOverview = () => {
         
         {/* Container Details (if available) */}
         {podMetrics && podMetrics.containers.length > 0 && (
-          <Card className="mb-6 bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <CardHeader className="pb-3">
               <CardTitle>Container Metrics</CardTitle>
             </CardHeader>

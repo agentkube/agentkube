@@ -107,7 +107,7 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
       {podMetrics && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* CPU Usage Card */}
-          <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium flex items-center gap-2">
                 <Cpu className="h-5 w-5 text-blue-500" />
@@ -167,7 +167,7 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
           </Card>
 
           {/* Memory Usage Card */}
-          <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium flex items-center gap-2">
                 <Database className="h-5 w-5 text-emerald-500" />
@@ -230,7 +230,7 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
         
       {/* Historical Metrics Chart - if history data is available */}
       {podMetrics && cpuMemoryChartData.length > 1 && (
-        <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center">
               <Activity className="mr-2 h-5 w-5 text-purple-500" />
@@ -298,7 +298,7 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
         
       {/* Container Details - if metrics are available */}
       {podMetrics && podMetrics.containers.length > 0 && (
-        <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <CardHeader>
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <Terminal className="h-5 w-5" />

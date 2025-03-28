@@ -163,7 +163,7 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
         }}
       >
         
-        <Controls />
+        <Controls style={{ backgroundColor: '#ffffff', color: 'black', borderRadius: '0.5rem' }} />
         {/* <MiniMap /> */}
         <Background color="#ffffffCC" variant={BackgroundVariant.Dots} />
         <ResourceDetailsPanel

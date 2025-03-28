@@ -652,7 +652,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 300, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-80 bg-gray-100 rounded-xl shadow-xl border-l border-gray-200 overflow-y-auto max-h-[calc(100vh-4rem)]"
+            className="w-80 bg-gray-100 rounded-xl shadow-xl border-l border-gray-200 text-gray-600 overflow-y-auto max-h-[calc(100vh-4rem)]"
           >
             <div className="p-4">
               <div className="flex justify-between items-center mb-6">
