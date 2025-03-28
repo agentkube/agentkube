@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink, Download, Copy, Check, Package, Star, Clock, Shield, FileCode } from "lucide-react";
+import { Loader2, ExternalLink, Download, Copy, Check, Package, Star, Clock, Shield, FileCode, DownloadIcon } from "lucide-react";
 import Editor from '@monaco-editor/react';
 import { getChartVersions, getChartDefaultValues } from '@/api/internal/helm';
 import { openExternalUrl } from '@/api/external';
@@ -76,25 +76,25 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
   // Fetch chart versions
   const fetchChartVersions = async () => {
     if (!chart) return;
-    
+
     try {
       setLoading(true);
-      
+
       try {
         // Use our backend proxy endpoint
         const xmlText = await getChartVersions(chart.repository.name, chart.name);
-        
+
         if (xmlText) {
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-          
+
           const versionItems = xmlDoc.querySelectorAll('item');
           const extractedVersions: ChartVersion[] = [];
-          
+
           versionItems.forEach((item) => {
             const version = item.querySelector('title')?.textContent || '';
             const pubDate = item.querySelector('pubDate')?.textContent || '';
-            
+
             if (version && pubDate) {
               extractedVersions.push({
                 version,
@@ -102,7 +102,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
               });
             }
           });
-          
+
           if (extractedVersions.length > 0) {
             setVersions(extractedVersions);
             return;
@@ -111,13 +111,13 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
       } catch (err) {
         console.warn('Error fetching chart versions from proxy:', err);
       }
-      
+
       // If we reach here, we couldn't get versions, so use the current version
       setVersions([{
         version: chart.version,
         publishedAt: new Date().toISOString()
       }]);
-      
+
     } catch (error) {
       console.error('Error fetching chart versions:', error);
       // Use the current chart version on error
@@ -135,11 +135,11 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
     try {
       setLoading(true);
       setChartValues('# Loading values...');
-      
+
       try {
         // Use our backend proxy endpoint
         const values = await getChartDefaultValues(packageId, version);
-        
+
         if (values && values.includes(':')) {
           setChartValues(values);
           return;
@@ -147,10 +147,10 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
       } catch (err) {
         console.error('Error fetching chart values from proxy:', err);
       }
-      
+
       // If all attempts fail, provide a clear message
       setChartValues(`# Unable to fetch values for ${chart?.name} version ${version}\n# Please check the Artifact Hub website for values.yaml`);
-      
+
     } catch (error) {
       console.error('Error in values fetch flow:', error);
       setChartValues(`# Error fetching values for ${chart?.name} version ${version}\n# Please check the Artifact Hub website for values.yaml`);
@@ -162,11 +162,11 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
   // Format relative time from timestamp
   const formatRelativeTime = (timestamp: number) => {
     if (!timestamp) return 'Unknown';
-    
+
     try {
       const now = Math.floor(Date.now() / 1000);
       const secondsAgo = now - timestamp;
-      
+
       if (secondsAgo < 60) return 'just now';
       if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
       if (secondsAgo < 86400) return `${Math.floor(secondsAgo / 3600)}h ago`;
@@ -199,9 +199,9 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
             {chart.logo_image_id ? (
-              <img 
-                src={`https://artifacthub.io/image/${chart.logo_image_id}`} 
-                alt={`${chart.name} logo`} 
+              <img
+                src={`https://artifacthub.io/image/${chart.logo_image_id}`}
+                alt={`${chart.name} logo`}
                 className="w-10 h-10 rounded"
               />
             ) : (
@@ -230,7 +230,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
               {formatRelativeTime(chart.ts)}
             </span>
           </div>
-          
+
           <Select value={selectedVersion} onValueChange={handleVersionChange}>
             <SelectTrigger className="w-36 bg-transparent dark:text-white dark:border-gray-800/50">
               <SelectValue placeholder="Version" />
@@ -372,9 +372,9 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
           <TabsContent value="values" className="mt-4">
             <div className="relative">
               <div className="absolute right-2 top-2 z-10 flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-8 px-2"
                   onClick={handleCopyValues}
                   disabled={loading}
@@ -385,9 +385,9 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-8 px-2"
                   onClick={() => {
                     const blob = new Blob([chartValues], { type: 'text/yaml' });
@@ -402,7 +402,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                   <Download className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <div className="h-96 mt-2 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                 {loading ? (
                   <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
@@ -429,15 +429,15 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                 )}
               </div>
             </div>
-            
+
             <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center">
               <FileCode className="h-4 w-4 mr-1" />
               These are the default values for the {chart.name} chart (version {selectedVersion}).
-              <Button 
-                variant="link" 
-                size="sm" 
+              <Button
+                variant="link"
+                size="sm"
                 className="ml-2 text-blue-500 hover:text-blue-700 p-0 h-auto"
-                onClick={() => openExternalUrl(`https://artifacthub.io/packages/helm/${chart.repository.name}/${chart.name}/values`)} 
+                onClick={() => openExternalUrl(`https://artifacthub.io/api/v1/packages/${chart.package_id}/${chart.version}/values`)}
               >
                 View on Artifact Hub <ExternalLink className="h-3 w-3 ml-1" />
               </Button>
@@ -445,20 +445,29 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+        <DialogFooter className="flex flex-col sm:flex-row mt-4">
           <Button
+            onClick={() => { console.log("Install Chart....")}}
+            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
             variant="outline"
-            onClick={onClose}
-            className="sm:order-1"
           >
-            Close
+            {/* TODO add Install helm Chart Endpoint */}
+            <DownloadIcon className="h-4 w-4" />
+            Install
           </Button>
-          <Button 
+          <Button
             onClick={() => openExternalUrl(`https://artifacthub.io/packages/helm/${chart.repository.name}/${chart.name}`)}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1"
+            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
+            variant="outline"
           >
             <ExternalLink className="h-4 w-4" />
             View on Artifact Hub
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>
