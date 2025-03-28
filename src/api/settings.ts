@@ -1,3 +1,4 @@
+import { ORCHESTRATOR_URL } from '@/config';
 import { AgentKubeConfig, McpConfig } from '@/types/settings';
 
 /**
@@ -6,7 +7,7 @@ import { AgentKubeConfig, McpConfig } from '@/types/settings';
  */
 export const getSettings = async (): Promise<AgentKubeConfig> => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/config`);
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/config`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch settings: ${response.status} ${response.statusText}`);
@@ -60,7 +61,7 @@ export const updateSettingsSection = async <K extends keyof AgentKubeConfig>(
  */
 export const updateSettings = async (settings: Partial<AgentKubeConfig>): Promise<AgentKubeConfig> => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/config`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/config`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ export const updateSettings = async (settings: Partial<AgentKubeConfig>): Promis
  */
 export const getMcpConfig = async (): Promise<McpConfig> => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/mcp`);
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch MCP config: ${response.status} ${response.statusText}`);
@@ -114,7 +115,7 @@ export const updateMcpConfig = async (mcpConfig: {
   };
 }): Promise<any> => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/mcp`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -142,7 +143,7 @@ export const updateMcpConfig = async (mcpConfig: {
  */
 export const importSettings = async (filepath: string): Promise<AgentKubeConfig> => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/config/import`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/config/import`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ export const importSettings = async (filepath: string): Promise<AgentKubeConfig>
  */
 export const getMcpServers = async () => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/mcp/servers`);
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp/servers`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch MCP servers: ${response.status} ${response.statusText}`);
@@ -188,7 +189,7 @@ export const getMcpServers = async () => {
  */
 export const getMcpTools = async () => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/mcp/tools`);
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp/tools`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch MCP tools: ${response.status} ${response.statusText}`);
@@ -209,7 +210,7 @@ export const getMcpTools = async () => {
  */
 export const getServerTools = async (serverName: string) => {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/mcp/servers/${serverName}/tools`);
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp/servers/${serverName}/tools`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch tools for server ${serverName}: ${response.status} ${response.statusText}`);
