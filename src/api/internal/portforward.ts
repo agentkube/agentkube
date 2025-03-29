@@ -1,3 +1,4 @@
+import { OPERATOR_URL } from "@/config";
 /**
  * Generic API response wrapper
  */
@@ -61,7 +62,7 @@ export interface StopPortForwardRequest {
  */
 export async function startPortForward(request: PortForwardRequest): Promise<PortForwardResponse> {
   try {
-    const response = await fetch('http://localhost:4688/api/v1/api/v1/portforward/start', {
+    const response = await fetch(`${OPERATOR_URL}/portforward/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ export async function startPortForward(request: PortForwardRequest): Promise<Por
  */
 export async function stopPortForward(request: StopPortForwardRequest): Promise<void> {
   try {
-    const response = await fetch('http://localhost:4688/api/v1/api/v1/portforward/stop', {
+    const response = await fetch(`${OPERATOR_URL}/portforward/stop`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ export async function stopPortForward(request: StopPortForwardRequest): Promise<
  */
 export async function getPortForwards(clusterName: string): Promise<PortForward[]> {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/v1/portforward?cluster=${encodeURIComponent(clusterName)}`, {
+    const response = await fetch(`${OPERATOR_URL}/portforward/?cluster=${encodeURIComponent(clusterName)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -146,7 +147,7 @@ export async function getPortForwards(clusterName: string): Promise<PortForward[
  */
 export async function getPortForwardById(clusterName: string, id: string): Promise<PortForward> {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/api/v1/portforward/${id}?cluster=${encodeURIComponent(clusterName)}`, {
+    const response = await fetch(`${OPERATOR_URL}/portforward/${id}?cluster=${encodeURIComponent(clusterName)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -238,7 +239,7 @@ export async function portForwardService(
 ): Promise<PortForwardResponse> {
   try {
     // This endpoint would handle finding a pod that matches the service selector
-    const response = await fetch(`http://localhost:4688/api/v1/api/v1/services/${namespace}/${serviceName}/portforward`, {
+    const response = await fetch(`${OPERATOR_URL}/services/${namespace}/${serviceName}/portforward`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

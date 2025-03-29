@@ -1,9 +1,10 @@
 // api/internal/exectute.ts
+import { OPERATOR_URL } from "@/config";
 import { ExecutionResult } from "@/types/cluster";
 
 export const ExecuteCommand = async (args: string): Promise<ExecutionResult> => {
 
-  const response = await fetch(`http://localhost:4688/api/v1/api/execute`, {
+  const response = await fetch(`${OPERATOR_URL}/api/execute`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

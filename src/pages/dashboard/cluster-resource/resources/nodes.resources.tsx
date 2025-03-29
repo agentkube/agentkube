@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { OPERATOR_URL } from '@/config';
 
 interface UnitToggleProps {
   activeUnit: 'MiB' | 'GiB';
@@ -326,7 +327,7 @@ const Nodes: React.FC = () => {
     try {
       setRefreshing(true);
 
-      const response = await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
+      const response = await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

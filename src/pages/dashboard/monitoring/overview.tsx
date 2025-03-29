@@ -8,6 +8,7 @@ import { listResources, getResource } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
 import { V1Pod, V1Namespace } from '@kubernetes/client-node';
+import { OPERATOR_URL } from '@/config';
 
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -200,7 +201,7 @@ const PodMonitoringOverview = () => {
     if (!currentContext || !namespace || !podName) return;
     
     try {
-      const metricsApiUrl = `http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods/${podName}`;
+      const metricsApiUrl = `${OPERATOR_URL}/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods/${podName}`;
       
       const response = await fetch(metricsApiUrl, {
         method: 'GET',

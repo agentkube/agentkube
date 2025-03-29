@@ -16,7 +16,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, ExternalLink, Copy, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
-
+import { OPERATOR_URL } from '@/config';
 // Define types for Subject and RoleBinding
 interface Subject {
   kind: string;
@@ -220,7 +220,7 @@ const RoleBindings: React.FC = () => {
       if (!currentContext) return;
 
       // Create the new RoleBinding
-      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/namespaces/${activeRoleBinding.metadata.namespace}/rolebindings`, {
+      await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/namespaces/${activeRoleBinding.metadata.namespace}/rolebindings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

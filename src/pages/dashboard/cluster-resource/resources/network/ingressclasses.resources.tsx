@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, ExternalLink, Star } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { OPERATOR_URL } from '@/config';
 
 // Define types for IngressClass (not directly exported from kubernetes-client-node)
 interface IngressClassSpec {
@@ -223,7 +224,7 @@ const IngressClasses: React.FC = () => {
     }
 
     // Apply the patch
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',
@@ -250,7 +251,7 @@ const IngressClasses: React.FC = () => {
     ];
 
     // Apply the patch
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/networking.k8s.io/v1/ingressclasses/${ingressClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',

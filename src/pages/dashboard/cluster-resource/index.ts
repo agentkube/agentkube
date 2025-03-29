@@ -11,7 +11,7 @@ export { default as Pods } from './resources/workloads/pods.resources';
 export { default as Jobs } from './resources/workloads/jobs.resources'; 
 export { default as CronJobs } from './resources/workloads/cronjobs.resources';
 export { default as DaemonSets } from './resources/workloads/daemonsets.resources';
-
+export { default as Portforwards } from './resources/portforwards';
 
 // Network
 export { default as Services } from './resources/network/services.resources';

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, RefreshCw, MoreVertical, Search } from "lucide-react";
 import { calculateAge } from '@/utils/age';
 import { createPortal } from 'react-dom';
+import { OPERATOR_URL } from '@/config';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -128,7 +129,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
     }
 
     try {
-      const metricsApiUrl = `http://localhost:4688/api/v1/clusters/${clusterName}/apis/metrics.k8s.io/v1beta1/pods`;
+      const metricsApiUrl = `${OPERATOR_URL}/clusters/${clusterName}/apis/metrics.k8s.io/v1beta1/pods`;
 
       const response = await fetch(metricsApiUrl, {
         method: 'GET',

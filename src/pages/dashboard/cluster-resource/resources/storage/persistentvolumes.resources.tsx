@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, Copy } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -192,7 +193,7 @@ const PersistentVolumes: React.FC = () => {
     };
 
     // Create the new PV
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/persistentvolumes`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/api/v1/persistentvolumes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

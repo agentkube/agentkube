@@ -1,3 +1,4 @@
+import { OPERATOR_URL } from "@/config";
 /**
  * Interface representing a resource identifier in Kubernetes
  */
@@ -78,7 +79,7 @@ export async function getResourceCanvas(
     };
 
     // Make API request to the canvas endpoint
-    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/canvas`, {
+    const response = await fetch(`${OPERATOR_URL}/cluster/${clusterName}/canvas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

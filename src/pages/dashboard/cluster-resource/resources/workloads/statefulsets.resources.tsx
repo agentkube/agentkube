@@ -16,7 +16,7 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, RefreshCw, Scale, Pause, Play } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
+import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -178,7 +178,7 @@ const StatefulSets: React.FC = () => {
     const annotations = statefulSet.spec?.template?.metadata?.annotations || {};
     const restartedAt = new Date().toISOString();
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -270,7 +270,7 @@ const StatefulSets: React.FC = () => {
     // This could be enhanced with a radio button selection in the dialog
     const deletePolicy = "Background"; // or "Orphan" to keep PVCs
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${statefulSet.metadata.namespace}/statefulsets/${statefulSet.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

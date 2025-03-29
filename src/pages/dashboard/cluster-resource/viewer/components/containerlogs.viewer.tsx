@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { OPERATOR_URL } from '@/config';
 
 interface ContainerLogsProps {
   podName: string;
@@ -263,7 +264,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
 
       // Get Pods Logs
       const response = await fetch(
-        `http://localhost:4688/api/v1/clusters/${clusterName}/api/v1/namespaces/${namespace}/pods/${podName}/log?${params.toString()}`,
+        `${OPERATOR_URL}/clusters/${clusterName}/api/v1/namespaces/${namespace}/pods/${podName}/log?${params.toString()}`,
         {
           method: 'GET',
           headers: {

@@ -35,7 +35,8 @@ import {
   Puzzle,
   Ship,
   List,
-  Boxes
+  Boxes,
+  Plug
 } from 'lucide-react';
 
 export const sidebarItems = [
@@ -150,6 +151,11 @@ export const sidebarItems = [
         icon: <UserCheck className="w-4 h-4" />,
       },
     ]
+  },
+  {
+    id: 'portforwards',
+    label: 'Port Forwards',
+    icon: <Plug className="w-4 h-4" />,
   },
   {
     id: 'customresources',

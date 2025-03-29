@@ -1,3 +1,4 @@
+import { OPERATOR_URL } from "@/config";
 /**
  * Interface for a Helm repository
  */
@@ -106,7 +107,7 @@ export interface HelmActionStatus {
  */
 export async function listHelmRepositories(clusterName: string): Promise<HelmRepository[]> {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/helm/repositories`, {
+    const response = await fetch(`${OPERATOR_URL}/cluster/${clusterName}/helm/repositories`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -141,7 +142,7 @@ export async function addHelmRepository(
   url: string
 ): Promise<void> {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/helm/repositories`, {
+    const response = await fetch(`${OPERATOR_URL}/cluster/${clusterName}/helm/repositories`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -174,7 +175,7 @@ export async function updateHelmRepository(
   url: string
 ): Promise<void> {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/helm/repositories`, {
+    const response = await fetch(`${OPERATOR_URL}/cluster/${clusterName}/helm/repositories`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -205,7 +206,7 @@ export async function removeHelmRepository(
   name: string
 ): Promise<void> {
   try {
-    const response = await fetch(`http://localhost:4688/api/v1/cluster/${clusterName}/helm/repositories?name=${encodeURIComponent(name)}`, {
+    const response = await fetch(`${OPERATOR_URL}/cluster/${clusterName}/helm/repositories?name=${encodeURIComponent(name)}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -235,7 +236,7 @@ export async function listHelmCharts(
   filter?: string
 ): Promise<HelmChart[]> {
   try {
-    let url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/charts`;
+    let url = `${OPERATOR_URL}/cluster/${clusterName}/helm/charts`;
     if (filter) {
       url += `?filter=${encodeURIComponent(filter)}`;
     }
@@ -275,7 +276,7 @@ export async function listHelmReleases(
   allNamespaces?: boolean
 ): Promise<HelmRelease[]> {
   try {
-    let url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/releases?`;
+    let url = `${OPERATOR_URL}/cluster/${clusterName}/helm/releases?`;
     const params = new URLSearchParams();
     
     if (namespace) {
@@ -362,7 +363,7 @@ export async function getHelmRelease(
   namespace: string
 ): Promise<any> {
   try {
-    const url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/release?name=${encodeURIComponent(releaseName)}&namespace=${encodeURIComponent(namespace)}`;
+    const url = `${OPERATOR_URL}/cluster/${clusterName}/helm/release?name=${encodeURIComponent(releaseName)}&namespace=${encodeURIComponent(namespace)}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -401,7 +402,7 @@ export async function getHelmReleaseHistory(
   namespace: string
 ): Promise<any[]> {
   try {
-    const url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/release/history?name=${encodeURIComponent(releaseName)}&namespace=${encodeURIComponent(namespace)}`;
+    const url = `${OPERATOR_URL}/cluster/${clusterName}/helm/release/history?name=${encodeURIComponent(releaseName)}&namespace=${encodeURIComponent(namespace)}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -439,7 +440,7 @@ export async function installHelmRelease(
   request: InstallReleaseRequest
 ): Promise<void> {
   try {
-    const url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/release/install`;
+    const url = `${OPERATOR_URL}/cluster/${clusterName}/helm/release/install`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -472,7 +473,7 @@ export async function upgradeHelmRelease(
   request: UpgradeReleaseRequest
 ): Promise<void> {
   try {
-    const url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/release/upgrade`;
+    const url = `${OPERATOR_URL}/cluster/${clusterName}/helm/release/upgrade`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -505,7 +506,7 @@ export async function rollbackHelmRelease(
   request: RollbackReleaseRequest
 ): Promise<void> {
   try {
-    const url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/release/rollback`;
+    const url = `${OPERATOR_URL}/cluster/${clusterName}/helm/release/rollback`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -540,7 +541,7 @@ export async function uninstallHelmRelease(
   namespace: string
 ): Promise<void> {
   try {
-    const url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/release?name=${encodeURIComponent(releaseName)}&namespace=${encodeURIComponent(namespace)}`;
+    const url = `${OPERATOR_URL}/cluster/${clusterName}/helm/release?name=${encodeURIComponent(releaseName)}&namespace=${encodeURIComponent(namespace)}`;
 
     const response = await fetch(url, {
       method: 'DELETE',
@@ -576,7 +577,7 @@ export async function getHelmActionStatus(
   namespace?: string
 ): Promise<HelmActionStatus> {
   try {
-    let url = `http://localhost:4688/api/v1/cluster/${clusterName}/helm/release/status?name=${encodeURIComponent(releaseName)}&action=${encodeURIComponent(action)}`;
+    let url = `${OPERATOR_URL}/cluster/${clusterName}/helm/release/status?name=${encodeURIComponent(releaseName)}&action=${encodeURIComponent(action)}`;
     
     if (namespace) {
       url += `&namespace=${encodeURIComponent(namespace)}`;
@@ -680,7 +681,7 @@ export async function getChartVersions(
   chartName: string
 ): Promise<string> {
   try {
-    const url = `http://localhost:4688/api/v1/proxy/helm-versions?repo=${encodeURIComponent(repoName)}&chart=${encodeURIComponent(chartName)}`;
+    const url = `${OPERATOR_URL}/proxy/helm-versions?repo=${encodeURIComponent(repoName)}&chart=${encodeURIComponent(chartName)}`;
     
     const response = await fetch(url, {
       method: 'GET',
@@ -712,7 +713,7 @@ export async function getChartDefaultValues(
   version: string
 ): Promise<string> {
   try {
-    const url = `http://localhost:4688/api/v1/proxy/helm-values?package=${encodeURIComponent(packageId)}&version=${encodeURIComponent(version)}`;
+    const url = `${OPERATOR_URL}/proxy/helm-values?package=${encodeURIComponent(packageId)}&version=${encodeURIComponent(version)}`;
     
     const response = await fetch(url, {
       method: 'GET',

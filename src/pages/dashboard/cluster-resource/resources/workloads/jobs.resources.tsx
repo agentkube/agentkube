@@ -15,6 +15,7 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { RefreshCw, Trash2, Play, XCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { OPERATOR_URL } from '@/config';
 
 
 // Define sorting types
@@ -191,7 +192,7 @@ const Jobs: React.FC = () => {
       }
 
       // Create the new job
-      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs`, {
+      await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,7 +250,7 @@ const Jobs: React.FC = () => {
     if (!currentContext || !job.metadata?.name || !job.metadata?.namespace) return;
 
     // The propagationPolicy: "Background" ensures pods will be deleted
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -296,7 +297,7 @@ const Jobs: React.FC = () => {
     if (!currentContext || !job.metadata?.name || !job.metadata?.namespace) return;
 
     // Set completions and parallelism to 0 to stop running pods
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/batch/v1/namespaces/${job.metadata.namespace}/jobs/${job.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',

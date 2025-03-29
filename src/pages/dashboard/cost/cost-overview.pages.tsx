@@ -241,7 +241,7 @@ const CostOverview: React.FC = () => {
           await new Promise(resolve => setTimeout(resolve, 500));
 
           // In a real implementation, this would be:
-          // const response = await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/opencost/allocation/costs?window=${timeRange}`);
+          // const response = await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/opencost/allocation/costs?window=${timeRange}`);
           // const data = await response.json();
           // setCostData(data);
 

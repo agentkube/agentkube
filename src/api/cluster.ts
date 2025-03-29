@@ -1,6 +1,6 @@
 import { KubeContext } from '@/types/cluster';
 import { getHeaders } from '@/utils/headers';
-
+import { OPERATOR_URL } from '@/config';
 export const removeCluster = async (id: string): Promise<void> => {
   const response = await fetch(`/api/clusters/${id}`, {
     headers: getHeaders(),
@@ -13,7 +13,7 @@ export const removeCluster = async (id: string): Promise<void> => {
 };
 
 export const getKubeContexts = async (): Promise<KubeContext[]> => {
-  const response = await fetch('http://localhost:4688/api/v1/contexts', {
+  const response = await fetch(`${OPERATOR_URL}/contexts`, {
     method: 'GET'
   });
 

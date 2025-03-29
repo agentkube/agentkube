@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, ExternalLink, Copy, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
-
+import { OPERATOR_URL } from '@/config';
 // Define types for PolicyRule and ClusterRole
 interface PolicyRule {
   apiGroups: string[];
@@ -220,7 +220,7 @@ const ClusterRoles: React.FC = () => {
       // Create the new ClusterRole
       if (!currentContext) return;
 
-      await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/clusterroles`, {
+      await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/clusterroles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -15,7 +15,7 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Scale } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
+import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -207,7 +207,7 @@ const ReplicaSets: React.FC = () => {
     if (!currentContext || !replicaSet.metadata?.name || !replicaSet.metadata?.namespace) return;
 
     // Delete with orphan propagation policy to avoid deleting pods
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${replicaSet.metadata.namespace}/replicasets/${replicaSet.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${replicaSet.metadata.namespace}/replicasets/${replicaSet.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

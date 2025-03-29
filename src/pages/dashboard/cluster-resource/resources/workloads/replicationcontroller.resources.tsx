@@ -15,7 +15,7 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Scale } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
+import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -199,7 +199,7 @@ const ReplicationControllers: React.FC = () => {
   const scaleReplicationController = async (rc: any, replicas: number) => {
     if (!currentContext || !rc.metadata?.name || !rc.metadata?.namespace) return;
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/namespaces/${rc.metadata.namespace}/replicationcontrollers/${rc.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/api/v1/namespaces/${rc.metadata.namespace}/replicationcontrollers/${rc.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -257,7 +257,7 @@ const ReplicationControllers: React.FC = () => {
     if (!currentContext || !rc.metadata?.name || !rc.metadata?.namespace) return;
 
     // We use the propagationPolicy Background to properly clean up resources
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/api/v1/namespaces/${rc.metadata.namespace}/replicationcontrollers/${rc.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/api/v1/namespaces/${rc.metadata.namespace}/replicationcontrollers/${rc.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

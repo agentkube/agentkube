@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ExternalLink } from "lucide-react";
-import { startPortForward, getPortForwardUrl, openPortForwardInBrowser, PortForwardResponse } from '@/api/internal/portforward';
+import { 
+  startPortForward, 
+  getPortForwardUrl, 
+  openPortForwardInBrowser, 
+  PortForwardResponse 
+} from '@/api/internal/portforward';
+import { listResources } from '@/api/internal/resources';
 
 interface PortForwardDialogProps {
   isOpen: boolean;
@@ -27,9 +33,101 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [fetchingPods, setFetchingPods] = useState(false);
   const [selectedPort, setSelectedPort] = useState<string>('');
   const [localPort, setLocalPort] = useState<string>('');
   const [portForwardResult, setPortForwardResult] = useState<PortForwardResponse | null>(null);
+  const [serviceSelector, setServiceSelector] = useState<Record<string, string>>({});
+  const [availablePods, setAvailablePods] = useState<Array<{name: string, ready: boolean}>>([]);
+  const [selectedPod, setSelectedPod] = useState<string>('');
+
+  // Fetch service information to get selector labels
+  useEffect(() => {
+    if (isOpen && clusterName && namespace && serviceName) {
+      fetchServiceSelector();
+    }
+  }, [isOpen, clusterName, namespace, serviceName]);
+
+  // Fetch service selector
+  const fetchServiceSelector = async () => {
+    try {
+      setFetchingPods(true);
+      
+      // Get the service to extract its selector
+      const services = await listResources(clusterName, 'services', {
+        namespace,
+        name: serviceName
+      });
+      
+      if (services && services.length > 0 && services[0].spec?.selector) {
+        const selector = services[0].spec.selector;
+        setServiceSelector(selector);
+        
+        // Once we have the selector, fetch matching pods
+        await fetchMatchingPods(selector);
+      } else {
+        toast({
+          title: "Warning",
+          description: "This service doesn't have a selector to target pods",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching service selector:", error);
+      toast({
+        title: "Error",
+        description: "Failed to get service information",
+        variant: "destructive"
+      });
+    } finally {
+      setFetchingPods(false);
+    }
+  };
+
+  // Fetch pods that match the service selector
+  const fetchMatchingPods = async (selector: Record<string, string>) => {
+    try {
+      // Build label selector string from the service selector
+      const labelSelector = Object.entries(selector)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(',');
+      
+      // Fetch pods matching the selector
+      const pods = await listResources(clusterName, 'pods', {
+        namespace,
+        labelSelector
+      });
+      
+      // Format pod information and check if they're ready
+      const podList = pods.map(pod => {
+        const containerStatuses = pod.status?.containerStatuses || [];
+        const allReady = containerStatuses.length > 0 && 
+                          containerStatuses.every(status => status.ready);
+        
+        return {
+          name: pod.metadata?.name || '',
+          ready: allReady
+        };
+      }).filter(pod => pod.name !== '');
+      
+      setAvailablePods(podList);
+      
+      // Auto-select the first ready pod, or just the first pod if none are ready
+      const readyPod = podList.find(pod => pod.ready);
+      if (readyPod) {
+        setSelectedPod(readyPod.name);
+      } else if (podList.length > 0) {
+        setSelectedPod(podList[0].name);
+      }
+    } catch (error) {
+      console.error("Error fetching matching pods:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch pods for this service",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +136,24 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
       toast({
         title: "Error",
         description: "Please select a port to forward",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (availablePods.length === 0) {
+      toast({
+        title: "Error",
+        description: "No pods available for this service",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!selectedPod) {
+      toast({
+        title: "Error",
+        description: "Please select a pod to forward to",
         variant: "destructive"
       });
       return;
@@ -52,7 +168,7 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
       
       const result = await startPortForward({
         namespace,
-        pod: "", // This will be determined by the backend based on service
+        pod: selectedPod,
         service: serviceName,
         serviceNamespace: namespace,
         targetPort,
@@ -86,13 +202,16 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
   const handleClose = () => {
     setSelectedPort('');
     setLocalPort('');
+    setSelectedPod('');
     setPortForwardResult(null);
+    setAvailablePods([]);
+    setServiceSelector({});
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-200 dark:bg-gray-900/70 backdrop-blur-sm ">
+      <DialogContent className="sm:max-w-[425px] bg-gray-200 dark:bg-gray-900/70 backdrop-blur-sm">
         <DialogHeader>
           <DialogTitle>Port Forward to Service</DialogTitle>
           <DialogDescription>
@@ -110,7 +229,7 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                 <Select
                   value={selectedPort}
                   onValueChange={setSelectedPort}
-                  disabled={loading}
+                  disabled={loading || fetchingPods}
                 >
                   <SelectTrigger id="service-port" className="col-span-3">
                     <SelectValue placeholder="Select a port to forward" />
@@ -127,6 +246,36 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="target-pod" className="text-right">
+                  Target Pod
+                </Label>
+                <Select
+                  value={selectedPod}
+                  onValueChange={setSelectedPod}
+                  disabled={loading || fetchingPods || availablePods.length === 0}
+                >
+                  <SelectTrigger id="target-pod" className="col-span-3">
+                    {fetchingPods ? (
+                      <div className="flex items-center">
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Loading pods...
+                      </div>
+                    ) : (
+                      <SelectValue placeholder="Select a pod" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent className='bg-gray-200 dark:bg-gray-900/70 backdrop-blur-sm'>
+                    {availablePods.map((pod) => (
+                      <SelectItem key={pod.name} value={pod.name}>
+                        {pod.name} {pod.ready ? '(Ready)' : '(Not Ready)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="local-port" className="text-right">
                   Local Port
@@ -140,16 +289,20 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                   className="col-span-3"
                   value={localPort}
                   onChange={(e) => setLocalPort(e.target.value)}
-                  disabled={loading}
+                  disabled={loading || fetchingPods}
                 />
               </div>
+              
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={loading || fetchingPods}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading || !selectedPort}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button 
+                type="submit" 
+                disabled={loading || fetchingPods || !selectedPort || !selectedPod || availablePods.length === 0}
+              >
+                {(loading || fetchingPods) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Start Port Forward
               </Button>
             </DialogFooter>
@@ -164,6 +317,9 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                 
                 <div className="text-gray-500 dark:text-gray-400">Remote Port:</div>
                 <div className="col-span-2 font-mono">{portForwardResult.targetPort}</div>
+                
+                <div className="text-gray-500 dark:text-gray-400">Pod:</div>
+                <div className="col-span-2 font-mono truncate">{portForwardResult.pod}</div>
                 
                 <div className="text-gray-500 dark:text-gray-400">URL:</div>
                 <div className="col-span-2 font-mono truncate">

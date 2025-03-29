@@ -77,6 +77,7 @@ import {
   CustomResources,
   CustomResourceViewer,
   CustomResourceDefinitionViewer,
+  Portforwards,
 } from './pages/dashboard/cluster-resource';
 import { NamespaceProvider } from './contexts/useNamespace';
 
@@ -111,6 +112,7 @@ function App() {
                       <Route path="nodes/:nodeName" element={<NodeViewer />} />
                       <Route path="namespaces/:namespaceName" element={<NamespaceViewer />} />
                       <Route path="events/:namespace/:eventName" element={<EventViewer />} />
+                      <Route path="portforwards" element={<Portforwards />} />
 
                       <Route path="charts" element={<HelmCharts />} />
                       <Route path="releases" element={<HelmReleases />} />

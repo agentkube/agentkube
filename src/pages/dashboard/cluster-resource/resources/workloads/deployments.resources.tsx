@@ -14,6 +14,7 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent, ScaleDialog } from '@/components/custom';
 import { AlertDialog, AlertDialogFooter, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogCancel, AlertDialogAction, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { createPortal } from 'react-dom';
+import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -174,7 +175,7 @@ const Deployments: React.FC = () => {
     const annotations = deployment.metadata.annotations || {};
     const restartedAt = new Date().toISOString();
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -220,7 +221,7 @@ const Deployments: React.FC = () => {
   const scaleDeployment = async (deployment: V1Deployment, replicas: number) => {
     if (!currentContext || !deployment.metadata?.name || !deployment.metadata?.namespace) return;
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -278,7 +279,7 @@ const Deployments: React.FC = () => {
   const pauseResumeDeployment = async (deployment: V1Deployment, pause: boolean) => {
     if (!currentContext || !deployment.metadata?.name || !deployment.metadata?.namespace) return;
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -334,7 +335,7 @@ const Deployments: React.FC = () => {
   const deleteDeployment = async (deployment: V1Deployment) => {
     if (!currentContext || !deployment.metadata?.name || !deployment.metadata?.namespace) return;
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${deployment.metadata.namespace}/deployments/${deployment.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

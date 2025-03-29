@@ -1,3 +1,4 @@
+import { OPERATOR_URL } from "@/config";
 import {
   V1Namespace,
   V1Pod,
@@ -72,8 +73,8 @@ export async function listResources<T extends keyof KubernetesTypeMapping>(
 
   // Determine if we're using a core API or custom API group
   const baseUrl = apiGroup
-    ? `http://localhost:4688/api/v1/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
-    : `http://localhost:4688/api/v1/clusters/${clusterName}/api/${apiVersion}`;
+    ? `${OPERATOR_URL}/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
+    : `${OPERATOR_URL}/clusters/${clusterName}/api/${apiVersion}`;
 
   // Build path based on resource type and namespace
   let resourcePath = '';
@@ -287,7 +288,7 @@ export async function getIngresses(clusterName: string, namespace?: string): Pro
  * Get available API resources
  */
 export async function getApiResources(clusterName: string, apiVersion: string = 'v1'): Promise<any> {
-  const response = await fetch(`http://localhost:4688/api/v1/clusters/${clusterName}/api/${apiVersion}`, {
+  const response = await fetch(`${OPERATOR_URL}/clusters/${clusterName}/api/${apiVersion}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -307,7 +308,7 @@ export async function getApiResources(clusterName: string, apiVersion: string = 
  * Get available API groups
  */
 export async function getApiGroups(clusterName: string): Promise<any> {
-  const response = await fetch(`http://localhost:4688/api/v1/clusters/${clusterName}/apis`, {
+  const response = await fetch(`${OPERATOR_URL}/clusters/${clusterName}/apis`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -338,7 +339,7 @@ export const queryResource = async (
   limit: number = 10
 ): Promise<SearchResponse> => {
 
-  const response = await fetch(`http://localhost:4688/api/v1/cluster/${contextName}/search`, {
+  const response = await fetch(`${OPERATOR_URL}/cluster/${contextName}/search`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -382,8 +383,8 @@ export async function createResource<T extends keyof KubernetesTypeMapping>(
 
   // Determine if we're using a core API or custom API group
   const baseUrl = apiGroup
-    ? `http://localhost:4688/api/v1/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
-    : `http://localhost:4688/api/v1/clusters/${clusterName}/api/${apiVersion}`;
+    ? `${OPERATOR_URL}/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
+    : `${OPERATOR_URL}/clusters/${clusterName}/api/${apiVersion}`;
 
   // Build path based on resource type and namespace
   let resourcePath = namespace 
@@ -447,8 +448,8 @@ export async function updateResource<T extends keyof KubernetesTypeMapping>(
 
   // Determine if we're using a core API or custom API group
   const baseUrl = apiGroup
-    ? `http://localhost:4688/api/v1/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
-    : `http://localhost:4688/api/v1/clusters/${clusterName}/api/${apiVersion}`;
+    ? `${OPERATOR_URL}/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
+    : `${OPERATOR_URL}/clusters/${clusterName}/api/${apiVersion}`;
 
   // Build path based on resource type and namespace
   let resourcePath = namespace 
@@ -512,8 +513,8 @@ export async function patchResource<T extends keyof KubernetesTypeMapping>(
 
   // Determine if we're using a core API or custom API group
   const baseUrl = apiGroup
-    ? `http://localhost:4688/api/v1/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
-    : `http://localhost:4688/api/v1/clusters/${clusterName}/api/${apiVersion}`;
+    ? `${OPERATOR_URL}/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
+    : `${OPERATOR_URL}/clusters/${clusterName}/api/${apiVersion}`;
 
   // Build path based on resource type and namespace
   let resourcePath = namespace 
@@ -575,8 +576,8 @@ export async function deleteResource(
 
   // Determine if we're using a core API or custom API group
   const baseUrl = apiGroup
-    ? `http://localhost:4688/api/v1/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
-    : `http://localhost:4688/api/v1/clusters/${clusterName}/api/${apiVersion}`;
+    ? `${OPERATOR_URL}/clusters/${clusterName}/apis/${apiGroup}/${apiVersion}`
+    : `${OPERATOR_URL}/clusters/${clusterName}/api/${apiVersion}`;
 
   // Build path based on resource type and namespace
   let resourcePath = namespace 

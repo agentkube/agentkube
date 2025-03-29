@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, Copy, Star } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -207,7 +208,7 @@ const StorageClasses: React.FC = () => {
     }
 
     // Create the new StorageClass
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -286,7 +287,7 @@ const StorageClasses: React.FC = () => {
     }
 
     // Apply the patch
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',
@@ -314,7 +315,7 @@ const StorageClasses: React.FC = () => {
     ];
 
     // Apply the patch
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/storage.k8s.io/v1/storageclasses/${storageClass.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json-patch+json',

@@ -16,6 +16,7 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, RefreshCw } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -173,7 +174,7 @@ const DaemonSets: React.FC = () => {
     const annotations = daemonSet.spec?.template?.metadata?.annotations || {};
     const restartedAt = new Date().toISOString();
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/strategic-merge-patch+json',
@@ -237,7 +238,7 @@ const DaemonSets: React.FC = () => {
   const deleteDaemonSet = async (daemonSet: V1DaemonSet) => {
     if (!currentContext || !daemonSet.metadata?.name || !daemonSet.metadata?.namespace) return;
 
-    await fetch(`http://localhost:4688/api/v1/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
+    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/apps/v1/namespaces/${daemonSet.metadata.namespace}/daemonsets/${daemonSet.metadata.name}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
