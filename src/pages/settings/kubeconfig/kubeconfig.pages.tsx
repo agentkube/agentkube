@@ -289,7 +289,7 @@ const Kubeconfig = () => {
       </div>
 
       {/* Context Extension Section */}
-      <div className="mb-10">
+      {/* <div className="mb-10">
         <h2 className="text-xl font-medium mb-4">Context Extension</h2>
         
         <div className="flex items-start mb-4">
@@ -325,7 +325,6 @@ const Kubeconfig = () => {
           Read our guide on <a href="#" className="text-blue-400 hover:underline">Context Extension</a> to learn more.
         </p>
 
-        {/* Context Examples */}
         <div className="space-y-4">
           <div className="flex items-center">
             <div className="bg-blue-900 rounded-full p-2 mr-3">
@@ -363,11 +362,11 @@ const Kubeconfig = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Path Input Dialog */}
       <Dialog open={isPathDialogOpen} onOpenChange={setIsPathDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-md">
           <DialogHeader>
             <DialogTitle>Add Kubeconfig Path</DialogTitle>
           </DialogHeader>
