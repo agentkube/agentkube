@@ -23,6 +23,7 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report';
 import { scanConfig } from '@/api/scanner/security';
 import { ResourceTemplate } from '@/components/custom';
+
 // Define type for resource tab
 interface ResourceTab {
   id: string;
@@ -46,9 +47,9 @@ const AIResourceEditor: React.FC = () => {
       id: 'tab-1',
       name: 'resource1.yaml',
       content: defaultYamlTemplate(),
-      resourceType: 'deployments',
-      apiGroup: 'apps',
-      apiVersion: 'v1'
+      resourceType: '',
+      apiGroup: '',
+      apiVersion: ''
     }
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('tab-1');
@@ -72,6 +73,61 @@ const AIResourceEditor: React.FC = () => {
   const isDragging = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isResizing, setIsResizing] = useState<boolean>(false);
+
+  // Extract resource metadata from YAML content
+  const extractResourceMetadata = (yamlContent: string) => {
+    // Default values (empty)
+    let result = {
+      resourceType: '',
+      apiGroup: '',
+      apiVersion: '',
+      kind: '',
+      name: ''
+    };
+
+    try {
+      // If content is empty, return defaults
+      if (!yamlContent.trim()) {
+        return result;
+      }
+      
+      // Convert YAML to JSON to extract metadata
+      const jsonContent = yamlToJson(yamlContent);
+      
+      if (jsonContent) {
+        // Extract API version and kind
+        const apiVersion = jsonContent.apiVersion || '';
+        const kind = jsonContent.kind || '';
+        const name = jsonContent.metadata?.name || '';
+        
+        // Parse API version to get group and version
+        let group = '', version = '';
+        if (apiVersion.includes('/')) {
+          [group, version] = apiVersion.split('/');
+        } else {
+          group = '';  // Core API group
+          version = apiVersion;
+        }
+        
+        // Convert kind to plural resource type (lowercase + 's' suffix)
+        // This is a simplified approach - actual k8s API can be more complex
+        const resourceType = kind ? (kind.toLowerCase() + 's') : '';
+        
+        // Set the extracted values
+        result = {
+          resourceType,
+          apiGroup: group,
+          apiVersion: version,
+          kind,
+          name
+        };
+      }
+    } catch (error) {
+      console.error('Error extracting resource metadata:', error);
+    }
+    
+    return result;
+  };
 
   // Get active tab content
   const getActiveTab = (): ResourceTab => {
@@ -111,25 +167,40 @@ const AIResourceEditor: React.FC = () => {
     setEditorTheme(current => current === 'vs-dark' ? 'light' : 'vs-dark');
   };
 
-  // Handle editor content change
+  // Handle editor content change with metadata extraction
   const handleEditorChange = (value: string | undefined): void => {
     if (value !== undefined) {
+      // Extract resource metadata from the YAML
+      const metadata = extractResourceMetadata(value);
+      const { resourceType, apiGroup, apiVersion, kind, name } = metadata;
+      
+      // Update tab with new content and metadata
       setResourceTabs(tabs => tabs.map(tab =>
-        tab.id === activeTabId ? { ...tab, content: value } : tab
+        tab.id === activeTabId ? { 
+          ...tab, 
+          content: value,
+          resourceType,
+          apiGroup,
+          apiVersion,
+          // Optionally update tab name if resource name is defined and tab name is default
+          name: name && tab.name.startsWith('resource') ? 
+            `${name}.yaml` : tab.name
+        } : tab
       ));
     }
   };
 
-  // Create a new tab
+  // Create a new tab (with no default resource type)
   const addNewTab = (): void => {
     const newTabId = `tab-${Date.now()}`;
+    
     const newTab: ResourceTab = {
       id: newTabId,
       name: `resource${resourceTabs.length + 1}.yaml`,
       content: '',
-      resourceType: 'deployments',
-      apiGroup: 'apps',
-      apiVersion: 'v1'
+      resourceType: '',
+      apiGroup: '',
+      apiVersion: ''
     };
   
     setResourceTabs([...resourceTabs, newTab]);
@@ -145,10 +216,10 @@ const AIResourceEditor: React.FC = () => {
       setResourceTabs([{
         id: tabId,
         name: 'resource1.yaml',
-        content: defaultYamlTemplate(),
-        resourceType: 'deployments',
-        apiGroup: 'apps',
-        apiVersion: 'v1'
+        content: '',
+        resourceType: '',
+        apiGroup: '',
+        apiVersion: ''
       }]);
       return;
     }
@@ -162,13 +233,6 @@ const AIResourceEditor: React.FC = () => {
     }
   };
 
-  // Handle rename of tab
-  // const renameTab = (tabId: string, newName: string): void => {
-  //   setResourceTabs(tabs => tabs.map(tab =>
-  //     tab.id === tabId ? { ...tab, name: newName } : tab
-  //   ));
-  // };
-
   // Handle save (create resource)
   const handleSave = async (): Promise<void> => {
     if (!currentContext?.name) {
@@ -180,29 +244,74 @@ const AIResourceEditor: React.FC = () => {
       return;
     }
 
-    if (selectedNamespaces.length === 0) {
+    const activeTab = getActiveTab();
+
+    // Validate content
+    if (!activeTab.content.trim()) {
       toast({
         title: "Error",
-        description: "Please select a namespace",
+        description: "Resource definition is empty",
         variant: "destructive"
       });
       return;
     }
 
-    const activeTab = getActiveTab();
-
     setIsSaving(true);
     try {
       // Convert YAML to JSON
       const jsonContent = yamlToJson(activeTab.content);
+      
+      if (!jsonContent) {
+        throw new Error("Invalid YAML content");
+      }
+      
+      if (!jsonContent.kind || !jsonContent.apiVersion) {
+        throw new Error("Resource must have 'kind' and 'apiVersion' fields");
+      }
+      
+      if (!jsonContent.metadata || !jsonContent.metadata.name) {
+        throw new Error("Resource must have 'metadata.name' field");
+      }
 
-      // Create the resource
+      // Determine if this is a namespaced resource
+      // This is a simplified check - in a real implementation you would check against a
+      // comprehensive list of cluster-scoped resources or query the API server
+      const clusterScopedResources = [
+        'namespaces', 
+        'nodes', 
+        'persistentvolumes', 
+        'clusterroles', 
+        'clusterrolebindings',
+        'customresourcedefinitions',
+        'podsecuritypolicies',
+        'storageclasses'
+      ];
+      
+      const isNamespaced = !clusterScopedResources.includes(activeTab.resourceType);
+      
+      // Use namespace from YAML or fallback to selected namespace
+      const namespace = isNamespaced ? 
+        (jsonContent.metadata.namespace || (selectedNamespaces.length > 0 ? selectedNamespaces[0] : undefined)) :
+        undefined;
+      
+      // If namespace is required but not provided
+      if (isNamespaced && !namespace) {
+        toast({
+          title: "Error",
+          description: "Namespace required for this resource type. Please select a namespace or specify it in YAML.",
+          variant: "destructive"
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      // Create the resource using extracted metadata
       await createResource(
         currentContext.name,
         activeTab.resourceType,
         jsonContent,
         {
-          namespace: selectedNamespaces[0], // Use the first selected namespace
+          namespace,
           apiGroup: activeTab.apiGroup,
           apiVersion: activeTab.apiVersion
         }
@@ -239,29 +348,42 @@ const AIResourceEditor: React.FC = () => {
     }
   }, [showSidebar]);
 
+  // Handle template selection with metadata extraction
   const handleTemplateSelect = async (templateContent: string, templateName: string) => {
-  setIsTemplateLoading(true);
-  
-  try {
-    setResourceTabs(tabs => tabs.map(tab =>
-      tab.id === activeTabId 
-        ? { 
-            ...tab, 
-            content: templateContent,
-            name: templateName.toLowerCase().replace(/\s+/g, '-') + '.yaml'
-          } 
-        : tab
-    ));
+    setIsTemplateLoading(true);
+    
+    try {
+      // Extract metadata from the template
+      const metadata = extractResourceMetadata(templateContent);
+      const { resourceType, apiGroup, apiVersion, kind, name } = metadata;
+      
+      // Create filename based on template name or resource name
+      const fileName = name ? 
+        `${name}.yaml` : 
+        templateName.toLowerCase().replace(/\s+/g, '-') + '.yaml';
+      
+      // Update the active tab with template content and metadata
+      setResourceTabs(tabs => tabs.map(tab =>
+        tab.id === activeTabId 
+          ? { 
+              ...tab, 
+              content: templateContent,
+              name: fileName,
+              resourceType,
+              apiGroup,
+              apiVersion
+            } 
+          : tab
+      ));
 
-    toast({
-      title: "Template Applied",
-      description: `${templateName} template has been applied.`,
-      variant: "success"
-    });
-  } finally {
-    setIsTemplateLoading(false);
-  }
-};
+      toast({
+        title: "Template Applied",
+        description: `${templateName} template has been applied.`
+      });
+    } finally {
+      setIsTemplateLoading(false);
+    }
+  };
 
   // Handle chat submission
   const handleChatSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
@@ -314,8 +436,18 @@ const AIResourceEditor: React.FC = () => {
   };
 
   const handleGuiUpdate = (yaml: string): void => {
+    // Extract metadata from the updated YAML
+    const metadata = extractResourceMetadata(yaml);
+    const { resourceType, apiGroup, apiVersion } = metadata;
+    
     setResourceTabs(tabs => tabs.map(tab =>
-      tab.id === activeTabId ? { ...tab, content: yaml } : tab
+      tab.id === activeTabId ? { 
+        ...tab, 
+        content: yaml,
+        resourceType,
+        apiGroup,
+        apiVersion
+      } : tab
     ));
     
     toast({
@@ -402,7 +534,7 @@ const AIResourceEditor: React.FC = () => {
     return "I've examined your YAML configuration. It looks generally well-structured. Some areas you might want to consider reviewing:\n\n1. Resource limits and requests\n2. Health probes\n3. Security contexts\n4. Update strategy\n\nIs there a specific aspect you'd like me to help you improve?";
   };
 
-  // Default YAML template for new resources
+  // Default YAML template (empty)
   function defaultYamlTemplate(): string {
     return '';
   }

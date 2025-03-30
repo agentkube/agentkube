@@ -29,7 +29,9 @@ const Talk2Cluster = () => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
+
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [initialLoading, setInitialLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
