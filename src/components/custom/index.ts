@@ -13,7 +13,7 @@ export { default as ResourceCanvas } from './canvas/canvas.component';
 export { default as PodMetrics } from './metrics/pod-metrics.component';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
-
+export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
 // MCP
 export { default as MCPServerConfigPage } from './modelsconfig/modelconfig.component';
 export { default as MCPServerList } from './modelsconfig/modelcontextprotocol/modelcontextprotocol-list.component';

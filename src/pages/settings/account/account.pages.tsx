@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2 } from 'lucide-react';
+import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { LicenseKeyDialog } from '@/components/custom';
 
 // Mock user data - replace with actual API calls in production
 const mockUserData = {
@@ -12,7 +13,8 @@ const mockUserData = {
     plan: 'Pro',
     status: 'active',
     renewalDate: '2025-04-20'
-  }
+  },
+  isLicensed: false // Add this field to track license status
 };
 
 const Account = () => {
@@ -80,6 +82,29 @@ const Account = () => {
     }
   };
 
+  const handleLicenseSuccess = () => {
+    // Refresh user data or update UI after successful license activation
+    toast({
+      title: "License Activated",
+      description: "Your license has been activated successfully. Refreshing your account details...",
+    });
+    
+    // Set the user as licensed and update subscription info
+    setLoading(true);
+    setTimeout(() => {
+      setUserData({
+        ...userData!,
+        isLicensed: true,
+        subscription: {
+          ...userData!.subscription,
+          plan: 'Enterprise',
+          status: 'active'
+        }
+      });
+      setLoading(false);
+    }, 1000);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
@@ -89,6 +114,84 @@ const Account = () => {
     );
   }
 
+  // If not licensed, only show the license activation card
+  if (!userData?.isLicensed) {
+    return (
+      <div className="p-6 mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-semibold dark:text-white mb-2">Account</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Please activate your license to view account details
+          </p>
+        </div>
+
+        {/* License Activation Card */}
+        <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-700/30 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start">
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full mr-4">
+                <Lock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-medium dark:text-white mb-1">License Activation Required</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                  Please activate your license to access your account information and subscription details
+                </p>
+
+                <div className="flex flex-wrap gap-3 mt-6">
+                  <LicenseKeyDialog onSuccess={handleLicenseSuccess} />
+                  
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Logout Confirmation Dialog */}
+        <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+          <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm">
+            <DialogHeader>
+              <DialogTitle>Confirm Logout</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-700 dark:text-gray-300">
+                Are you sure you want to log out of your account?
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsLogoutDialogOpen(false)}
+                disabled={isLoggingOut}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isLoggingOut ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Show full account details once licensed
   return (
     <div className="p-6 mx-auto space-y-8">
       <div>
@@ -131,14 +234,6 @@ const Account = () => {
                 >
                   Manage
                   <Settings2 className="ml-2 h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex items-center  hover:bg-red-700"
-                  onClick={() => setIsLogoutDialogOpen(true)}
-                >
-                  Logout
-                  <LogOut className="mr-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -219,7 +314,6 @@ const Account = () => {
           </div>
         </CardContent>
       </Card>
-
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
