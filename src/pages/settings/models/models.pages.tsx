@@ -12,8 +12,11 @@ import {
 } from "@/components/ui/dialog";
 import { ModelConfig } from '@/components/custom';
 import { DEFAULT_MODELS } from '@/constants/models.constant';
+import { Input } from '@/components/ui/input';
 const ModelConfiguration = () => {
   const [models, setModels] = useState(DEFAULT_MODELS);
+
+  // TODO: get current model from settings.json
 
   const [showAddInput, setShowAddInput] = useState(false);
   const [newModelName, setNewModelName] = useState('');

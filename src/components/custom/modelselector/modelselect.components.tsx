@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { DEFAULT_MODELS } from '@/constants/models.constant';
+
 interface ModelOption {
   id: string;
   name: string;
+  provider: string;
 }
 
 interface ModelSelectorProps {
@@ -48,8 +50,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
     }
   };
 
-  const selectModel = (modelId: string) => {
-    onModelChange(modelId);
+  const selectModel = (modelId: string, provider: string) => {
+    onModelChange(`${provider}/${modelId}`);
     setIsOpen(false);
   };
 
@@ -93,7 +95,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
                     ? 'bg-gray-300 dark:bg-gray-800/30 dark:text-white' 
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-700/20'
                 }`}
-                onClick={() => selectModel(model.id)}
+                onClick={() => selectModel(model.id, model.provider)}
               >
                 <span>{model.name}</span>
                 {model.id === selectedModel && <Check size={16} className="text-gray-300" />}

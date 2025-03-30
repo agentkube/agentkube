@@ -2,7 +2,7 @@ import { AddMCPServer, MCPServerList } from '@/components/custom'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
-import { getMcpServers, getMcpTools, getServerTools, getMcpConfig, updateMcpConfig } from '@/api/settings'
+import { getMcpServers, getMcpTools, getServerTools, getMcpConfig, updateMcpConfig, deleteMcpConfig } from '@/api/settings'
 import { useToast } from '@/hooks/use-toast'
 import { McpConfig } from '@/types/settings'
 
@@ -40,7 +40,7 @@ const MCPServerConfigPage = () => {
         // Convert the servers object to an array for easier manipulation in the UI
         const serversArray: MCPServer[] = Object.entries(serversData.servers).map(([name, details]: [string, any]) => ({
           name,
-          type: details.transport || 'sse',
+          type: details.transport,
           url: details.url || '',
           connected: details.connected || false,
           tools_count: details.tools_count || 0,
@@ -67,8 +67,7 @@ const MCPServerConfigPage = () => {
   const saveMcpServers = async (servers: MCPServer[]) => {
     try {
       setIsSaving(true);
-      
-      // Convert the servers array back to the format expected by the API
+
       const mcpServersObject: McpConfig['mcpServers'] = {};
       servers.forEach(server => {
         mcpServersObject[server.name] = {
@@ -122,10 +121,12 @@ const MCPServerConfigPage = () => {
   const handleDeleteServer = async (index: number) => {
     const updatedServers = [...mcpServers];
     updatedServers.splice(index, 1);
-    setMcpServers(updatedServers);
-    
+    await deleteMcpConfig(mcpServers[index].name);
+
+    setMcpServers(updatedServers);    
     // Save the updated configuration
     await saveMcpServers(updatedServers);
+
   };
 
   const handleReloadServer = async (index: number) => {
@@ -136,10 +137,12 @@ const MCPServerConfigPage = () => {
         description: `Reloading server configuration for ${serverName}...`,
       });
       
+
       // Fetch server tools to test connection
       const toolsData = await getServerTools(serverName);
       
       // Update the server in the list
+      // TODO: Refetch the server from the API
       const updatedServers = [...mcpServers];
       updatedServers[index] = {
         ...updatedServers[index],
@@ -197,31 +200,12 @@ const MCPServerConfigPage = () => {
       
       // Save the updated configuration
       const success = await saveMcpServers(updatedServers);
-      
+      console.log('success', success);
       if (success) {
         setMcpServers(updatedServers);
         setShowAddServerDialog(false);
         setIsEditing(false);
         setEditingServerIndex(null);
-        
-        // Refetch servers to get connection status
-        setTimeout(async () => {
-          try {
-            const serversData = await getMcpServers();
-            const serversArray: MCPServer[] = Object.entries(serversData.servers).map(([name, details]: [string, any]) => ({
-              name,
-              type: details.transport || 'sse',
-              url: details.url || '',
-              connected: details.connected || false,
-              tools_count: details.tools_count || 0,
-              error: details.error
-            }));
-            
-            setMcpServers(serversArray);
-          } catch (error) {
-            console.error('Failed to refresh servers:', error);
-          }
-        }, 1000);
       }
     } else {
       toast({

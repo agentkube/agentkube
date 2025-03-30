@@ -80,6 +80,7 @@ import {
   Portforwards,
 } from './pages/dashboard/cluster-resource';
 import { NamespaceProvider } from './contexts/useNamespace';
+import { Toaster } from "./components/ui/toaster";
 
 function App() {
 
@@ -244,6 +245,7 @@ function App() {
                   </Route>
                 </Routes>
               </div>
+              <Toaster />
               <Footer />
             </div>
             {/* <TailwindIndicator /> */}

@@ -56,13 +56,6 @@ export const DEFAULT_MODELS = [
     isCustom: false
   },
   {
-    id: "default",
-    name: "default",
-    provider: "system",
-    enabled: false,
-    isCustom: false
-  },
-  {
     id: "gemini-2.0-flash",
     name: "gemini-2.0-flash",
     provider: "google",

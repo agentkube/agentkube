@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Minus, Plus } from "lucide-react";
 import { useCluster } from '@/contexts/clusterContext';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import { OPERATOR_URL } from '@/config';
+import { toast } from '@/hooks/use-toast';
 export type ResourceType = 'deployment' | 'statefulset' | 'replicaset';
 
 interface Resource {
@@ -103,6 +104,12 @@ const ScaleDialog: React.FC<ScaleDialogProps> = ({
               replicas: replicas
             }
           }),
+        });
+
+        toast({
+          title: "Scaling resources",
+          description: `Scaling ${resource.metadata.name} to ${replicas} replicas`,
+          variant: "default"
         });
 
         if (!response.ok) {

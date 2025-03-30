@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { ArrowRight, Eye, EyeOff, Plus } from 'lucide-react';
-import AddMCPServer from './modelcontextprotocol/modelcontextprotocol-dialog.component';
-import MCPServerList from './modelcontextprotocol/modelcontextprotocol-list.component';
 
 interface ModelConfigProps {
   // You can add props here if needed
