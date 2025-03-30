@@ -103,10 +103,10 @@ export const getMcpConfig = async (): Promise<McpConfig> => {
 
 /**
  * Updates the MCP configuration
- * @param mcpConfig Updated MCP configuration
+ * @param mcp Updated MCP configuration
  * @returns Promise with the updated MCP configuration
  */
-export const updateMcpConfig = async (mcpConfig: {
+export const updateMcpConfig = async (mcp: {
   mcpServers: {
     [key: string]: {
       url: string;
@@ -116,11 +116,11 @@ export const updateMcpConfig = async (mcpConfig: {
 }): Promise<any> => {
   try {
     const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(mcpConfig),
+      body: JSON.stringify({ mcp }),
     });
     
     if (!response.ok) {
@@ -135,7 +135,31 @@ export const updateMcpConfig = async (mcpConfig: {
   }
 };
 
-
+/**
+ * Updates the MCP configuration
+ * @param serverName Name of the MCP server to delete
+ * @returns Promise with the updated MCP configuration
+ */
+export const deleteMcpConfig = async (serverName: string): Promise<any> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp/${serverName}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to delete MCP config: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error deleting MCP config:', error);
+    throw error;
+  }
+};
 /**
  * Imports settings from a file
  * @param filepath Path to the settings file
