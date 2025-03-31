@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import opencostNodeData from '@/constants/opencost/opencost-node.json';
+import opencostPodData from '@/constants/opencost/opencost-pod.json';
 import { Card, CardContent } from "@/components/ui/card";
-import { Cpu, Database, HardDrive, Gauge } from "lucide-react";
+import { Cpu, Database, HardDrive, Gauge, Server } from "lucide-react";
 
 interface ResourceCost {
   cpu: number;
@@ -12,59 +12,54 @@ interface ResourceCost {
   total: number;
 }
 
-interface NodeCost {
+interface PodCost {
   name: string;
+  namespace: string;
+  nodeName: string;
   cost: number;
   percentage: number;
   efficiency: number;
   resources: ResourceCost;
-  instanceType?: string;
-  instanceCost?: number;
 }
 
-// Transform OpenCost node data to the format expected by the component
-const transformOpenCostNodeData = () => {
-  if (!opencostNodeData?.data?.[6]) {
+// Transform OpenCost pod data to the format expected by the component
+const transformOpenCostPodData = () => {
+  if (!opencostPodData?.data?.[6]) {
     return [];
   }
 
-  const nodeData = opencostNodeData.data[6];
+  const podData = opencostPodData.data[6];
   
-  // Calculate total cost across all nodes (excluding __idle__ and __unallocated__)
+  // Calculate total cost across all pods (excluding __idle__ and __unallocated__)
   let totalCost = 0;
-  Object.entries(nodeData).forEach(([name, data]) => {
+  Object.entries(podData).forEach(([name, data]) => {
     if (name !== '__idle__' && name !== '__unallocated__') {
       totalCost += data.totalCost || 0;
     }
   });
   
-  // Transform each node entry to the expected format
-  const nodes = Object.entries(nodeData)
+  // Transform each pod entry to the expected format
+  const pods = Object.entries(podData)
     .filter(([name, _]) => name !== '__idle__' && name !== '__unallocated__')
     .map(([name, data]) => {
       const cost = data.totalCost || 0;
       const percentage = totalCost > 0 ? (cost / totalCost) * 100 : 0;
       
+      // Extract namespace and node information
+      const namespace = data.properties?.namespace || 'unknown';
+      const nodeName = data.properties?.node || data.properties?.providerID || 'unknown';
+      
       // Extract efficiency metric - convert to percentage and ensure it's within 0-100 range
       const efficiency = data.totalEfficiency != null ? 
         Math.min(Math.max(data.totalEfficiency * 100, 0), 100) : 0;
       
-      // Extract instance type from properties or labels if available
-      const instanceType = data.properties?.labels?.["node.kubernetes.io/instance-type"] || 
-                          data.properties?.instanceType || 
-                          "c6a.large"; // Default value
-      
-      // Calculate hourly cost (this is an estimate, in real data you'd extract this)
-      // For AWS c6a.large, $0.085/hr is a typical cost
-      const instanceCost = 0.085;
-      
       return {
         name: name,
+        namespace: namespace,
+        nodeName: nodeName,
         cost: cost,
         percentage: percentage,
         efficiency: efficiency,
-        instanceType: instanceType,
-        instanceCost: instanceCost,
         resources: {
           cpu: data.cpuCost || 0,
           memory: data.ramCost || 0, 
@@ -75,16 +70,16 @@ const transformOpenCostNodeData = () => {
     })
     .sort((a, b) => b.cost - a.cost); // Sort by cost (highest first)
   
-  return nodes;
+  return pods;
 };
 
-const NodeCostDistribution: React.FC = () => {
-  const [nodes, setNodes] = useState<NodeCost[]>([]);
+const PodCostDistribution: React.FC = () => {
+  const [pods, setPods] = useState<PodCost[]>([]);
 
   useEffect(() => {
     // Transform the data when component mounts
-    const transformedData = transformOpenCostNodeData();
-    setNodes(transformedData);
+    const transformedData = transformOpenCostPodData();
+    setPods(transformedData);
   }, []);
 
   // Calculate color based on percentage for bars
@@ -106,47 +101,56 @@ const NodeCostDistribution: React.FC = () => {
   return (
     <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
       <CardContent className="p-6">
-        <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Node Cost Distribution</h2>
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Pod Cost Distribution</h2>
         
         <div className="space-y-5">
-          {nodes.map((node, idx) => (
+          {pods.map((pod, idx) => (
             <div key={idx} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full ${getPercentageColor(node.percentage)} mr-2 opacity-80`}></div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{node.name}</span>
+                    <div className={`w-3 h-3 rounded-full ${getPercentageColor(pod.percentage)} mr-2 opacity-80`}></div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{pod.name}</span>
                   </div>
-                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 ml-5">
-                    <span className="mr-4">{node.instanceType} (${node.instanceCost}/hr)</span>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs text-gray-500 dark:text-gray-400 ml-5">
                     <div className="flex items-center">
-                      <Gauge className={`h-3 w-3 ${getEfficiencyColor(node.efficiency)} mr-1`} />
-                      <span className={`${getEfficiencyColor(node.efficiency)}`}>
-                        Efficiency: {node.efficiency.toFixed(1)}%
-                      </span>
+                      <span className="mr-1">Namespace:</span>
+                      <span className="font-medium">{pod.namespace}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Server className="h-3 w-3 mr-1" />
+                      <span className="font-medium">{pod.nodeName}</span>
                     </div>
                   </div>
+                  {pod.efficiency > 0 && (
+                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 ml-5 mt-1">
+                      <Gauge className={`h-3 w-3 ${getEfficiencyColor(pod.efficiency)} mr-1`} />
+                      <span className={`${getEfficiencyColor(pod.efficiency)}`}>
+                        Efficiency: {pod.efficiency.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">${node.cost.toFixed(2)}</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">${pod.cost.toFixed(5)}</span>
               </div>
               <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
                 <div 
-                  className={`h-2 ${getPercentageColor(node.percentage)} rounded-full`}
-                  style={{ width: `${node.percentage}%` }}
+                  className={`h-2 ${getPercentageColor(pod.percentage)} rounded-full`}
+                  style={{ width: `${pod.percentage}%` }}
                 ></div>
               </div>
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                   <Cpu className="h-3 w-3 text-blue-500 mr-1" />
-                  CPU: ${node.resources.cpu.toFixed(2)}
+                  CPU: ${pod.resources.cpu.toFixed(5)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                   <Database className="h-3 w-3 text-indigo-500 mr-1" />
-                  Memory: ${node.resources.memory.toFixed(2)}
+                  Memory: ${pod.resources.memory.toFixed(5)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                   <HardDrive className="h-3 w-3 text-purple-500 mr-1" />
-                  Storage: ${node.resources.storage.toFixed(2)}
+                  Storage: ${pod.resources.storage.toFixed(5)}
                 </div>
               </div>
             </div>
@@ -157,4 +161,4 @@ const NodeCostDistribution: React.FC = () => {
   );
 };
 
-export default NodeCostDistribution;
+export default PodCostDistribution;

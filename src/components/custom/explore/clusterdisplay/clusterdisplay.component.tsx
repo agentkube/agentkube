@@ -89,7 +89,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
 
       {!isCollapsed && currentContext && (
         <div className="text-sm font-medium">
-          <h3 className="text-gray-800 dark:text-gray-300">{currentContext.name}</h3>
+          <h3 className="text-gray-800 dark:text-gray-300">{currentContext.name.length > 30 ? currentContext.name.slice(0, 30) + '...' : currentContext.name}</h3>
           <p className="text-xs text-gray-800 dark:text-gray-500">{getClusterType(currentContext.name)}</p>
         </div>
       )}

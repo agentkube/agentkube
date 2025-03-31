@@ -4,27 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  DollarSign,
-  BarChart3,
-  PieChart,
-  Calendar,
   Download,
-  Server,
   Database,
   HardDrive,
   Cpu,
-  RefreshCcw,
-  Link,
-  ExternalLink
+  RefreshCcw
 } from "lucide-react";
 import { useCluster } from '@/contexts/clusterContext';
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import DailyCostTrend from './components/dailycost-trend.component';
 import NamespaceCostDistribution from './components/namespace-cost-distribution.component';
 import ServiceCostDistribution from './components/service-cost-distribution.component';
 import NodeCostDistribution from './components/node-cost-distribution.component';
+import CostSummary from './components/cost-summary.component';
+import PodCostDistribution from './components/pod-cost-distribution.component';
 import { OpenCostInstaller } from '@/components/custom';
-
 // Types for cost data
 interface ResourceCost {
   cpu: number;
@@ -291,14 +284,6 @@ const CostOverview: React.FC = () => {
     }, 2000);
   };
 
-  // Calculate color based on percentage for bars
-  const getPercentageColor = (percentage: number): string => {
-    if (percentage < 20) return "bg-green-500";
-    if (percentage < 50) return "bg-blue-500";
-    if (percentage < 80) return "bg-amber-500";
-    return "bg-red-500";
-  };
-
   if (!isOpenCostInstalled) {
     return (
       <OpenCostInstaller loading={loading} onInstall={handleInstallOpenCost} /> 
@@ -359,7 +344,8 @@ const CostOverview: React.FC = () => {
         </div>
 
         {/* Cost Summary Card */}
-        <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+        <CostSummary />
+        {/* <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="md:col-span-2 space-y-3">
@@ -418,30 +404,10 @@ const CostOverview: React.FC = () => {
                 </div>
 
                 <DailyCostTrend dailyCostData={costData.daily} />
-                {/* <div className="mt-4">
-                <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Daily Cost Trend</div>
-                <div className="h-16 flex items-end gap-1">
-                  {costData.daily.map((day, index) => (
-                    <div 
-                      key={index} 
-                      className="flex-1 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 rounded-t cursor-pointer transition-all duration-200 hover:opacity-90"
-                      style={{ 
-                        height: `${(day.cost / 55) * 100}%`,
-                        minHeight: '10%'
-                      }}
-                      title={`${day.date}: $${day.cost.toFixed(2)}`}
-                    ></div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  <span>{costData.daily[0].date}</span>
-                  <span>{costData.daily[costData.daily.length - 1].date}</span>
-                </div>
-              </div> */}
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Detailed Breakdowns */}
         <Tabs defaultValue="namespaces" className="w-full">
@@ -449,19 +415,32 @@ const CostOverview: React.FC = () => {
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="namespaces">Namespaces</TabsTrigger>
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="services">Services</TabsTrigger>
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="nodes">Nodes</TabsTrigger>
+            <TabsTrigger className='text-gray-700 dark:text-gray-300' value="pods">Pods</TabsTrigger>
           </TabsList>
 
           {/* Namespaces Cost Distribution */}
           <TabsContent value="namespaces" className="mt-0">
-            <NamespaceCostDistribution namespaces={costData.namespaces} />
+            <NamespaceCostDistribution 
+              // namespaces={costData.namespaces}
+             />
           </TabsContent>
           {/* Services Cost Distribution */}
           <TabsContent value="services" className="mt-0">
-            <ServiceCostDistribution services={costData.services} />
+            <ServiceCostDistribution 
+                // services={costData.services} 
+            />
           </TabsContent>
           {/* Nodes Cost Distribution */}
           <TabsContent value="nodes" className="mt-0">
-            <NodeCostDistribution nodes={costData.nodes} />
+            <NodeCostDistribution 
+                // nodes={costData.nodes} 
+            />
+          </TabsContent>
+          {/* Pods Cost Distribution */}
+          <TabsContent value="pods" className="mt-0">
+            <PodCostDistribution 
+                // pods={costData.pods} 
+            />
           </TabsContent>
         </Tabs>
       </div>

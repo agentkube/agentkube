@@ -7,7 +7,7 @@ import LOGO from '@/assets/logo.png';
 import KUBERNETES_LOGO from '@/assets/kubernetes-blue.png';
 import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
-
+import { createPortal } from 'react-dom';
 // Interface for our cluster UI data
 interface ClusterItem {
   id: string;
@@ -45,6 +45,10 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [isReloading, setIsReloading] = useState(false);
   const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext } = useCluster();
+
+  const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [tooltipContent, setTooltipContent] = useState<{ title: string, description: string, type: ClusterItem['type'] } | null>(null);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     // Load view mode from localStorage
@@ -240,15 +244,64 @@ const HomePage: React.FC = () => {
 
   };
 
+  const handleTooltipShow = (e: React.MouseEvent, title: string, description: string, type: ClusterItem['type']) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.left,
+      y: rect.top
+    });
+    setTooltipContent({ title, description, type });
+    setTooltipVisible('cluster-info');
+  };
+  
+  const handleTooltipHide = () => {
+    setTooltipVisible(null);
+  };
+  
+  // Add this method to render the tooltip
+  const renderClusterTooltip = () => {
+    if (!tooltipVisible || tooltipVisible !== 'cluster-info' || !tooltipContent) return null;
+  
+    return createPortal(
+      <div
+        className="fixed z-50 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md min-w-[200px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
+        style={{
+          left: `${tooltipPosition.x}px`,
+          top: `${tooltipPosition.y - 60}px`,
+          pointerEvents: 'none',
+        }}
+      >
+        <div className='flex items-center gap-2'>
+          <ClusterIcon type={tooltipContent.type} />
+        </div>
+        <div className="text-gray-700 dark:text-gray-300">
+          <div className="mb-1">
+            <span className="font-semibold">Name: </span>
+            <span>{tooltipContent.title}</span>
+          </div>
+          <div className="mb-1">
+            <span className="font-semibold">Context: </span>
+            <span>{tooltipContent.description}</span>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   // Component for cluster card
   const ClusterCard: React.FC<{ cluster: ClusterItem; isPinned?: boolean }> = ({ cluster, isPinned = false }) => {
     const isSelected = selectedClusterId === cluster.id;
-
+    
     // Handle double-click to immediately connect
     const handleDoubleClick = () => {
       handleConnect(cluster.id);
     };
-
+    
+    // Determine if we need to truncate the text
+    const isTruncatedName = cluster.name.length > 35;
+    const isTruncatedDescription = cluster.description.length > 35;
+    
     return (
       <div
         className={`rounded-lg p-4 flex items-center gap-4 cursor-pointer transition-colors
@@ -263,10 +316,18 @@ const HomePage: React.FC = () => {
           <ClusterIcon type={cluster.type} />
         </div>
         <div className="flex-1">
-          <h3 className={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'dark:text-white'}`}>
-            {cluster.name}
+          <h3 
+            className={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'dark:text-white'}`}
+          >
+            {isTruncatedName ? cluster.name.slice(0, 35) + '...' : cluster.name}
           </h3>
-          <p className="dark:text-gray-400 text-sm">{cluster.description}</p>
+          <p 
+            className="dark:text-gray-400 text-sm"
+            onMouseEnter={isTruncatedDescription ? (e) => handleTooltipShow(e, cluster.name, cluster.description, cluster.type) : undefined}
+            onMouseLeave={isTruncatedDescription ? handleTooltipHide : undefined}
+          >
+            {isTruncatedDescription ? cluster.description.slice(0, 35) + '...' : cluster.description}
+          </p>
         </div>
       </div>
     );
@@ -479,6 +540,7 @@ const HomePage: React.FC = () => {
         {/* Context Menu */}
         <ContextMenu />
       </div>
+      {renderClusterTooltip()}
     </div>
   );
 };

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import opencostServiceData from '@/constants/opencost/opencost-svc.json';
 import { Card, CardContent } from "@/components/ui/card";
-import { Cpu, Database, HardDrive } from "lucide-react";
+import { Cpu, Database, HardDrive, Gauge } from "lucide-react";
 
 interface ResourceCost {
   cpu: number;
@@ -16,20 +17,80 @@ interface ServiceCost {
   namespace: string;
   cost: number;
   percentage: number;
+  efficiency: number;
   resources: ResourceCost;
 }
 
-interface ServiceCostDistributionProps {
-  services: ServiceCost[];
-}
+// Transform OpenCost service data to the format expected by the component
+const transformOpenCostServiceData = () => {
+  if (!opencostServiceData?.data?.[6]) {
+    return [];
+  }
 
-const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ services }) => {
+  const svcData = opencostServiceData.data[6];
+  
+  // Calculate total cost across all services (excluding __idle__ and __unallocated__)
+  let totalCost = 0;
+  Object.entries(svcData).forEach(([name, data]) => {
+    if (name !== '__idle__' && name !== '__unallocated__') {
+      totalCost += data.totalCost || 0;
+    }
+  });
+  
+  // Transform each service entry to the expected format
+  const services = Object.entries(svcData)
+    .filter(([name, _]) => name !== '__idle__' && name !== '__unallocated__')
+    .map(([name, data]) => {
+      const cost = data.totalCost || 0;
+      const percentage = totalCost > 0 ? (cost / totalCost) * 100 : 0;
+      const namespace = data.properties?.namespace || 'unknown';
+      
+      // Extract efficiency metric - convert to percentage and ensure it's within 0-100 range
+      const efficiency = data.totalEfficiency != null ? 
+        Math.min(Math.max(data.totalEfficiency * 100, 0), 100) : 0;
+      
+      return {
+        name: name,
+        namespace: namespace,
+        cost: cost,
+        percentage: percentage,
+        efficiency: efficiency,
+        resources: {
+          cpu: data.cpuCost || 0,
+          memory: data.ramCost || 0, 
+          storage: data.pvCost || 0,
+          total: cost
+        }
+      };
+    })
+    .sort((a, b) => b.cost - a.cost); // Sort by cost (highest first)
+  
+  return services;
+};
+
+const ServiceCostDistribution: React.FC = () => {
+  const [services, setServices] = useState<ServiceCost[]>([]);
+
+  useEffect(() => {
+    // Transform the data when component mounts
+    const transformedData = transformOpenCostServiceData();
+    setServices(transformedData);
+  }, []);
+
   // Calculate color based on percentage for bars
   const getPercentageColor = (percentage: number): string => {
     if (percentage < 20) return "bg-green-500";
     if (percentage < 50) return "bg-blue-500";
     if (percentage < 80) return "bg-amber-500";
     return "bg-red-500";
+  };
+
+  // Calculate color for efficiency 
+  const getEfficiencyColor = (efficiency: number): string => {
+    if (efficiency < 20) return "text-red-500";
+    if (efficiency < 50) return "text-amber-500";
+    if (efficiency < 80) return "text-blue-500";
+    return "text-green-500";
   };
 
   return (
@@ -46,7 +107,17 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ servi
                     <div className={`w-3 h-3 rounded-full ${getPercentageColor(service.percentage)} mr-2 opacity-80`}></div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{service.name}</span>
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-5">Namespace: {service.namespace}</div>
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 ml-5">
+                    <span className="mr-4">Namespace: {service.namespace}</span>
+                    {service.efficiency > 0 && (
+                      <div className="flex items-center">
+                        <Gauge className={`h-3 w-3 ${getEfficiencyColor(service.efficiency)} mr-1`} />
+                        <span className={`${getEfficiencyColor(service.efficiency)}`}>
+                          Efficiency: {service.efficiency.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">${service.cost.toFixed(2)}</span>
               </div>

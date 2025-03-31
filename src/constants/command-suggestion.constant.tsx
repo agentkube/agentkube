@@ -2,7 +2,6 @@ export const CommandSuggestionsConstants = [
   // Get commands
   { command: 'kubectl get deployments' },
   { command: 'kubectl get pods' },
-  { command: 'kubectl get services' },
   { command: 'kubectl get nodes' },
   { command: 'kubectl get daemonsets' },
   { command: 'kubectl get statefulsets' },
