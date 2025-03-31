@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2, Lock } from 'lucide-react';
+import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2, Lock, CreditCardIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { LicenseKeyDialog } from '@/components/custom';
-
+import { openExternalUrl } from '@/api/external';
 // Mock user data - replace with actual API calls in production
 const mockUserData = {
   email: 'founder@agentkube.com',
@@ -140,6 +140,14 @@ const Account = () => {
 
                 <div className="flex flex-wrap gap-3 mt-6">
                   <LicenseKeyDialog onSuccess={handleLicenseSuccess} />
+
+                  <Button 
+                    variant="outline"
+                    onClick={() => openExternalUrl("https://agentkube.com/pricing")} 
+                    className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30">
+                    <CreditCardIcon className="h-4 w-4 mr-2" />
+                    Buy Subscription 
+                  </Button>
                   
                 </div>
               </div>
@@ -285,6 +293,7 @@ const Account = () => {
                   className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   onClick={() => {
                     // Navigate to subscription management page
+                    openExternalUrl("https://account.agentkube.com/settings");
                     toast({
                       title: "Manage Subscription",
                       description: "Subscription management will be available soon.",
@@ -300,6 +309,7 @@ const Account = () => {
                   className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   onClick={() => {
                     // Open billing history page
+                    openExternalUrl("https://account.agentkube.com/settings");
                     toast({
                       title: "Billing History",
                       description: "Billing history will be available soon.",
