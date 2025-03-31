@@ -13,6 +13,7 @@
     "core:window:default",
     "core:window:allow-start-dragging",
     "cors-fetch:allow-cors-request",
+    "websocket:default",
     {
       "identifier": "http:default",
       "allow": [
