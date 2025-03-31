@@ -4,14 +4,13 @@ import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, ExternalLink, Copy, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
@@ -68,19 +67,19 @@ const ClusterRoles: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // --- Start of Multi-select ---
   const [selectedClusterRoles, setSelectedClusterRoles] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -186,62 +185,6 @@ const ClusterRoles: React.FC = () => {
     navigate(`/dashboard/explore/clusterroles/${activeClusterRole.metadata.name}/create-binding`);
   };
 
-  // Handle clone cluster role
-  const handleCloneClusterRole = async () => {
-    setShowContextMenu(false);
-
-    try {
-      if (!activeClusterRole || !activeClusterRole.metadata?.name) {
-        return;
-      }
-
-      // Ask for the new cluster role name
-      const newName = prompt("Enter name for the cloned ClusterRole:", `${activeClusterRole.metadata.name}-clone`);
-      if (!newName) return; // User cancelled
-
-      // Create a new ClusterRole based on the existing one
-      const newClusterRole = {
-        apiVersion: 'rbac.authorization.k8s.io/v1',
-        kind: 'ClusterRole',
-        metadata: {
-          name: newName,
-          // Copy labels but add a cloned-from label
-          labels: {
-            ...(activeClusterRole.metadata.labels || {}),
-            clonedFrom: activeClusterRole.metadata.name
-          }
-        },
-        // Copy rules
-        rules: activeClusterRole.rules,
-        // Copy aggregation rule if present
-        aggregationRule: activeClusterRole.aggregationRule
-      };
-
-      // Create the new ClusterRole
-      if (!currentContext) return;
-
-      await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/rbac.authorization.k8s.io/v1/clusterroles`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newClusterRole),
-      });
-
-      // Refresh cluster roles list
-      if (currentContext) {
-        const refreshedClusterRoles = await listResources(currentContext.name, 'clusterroles', {
-          apiGroup: 'rbac.authorization.k8s.io',
-          apiVersion: 'v1'
-        });
-        setClusterRoles(refreshedClusterRoles);
-      }
-
-    } catch (error) {
-      console.error('Failed to clone ClusterRole:', error);
-      setError(error instanceof Error ? error.message : 'Failed to clone ClusterRole');
-    }
-  };
 
   // Handle delete action
   const handleDeleteClick = () => {
@@ -306,9 +249,9 @@ const ClusterRoles: React.FC = () => {
   // Check if cluster role has high privileges (wildcard permissions)
   const hasHighPrivileges = (clusterRole: V1ClusterRole): boolean => {
     return (clusterRole.rules || []).some(rule =>
-      rule.apiGroups?.includes('*') ||
-      rule.resources?.includes('*') ||
-      rule.verbs?.includes('*')
+      (Array.isArray(rule.apiGroups) && rule.apiGroups.includes('*')) ||
+      (Array.isArray(rule.resources) && rule.resources.includes('*')) ||
+      (Array.isArray(rule.verbs) && rule.verbs.includes('*'))
     );
   };
 
@@ -355,26 +298,8 @@ const ClusterRoles: React.FC = () => {
               className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center"
               onClick={handleViewClusterRole}
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Details
-            </div>
-
-            <div
-              className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center"
-              onClick={handleCreateClusterRoleBinding}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create ClusterRoleBinding
-            </div>
-
-            <div
-              className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center ${isSystemClusterRole ? 'text-gray-400 dark:text-gray-600 pointer-events-none' : ''
-                }`}
-              onClick={!isSystemClusterRole ? handleCloneClusterRole : undefined}
-              title={isSystemClusterRole ? "System ClusterRoles should not be cloned" : ""}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Clone
+              <Eye className="h-4 w-4 mr-2" />
+              View
             </div>
           </>
         )}
@@ -504,28 +429,28 @@ const ClusterRoles: React.FC = () => {
 
       // Check if any rule matches the query
       const ruleMatches = (clusterRole.rules || []).some(rule => {
-        // Check API groups
-        const apiGroupMatches = rule.apiGroups.some(group =>
+        // Check API groups - ensure rule.apiGroups exists and is an array
+        const apiGroupMatches = Array.isArray(rule.apiGroups) && rule.apiGroups.some(group =>
           group.toLowerCase().includes(lowercaseQuery)
         );
 
-        // Check resources
-        const resourceMatches = rule.resources.some(resource =>
+        // Check resources - ensure rule.resources exists and is an array
+        const resourceMatches = Array.isArray(rule.resources) && rule.resources.some(resource =>
           resource.toLowerCase().includes(lowercaseQuery)
         );
 
-        // Check verbs
-        const verbMatches = rule.verbs.some(verb =>
+        // Check verbs - ensure rule.verbs exists and is an array
+        const verbMatches = Array.isArray(rule.verbs) && rule.verbs.some(verb =>
           verb.toLowerCase().includes(lowercaseQuery)
         );
 
-        // Check resource names if present
-        const resourceNameMatches = (rule.resourceNames || []).some(resourceName =>
+        // Check resource names if present - ensure rule.resourceNames exists and is an array
+        const resourceNameMatches = Array.isArray(rule.resourceNames) && rule.resourceNames.some(resourceName =>
           resourceName.toLowerCase().includes(lowercaseQuery)
         );
 
-        // Check non-resource URLs if present
-        const nonResourceUrlMatches = (rule.nonResourceURLs || []).some(url =>
+        // Check non-resource URLs if present - ensure rule.nonResourceURLs exists and is an array
+        const nonResourceUrlMatches = Array.isArray(rule.nonResourceURLs) && rule.nonResourceURLs.some(url =>
           url.toLowerCase().includes(lowercaseQuery)
         );
 
@@ -551,7 +476,7 @@ const ClusterRoles: React.FC = () => {
           (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery))
       );
 
-      // Check if aggregation rule selectors match
+      // Check if aggregation rule selectors match - ensure clusterRole.aggregationRule exists
       const aggregationMatches = clusterRole.aggregationRule?.clusterRoleSelectors?.some(selector => {
         const matchLabelsMatches = selector.matchLabels ? Object.entries(selector.matchLabels).some(
           ([key, value]) =>
@@ -559,12 +484,12 @@ const ClusterRoles: React.FC = () => {
             (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery))
         ) : false;
 
-        const matchExpressionsMatches = selector.matchExpressions ? selector.matchExpressions.some(
+        const matchExpressionsMatches = Array.isArray(selector.matchExpressions) && selector.matchExpressions.some(
           expr =>
             expr.key.toLowerCase().includes(lowercaseQuery) ||
             expr.operator.toLowerCase().includes(lowercaseQuery) ||
-            expr.values.some(v => v.toLowerCase().includes(lowercaseQuery))
-        ) : false;
+            Array.isArray(expr.values) && expr.values.some(v => v.toLowerCase().includes(lowercaseQuery))
+        );
 
         return matchLabelsMatches || matchExpressionsMatches;
       }) || false;
@@ -697,6 +622,7 @@ const ClusterRoles: React.FC = () => {
     );
   };
 
+
   // Format verbs (permissions)
   const formatVerbs = (clusterRole: V1ClusterRole): JSX.Element => {
     if (!clusterRole.rules || clusterRole.rules.length === 0) {
@@ -745,8 +671,8 @@ const ClusterRoles: React.FC = () => {
     return (
       <div className="flex items-center justify-center">
         <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${isAggregated
-            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300'
-            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300'
+          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
           }`}>
           {isAggregated ? 'Aggregated' : 'Standard'}
         </span>
@@ -889,9 +815,9 @@ const ClusterRoles: React.FC = () => {
                   <TableRow
                     key={clusterRole.metadata?.uid || clusterRole.metadata?.name}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${clusterRole.metadata?.name &&
-                        selectedClusterRoles.has(clusterRole.metadata.name)
-                        ? 'bg-blue-50 dark:bg-gray-800/30'
-                        : ''
+                      selectedClusterRoles.has(clusterRole.metadata.name)
+                      ? 'bg-blue-50 dark:bg-gray-800/30'
+                      : ''
                       }`}
                     onClick={(e) => handleClusterRoleClick(e, clusterRole)}
                     onContextMenu={(e) => handleContextMenu(e, clusterRole)}
