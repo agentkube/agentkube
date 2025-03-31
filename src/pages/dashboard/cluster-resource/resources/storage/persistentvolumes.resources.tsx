@@ -26,6 +26,85 @@ interface SortState {
   field: SortField;
   direction: SortDirection;
 }
+// Helper function to determine the volume type from the spec
+const getVolumeType = (volume: V1PersistentVolume): string => {
+  const spec = volume.spec;
+  if (!spec) return 'Unknown';
+
+  // Check for different volume types in order of likelihood
+  if (spec.hostPath) return 'HostPath';
+  if (spec.nfs) return 'NFS';
+  if (spec.awsElasticBlockStore) return 'AWS EBS';
+  if (spec.gcePersistentDisk) return 'GCE PD';
+  if (spec.csi) return `CSI (${spec.csi.driver || 'unknown'})`;
+  if (spec.iscsi) return 'iSCSI';
+  if (spec.glusterfs) return 'GlusterFS';
+  if (spec.rbd) return 'Ceph RBD';
+  if (spec.cephfs) return 'CephFS';
+  if (spec.azureDisk) return 'Azure Disk';
+  if (spec.azureFile) return 'Azure File';
+  if (spec.fc) return 'Fibre Channel';
+  if (spec.local) return 'Local';
+
+  // Check for other volume types
+  const volumeKeys = Object.keys(spec).filter(key =>
+    key !== 'accessModes' &&
+    key !== 'persistentVolumeReclaimPolicy' &&
+    key !== 'storageClassName' &&
+    key !== 'volumeMode' &&
+    key !== 'capacity' &&
+    key !== 'nodeAffinity' &&
+    key !== 'claimRef'
+  );
+
+  if (volumeKeys.length > 0) {
+    return volumeKeys[0].charAt(0).toUpperCase() + volumeKeys[0].slice(1);
+  }
+
+  return 'Unknown';
+};
+
+// Format storage size to human-readable format
+const formatStorage = (storage: string | undefined): string => {
+  if (!storage) return 'N/A';
+
+  // Return as is if it's already in a human-readable format
+  if (storage.endsWith('Ki') || storage.endsWith('Mi') || storage.endsWith('Gi') || storage.endsWith('Ti')) {
+    return storage;
+  }
+
+  // Try to parse as a number (bytes)
+  const bytes = parseInt(storage);
+  if (isNaN(bytes)) return storage;
+
+  // Convert to appropriate unit
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} Ki`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} Mi`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} Gi`;
+};
+
+
+// Get a color class based on the PV phase
+const getStatusColorClass = (phase: string | undefined): string => {
+  if (!phase) return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+
+  switch (phase.toLowerCase()) {
+    case 'bound':
+      return 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    case 'available':
+      return 'bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'released':
+      return 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    case 'failed':
+      return 'bg-red-200 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    case 'pending':
+      return 'bg-orange-200 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+    default:
+      return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+  }
+};
+
 
 const PersistentVolumes: React.FC = () => {
   const navigate = useNavigate();
@@ -47,15 +126,15 @@ const PersistentVolumes: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -542,43 +621,6 @@ const PersistentVolumes: React.FC = () => {
     return isNaN(bytes) ? 0 : bytes;
   };
 
-  // Helper function to determine the volume type from the spec
-  const getVolumeType = (volume: V1PersistentVolume): string => {
-    const spec = volume.spec;
-    if (!spec) return 'Unknown';
-
-    // Check for different volume types in order of likelihood
-    if (spec.hostPath) return 'HostPath';
-    if (spec.nfs) return 'NFS';
-    if (spec.awsElasticBlockStore) return 'AWS EBS';
-    if (spec.gcePersistentDisk) return 'GCE PD';
-    if (spec.csi) return `CSI (${spec.csi.driver || 'unknown'})`;
-    if (spec.iscsi) return 'iSCSI';
-    if (spec.glusterfs) return 'GlusterFS';
-    if (spec.rbd) return 'Ceph RBD';
-    if (spec.cephfs) return 'CephFS';
-    if (spec.azureDisk) return 'Azure Disk';
-    if (spec.azureFile) return 'Azure File';
-    if (spec.fc) return 'Fibre Channel';
-    if (spec.local) return 'Local';
-
-    // Check for other volume types
-    const volumeKeys = Object.keys(spec).filter(key =>
-      key !== 'accessModes' &&
-      key !== 'persistentVolumeReclaimPolicy' &&
-      key !== 'storageClassName' &&
-      key !== 'volumeMode' &&
-      key !== 'capacity' &&
-      key !== 'nodeAffinity' &&
-      key !== 'claimRef'
-    );
-
-    if (volumeKeys.length > 0) {
-      return volumeKeys[0].charAt(0).toUpperCase() + volumeKeys[0].slice(1);
-    }
-
-    return 'Unknown';
-  };
 
   const handleVolumeDetails = (volume: V1PersistentVolume) => {
     if (volume.metadata?.name) {
@@ -622,45 +664,7 @@ const PersistentVolumes: React.FC = () => {
     return null;
   };
 
-  // Format storage size to human-readable format
-  const formatStorage = (storage: string | undefined): string => {
-    if (!storage) return 'N/A';
 
-    // Return as is if it's already in a human-readable format
-    if (storage.endsWith('Ki') || storage.endsWith('Mi') || storage.endsWith('Gi') || storage.endsWith('Ti')) {
-      return storage;
-    }
-
-    // Try to parse as a number (bytes)
-    const bytes = parseInt(storage);
-    if (isNaN(bytes)) return storage;
-
-    // Convert to appropriate unit
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} Ki`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} Mi`;
-    return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} Gi`;
-  };
-
-  // Get a color class based on the PV phase
-  const getStatusColorClass = (phase: string | undefined): string => {
-    if (!phase) return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-
-    switch (phase.toLowerCase()) {
-      case 'bound':
-        return 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'available':
-        return 'bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'released':
-        return 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'failed':
-        return 'bg-red-200 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'pending':
-        return 'bg-orange-200 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      default:
-        return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-    }
-  };
 
   if (loading) {
     return (
@@ -834,8 +838,8 @@ const PersistentVolumes: React.FC = () => {
                     <TableCell className="text-center">
                       <span
                         className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${volume.spec?.persistentVolumeReclaimPolicy === 'Delete'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                            : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
                           }`}
                       >
                         {volume.spec?.persistentVolumeReclaimPolicy || 'Retain'}
