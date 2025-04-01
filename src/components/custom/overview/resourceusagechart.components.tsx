@@ -6,6 +6,7 @@ import { getNodes, getPods } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { V1Node, V1Pod } from '@kubernetes/client-node';
 import { Progress } from "@/components/ui/progress";
+import { OPERATOR_URL } from "@/config";
 import {
   Select,
   SelectContent,
@@ -141,7 +142,7 @@ const ResourceUsageChart = () => {
         memoryUsed: 0,
         memoryPercent: 0,
         storageTotal: 0,
-        storagePercent: 25, // Mock data
+        storagePercent: 0, // TODO Mock data
         podCount: 0,
         podCapacity: 0,
         uptime: "N/A"
@@ -221,7 +222,7 @@ const ResourceUsageChart = () => {
       memoryUsed,
       memoryPercent: memoryTotal > 0 ? (memoryUsed / memoryTotal) * 100 : 0,
       storageTotal,
-      storagePercent: 25, // Mock data since storage metrics usually require additional components
+      storagePercent: 0, // TODO Mock data since storage metrics usually require additional components
       podCount: nodePods.length,
       podCapacity,
       uptime
