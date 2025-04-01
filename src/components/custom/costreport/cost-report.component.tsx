@@ -62,14 +62,13 @@ const CostOverviewReport = () => {
     if (!currentContext?.name) return;
 
     try {
-      // Fetch pod count
+
       const podsResponse = await kubeProxyRequest(
         currentContext.name, 
         'api/v1/pods?limit=1',
         'GET'
       );
-      
-      // Fetch namespace count
+
       const namespacesResponse = await kubeProxyRequest(
         currentContext.name, 
         'api/v1/namespaces?limit=1',
@@ -96,7 +95,7 @@ const CostOverviewReport = () => {
       // Build path for monthly cost data
       const costPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
       const costParams = new URLSearchParams({
-        window: '7d',         // 30 day window
+        window: '7d',      
         aggregate: 'cluster',  // aggregate by cluster
         includeIdle: 'true',   // include idle resources
         accumulate: 'true'     // accumulate costs
@@ -105,7 +104,7 @@ const CostOverviewReport = () => {
       // Previous month for comparison
       const prevCostPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
       const prevCostParams = new URLSearchParams({
-        window: '60d',         // 60 day window
+        window: '60d',        
         offset: '30d',         // offset by 30 days to get previous month
         aggregate: 'cluster',  // aggregate by cluster
         includeIdle: 'true',   // include idle resources
@@ -155,10 +154,8 @@ const CostOverviewReport = () => {
     }
   };
 
-  // Handle installation by navigating to Cost Overview page
   const handleInstallOpenCost = () => {
-    // Navigate to Cost Overview page
-    window.location.href = '/costs';
+    navigate('/dashboard/cost');
   };
 
   if (loading) {

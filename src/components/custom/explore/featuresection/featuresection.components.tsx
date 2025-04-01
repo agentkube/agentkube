@@ -84,18 +84,18 @@ const advancedFeatures: FeatureItem[] = [
         label: 'Cost Overview',
         path: '/dashboard/cost'
       },
-      {
-        id: 'cost-monitors',
-        icon: <div className="w-2 h-2 rounded-full bg-yellow-500 ml-1 mr-2" />,
-        label: 'Cost Monitors',
-        path: '/dashboard/cost-optimization/vulnerability-scans'
-      },
-      {
-        id: 'ai-optimizer',
-        icon: <div className="w-2 h-2 rounded-full bg-green-500 ml-1 mr-2" />,
-        label: 'AI Optimizer',
-        path: '/dashboard/cost/ai-optimization'
-      }
+      // {
+      //   id: 'cost-monitors',
+      //   icon: <div className="w-2 h-2 rounded-full bg-yellow-500 ml-1 mr-2" />,
+      //   label: 'Cost Monitors',
+      //   path: '/dashboard/cost-optimization/vulnerability-scans'
+      // },
+      // {
+      //   id: 'ai-optimizer',
+      //   icon: <div className="w-2 h-2 rounded-full bg-green-500 ml-1 mr-2" />,
+      //   label: 'AI Optimizer',
+      //   path: '/dashboard/cost/ai-optimization'
+      // }
     ]
   }
 ];

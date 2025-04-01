@@ -1,4 +1,5 @@
 export { default as AWS_PROVIDER } from './aws.png';
+export { default as AWS_PROVIDER_DARK } from './aws-dark.png';
 export { default as AZURE_PROVIDER } from './azure.png';
 export { default as GCP_PROVIDER } from './gcp.png';
 export { default as KIND_PROVIDER } from './kind.png';
