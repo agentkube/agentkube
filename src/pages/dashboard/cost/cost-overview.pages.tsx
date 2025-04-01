@@ -17,6 +17,7 @@ import { OpenCostInstaller } from '@/components/custom';
 import DeploymentCostDistribution from './components/deployment-cost-distribution.component';
 import DaemonsetCostDistribution from './components/daemonset-cost-distribution.component';
 import StatefulsetCostDistribution from './components/statefulset-cost-distribution.component';
+import { getOpenCostStatus } from '@/api/cost';
 
 const CostOverview: React.FC = () => {
   const { currentContext } = useCluster();
@@ -24,35 +25,47 @@ const CostOverview: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<string>("7d");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isOpenCostInstalled, setIsOpenCostInstalled] = useState(true);
+  const [isOpenCostInstalled, setIsOpenCostInstalled] = useState<boolean | null>(null);
+  const [openCostStatus, setOpenCostStatus] = useState<any>(null);
 
-  // Fetch data when context or time range changes
-  const fetchCostData = async () => {
-    if (!currentContext) {
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      // Implement your actual data fetching logic here
-    } catch (err) {
-      console.error('Failed to fetch cost data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch cost data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Check if OpenCost is installed
   useEffect(() => {
-    fetchCostData();
-  }, [currentContext, timeRange]);
+    const checkOpenCostStatus = async () => {
+      if (!currentContext) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const statusData = await getOpenCostStatus(currentContext.name);
+        console.log('OpenCost status:', statusData);
+        setOpenCostStatus(statusData);
+        setIsOpenCostInstalled(statusData.status.installed);
+      } catch (err) {
+        console.error('Failed to check OpenCost status:', err);
+        setError(err instanceof Error ? err.message : 'Failed to check OpenCost status');
+        setIsOpenCostInstalled(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkOpenCostStatus();
+  }, [currentContext]);
+
+
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Implement your refresh logic here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // You might want to call your data fetching function here
-      await fetchCostData(); // You'll need to move your fetchCostData function out of useEffect
+      // Check OpenCost status again
+      if (currentContext) {
+        const statusData = await getOpenCostStatus(currentContext.name);
+        setIsOpenCostInstalled(statusData.status.installed);
+        setOpenCostStatus(statusData);
+      }
+
     } catch (err) {
       console.error('Error refreshing data:', err);
     } finally {
@@ -60,8 +73,35 @@ const CostOverview: React.FC = () => {
     }
   };
 
-  if (!isOpenCostInstalled) {
-    return <OpenCostInstaller loading={loading} onInstall={() => setIsOpenCostInstalled(true)} />;
+  const handleInstallComplete = async () => {
+    // After installation, check status again
+    if (currentContext) {
+      try {
+        const statusData = await getOpenCostStatus(currentContext.name);
+        setIsOpenCostInstalled(statusData.status.installed);
+        setOpenCostStatus(statusData);
+      } catch (err) {
+        console.error('Failed to verify installation:', err);
+      }
+    }
+  };
+
+  // Show loading state
+  if (loading && isOpenCostInstalled === null) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700 dark:border-gray-300 mx-auto"></div>
+          <p className="mt-4 text-gray-700 dark:text-gray-300">Checking OpenCost status...</p>
+        </div>
+      </div>
+    );
+  }
+
+
+  if (isOpenCostInstalled === false) {
+    return <OpenCostInstaller loading={loading} onInstall={handleInstallComplete}
+    />;
   }
 
   return (
@@ -71,6 +111,11 @@ const CostOverview: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Cost Overview</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">View and analyze your cluster costs</p>
+            {openCostStatus?.status.version && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                OpenCost version: {openCostStatus.status.version.substring(0, 8)}...
+              </p>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Select defaultValue={timeRange} onValueChange={setTimeRange}>

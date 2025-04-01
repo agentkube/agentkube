@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Server, AlertCircle, Clock, HardDrive, Cpu, Database } from "lucide-react";
 import { EventMetricsCard, NamespacesMetricCard, PodsMetricCard, ResourceUsageChart } from '@/components/custom';
-
+import { CostReport } from '@/components/custom';
 const Overview = () => {
   return (
     <div className="p-6 space-y-6 max-h-[92vh] overflow-y-auto
@@ -18,7 +18,8 @@ const Overview = () => {
       {/* Top Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Cloud Cost Card */}
-        <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+        <CostReport />
+        {/* <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
           <CardContent className="p-6">
             <Tabs defaultValue="balance" className="w-full">
               <TabsList className="bg-gray-100 dark:bg-gray-900/30 mb-4">
@@ -64,7 +65,7 @@ const Overview = () => {
               </TabsContent>
             </Tabs>
           </CardContent>
-        </Card>
+        </Card> */}
         
         {/* Cluster Health Card */}
         <Card className="bg-gray-50 dark:bg-gray-800/30 border-gray-200/70 dark:border-gray-700/30 shadow-lg overflow-hidden relative">
