@@ -23,3 +23,23 @@ export const getKubeContexts = async (): Promise<KubeContext[]> => {
 
   return response.json();
 };
+
+export const kubeProxyRequest = async (clusterName: string, path: string, method: string, body?: any) => {
+  const response = await fetch(`${OPERATOR_URL}/clusters/${clusterName}/${path}`, {
+    method,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to proxy request: ${errorText}`);
+  }
+
+  // Check if the response is JSON before parsing
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return response.json();
+  } else {
+    return response.text();
+  }
+};

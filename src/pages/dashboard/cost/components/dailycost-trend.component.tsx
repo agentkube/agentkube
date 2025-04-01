@@ -1,83 +1,130 @@
-import React, { useState } from 'react';
-
-interface DailyCost {
-  date: string;
-  cost: number;
-}
+import { TrendingUp } from "lucide-react"
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart"
+import { DailyCost } from '@/types/opencost'
 
 interface DailyCostTrendProps {
-  dailyCostData: DailyCost[];
+  dailyCostData: DailyCost[]
 }
 
+const chartConfig = {
+  activeCost: {
+    label: "Active",
+    color: "hsl(var(--chart-1))",
+  },
+  idleCost: {
+    label: "Idle",
+    color: "#707277",
+  },
+} satisfies ChartConfig
+
 const DailyCostTrend: React.FC<DailyCostTrendProps> = ({ dailyCostData }) => {
-  const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  
-  // Find maximum cost value for better scaling
-  const maxCost = Math.max(...dailyCostData.map(day => day.cost));
-  
-  // Format date to display in a more readable way
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  const formattedData = dailyCostData.map(item => {
+    const dateObj = new Date(item.date)
+    const formattedDate = dateObj.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    })
 
-  const handleMouseEnter = (index: number, event: React.MouseEvent) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltipPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10
-    });
-    setActiveTooltip(index);
-  };
+    return {
+      ...item,
+      formattedDate,
+      activeCost: item.activeCost || 0,
+      idleCost: item.idleCost || 0,
+      totalCost: item.totalCost || (item.activeCost || 0) + (item.idleCost || 0)
+    }
+  })
 
-  const handleMouseLeave = () => {
-    setActiveTooltip(null);
-  };
-
-  return (
-    <div className="mt-4 relative">
-      <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Daily Cost Trend</div>
-      <div className="h-16 flex items-end gap-1">
-        {dailyCostData.map((day, index) => (
-          <div
-            key={index}
-            className="flex-1 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 rounded-t cursor-pointer transition-all duration-200 hover:opacity-90"
-            style={{
-              height: `${(day.cost / maxCost) * 100}%`,
-              minHeight: '10%'
-            }}
-            onMouseEnter={(e) => handleMouseEnter(index, e)}
-            onMouseLeave={handleMouseLeave}
-          />
-        ))}
-      </div>
-      
-      {activeTooltip !== null && (
-        <div 
-          className="absolute z-10 bg-white dark:bg-[#0F1015]/30 backdrop-blur-sm text-gray-800 dark:text-gray-200 rounded-md shadow-lg p-2 text-xs transform -translate-x-1/2 -translate-y-full pointer-events-none border border-gray-200 dark:border-gray-800"
-          style={{
-            left: `${tooltipPosition.x}px`,
-            top: `${tooltipPosition.y}px`,
-            position: 'fixed'
-          }}
-        >
-          <div className="font-medium">{formatDate(dailyCostData[activeTooltip].date)}</div>
-          <div className="flex items-center justify-between gap-2">
-            <span>Cost:</span>
-            <span className="font-bold text-blue-600 dark:text-blue-400">
-              ${dailyCostData[activeTooltip].cost.toFixed(2)}
-            </span>
+  // Custom tooltip to format the values properly
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md p-4 border border-gray-200 dark:border-gray-700 rounded shadow-md min-w-[150px]">
+          <p className="font-medium text-lg font-[Anton] uppercase text-gray-800/40 dark:text-white">{label}</p>
+          <div className="flex justify-between gap-2">
+            <p className="text-sm text-green-600 dark:text-green-400">
+              Active:
+            </p>
+            <p className="text-sm text-green-600 dark:text-green-400">
+              ${payload[0].value.toFixed(2)}
+            </p>
+          </div>
+          <div className="flex justify-between gap-2">  
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Idle:
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              ${payload[1].value.toFixed(2)}
+            </p>
+          </div>
+          <div className="flex justify-between gap-2">
+            <p className="text-sm font-bold text-gray-900 dark:text-white">
+              Total:
+            </p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">
+              ${(payload[0].value + payload[1].value).toFixed(2)}
+            </p>
           </div>
         </div>
-      )}
-      
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-        <span>{formatDate(dailyCostData[0].date)}</span>
-        <span>{formatDate(dailyCostData[dailyCostData.length - 1].date)}</span>
-      </div>
-    </div>
-  );
-};
+      )
+    }
+    return null
+  }
 
-export default DailyCostTrend;
+  return (
+    <Card className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-700/40">
+      <CardContent className="p-0 pt-10">
+        <ChartContainer config={chartConfig}>
+          <BarChart
+            data={formattedData}
+            margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+
+          >
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="formattedDate"
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `$${value.toFixed(0)}`}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <ChartLegend content={<ChartLegendContent />} />
+            <Bar
+              dataKey="activeCost"
+              stackId="a"
+              fill="#6875F5"
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar
+              dataKey="idleCost"
+              stackId="a"
+              fill="#707277"
+              radius={[10, 10, 0, 0]}
+              opacity={0.2}
+            />
+          </BarChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default DailyCostTrend
