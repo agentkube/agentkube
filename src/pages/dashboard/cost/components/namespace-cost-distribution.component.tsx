@@ -35,7 +35,12 @@ interface NamespaceCostSummary {
   efficiency: number;
 }
 
-const NamespaceCostDistribution: React.FC = () => {
+interface NamespaceCostDistributionProps {
+  timeRange: string;
+  onReload: () => Promise<void>;
+}
+
+const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ timeRange, onReload }) => {
   const { currentContext } = useCluster();
   const [costData, setCostData] = useState<NamespaceCostSummary>({
     namespaces: [],
@@ -69,7 +74,7 @@ const NamespaceCostDistribution: React.FC = () => {
         // Build path and query parameters
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
-          window: '48h',           // 48-hour window
+          window: timeRange,           // 48-hour window
           aggregate: 'namespace',  // aggregate by namespace
           includeIdle: 'true',     // include idle resources
           accumulate: 'true'       // accumulate the values
@@ -92,7 +97,7 @@ const NamespaceCostDistribution: React.FC = () => {
     };
     
     fetchNamespaceCostData();
-  }, [currentContext]);
+  }, [currentContext, timeRange]);
 
   // Transform OpenCost namespace data to the format expected by the component
   const transformOpenCostNamespaceData = (data: Record<string, any>[]): NamespaceCostSummary => {

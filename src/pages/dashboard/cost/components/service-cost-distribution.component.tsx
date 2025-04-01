@@ -19,7 +19,12 @@ interface ServiceCostSummary {
   efficiency: number;
 }
 
-const ServiceCostDistribution: React.FC = () => {
+interface ServiceCostDistributionProps {  
+  timeRange: string;
+  onReload: () => Promise<void>;
+}
+
+const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeRange, onReload }) => {
   const { currentContext } = useCluster();
   const [costData, setCostData] = useState<ServiceCostSummary>({
     services: [],
@@ -54,7 +59,7 @@ const ServiceCostDistribution: React.FC = () => {
         // Build path and query parameters for service data
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
-          window: '48h',        // 48-hour window
+          window: timeRange,        // 48-hour window
           aggregate: 'service', // aggregate by service
           includeIdle: 'true',  // include idle resources
           accumulate: 'true'    // accumulate the values
@@ -77,7 +82,7 @@ const ServiceCostDistribution: React.FC = () => {
     };
     
     fetchServiceCostData();
-  }, [currentContext]);
+  }, [currentContext, timeRange]);
 
   // Transform OpenCost service data to the format expected by the component
   const transformOpenCostServiceData = (data: Record<string, any>[]): ServiceCostSummary => {

@@ -19,27 +19,27 @@ const CostOverview: React.FC = () => {
   const { currentContext } = useCluster();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<string>("30d");
+  const [timeRange, setTimeRange] = useState<string>("7d");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOpenCostInstalled, setIsOpenCostInstalled] = useState(true);
 
   // Fetch data when context or time range changes
+  const fetchCostData = async () => {
+    if (!currentContext) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      // Implement your actual data fetching logic here
+    } catch (err) {
+      console.error('Failed to fetch cost data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch cost data');
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchCostData = async () => {
-      if (!currentContext) {
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        // Implement your actual data fetching logic here
-      } catch (err) {
-        console.error('Failed to fetch cost data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch cost data');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchCostData();
   }, [currentContext, timeRange]);
 
@@ -48,6 +48,8 @@ const CostOverview: React.FC = () => {
     try {
       // Implement your refresh logic here
       await new Promise(resolve => setTimeout(resolve, 1000));
+      // You might want to call your data fetching function here
+      await fetchCostData(); // You'll need to move your fetchCostData function out of useEffect
     } catch (err) {
       console.error('Error refreshing data:', err);
     } finally {
@@ -104,7 +106,10 @@ const CostOverview: React.FC = () => {
           </div>
         </div>
 
-        <CostSummary />
+        <CostSummary
+          timeRange={timeRange}
+          onReload={handleRefresh}
+        />
 
         <Tabs defaultValue="namespaces" className="w-full">
           <TabsList className="bg-gray-100 dark:bg-gray-900/30 mb-4">
@@ -115,16 +120,16 @@ const CostOverview: React.FC = () => {
           </TabsList>
 
           <TabsContent value="namespaces" className="mt-0">
-            <NamespaceCostDistribution />
+            <NamespaceCostDistribution timeRange={timeRange} onReload={handleRefresh} />
           </TabsContent>
           <TabsContent value="services" className="mt-0">
-            <ServiceCostDistribution />
+            <ServiceCostDistribution timeRange={timeRange} onReload={handleRefresh} />
           </TabsContent>
           <TabsContent value="nodes" className="mt-0">
-            <NodeCostDistribution />
+            <NodeCostDistribution timeRange={timeRange} onReload={handleRefresh} />
           </TabsContent>
           <TabsContent value="pods" className="mt-0">
-            <PodCostDistribution />
+            <PodCostDistribution timeRange={timeRange} onReload={handleRefresh} />
           </TabsContent>
         </Tabs>
       </div>

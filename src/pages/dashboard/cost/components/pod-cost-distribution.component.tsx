@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Cpu, Database, HardDrive, Network, AlertCircle, Loader2, Gauge, Server } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { get, round } from 'lodash';
-
+import { useNavigate } from 'react-router-dom';
 interface ResourceCost {
   cpu: number;
   memory: number;
@@ -37,8 +37,14 @@ interface PodCostSummary {
   efficiency: number;
 }
 
-const PodCostDistribution: React.FC = () => {
+interface PodCostDistributionProps {
+  timeRange: string;
+  onReload: () => Promise<void>;
+}
+
+const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, onReload }) => {
   const { currentContext } = useCluster();
+  const navigate = useNavigate();
   const [costData, setCostData] = useState<PodCostSummary>({
     pods: [],
     totalCost: 0,
@@ -71,7 +77,7 @@ const PodCostDistribution: React.FC = () => {
         // Build path and query parameters
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
-          window: '48h',       // 48-hour window
+          window: timeRange,       // 48-hour window
           aggregate: 'pod',    // aggregate by pod
           includeIdle: 'true', // include idle resources
           accumulate: 'true'   // accumulate the values
@@ -94,7 +100,7 @@ const PodCostDistribution: React.FC = () => {
     };
     
     fetchPodCostData();
-  }, [currentContext]);
+  }, [currentContext, timeRange]);
 
   // Transform OpenCost pod data to the format expected by the component
   const transformOpenCostPodData = (data: Record<string, any>[]): PodCostSummary => {
@@ -383,16 +389,24 @@ const PodCostDistribution: React.FC = () => {
                     <div>
                       <div className="flex items-center">
                         <div className={`w-3 h-3 rounded-full ${getPercentageColor(pod.percentage)} mr-2 opacity-80`}></div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{pod.name}</span>
+                        <span className="text-md font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:underline hover:text-blue-600 dark:hover:text-blue-400"
+                        onClick={() => {
+                          navigate(`/dashboard/explore/pods/${pod.namespace}/${pod.name}`);
+                        }}
+                        >{pod.name}</span>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 text-xs text-gray-500 dark:text-gray-400 ml-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 text-sm text-gray-500 dark:text-gray-400 ml-5">
                         <div className="flex items-center">
                           <span className="mr-1">Namespace:</span>
-                          <span className="font-medium">{pod.namespace}</span>
+                          <span className="font-medium cursor-pointer hover:underline text-blue-600 dark:text-blue-400" onClick={() => {
+                            navigate(`/dashboard/explore/namespaces/${pod.namespace}`);
+                          }}>{pod.namespace}</span>
                         </div>
                         <div className="flex items-center">
                           <Server className="h-3 w-3 mr-1" />
-                          <span className="font-medium">{pod.nodeName}</span>
+                          <span className="font-medium cursor-pointer hover:underline text-blue-600 dark:text-blue-400" onClick={() => {
+                            navigate(`/dashboard/explore/nodes/${pod.nodeName}`);
+                          }}>{pod.nodeName}</span>
                         </div>
                       </div>
                       <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 ml-5 mt-1">
@@ -404,9 +418,9 @@ const PodCostDistribution: React.FC = () => {
                     </div>
                     <span className="text-sm font-bold text-gray-900 dark:text-white">${formatCost(pod.cost)}</span>
                   </div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-[0.2rem]">
                     <div 
-                      className={`h-2 ${getPercentageColor(pod.percentage)} rounded-full`}
+                      className={`h-3 ${getPercentageColor(pod.percentage)} rounded-[0.2rem]`}
                       style={{ width: `${Math.min(pod.percentage, 100)}%` }}
                     ></div>
                   </div>

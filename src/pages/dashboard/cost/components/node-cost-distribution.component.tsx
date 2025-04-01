@@ -7,7 +7,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { get, forEach, round, sortBy } from 'lodash';
 import { AggregatedNodeCost, OpenCostAllocationResponse } from '@/types/opencost';
 
-const NodeCostDistribution: React.FC = () => {
+interface NodeCostDistributionProps {
+  timeRange: string;
+  onReload: () => Promise<void>;
+}
+
+const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, onReload }) => {
   const { currentContext } = useCluster();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +40,7 @@ const NodeCostDistribution: React.FC = () => {
         // Build path and query parameters
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
-          window: '48h',        // Last 7 days
+          window: timeRange,        // Last 7 days
           aggregate: 'node',   // Aggregate by node
           includeIdle: 'true', // Include idle resources
           accumulate: 'true'   // Accumulate the values (matching rangeToCumulative behavior)
