@@ -14,6 +14,9 @@ import NodeCostDistribution from './components/node-cost-distribution.component'
 import CostSummary from './components/cost-summary.component';
 import PodCostDistribution from './components/pod-cost-distribution.component';
 import { OpenCostInstaller } from '@/components/custom';
+import DeploymentCostDistribution from './components/deployment-cost-distribution.component';
+import DaemonsetCostDistribution from './components/daemonset-cost-distribution.component';
+import StatefulsetCostDistribution from './components/statefulset-cost-distribution.component';
 
 const CostOverview: React.FC = () => {
   const { currentContext } = useCluster();
@@ -117,6 +120,9 @@ const CostOverview: React.FC = () => {
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="services">Services</TabsTrigger>
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="nodes">Nodes</TabsTrigger>
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="pods">Pods</TabsTrigger>
+            <TabsTrigger className='text-gray-700 dark:text-gray-300' value="deployments">Deployments</TabsTrigger>
+            <TabsTrigger className='text-gray-700 dark:text-gray-300' value="daemonsets">Daemonsets</TabsTrigger>
+            <TabsTrigger className='text-gray-700 dark:text-gray-300' value="statefulsets">Statefulsets</TabsTrigger>
           </TabsList>
 
           <TabsContent value="namespaces" className="mt-0">
@@ -130,6 +136,15 @@ const CostOverview: React.FC = () => {
           </TabsContent>
           <TabsContent value="pods" className="mt-0">
             <PodCostDistribution timeRange={timeRange} onReload={handleRefresh} />
+          </TabsContent>
+          <TabsContent value="deployments" className="mt-0">
+            <DeploymentCostDistribution timeRange={timeRange} onReload={handleRefresh} />
+          </TabsContent>
+          <TabsContent value="daemonsets" className="mt-0">
+            <DaemonsetCostDistribution timeRange={timeRange} onReload={handleRefresh} />
+          </TabsContent>
+          <TabsContent value="statefulsets" className="mt-0">
+            <StatefulsetCostDistribution timeRange={timeRange} onReload={handleRefresh} />
           </TabsContent>
         </Tabs>
       </div>
