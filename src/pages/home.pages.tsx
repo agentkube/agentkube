@@ -14,6 +14,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes-blue.png';
 import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
 import { DeleteContextDialog } from '@/components/custom';
+import { useTheme } from 'next-themes';
 
 // Interface for our cluster UI data
 interface ClusterItem {
@@ -54,7 +55,7 @@ const HomePage: React.FC = () => {
   const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext } = useCluster();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contextToDelete, setContextToDelete] = useState<string | null>(null);
-
+  const { theme } = useTheme();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     // Load view mode from localStorage
     const savedViewMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
@@ -253,7 +254,7 @@ const HomePage: React.FC = () => {
       case 'minikube':
         return <img className='h-10 w-10' src={MINIKUBE_PROVIDER} alt="Minikube logo" />;
       case 'aws':
-        return <img className='h-10 w-10' src={AWS_PROVIDER_DARK} alt="AWS logo" />;
+        return <img className='h-10 w-10' src={theme === 'dark' ? AWS_PROVIDER_DARK : AWS_PROVIDER} alt="AWS logo" />;
       case 'gcp':
         return <img className='h-10 w-10' src={GCP_PROVIDER} alt="GCP logo" />;
       case 'azure':
