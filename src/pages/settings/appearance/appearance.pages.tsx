@@ -14,9 +14,8 @@ const Appearance = () => {
   const [fontSize, setFontSize] = useState(14);
   const [colorMode, setColorMode] = useState('dark');
   const [themeOptions, setThemeOptions] = useState<string[]>(['light', 'dark']);
-  
+
   // UI state
-  const [activeTab, setActiveTab] = useState('slack-themes');
   const [selectedTheme, setSelectedTheme] = useState('aubergine');
   const [isDark, setIsDark] = useState(true);
   const { setTheme, theme } = useTheme()
@@ -31,13 +30,13 @@ const Appearance = () => {
       try {
         setIsLoading(true);
         const settings = await getSettings();
-        
+
         // Set state with appearance settings
         setFontFamily(settings.appearance.fontFamily || 'DM Sans');
         setFontSize(settings.appearance.fontSize || 14);
         setColorMode(settings.appearance.colorMode || 'dark');
         setThemeOptions(settings.appearance.themeOptions || ['light', 'dark']);
-        
+
         // Apply the color mode
         applyColorMode(settings.appearance.colorMode);
       } catch (error) {
@@ -85,7 +84,7 @@ const Appearance = () => {
   useEffect(() => {
     if (colorMode === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      
+
       const handleChange = (e: MediaQueryListEvent) => {
         setIsDark(e.matches);
         if (e.matches) {
@@ -108,12 +107,14 @@ const Appearance = () => {
       setIsSaving(true);
       setColorMode(mode);
       applyColorMode(mode);
-      
-      // Save to API
+
+      const currentSettings = await getSettings();
+
       await updateSettingsSection('appearance', {
+        ...currentSettings.appearance,
         colorMode: mode
       });
-      
+
       toast({
         title: "Color mode updated",
         description: `Theme has been updated to ${mode} mode.`,
@@ -130,20 +131,23 @@ const Appearance = () => {
     }
   };
 
+
   // Handle font change
   const handleFontChange = async (font: string) => {
     try {
       setIsSaving(true);
       setFontFamily(font);
-      
-      // Save to API
+
+      const currentSettings = await getSettings();
+
       await updateSettingsSection('appearance', {
+        ...currentSettings.appearance,
         fontFamily: font
       });
-      
-      // Apply font (in a real app, you might have a more complex implementation)
+
+      // Apply font
       document.documentElement.style.setProperty('--font-family', font);
-      
+
       toast({
         title: "Font updated",
         description: `Font has been updated to ${font}.`,
@@ -165,15 +169,19 @@ const Appearance = () => {
     try {
       setIsSaving(true);
       setFontSize(size);
-      
-      // Save to API
+
+      // Get current settings
+      const currentSettings = await getSettings();
+
+      // Save to API with all fields
       await updateSettingsSection('appearance', {
+        ...currentSettings.appearance,
         fontSize: size
       });
-      
-      // Apply font size (in a real app, you might have a more complex implementation)
+
+      // Apply font size
       document.documentElement.style.setProperty('--font-size', `${size}px`);
-      
+
       toast({
         title: "Font size updated",
         description: `Font size has been updated to ${size}px.`,
@@ -224,15 +232,15 @@ const Appearance = () => {
           <div>
             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Font Family</label>
             <div className="relative">
-              <select 
+              <select
                 className="w-full text-sm appearance-none bg-transparent border border-gray-300 dark:border-gray-800 rounded px-4 py-2 pr-8 cursor-pointer"
                 value={fontFamily}
                 onChange={(e) => handleFontChange(e.target.value)}
               >
                 <option value="DM Sans">DM Sans (Default)</option>
-                <option value="Roboto">Roboto</option>
+                {/* <option value="Roboto">Roboto</option>
                 <option value="Inter">Inter</option>
-                <option value="Helvetica Neue">Helvetica Neue</option>
+                <option value="Helvetica Neue">Helvetica Neue</option> */}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -241,7 +249,7 @@ const Appearance = () => {
               </div>
             </div>
           </div>
-          
+
           {/* <div>
             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Font Size</label>
             <div className="flex items-center space-x-2">
@@ -267,13 +275,12 @@ const Appearance = () => {
           Choose if the appearance should be light or dark, or follow your computer's settings.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
+          <button
             disabled={isSaving}
-            className={`flex flex-col items-center justify-center p-4 rounded border ${
-              colorMode === 'light' 
-                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800' 
+            className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'light'
+                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
                 : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
+              }`}
             onClick={() => handleColorModeChange('light')}
           >
             <div className="relative mb-2">
@@ -287,14 +294,13 @@ const Appearance = () => {
             <Sun size={20} className="mb-2" />
             <span className="text-sm">Light</span>
           </button>
-          
-          <button 
+
+          <button
             disabled={isSaving}
-            className={`flex flex-col items-center justify-center p-4 rounded border ${
-              colorMode === 'dark' 
-                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800' 
+            className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'dark'
+                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
                 : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
+              }`}
             onClick={() => handleColorModeChange('dark')}
           >
             <div className="relative mb-2">
@@ -308,14 +314,13 @@ const Appearance = () => {
             <Moon size={20} className="mb-2" />
             <span className="text-sm">Dark</span>
           </button>
-          
-          <button 
+
+          <button
             disabled={isSaving}
-            className={`flex flex-col items-center justify-center p-4 rounded border ${
-              colorMode === 'system' 
-                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800' 
+            className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'system'
+                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
                 : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
+              }`}
             onClick={() => handleColorModeChange('system')}
           >
             <div className="relative mb-2">
@@ -346,13 +351,12 @@ const Appearance = () => {
             <button
               key={theme.id}
               disabled
-              className={`flex items-center p-3 rounded border ${
-                selectedTheme === theme.id
+              className={`flex items-center p-3 rounded border ${selectedTheme === theme.id
                   ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
                   : 'border-gray-300 dark:border-gray-700'
-              }`}
+                }`}
             >
-              <div 
+              <div
                 className="w-6 h-6 rounded-full mr-2"
                 style={{ backgroundColor: theme.color }}
               ></div>
@@ -370,14 +374,13 @@ const Appearance = () => {
           onClick={async () => {
             try {
               setIsSaving(true);
-              // Save all appearance settings at once
               await updateSettingsSection('appearance', {
                 fontFamily,
                 fontSize,
                 colorMode,
                 themeOptions
               });
-              
+
               toast({
                 title: "Settings saved",
                 description: "Your appearance settings have been saved successfully.",

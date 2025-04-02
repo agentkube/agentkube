@@ -21,6 +21,34 @@ export const getSettings = async (): Promise<AgentKubeConfig> => {
   }
 };
 
+/**
+ * Patches specific sections of the configuration directly
+ * @param configPatch Partial configuration to patch
+ * @returns Promise with the updated settings
+ */
+export const patchConfig = async (configPatch: {
+  [K in keyof AgentKubeConfig]?: Partial<AgentKubeConfig[K]>
+}): Promise<AgentKubeConfig> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/config`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ config: configPatch }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to patch config: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data as AgentKubeConfig;
+  } catch (error) {
+    console.error('Error patching config:', error);
+    throw error;
+  }
+};
 
 /**
  * Updates a specific section of the settings
@@ -33,20 +61,9 @@ export const updateSettingsSection = async <K extends keyof AgentKubeConfig>(
   values: Partial<AgentKubeConfig[K]>
 ): Promise<AgentKubeConfig> => {
   try {
-    // Get current settings first
-    const currentSettings = await getSettings();
-    
-    // Create updated settings with the new section values
-    const updatedSettings = {
-      ...currentSettings,
-      [section]: {
-        ...currentSettings[section],
-        ...values,
-      },
-    };
-    
-    // Update settings
-    return await updateSettings(updatedSettings);
+    return await patchConfig({
+      [section]: values
+    });
   } catch (error) {
     console.error(`Error updating ${section} settings:`, error);
     throw error;
@@ -66,7 +83,9 @@ export const updateSettings = async (settings: Partial<AgentKubeConfig>): Promis
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(settings),
+      body: JSON.stringify({
+        config: settings
+      }),
     });
     
     if (!response.ok) {

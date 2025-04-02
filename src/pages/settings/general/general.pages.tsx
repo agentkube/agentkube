@@ -6,12 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getSettings, updateSettings } from '@/api/settings';
+import { getSettings, updateSettings, updateSettingsSection } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 
 const GeneralSettings: React.FC = () => {
   const { toast } = useToast();
-  
+
   // State for settings
   const [language, setLanguage] = useState('en');
   const [defaultLocation, setDefaultLocation] = useState('');
@@ -19,7 +19,7 @@ const GeneralSettings: React.FC = () => {
   const [usageAnalytics, setUsageAnalytics] = useState(true);
   const [startOnLogin, setStartOnLogin] = useState(false);
   const [excludeNamespaces, setExcludeNamespaces] = useState<string[]>([]);
-  
+
   // Loading and saving states
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,14 +30,14 @@ const GeneralSettings: React.FC = () => {
       try {
         setIsLoading(true);
         const settings = await getSettings();
-        
+
         // Set state with fetched settings
         setLanguage(settings.general?.language || 'en');
         setAutoUpdate(settings.general?.autoUpdate || false);
         setUsageAnalytics(settings.general?.usageAnalytics || false);
         setStartOnLogin(settings.general?.startOnLogin || false);
         setExcludeNamespaces(settings.general?.excludeNamespaces || []);
-        
+
         // Default location is stored in agentkubeconfig.path
         setDefaultLocation(settings.agentkubeconfig?.path || '');
       } catch (error) {
@@ -65,20 +65,21 @@ const GeneralSettings: React.FC = () => {
   const handleSaveSettings = async () => {
     try {
       setIsSaving(true);
-      
-      await updateSettings({
-        general: {
-          language,
-          autoUpdate,
-          usageAnalytics,
-          startOnLogin,
-          excludeNamespaces // Include the required property
-        },
-        agentkubeconfig: {
-          path: defaultLocation
-        }
+
+      // Update general settings
+      await updateSettingsSection('general', {
+        language,
+        autoUpdate,
+        usageAnalytics,
+        startOnLogin,
+        excludeNamespaces
       });
-      
+
+      // Update agent kube config path
+      await updateSettingsSection('agentkubeconfig', {
+        path: defaultLocation
+      });
+
       toast({
         title: "Settings saved",
         description: "Your settings have been updated successfully.",
@@ -124,13 +125,13 @@ const GeneralSettings: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-  
+
         <div className="grid gap-2">
           <Label htmlFor="default-location">Default Config Location</Label>
-          <Input 
-            id="default-location" 
-            value={defaultLocation} 
-            onChange={(e) => setDefaultLocation(e.target.value)} 
+          <Input
+            id="default-location"
+            value={defaultLocation}
+            onChange={(e) => setDefaultLocation(e.target.value)}
           />
         </div>
 
@@ -156,10 +157,10 @@ const GeneralSettings: React.FC = () => {
             <Label htmlFor="auto-update" className="block">Automatic Updates</Label>
             <p className="text-sm text-gray-500 dark:text-gray-400">Keep the application up to date automatically</p>
           </div>
-          <Switch 
-            id="auto-update" 
-            checked={autoUpdate} 
-            onCheckedChange={setAutoUpdate} 
+          <Switch
+            id="auto-update"
+            checked={autoUpdate}
+            onCheckedChange={setAutoUpdate}
           />
         </div>
 
@@ -168,10 +169,10 @@ const GeneralSettings: React.FC = () => {
             <Label htmlFor="send-analytics" className="block">Usage Analytics</Label>
             <p className="text-sm text-gray-500 dark:text-gray-400">Help improve the app by sending anonymous usage data</p>
           </div>
-          <Switch 
-            id="send-analytics" 
-            checked={usageAnalytics} 
-            onCheckedChange={setUsageAnalytics} 
+          <Switch
+            id="send-analytics"
+            checked={usageAnalytics}
+            onCheckedChange={setUsageAnalytics}
           />
         </div>
 
@@ -180,16 +181,16 @@ const GeneralSettings: React.FC = () => {
             <Label htmlFor="start-on-login" className="block">Start on Login</Label>
             <p className="text-sm text-gray-500 dark:text-gray-400">Launch the application when you log in</p>
           </div>
-          <Switch 
-            id="start-on-login" 
-            checked={startOnLogin} 
-            onCheckedChange={setStartOnLogin} 
+          <Switch
+            id="start-on-login"
+            checked={startOnLogin}
+            onCheckedChange={setStartOnLogin}
           />
         </div>
       </div>
 
       <div className="flex justify-end">
-        <Button 
+        <Button
           className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-900"
           onClick={handleSaveSettings}
           disabled={isSaving}

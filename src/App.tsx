@@ -3,7 +3,7 @@
 
 import { Menu } from "@/components/menu"
 
-import { TailwindIndicator } from "./components/tailwind-indicator"
+// import { TailwindIndicator } from "./components/tailwind-indicator"
 import { ThemeProvider } from "./components/theme-provider"
 import { cn } from "./lib/utils"
 import { Routes, Route } from 'react-router-dom';
@@ -83,6 +83,8 @@ import { NamespaceProvider } from './contexts/useNamespace';
 import { Toaster } from "./components/ui/toaster";
 
 function App() {
+
+  // load theme from settings.json 
 
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { File, FolderPlus, FileText, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getSettings, updateSettings } from '@/api/settings';
+import { getSettings, patchConfig, updateSettingsSection } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ const Kubeconfig = () => {
   const [contextAutoRefresh, setContextAutoRefresh] = useState(true);
   const [contextRefreshInterval, setContextRefreshInterval] = useState(300);
   const [contextRegionExtension, setContextRegionExtension] = useState(true);
-  
+
   // UI state
   const [fileCount, setFileCount] = useState(1);
   const [contextCount, setContextCount] = useState(3);
@@ -32,14 +32,14 @@ const Kubeconfig = () => {
       try {
         setIsLoading(true);
         const settings = await getSettings();
-        
+
         // Set state with kubeconfig settings
         setKubeConfigPath(settings.kubeconfig.path);
         setExternalPaths(settings.kubeconfig.externalPaths || []);
         setContextAutoRefresh(settings.kubeconfig.contextAutoRefresh);
         setContextRefreshInterval(settings.kubeconfig.contextRefreshInterval);
         setContextRegionExtension(settings.kubeconfig.contextRegionExtension);
-        
+
         // Mock data for now - in a real app you might get this from an API
         setFileCount(1 + (settings.kubeconfig.externalPaths?.length || 0));
         setContextCount(3); // This would come from another API call in a real app
@@ -62,8 +62,8 @@ const Kubeconfig = () => {
   const saveKubeconfigSettings = async () => {
     try {
       setIsSaving(true);
-      
-      await updateSettings({
+
+      await patchConfig({
         kubeconfig: {
           path: kubeConfigPath,
           externalPaths,
@@ -72,7 +72,7 @@ const Kubeconfig = () => {
           contextRegionExtension
         }
       });
-      
+
       toast({
         title: "Settings saved",
         description: "Your kubeconfig settings have been updated.",
@@ -115,18 +115,34 @@ const Kubeconfig = () => {
     // In a real app, this setting would be saved immediately or queued for later save
   };
 
-  const handleAddExternalPath = () => {
+  const handleAddExternalPath = async () => {
     if (newPath.trim()) {
       const updatedPaths = [...externalPaths, newPath.trim()];
       setExternalPaths(updatedPaths);
       setNewPath('');
       setIsPathDialogOpen(false);
-      
+
       // Update file count
       setFileCount(prev => prev + 1);
-      
-      // Save the settings
-      saveKubeconfigSettings();
+
+      // Save the external paths
+      try {
+        await updateSettingsSection('kubeconfig', {
+          externalPaths: updatedPaths
+        });
+
+        toast({
+          title: "Path added",
+          description: "External path has been added successfully.",
+        });
+      } catch (error) {
+        console.error('Failed to save external path:', error);
+        toast({
+          title: "Error saving path",
+          description: "Could not save the external path. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -169,8 +185,8 @@ const Kubeconfig = () => {
           <div className="mb-4">
             <h3 className="text-sm font-medium mb-2">Additional Paths</h3>
             {externalPaths.map((path, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="dark:bg-gray-900/50 text-medium rounded border border-gray-400 dark:border-gray-700 py-2 px-4 mb-2"
               >
                 <div className="flex items-start justify-between">
@@ -178,13 +194,36 @@ const Kubeconfig = () => {
                     <FileText className="dark:text-gray-400 mr-3 mt-1" size={20} />
                     <div className="dark:text-white">{path}</div>
                   </div>
-                  <button 
+                  <button
                     className="text-red-500 hover:text-red-700"
-                    onClick={() => {
+                    onClick={async () => {
                       const updatedPaths = externalPaths.filter((_, i) => i !== index);
+
+                      // First update state locally
                       setExternalPaths(updatedPaths);
                       setFileCount(prev => prev - 1);
-                      saveKubeconfigSettings();
+
+                      // Then update ONLY this specific setting
+                      try {
+                        await updateSettingsSection('kubeconfig', {
+                          externalPaths: updatedPaths
+                        });
+
+                        toast({
+                          title: "Path removed",
+                          description: "External path has been removed successfully.",
+                        });
+                      } catch (error) {
+                        console.error('Failed to remove path:', error);
+                        // Restore previous state if API call fails
+                        setExternalPaths(externalPaths);
+                        setFileCount(prev => prev + 1);
+                        toast({
+                          title: "Error removing path",
+                          description: "Could not remove the external path. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
                     }}
                   >
                     Remove
@@ -223,11 +262,11 @@ const Kubeconfig = () => {
       {/* Kubeconfig Settings Section */}
       <div className="mb-10">
         <h2 className="text-xl font-medium mb-4">Kubeconfig Settings</h2>
-        
+
         <div className="flex items-start mb-4">
-          <input 
-            type="checkbox" 
-            id="mergeFiles" 
+          <input
+            type="checkbox"
+            id="mergeFiles"
             checked={mergeFiles}
             onChange={handleMergeFilesChange}
             className="mt-1 mr-3"
@@ -247,9 +286,9 @@ const Kubeconfig = () => {
         </div>
 
         <div className="flex items-start mb-4">
-          <input 
-            type="checkbox" 
-            id="autoRefresh" 
+          <input
+            type="checkbox"
+            id="autoRefresh"
             checked={contextAutoRefresh}
             onChange={() => {
               setContextAutoRefresh(!contextAutoRefresh);
@@ -269,9 +308,9 @@ const Kubeconfig = () => {
           <div className="flex items-start mb-4 ml-6">
             <div>
               <label htmlFor="refreshInterval" className="font-medium block mb-1">Refresh Interval (seconds)</label>
-              <input 
-                type="number" 
-                id="refreshInterval" 
+              <input
+                type="number"
+                id="refreshInterval"
                 value={contextRefreshInterval}
                 onChange={(e) => {
                   const value = parseInt(e.target.value);
