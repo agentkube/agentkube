@@ -4,7 +4,8 @@ export const DEFAULT_MODELS = [
     name: "claude-3-opus",
     provider: "anthropic",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "claude-3.5-haiku",
@@ -32,7 +33,8 @@ export const DEFAULT_MODELS = [
     name: "claude-3.7-sonnet-thinking",
     provider: "anthropic",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "agentkube-small",
@@ -46,7 +48,8 @@ export const DEFAULT_MODELS = [
     name: "deepseek-r1",
     provider: "deepseek",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "deepseek-v3",
@@ -67,14 +70,16 @@ export const DEFAULT_MODELS = [
     name: "gemini-2.0-flash-thinking-exp",
     provider: "google",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "gemini-2.0-pro-exp",
     name: "gemini-2.0-pro-exp",
     provider: "google",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "gpt-3.5-turbo",
@@ -95,21 +100,24 @@ export const DEFAULT_MODELS = [
     name: "gpt-4-turbo-2024-04-09",
     provider: "openai",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "gpt-4.5-preview",
     name: "gpt-4.5-preview",
     provider: "openai",
     enabled: true,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "gpt-4o",
     name: "gpt-4o",
     provider: "openai",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "gpt-4o-mini",
@@ -123,34 +131,39 @@ export const DEFAULT_MODELS = [
     name: "grok-2",
     provider: "xai",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "o1",
     name: "o1",
     provider: "anthropic",
     enabled: true,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "o1-mini",
     name: "o1-mini",
     provider: "anthropic",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "o1-preview",
     name: "o1-preview",
     provider: "anthropic",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "o3-mini",
     name: "o3-mini",
     provider: "anthropic",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   }
 ]
