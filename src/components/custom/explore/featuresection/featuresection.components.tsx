@@ -1,8 +1,9 @@
 // FeatureSection.tsx
 import React from 'react';
-import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine } from 'lucide-react';
+import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank } from 'lucide-react';
 import FeatureMenuItem from '../featuremenuitem/featuremenuitem.component';
 import { FeatureItem } from '@/types/sidebar';
+import { OPENAI_PROVIDER, OPENCOST } from '@/assets/providers';
 
 interface FeatureSectionProps {
   isCollapsed: boolean;
@@ -80,13 +81,13 @@ const advancedFeatures: FeatureItem[] = [
     children: [
       {
         id: 'cost-overview',
-        icon: <div className="w-2 h-2 rounded-full bg-gray-600 ml-1 mr-2" />,
+        icon: <PiggyBank className="w-4 h-4" />,
         label: 'Cost Overview',
         path: '/dashboard/cost'
       },
       {
         id: 'llm-comparison',
-        icon: <div className="w-2 h-2 rounded-full bg-yellow-500 ml-1 mr-2" />,
+        icon: <img src={OPENAI_PROVIDER} alt="OpenAI" className="w-4 h-4" />,
         label: 'LLM Comparison',
         path: '/dashboard/llm-comparison'
       },

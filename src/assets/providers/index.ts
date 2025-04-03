@@ -5,3 +5,6 @@ export { default as GCP_PROVIDER } from './gcp.png';
 export { default as KIND_PROVIDER } from './kind.png';
 export { default as DOCKER_PROVIDER } from './docker.webp';
 export { default as MINIKUBE_PROVIDER } from './minikube.png';
+
+export { default as OPENAI_PROVIDER } from './openai.png';
+export { default as OPENCOST } from './opencost.png';
