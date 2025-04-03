@@ -84,6 +84,12 @@ const advancedFeatures: FeatureItem[] = [
         label: 'Cost Overview',
         path: '/dashboard/cost'
       },
+      {
+        id: 'llm-comparison',
+        icon: <div className="w-2 h-2 rounded-full bg-yellow-500 ml-1 mr-2" />,
+        label: 'LLM Comparison',
+        path: '/dashboard/llm-comparison'
+      },
       // {
       //   id: 'cost-monitors',
       //   icon: <div className="w-2 h-2 rounded-full bg-yellow-500 ml-1 mr-2" />,

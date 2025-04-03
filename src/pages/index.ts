@@ -27,3 +27,5 @@ export { default as BestPractices } from './dashboard/security/best-practices.pa
 // Monitoring
 export { default as MonitoringOverview } from './dashboard/monitoring/monitoring-overview.pages';
 export { default as CostOverview } from './dashboard/cost/cost-overview.pages';
+export { default as LLMComparison } from './dashboard/cost/ai-optimizers/llm-comparision.component';
+export { default as ModelCompare } from './dashboard/cost/ai-optimizers/model-compare.component';

@@ -8,7 +8,10 @@ import { ThemeProvider } from "./components/theme-provider"
 import { cn } from "./lib/utils"
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/home.pages';
-import { Appearance, BestPractices, Dashboard, GeneralSettings, Kubeconfig, Settings, Shortcuts, Support, VulnerabilityReport, MonitoringOverview, CostOverview, Overview, AIEditor, AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account } from '@/pages';
+import { 
+  Appearance, BestPractices, Dashboard, GeneralSettings, Kubeconfig, Settings, 
+  Shortcuts, Support, VulnerabilityReport, MonitoringOverview, CostOverview, Overview, AIEditor, 
+  AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account, LLMComparison, ModelCompare } from '@/pages';
 import { Footer, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
 import { ClusterProvider } from '@/contexts/clusterContext';
@@ -103,7 +106,8 @@ function App() {
                     <Route index element={<Overview />} />
                     <Route path="monitoring" element={<MonitoringOverview />} />
                     <Route path="cost" element={<CostOverview />} />
-
+                    <Route path="llm-comparison" element={<LLMComparison />} /> 
+                    <Route path="llm-comparison/compare" element={<ModelCompare />} />
                     <Route path="editor" element={<AIResourceEditor />} />
 
 
