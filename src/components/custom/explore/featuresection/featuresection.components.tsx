@@ -3,7 +3,7 @@ import React from 'react';
 import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank } from 'lucide-react';
 import FeatureMenuItem from '../featuremenuitem/featuremenuitem.component';
 import { FeatureItem } from '@/types/sidebar';
-import { OPENAI_PROVIDER, OPENCOST } from '@/assets/providers';
+import { OPENAI_PROVIDER } from '@/assets/providers';
 
 interface FeatureSectionProps {
   isCollapsed: boolean;
