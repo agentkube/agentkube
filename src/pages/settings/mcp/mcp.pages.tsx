@@ -1,15 +1,30 @@
 import { AddMCPServer, MCPServerList } from '@/components/custom'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Loader2 } from 'lucide-react'
-import { getMcpServers, getMcpTools, getServerTools, getMcpConfig, updateMcpConfig, deleteMcpConfig } from '@/api/settings'
+import { Plus, Loader2, RotateCw } from 'lucide-react'
+import { getMcpServers, getServerTools, updateMcpConfig, deleteMcpConfig } from '@/api/settings'
 import { useToast } from '@/hooks/use-toast'
-import { McpConfig } from '@/types/settings'
+
+// Update this interface in your types/settings.ts
+interface MCPServerConfig {
+  url?: string;
+  transport?: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+interface McpConfig {
+  mcpServers: Record<string, MCPServerConfig>;
+}
 
 interface MCPServer {
   name: string;
   type: string;
-  url: string;
+  url?: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
   connected: boolean;
   tools_count: number;
   error?: string | null;
@@ -19,15 +34,17 @@ const MCPServerConfigPage = () => {
   const [mcpServers, setMcpServers] = useState<MCPServer[]>([]);
   const [showAddServerDialog, setShowAddServerDialog] = useState(false);
   const [newServerName, setNewServerName] = useState('');
-  const [newServerType, setNewServerType] = useState('sse');
+  const [newServerType, setNewServerType] = useState('remote');  // Changed from 'sse' to 'remote'
   const [newServerUrl, setNewServerUrl] = useState('');
+  const [newServerCommand, setNewServerCommand] = useState('');
+  const [newServerArgs, setNewServerArgs] = useState('');
   const [editingServerIndex, setEditingServerIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  
+  const [newServerEnv, setNewServerEnv] = useState<Record<string, string>>({});
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const { toast } = useToast();
 
   // Fetch MCP servers on component mount
@@ -36,17 +53,28 @@ const MCPServerConfigPage = () => {
       try {
         setIsLoading(true);
         const serversData = await getMcpServers();
-        
+
         // Convert the servers object to an array for easier manipulation in the UI
-        const serversArray: MCPServer[] = Object.entries(serversData.servers).map(([name, details]: [string, any]) => ({
-          name,
-          type: details.transport,
-          url: details.url || '',
-          connected: details.connected || false,
-          tools_count: details.tools_count || 0,
-          error: details.error
-        }));
-        
+        const serversArray: MCPServer[] = Object.entries(serversData.servers).map(([name, details]: [string, any]) => {
+          // Determine server type based on transport or presence of command
+          let serverType = 'remote';
+          if (details.transport === 'stdio' || details.command) {
+            serverType = 'process';
+          }
+
+          return {
+            name,
+            type: serverType,
+            url: details.url || '',
+            command: details.command || '',
+            args: details.args || [],
+            env: details.env || {},
+            connected: details.connected || false,
+            tools_count: details.tools_count || 0,
+            error: details.error
+          };
+        });
+
         setMcpServers(serversArray);
       } catch (error) {
         console.error('Failed to load MCP servers:', error);
@@ -68,24 +96,36 @@ const MCPServerConfigPage = () => {
     try {
       setIsSaving(true);
 
-      const mcpServersObject: McpConfig['mcpServers'] = {};
+      const mcpServersObject: Record<string, MCPServerConfig> = {};
+
       servers.forEach(server => {
-        mcpServersObject[server.name] = {
-          url: server.url,
-          transport: server.type
-        };
+        if (server.type === 'remote') {
+          // For remote servers (using SSE)
+          mcpServersObject[server.name] = {
+            url: server.url || '',  // Add fallback to prevent undefined
+            transport: 'sse'
+          };
+        } else if (server.type === 'process') {
+          // For process-based servers (using stdio)
+          mcpServersObject[server.name] = {
+            command: server.command || '',
+            args: server.args || [],
+            env: server.env || {},
+            transport: 'stdio'
+          };
+        }
       });
-      
+
       // Update the configuration
       await updateMcpConfig({
         mcpServers: mcpServersObject
       });
-      
+
       toast({
         title: "MCP servers saved",
         description: "Your MCP server configuration has been updated.",
       });
-      
+
       return true;
     } catch (error) {
       console.error('Failed to save MCP servers:', error);
@@ -102,8 +142,10 @@ const MCPServerConfigPage = () => {
 
   const openAddServerDialog = () => {
     setNewServerName('');
-    setNewServerType('sse');
+    setNewServerType('remote');  // Changed from 'sse' to 'remote'
     setNewServerUrl('');
+    setNewServerCommand('');
+    setNewServerArgs('');
     setIsEditing(false);
     setEditingServerIndex(null);
     setShowAddServerDialog(true);
@@ -112,7 +154,10 @@ const MCPServerConfigPage = () => {
   const handleEditServer = (server: MCPServer, index: number) => {
     setNewServerName(server.name);
     setNewServerType(server.type);
-    setNewServerUrl(server.url);
+    setNewServerUrl(server.url || '');
+    setNewServerCommand(server.command || '');
+    setNewServerArgs(server.args ? server.args.join(' ') : '');
+    setNewServerEnv(server.env || {}); // Add this line
     setIsEditing(true);
     setEditingServerIndex(index);
     setShowAddServerDialog(true);
@@ -120,13 +165,25 @@ const MCPServerConfigPage = () => {
 
   const handleDeleteServer = async (index: number) => {
     const updatedServers = [...mcpServers];
+    const serverName = mcpServers[index].name;
     updatedServers.splice(index, 1);
-    await deleteMcpConfig(mcpServers[index].name);
 
-    setMcpServers(updatedServers);    
-    // Save the updated configuration
-    await saveMcpServers(updatedServers);
+    try {
+      await deleteMcpConfig(serverName);
+      setMcpServers(updatedServers);
 
+      toast({
+        title: "Server deleted",
+        description: `MCP server "${serverName}" was deleted successfully.`
+      });
+    } catch (error) {
+      console.error('Failed to delete server:', error);
+      toast({
+        title: "Error deleting server",
+        description: "Could not delete the server. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReloadServer = async (index: number) => {
@@ -136,13 +193,11 @@ const MCPServerConfigPage = () => {
         title: "Reloading server",
         description: `Reloading server configuration for ${serverName}...`,
       });
-      
 
       // Fetch server tools to test connection
       const toolsData = await getServerTools(serverName);
-      
+
       // Update the server in the list
-      // TODO: Refetch the server from the API
       const updatedServers = [...mcpServers];
       updatedServers[index] = {
         ...updatedServers[index],
@@ -150,9 +205,9 @@ const MCPServerConfigPage = () => {
         tools_count: toolsData.count || 0,
         error: null
       };
-      
+
       setMcpServers(updatedServers);
-      
+
       toast({
         title: "Server reloaded",
         description: `Successfully refreshed ${serverName} with ${toolsData.count} tools.`,
@@ -173,34 +228,96 @@ const MCPServerConfigPage = () => {
     setEditingServerIndex(null);
   };
 
+  const handleReloadAllServers = async () => {
+    try {
+      setIsLoading(true);
+      const serversData = await getMcpServers();
+
+      // Convert the servers object to an array for easier manipulation in the UI
+      const serversArray: MCPServer[] = Object.entries(serversData.servers).map(([name, details]: [string, any]) => {
+        // Determine server type based on transport or presence of command
+        let serverType = 'remote';
+        if (details.transport === 'stdio' || details.command) {
+          serverType = 'process';
+        }
+
+        return {
+          name,
+          type: serverType,
+          url: details.url || '',
+          command: details.command || '',
+          args: details.args || [],
+          connected: details.connected || false,
+          tools_count: details.tools_count || 0,
+          error: details.error
+        };
+      });
+
+      setMcpServers(serversArray);
+
+      toast({
+        title: "Servers reloaded",
+        description: `Successfully reloaded ${serversArray.length} MCP servers.`
+      });
+    } catch (error) {
+      console.error('Failed to reload MCP servers:', error);
+      toast({
+        title: "Failed to reload servers",
+        description: "Could not reload MCP servers. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const addNewServer = async () => {
-    if (newServerName && newServerUrl) {
+    if (newServerName) {
+      let serverConfig: Partial<MCPServer> = {
+        name: newServerName,
+        type: newServerType,
+        connected: false,
+        tools_count: 0
+      };
+
+      // Add type-specific fields
+      if (newServerType === 'remote') {
+        if (!newServerUrl) {
+          toast({
+            title: "Missing information",
+            description: "Please provide a URL for the remote MCP server.",
+            variant: "destructive",
+          });
+          return;
+        }
+        serverConfig.url = newServerUrl;
+      } else if (newServerType === 'process') {
+        if (!newServerCommand) {
+          toast({
+            title: "Missing information",
+            description: "Please provide a command for the process MCP server.",
+            variant: "destructive",
+          });
+          return;
+        }
+        serverConfig.command = newServerCommand;
+        serverConfig.args = newServerArgs.split(' ').filter(arg => arg.trim() !== '');
+        serverConfig.env = newServerEnv;
+      }
+
       let updatedServers: MCPServer[];
-      
+
       if (isEditing && editingServerIndex !== null) {
         // Update existing server
         updatedServers = [...mcpServers];
-        updatedServers[editingServerIndex] = {
-          name: newServerName,
-          type: newServerType,
-          url: newServerUrl,
-          connected: false, // Reset connection status
-          tools_count: 0    // Reset tools count
-        };
+        updatedServers[editingServerIndex] = serverConfig as MCPServer;
       } else {
         // Add new server
-        updatedServers = [...mcpServers, {
-          name: newServerName,
-          type: newServerType,
-          url: newServerUrl,
-          connected: false,
-          tools_count: 0
-        }];
+        updatedServers = [...mcpServers, serverConfig as MCPServer];
       }
-      
+
       // Save the updated configuration
       const success = await saveMcpServers(updatedServers);
-      console.log('success', success);
       if (success) {
         setMcpServers(updatedServers);
         setShowAddServerDialog(false);
@@ -210,20 +327,12 @@ const MCPServerConfigPage = () => {
     } else {
       toast({
         title: "Missing information",
-        description: "Please provide both a name and URL for the MCP server.",
+        description: "Please provide a name for the MCP server.",
         variant: "destructive",
       });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-full p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-        <span className="ml-2 text-gray-500">Loading MCP server configuration...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 space-y-6 text-gray-300">
@@ -234,21 +343,41 @@ const MCPServerConfigPage = () => {
             Model Context Protocol is a way to offer new tools to Agentkube Agent. You can find more information about MCP in Agentkube here.
           </p>
         </div>
-        <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
-          onClick={openAddServerDialog}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <Loader2 size={16} className="mr-1 animate-spin" />
-          ) : (
-            <Plus size={16} className="mr-1" />
-          )}
-          Add new MCP server
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            className="bg-gray-600 hover:bg-gray-700 text-white flex items-center"
+            onClick={handleReloadAllServers}
+            disabled={isSaving || isLoading}
+          >
+            {isLoading ? (
+              <Loader2 size={16} className="mr-1 animate-spin" />
+            ) : (
+              <RotateCw size={16} className="mr-1" />
+            )}
+          </Button>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
+            onClick={openAddServerDialog}
+            disabled={isSaving || isLoading}
+          >
+            {isSaving ? (
+              <Loader2 size={16} className="mr-1 animate-spin" />
+            ) : (
+              <Plus size={16} className="mr-1" />
+            )}
+            Add new MCP server
+          </Button>
+        </div>
       </div>
 
-      {mcpServers.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-gray-100 dark:bg-gray-800/50 rounded-md p-10 text-center flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+          <p className="text-gray-600 dark:text-gray-400">
+            Loading MCP server configuration...
+          </p>
+        </div>
+      ) : mcpServers.length === 0 ? (
         <div className="bg-gray-100 dark:bg-gray-800/50 rounded-md p-6 text-center">
           <p className="text-gray-600 dark:text-gray-400">
             No MCP servers configured. Add a server to get started.
@@ -269,9 +398,15 @@ const MCPServerConfigPage = () => {
         serverName={newServerName}
         serverType={newServerType}
         serverUrl={newServerUrl}
+        serverCommand={newServerCommand}
+        serverArgs={newServerArgs}
+        serverEnv={newServerEnv}
         onServerNameChange={setNewServerName}
         onServerTypeChange={setNewServerType}
         onServerUrlChange={setNewServerUrl}
+        onServerCommandChange={setNewServerCommand}
+        onServerArgsChange={setNewServerArgs}
+        onServerEnvChange={setNewServerEnv}
         onAdd={addNewServer}
         isEditing={isEditing}
         isSaving={isSaving}

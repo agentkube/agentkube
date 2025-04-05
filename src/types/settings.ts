@@ -87,11 +87,16 @@ export interface AgentKubeConfig {
   };
 }
 
+export interface MCPServerConfig {
+  url?: string;
+  transport?: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>; 
+}
+
 export interface McpConfig {
   mcpServers: {
-    [key: string]: {
-      url: string;
-      transport?: string;
-    };
+    [key: string]: MCPServerConfig;
   };
 }

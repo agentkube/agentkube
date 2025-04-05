@@ -125,14 +125,7 @@ export const getMcpConfig = async (): Promise<McpConfig> => {
  * @param mcp Updated MCP configuration
  * @returns Promise with the updated MCP configuration
  */
-export const updateMcpConfig = async (mcp: {
-  mcpServers: {
-    [key: string]: {
-      url: string;
-      transport?: string;
-    };
-  };
-}): Promise<any> => {
+export const updateMcpConfig = async (mcp: McpConfig): Promise<any> => {
   try {
     const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp`, {
       method: 'PATCH',

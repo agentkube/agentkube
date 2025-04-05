@@ -12,11 +12,14 @@ interface MCPTool {
 
 interface MCPServer {
   name: string;
-  type: string;
-  url: string;
+  type: string;      
+  url?: string;       
+  command?: string;  
+  args?: string[];   
+  env?: Record<string, string>;
   connected: boolean;
   tools_count: number;
-  tools?: MCPTool[]; // Add tools array to store fetched tools
+  tools?: MCPTool[];
   error?: string | null;
 }
 
@@ -71,7 +74,7 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
 
   const handleReloadClick = (index: number) => {
     onReload(index);
-    
+
     // Reload tools for this server
     const server = servers[index];
     if (server && server.connected) {
@@ -136,8 +139,8 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
     return (
       <div className="flex flex-wrap gap-1 mt-1">
         {tools.map((tool, idx) => (
-          <span 
-            key={idx} 
+          <span
+            key={idx}
             className="text-xs font-mono bg-gray-200 dark:bg-gray-900 border dark:border-gray-800 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300"
           >
             {tool.name}
@@ -204,9 +207,32 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
             {/* Always display tool names without requiring expansion */}
 
             <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-2">
-              <span className="text-gray-500 dark:text-gray-400">Server Link:</span>
-              <span className="text-gray-700 dark:text-gray-300 dark:bg-black border dark:border-gray-800 py-0.5 px-2 rounded-[0.3rem]">{server.url}</span>
+              <span className="text-gray-500 dark:text-gray-400">Connection:</span>
+              {server.type === "remote" ? (
+                <span className="text-gray-700 dark:text-gray-300 dark:bg-black border dark:border-gray-800 py-0.5 px-2 rounded-[0.3rem]">{server.url}</span>
+              ) : (
+                <span className="text-gray-700 dark:text-gray-300 dark:bg-black border dark:border-gray-800 py-0.5 px-2 rounded-[0.3rem]">
+                  {server.command} {server.args?.join(' ')}
+                </span>
+              )}
             </div>
+
+            {server.type === "process" && server.env && Object.keys(server.env).length > 0 && (
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-gray-500 dark:text-gray-400 block mb-1">Environment:</span>
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(server.env).map(([key, value], idx) => (
+                    <span
+                      key={idx}
+                      className="text-xs font-mono bg-gray-200 dark:bg-gray-900 border dark:border-gray-800 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300"
+                      title={`${value}`}
+                    >
+                      {key}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {server.error ? (
               <div className="mt-2 text-sm text-red-500 flex items-center">
@@ -217,14 +243,14 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
             ) : server.connected ? (
               <div className="mt-2 text-sm text-green-500 flex items-center">
                 <span className="inline-flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div> 
+                  <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
                   Connected
                 </span>
               </div>
             ) : (
               <div className="mt-2 text-sm text-red-500 flex items-center">
                 <span className="inline-flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div> 
+                  <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
                   Disconnected
                 </span>
               </div>
