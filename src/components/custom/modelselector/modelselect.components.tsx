@@ -183,11 +183,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-            {isLicensed && filteredModels.some(m => m.premiumOnly) && (
-              <div className="px-3 py-1 text-xs text-gray-500 border-b border-gray-800/30">
-                Premium
-              </div>
-            )}
 
             {filteredModels.map(renderModelItem)}
 
