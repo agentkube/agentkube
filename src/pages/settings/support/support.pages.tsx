@@ -1,6 +1,6 @@
 import React from 'react';
 import { Github, Mail, Heart, ExternalLink, MessageSquare, Book, FileText, HelpCircle } from 'lucide-react';
-
+import { openExternalUrl } from '@/api/external';
 const Support = () => {
   return (
     <div 
@@ -19,8 +19,7 @@ const Support = () => {
             Our documentation covers most questions and helps you get the most out of Agentkube.
           </p>
           <a 
-            href="https://docs.agentkube.com" 
-            target="_blank" 
+            onClick={() => openExternalUrl("https://docs.agentkube.com")} 
             rel="noopener noreferrer"
             className="flex items-center text-blue-400 hover:text-blue-300 text-sm"
           >
@@ -38,8 +37,7 @@ const Support = () => {
             Find quick answers to common questions about using Agentkube.
           </p>
           <a 
-            href="https://agentkube.com/#faq" 
-            target="_blank" 
+            onClick={() => openExternalUrl("https://agentkube.com/#faq")} 
             rel="noopener noreferrer"
             className="flex items-center text-purple-400 hover:text-purple-300 text-sm"
           >
@@ -57,10 +55,9 @@ const Support = () => {
             Report bugs, request features, or contribute to the project on GitHub.
           </p>
           <a 
-            href="https://github.com/agentkube/platform/issues" 
-            target="_blank" 
+            onClick={() => openExternalUrl("https://github.com/agentkube/platform/issues")}
             rel="noopener noreferrer"
-            className="flex items-center text-gray-700 dark:text-gray-400 hover:text-gray-300 text-sm"
+            className="flex items-center text-gray-700 dark:text-gray-400 hover:text-gray-300 text-sm cursor-pointer"
           >
             Open GitHub Issues <ExternalLink size={14} className="ml-1" />
           </a>
@@ -75,9 +72,9 @@ const Support = () => {
           <p className="text-gray-700 dark:text-gray-400 text-sm mb-3">
             Need direct assistance? Reach out to our support team via email.
           </p>
-          <a 
-            href="mailto:info@agentkube.com" 
-            className="flex items-center text-green-400 hover:text-green-300 text-sm"
+          <a
+            onClick={() => openExternalUrl("mailto:info@agentkube.com")}
+            className="flex items-center text-green-400 hover:text-green-300 text-sm cursor-pointer"
           >
             info@agentkube.com <ExternalLink size={14} className="ml-1" />
           </a>
@@ -96,10 +93,9 @@ const Support = () => {
             Connect with other Agentkube users, share tips, and get community help.
           </p>
           <a 
-            href="https://discord.gg/Agentkube" 
-            target="_blank" 
+            onClick={() => openExternalUrl("https://discord.gg/Agentkube")}
             rel="noopener noreferrer"
-            className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white rounded px-4 py-2 text-sm"
+            className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white rounded px-4 py-2 text-sm cursor-pointer"
           >
             Join Discord
           </a>
@@ -117,7 +113,9 @@ const Support = () => {
         <p className="text-gray-700 dark:text-gray-400 text-sm mb-4">
           Your feedback helps us improve Agentkube. Let us know what you think!
         </p>
-        <button className="bg-gray-800/60 hover:bg-gray-600 text-white rounded px-4 py-2 text-sm">
+        <button className="bg-gray-800/60 hover:bg-gray-600 text-white rounded px-4 py-2 text-sm"
+          onClick={() => openExternalUrl("https://tally.so/r/nrY4JM")}
+        >
           Send Feedback
         </button>
       </div>
