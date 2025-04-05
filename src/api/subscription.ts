@@ -1,4 +1,5 @@
 
+import { ORCHESTRATOR_URL } from '@/config';
 import {
   ValidateLicenseResponse,
   ActivateLicenseResponse,
@@ -127,6 +128,100 @@ export const listLicenseKeyInstances = async (
 
   if (!response.ok) {
     throw new Error(`Failed to list license key instances: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Stores a license key in the local system
+ * @param licenseKey The license key to store
+ * @returns Response indicating success or failure
+ */
+export const storeLicenseKeyLocal = async (
+  licenseKey: string
+): Promise<{ success: boolean; message: string }> => {
+  const url = 'http://localhost:65001/orchestrator/api/license';
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ license_key: licenseKey }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to store license key: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Retrieves the locally stored license key
+ * @returns The stored license key or null if not found
+ */
+export const getLicenseKeyLocal = async (): Promise<{ 
+  success: boolean; 
+  message: string; 
+  license_key?: string;
+}> => {  
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/license`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to retrieve license key: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Updates the locally stored license key
+ * @param licenseKey The new license key to store
+ * @returns Response indicating success or failure
+ */
+export const updateLicenseKeyLocal = async (
+  licenseKey: string
+): Promise<{ success: boolean; message: string }> => {
+
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/license`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ license_key: licenseKey }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update license key: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Removes the locally stored license key
+ * @returns Response indicating success or failure
+ */
+export const removeLicenseKeyLocal = async (): Promise<{ 
+  success: boolean; 
+  message: string; 
+}> => {
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/license`, {
+    method: 'DELETE',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to remove license key: ${response.statusText}`);
   }
 
   return response.json();

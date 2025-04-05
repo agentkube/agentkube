@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/useAuth';
 import { validateLicense, activateLicense } from '@/api/subscription';
 import { ValidateLicenseResponse, ActivateLicenseResponse } from '@/types/subscription';
+import { generateInstanceName } from '@/utils/osinfo.utils';
 
 interface ReactivateLicenseProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
@@ -27,17 +28,12 @@ const ReactivateLicense: React.FC<ReactivateLicenseProps> = ({
   const { toast } = useToast();
   const { updateUserLicenseInfo, user } = useAuth();
 
-  // Pre-fill with existing license key if available
   useEffect(() => {
     if (user?.license_key) {
       setLicenseKey(user.license_key);
     }
   }, [user]);
 
-  const generateInstanceName = (): string => {
-    const randomId = Math.random().toString(36).substring(2, 15);
-    return `system-${randomId}`;
-  };
 
   const handleReactivate = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -57,7 +53,7 @@ const ReactivateLicense: React.FC<ReactivateLicenseProps> = ({
     setIsSubmitting(true);
     
     try {
-      // First validate the license
+
       const validationResult = await validateLicense(formattedKey) as ValidateLicenseResponse;
       
       if (!validationResult.valid) {

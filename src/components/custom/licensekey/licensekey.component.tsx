@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Key, CheckCircle2 } from 'lucide-react';
 import { triggerConfetti } from '@/utils/confetti.utils';
-import { validateLicense, activateLicense } from '@/api/subscription';
+import { validateLicense, activateLicense, storeLicenseKeyLocal } from '@/api/subscription';
 import { useAuth } from '@/contexts/useAuth';
 import { generateInstanceName } from '@/utils/osinfo.utils';
 
@@ -42,20 +42,19 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
     setIsSubmitting(true);
     
     try {
-      // First validate the license
       const validationResult = await validateLicense(formattedKey);
       
       if (!validationResult.valid) {
         setError(validationResult.error || 'Invalid license key');
         toast({
-          title: "Validation Failed",
+          title: validationResult.license_key?.status === 'expired' ? 
+            "License Expired" : "Validation Failed",
           description: validationResult.error || "Invalid license key. Please check and try again.",
           variant: "destructive",
         });
         return;
       }
       
-      // Check activation limit before trying to activate
       if (validationResult.license_key.activation_usage >= validationResult.license_key.activation_limit) {
         setError(`License key has reached its activation limit (${validationResult.license_key.activation_limit}). Please purchase a new license.`);
         toast({
@@ -66,8 +65,9 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
         return;
       }
       
- 
       try {
+        await storeLicenseKeyLocal(formattedKey);
+        
         const instanceName = generateInstanceName();
         const activationResult = await activateLicense(formattedKey, instanceName);
         
@@ -81,7 +81,6 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
           return;
         }
         
-
         updateUserLicenseInfo({
           customer_name: activationResult.meta.customer_name,
           customer_email: activationResult.meta.customer_email,
@@ -95,7 +94,6 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
         // Set success state
         setSuccess(true);
         
-        // Trigger confetti animation
         triggerConfetti();
         
         toast({
@@ -103,41 +101,29 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
           description: `Your ${activationResult.meta.product_name} license has been successfully activated.`,
         });
         
-        // Reset form after successful submission
         setTimeout(() => {
           setIsOpen(false);
           if (onSuccess) onSuccess();
           
-          // Reset for next time dialog is opened
           setTimeout(() => {
             setLicenseKey('');
             setSuccess(false);
           }, 300);
         }, 1500);
       } catch (activationError) {
-        // Handle specific activation errors
-        if (activationError instanceof Error && activationError.message.includes('activation limit')) {
-          setError(`License key has reached its activation limit. Please purchase a new license.`);
-          toast({
-            title: "Activation Limit Reached",
-            description: "This license key has reached its activation limit.",
-            variant: "destructive",
-          });
-        } else {
-          setError('Failed to activate license. Please try again.');
-          toast({
-            title: "Activation Failed",
-            description: "There was an error activating your license key. Please try again.",
-            variant: "destructive",
-          });
-        }
+        setError('Network error during activation. Please check your connection and try again.');
+        toast({
+          title: "Connection Error",
+          description: "Failed to connect to the activation server. Please check your internet connection.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('License validation failed:', error);
-      setError('Failed to validate license. Please check your network connection and try again.');
+
+      setError('Failed to connect to the validation server. Please check your network connection and try again.');
       toast({
-        title: "Error",
-        description: "There was an unexpected error processing your license. Please try again later.",
+        title: "Connection Error",
+        description: "Failed to connect to the validation server. Please check your internet connection.",
         variant: "destructive",
       });
     } finally {
