@@ -12,21 +12,24 @@ export const DEFAULT_MODELS = [
     name: "claude-3.5-haiku",
     provider: "anthropic",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: false
   },
   {
     id: "claude-3.5-sonnet",
     name: "claude-3.5-sonnet",
     provider: "anthropic",
     enabled: true,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "claude-3.7-sonnet",
     name: "claude-3.7-sonnet",
     provider: "anthropic",
     enabled: true,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "claude-3.7-sonnet-thinking",
@@ -41,7 +44,9 @@ export const DEFAULT_MODELS = [
     name: "agentkube-small",
     provider: "agentkube",
     enabled: true,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: false
+
   },
   {
     id: "deepseek-r1",
@@ -49,21 +54,25 @@ export const DEFAULT_MODELS = [
     provider: "deepseek",
     enabled: false,
     isCustom: false,
-    premiumOnly: true
+    premiumOnly: true,
+
   },
   {
     id: "deepseek-v3",
     name: "deepseek-v3",
     provider: "deepseek",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: false
+
   },
   {
     id: "gemini-2.0-flash",
     name: "gemini-2.0-flash",
     provider: "google",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "gemini-2.0-flash-thinking-exp",
@@ -86,14 +95,16 @@ export const DEFAULT_MODELS = [
     name: "gpt-3.5-turbo",
     provider: "openai",
     enabled: false,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: false
   },
   {
     id: "gpt-4",
     name: "gpt-4",
     provider: "openai",
     enabled: true,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: true
   },
   {
     id: "gpt-4-turbo-2024-04-09",
@@ -124,7 +135,8 @@ export const DEFAULT_MODELS = [
     name: "gpt-4o-mini",
     provider: "openai",
     enabled: true,
-    isCustom: false
+    isCustom: false,
+    premiumOnly: false
   },
   {
     id: "grok-2",

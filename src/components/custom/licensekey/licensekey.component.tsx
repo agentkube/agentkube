@@ -5,7 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Key, CheckCircle2 } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { triggerConfetti } from '@/utils/confetti.utils';
+import { validateLicense, activateLicense } from '@/api/subscription';
+import { useAuth } from '@/contexts/useAuth';
+import { generateInstanceName } from '@/utils/osinfo.utils';
 
 interface LicenseKeyDialogProps {
   onSuccess?: () => void;
@@ -18,94 +21,123 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
+  const { updateUserLicenseInfo } = useAuth();
 
-  const triggerConfetti = () => {
-    const duration = 5 * 1000;
-    const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
-    const randomInRange = (min: number, max: number) =>
-      Math.random() * (max - min) + min;
-
-    const interval = window.setInterval(() => {
-      const timeLeft = animationEnd - Date.now();
-
-      if (timeLeft <= 0) {
-        return clearInterval(interval);
-      }
-
-      const particleCount = 50 * (timeLeft / duration);
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-      });
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-      });
-    }, 250);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Reset states
     setError(null);
     
-    // Validate license key format
     if (!licenseKey.trim()) {
       setError('Please enter a license key');
       return;
     }
     
-    // Simple regex for XXX-XXX-XXX-XXX format
-    const licenseKeyRegex = /^[A-Z0-9]{3,4}(-[A-Z0-9]{3,4}){2,4}$/;
-    if (!licenseKeyRegex.test(licenseKey)) {
-      setError('Please enter a valid license key format (e.g., XXXX-XXXX-XXXX-XXXX-XXXX)');
+    const formattedKey = licenseKey.replace(/\s/g, '');
+    if (!/^[A-Z0-9]{8}(-[A-Z0-9]{4}){3}-[A-Z0-9]{12}$/i.test(formattedKey)) {
+      setError('Please enter a valid license key format');
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      // Simulate API call to validate and register license key
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // First validate the license
+      const validationResult = await validateLicense(formattedKey);
       
-      // In a real application, you would call your API
-      // const response = await api.activateLicense(licenseKey);
+      if (!validationResult.valid) {
+        setError(validationResult.error || 'Invalid license key');
+        toast({
+          title: "Validation Failed",
+          description: validationResult.error || "Invalid license key. Please check and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // Set success state
-      setSuccess(true);
+      // Check activation limit before trying to activate
+      if (validationResult.license_key.activation_usage >= validationResult.license_key.activation_limit) {
+        setError(`License key has reached its activation limit (${validationResult.license_key.activation_limit}). Please purchase a new license.`);
+        toast({
+          title: "Activation Limit Reached",
+          description: `This license key has reached its activation limit of ${validationResult.license_key.activation_limit}.`,
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // Trigger confetti animation
-      triggerConfetti();
-      
-      toast({
-        title: "License Key Activated",
-        description: "Your license key has been successfully activated.",
-      });
-      
-      // Reset form after successful submission
-      setTimeout(() => {
-        setIsOpen(false);
-        if (onSuccess) onSuccess();
+ 
+      try {
+        const instanceName = generateInstanceName();
+        const activationResult = await activateLicense(formattedKey, instanceName);
         
-        // Reset for next time dialog is opened
+        if (!activationResult.activated) {
+          setError(activationResult.error || 'Failed to activate license');
+          toast({
+            title: "Activation Failed",
+            description: activationResult.error || "Failed to activate license. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+
+        updateUserLicenseInfo({
+          customer_name: activationResult.meta.customer_name,
+          customer_email: activationResult.meta.customer_email,
+          product_name: activationResult.meta.product_name,
+          license_key: formattedKey,
+          instance_id: activationResult.instance.id,
+          created_at: activationResult.license_key.created_at,
+          status: activationResult.license_key.status
+        });
+        
+        // Set success state
+        setSuccess(true);
+        
+        // Trigger confetti animation
+        triggerConfetti();
+        
+        toast({
+          title: "License Key Activated",
+          description: `Your ${activationResult.meta.product_name} license has been successfully activated.`,
+        });
+        
+        // Reset form after successful submission
         setTimeout(() => {
-          setLicenseKey('');
-          setSuccess(false);
-        }, 300);
-      }, 1500);
-      
+          setIsOpen(false);
+          if (onSuccess) onSuccess();
+          
+          // Reset for next time dialog is opened
+          setTimeout(() => {
+            setLicenseKey('');
+            setSuccess(false);
+          }, 300);
+        }, 1500);
+      } catch (activationError) {
+        // Handle specific activation errors
+        if (activationError instanceof Error && activationError.message.includes('activation limit')) {
+          setError(`License key has reached its activation limit. Please purchase a new license.`);
+          toast({
+            title: "Activation Limit Reached",
+            description: "This license key has reached its activation limit.",
+            variant: "destructive",
+          });
+        } else {
+          setError('Failed to activate license. Please try again.');
+          toast({
+            title: "Activation Failed",
+            description: "There was an error activating your license key. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
-      console.error('License activation failed:', error);
-      setError('Failed to activate license key. Please check your key and try again.');
-      
+      console.error('License validation failed:', error);
+      setError('Failed to validate license. Please check your network connection and try again.');
       toast({
-        title: "Activation Failed",
-        description: "There was an error activating your license key. Please try again.",
+        title: "Error",
+        description: "There was an unexpected error processing your license. Please try again later.",
         variant: "destructive",
       });
     } finally {

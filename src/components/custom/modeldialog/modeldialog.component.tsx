@@ -144,7 +144,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
         [&::-webkit-scrollbar-thumb]:rounded-full
         [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
         <DialogHeader>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
             <div className="flex items-center gap-2">
               <DialogTitle className="text-2xl font-bold">{model.name}</DialogTitle>
               {isMultimodal && (
@@ -155,26 +155,26 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-sm px-2 py-0 h-5 font-mono flex items-center gap-1">
-                {model.id}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(model.id);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="ml-1 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-sm transition-colors"
-                >
-                  {copied ? (
-                    <Check className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <Copy className="h-3 w-3 text-gray-500" />
-                  )}
-                </button>
-              </Badge>
-            </div>
+          </div>
+          <div className="flex items-center gap-2 py-2">
+            <Badge variant="outline" className="text-sm p-2 h-5 font-mono flex items-center gap-1">
+              {model.id}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(model.id);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="ml-1 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-sm transition-colors"
+              >
+                {copied ? (
+                  <Check className="h-3 w-3 text-green-500" />
+                ) : (
+                  <Copy className="h-3 w-3 text-gray-500" />
+                )}
+              </button>
+            </Badge>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             <Calendar className="h-4 w-4" />

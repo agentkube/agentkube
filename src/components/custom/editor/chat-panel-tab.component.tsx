@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Sparkles, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AutoResizeTextarea, ModelSelector } from '@/components/custom';
@@ -56,12 +56,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setQuestion(question);
   };
 
-  // Mock data for context files - you'd replace this with actual context
-  // const contextFiles = [];
-  
-  // Mock for selected model - replace with actual state
-  const selectedModel = "gpt-4o";
-  const setSelectedModel = () => {};
+
+  const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-4o-mini");
 
   // Mock for resource context functions
   const handleAddContext = () => {};

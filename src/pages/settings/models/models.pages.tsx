@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/useAuth';
 
 interface Model {
   id: string;
@@ -26,14 +27,20 @@ interface Model {
   provider: string;
   enabled: boolean;
   isCustom: boolean;
-  premiumOnly?: boolean; // New property to mark models as premium
+  premiumOnly?: boolean;
 }
 
 const ModelConfiguration = () => {
   const [models, setModels] = useState<Model[]>(DEFAULT_MODELS);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
 
-  const isPremiumUser = false;
+  useEffect(() => {
+    if (user?.isLicensed) {
+      setIsPremiumUser(true);
+    }
+  }, [user]);
 
   const [showAddInput, setShowAddInput] = useState(false);
   const [newModelName, setNewModelName] = useState('');

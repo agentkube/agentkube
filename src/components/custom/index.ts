@@ -18,6 +18,8 @@ export { default as ModelDialog } from './modeldialog/modeldialog.component';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
 export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
+export { default as ReactivateLicenseKey } from './licensekey/reactivatelicensekey.component';
+
 // MCP
 export { default as MCPServerConfigPage } from './modelsconfig/modelconfig.component';
 export { default as MCPServerList } from './modelsconfig/modelcontextprotocol/modelcontextprotocol-list.component';

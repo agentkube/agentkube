@@ -60,7 +60,7 @@ const RightDrawer: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [drawerMounted, setDrawerMounted] = useState<boolean>(false);
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
   const [contextFiles, setContextFiles] = useState<SearchResult[]>([]);
   
   // Conversation ID state to maintain session with the orchestrator

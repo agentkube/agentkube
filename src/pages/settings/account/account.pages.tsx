@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2, Lock, CreditCardIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,76 +6,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useToast } from '@/hooks/use-toast';
 import { LicenseKeyDialog } from '@/components/custom';
 import { openExternalUrl } from '@/api/external';
-// Mock user data - replace with actual API calls in production
-const mockUserData = {
-  email: 'founder@agentkube.com',
-  subscription: {
-    plan: 'Pro',
-    status: 'active',
-    renewalDate: '2025-04-20'
-  },
-  isLicensed: false // Add this field to track license status
-};
+import { useAuth } from '@/contexts/useAuth';
+import ReactivateLicense from '@/components/custom/licensekey/reactivatelicensekey.component';
 
 const Account = () => {
-  const [userData, setUserData] = useState<typeof mockUserData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Simulate API call to fetch user data
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        // Replace with actual API call
-        // const response = await fetchUser();
-        // setUserData(response.data);
-
-        // Using mock data for now
-        setTimeout(() => {
-          setUserData(mockUserData);
-          setLoading(false);
-        }, 800);
-      } catch (error) {
-        console.error('Failed to fetch user data:', error);
-        toast({
-          title: "Error loading account",
-          description: "Could not load your account information. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [toast]);
+  const { user, loading, logout } = useAuth();
 
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      // Simulate API call for logout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // In a real application, you would call your auth service
-      // await authService.logout();
-
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-
-      // Redirect to login page
-      // navigate('/login');
-      console.log('User logged out');
+      await logout();
     } catch (error) {
       console.error('Logout failed:', error);
-      toast({
-        title: "Logout failed",
-        description: "There was an error logging out. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsLoggingOut(false);
       setIsLogoutDialogOpen(false);
@@ -83,26 +28,11 @@ const Account = () => {
   };
 
   const handleLicenseSuccess = () => {
-    // Refresh user data or update UI after successful license activation
+    // Refresh UI after successful license activation
     toast({
       title: "License Activated",
       description: "Your license has been activated successfully. Refreshing your account details...",
     });
-    
-    // Set the user as licensed and update subscription info
-    setLoading(true);
-    setTimeout(() => {
-      setUserData({
-        ...userData!,
-        isLicensed: true,
-        subscription: {
-          ...userData!.subscription,
-          plan: 'Enterprise',
-          status: 'active'
-        }
-      });
-      setLoading(false);
-    }, 1000);
   };
 
   if (loading) {
@@ -115,7 +45,7 @@ const Account = () => {
   }
 
   // If not licensed, only show the license activation card
-  if (!userData?.isLicensed) {
+  if (!user?.isLicensed) {
     return (
       <div className="p-6 mx-auto space-y-8">
         <div>
@@ -141,14 +71,22 @@ const Account = () => {
                 <div className="flex flex-wrap gap-3 mt-6">
                   <LicenseKeyDialog onSuccess={handleLicenseSuccess} />
 
-                  <Button 
+                  {user?.license_key && (
+                    <ReactivateLicense
+                      variant="outline"
+                      className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                      onSuccess={handleLicenseSuccess}
+                    />
+                  )}
+
+
+                  <Button
                     variant="outline"
-                    onClick={() => openExternalUrl("https://agentkube.com/pricing")} 
+                    onClick={() => openExternalUrl("https://agentkube.com/pricing")}
                     className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30">
                     <CreditCardIcon className="h-4 w-4 mr-2" />
-                    Buy Subscription 
+                    Buy Subscription
                   </Button>
-                  
                 </div>
               </div>
             </div>
@@ -224,19 +162,30 @@ const Account = () => {
 
               <div className="space-y-4">
                 <div>
-                  <p className="text-gray-900 dark:text-gray-500">You are currently logged in as {userData?.email || 'N/A'}</p>
+                  <p className="text-gray-900 dark:text-gray-500">You are currently logged in as {user?.customer_email || user?.email || 'N/A'}</p>
+                  {user?.customer_name && (
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">License registered to: {user.customer_name}</p>
+                  )}
                 </div>
               </div>
 
               <div className="mt-6 flex space-x-4">
+                {user?.subscription?.status !== 'active' && (
+                  <ReactivateLicense
+                    variant="default"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onSuccess={handleLicenseSuccess}
+                  />
+                )}
+
                 <Button
                   variant="outline"
                   className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   onClick={() => {
-                    // Navigate to profile edit page or open modal
+                    openExternalUrl("https://account.agentkube.com/settings");
                     toast({
                       title: "Edit Profile",
-                      description: "Profile editing will be available soon.",
+                      description: "Opening settings page...",
                     });
                   }}
                 >
@@ -265,38 +214,32 @@ const Account = () => {
               <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/20 rounded-lg mb-6">
                 <div className="flex justify-between items-center">
                   <div>
-                    <span className="text-gray-900 dark:text-white font-medium">{userData?.subscription?.plan} Plan</span>
+                    <span className="text-gray-900 dark:text-white font-medium">
+                      {user?.subscription?.product_name}
+                    </span>
                     <div className="flex items-center mt-1">
-                      <span className={`ml-3 text-xs px-2 py-1 rounded-full ${userData?.subscription?.status === 'active'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                      <span className={`text-xs px-2 py-1 rounded-[0.2rem] ${user?.subscription?.status === 'active'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
                         }`}>
-                        {userData?.subscription?.status === 'active' ? 'Active' : 'Inactive'}
+                        {user?.subscription?.status === 'active' ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                   </div>
 
-                  {userData?.subscription?.status === 'active' && (
-                    <div className="text-right">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Renews on</span>
-                      <p className="text-gray-900 dark:text-white">
-                        {new Date(userData?.subscription?.renewalDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
+
 
               <div className="flex flex-wrap gap-3">
                 <Button
                   variant="outline"
                   className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   onClick={() => {
-                    // Navigate to subscription management page
                     openExternalUrl("https://account.agentkube.com/settings");
                     toast({
                       title: "Manage Subscription",
-                      description: "Subscription management will be available soon.",
+                      description: "Opening settings page...",
                     });
                   }}
                 >
@@ -308,11 +251,10 @@ const Account = () => {
                   variant="outline"
                   className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   onClick={() => {
-                    // Open billing history page
                     openExternalUrl("https://account.agentkube.com/settings");
                     toast({
                       title: "Billing History",
-                      description: "Billing history will be available soon.",
+                      description: "Opening settings page...",
                     });
                   }}
                 >
