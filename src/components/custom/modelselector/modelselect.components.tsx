@@ -1,22 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronDown, ChevronUp, Search, Lock, Sparkles } from 'lucide-react';
-import { DEFAULT_MODELS } from '@/constants/models.constant';
 import { useAuth } from '@/contexts/useAuth';
+import { useModels } from '@/contexts/useModel';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-interface ModelOption {
-  id: string;
-  name: string;
-  provider: string;
-  enabled: boolean;
-  isCustom: boolean;
-  premiumOnly?: boolean;
-}
 
 interface ModelSelectorProps {
   selectedModel: string;
@@ -26,7 +17,7 @@ interface ModelSelectorProps {
 const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [models, _] = useState<ModelOption[]>(DEFAULT_MODELS);
+  const { models, enabledModels } = useModels();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const isLicensed = user?.isLicensed || false;
@@ -34,7 +25,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
   const selectedModelId = selectedModel.includes('/')
     ? selectedModel.split('/')[1]
     : selectedModel;
-
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -62,12 +52,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
   }, [isLicensed, selectedModel, models, onModelChange, selectedModelId]);
 
   // Filter and sort models
-  const filteredModels = models
+  const filteredModels = enabledModels
     .filter(model => {
-      return model.name.toLowerCase().includes(searchQuery.toLowerCase()) && (
-        // Show all enabled models
-        model.enabled
-      );
+      return model.name.toLowerCase().includes(searchQuery.toLowerCase());
     })
     .sort((a, b) => {
       if (isLicensed) {
@@ -95,7 +82,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
     setIsOpen(false);
   };
 
-  const renderModelItem = (model: ModelOption) => {
+  const renderModelItem = (model: typeof models[0]) => {
     const isPremium = model.premiumOnly === true;
     const isSelected = model.id === selectedModelId;
     const isDisabled = isPremium && !isLicensed;

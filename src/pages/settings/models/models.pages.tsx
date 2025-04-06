@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ModelConfig } from '@/components/custom';
-import { DEFAULT_MODELS } from '@/constants/models.constant';
 import {
   Tooltip,
   TooltipContent,
@@ -20,63 +19,55 @@ import {
 } from "@/components/ui/tooltip";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
-
-interface Model {
-  id: string;
-  name: string;
-  provider: string;
-  enabled: boolean;
-  isCustom: boolean;
-  premiumOnly?: boolean;
-}
+import { useModels } from '@/contexts/useModel';
 
 const ModelConfiguration = () => {
-  const [models, setModels] = useState<Model[]>(DEFAULT_MODELS);
+  const { models, toggleModel, addModel, removeModel } = useModels();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [isPremiumUser, setIsPremiumUser] = useState(false);
-
-  useEffect(() => {
-    if (user?.isLicensed) {
-      setIsPremiumUser(true);
-    }
-  }, [user]);
+  const isPremiumUser = user?.isLicensed || false;
 
   const [showAddInput, setShowAddInput] = useState(false);
   const [newModelName, setNewModelName] = useState('');
+  const [newModelProvider, setNewModelProvider] = useState('');
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
 
-
-  const toggleModelEnabled = (modelId: string) => {
+  const toggleModelEnabled = async (modelId: string) => {
     const modelToToggle = models.find(model => model.id === modelId);
 
-    if (modelToToggle?.premiumOnly && !isPremiumUser) {
+    if (!modelToToggle) return;
+    
+    if (modelToToggle.premiumOnly && !isPremiumUser) {
       return;
     }
     
-    setModels(models.map(model =>
-      model.id === modelId
-        ? { ...model, enabled: !model.enabled }
-        : model
-    ));
+    try {
+      await toggleModel(modelId, !modelToToggle.enabled);
+    } catch (error) {
+      console.error('Error toggling model:', error);
+    }
   };
 
   // Add new model
-  const handleAddModel = () => {
+  const handleAddModel = async () => {
     if (newModelName.trim()) {
-      const newModel = {
-        id: newModelName.trim(),
-        name: newModelName.trim(),
-        provider: "custom",
-        enabled: false,
-        isCustom: true
-      };
-
-      setModels([...models, newModel]);
-      setNewModelName('');
-      setShowAddInput(false);
+      try {
+        await addModel({
+          id: newModelName.trim().toLowerCase().replace(/\s+/g, '-'),
+          name: newModelName.trim(),
+          provider: newModelProvider || 'custom',
+          enabled: false,
+          premium_only: false
+        });
+        
+        setNewModelName('');
+        setNewModelProvider('');
+        setShowAddInput(false);
+      } catch (error) {
+        console.error('Error adding model:', error);
+      }
     }
   };
 
@@ -87,11 +78,15 @@ const ModelConfiguration = () => {
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (modelToDelete) {
-      setModels(models.filter(model => model.id !== modelToDelete));
-      setShowDeleteDialog(false);
-      setModelToDelete(null);
+      try {
+        await removeModel(modelToDelete);
+        setShowDeleteDialog(false);
+        setModelToDelete(null);
+      } catch (error) {
+        console.error('Error deleting model:', error);
+      }
     }
   };
 
@@ -112,7 +107,7 @@ const ModelConfiguration = () => {
     return model ? model.name : '';
   };
 
-  const renderModelItem = (model: Model) => {
+  const renderModelItem = (model: typeof models[0]) => {
     if (model.premiumOnly && !isPremiumUser) {
       return (
         <TooltipProvider key={model.id}>
@@ -193,7 +188,7 @@ const ModelConfiguration = () => {
         {models.map(model => renderModelItem(model))}
 
         {showAddInput ? (
-          <div className="flex items-center mt-2">
+          <div className="flex flex-col space-y-2 mt-2">
             <input
               type="text"
               className="bg-transparent border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
@@ -203,13 +198,22 @@ const ModelConfiguration = () => {
               onKeyPress={handleKeyPress}
               autoFocus
             />
-            <Button
-              className="ml-2 px-4 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-white py-2 rounded text-sm"
-              onClick={handleAddModel}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Model
-            </Button>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                className="bg-transparent border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
+                placeholder="Provider (e.g. openai, anthropic)"
+                value={newModelProvider}
+                onChange={(e) => setNewModelProvider(e.target.value)}
+              />
+              <Button
+                className="px-4 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-white py-2 rounded text-sm"
+                onClick={handleAddModel}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Model
+              </Button>
+            </div>
           </div>
         ) : (
           <button
