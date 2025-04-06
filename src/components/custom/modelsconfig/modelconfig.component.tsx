@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { ArrowRight, Eye, EyeOff, Plus } from 'lucide-react';
+import { getSettings, patchConfig } from '@/api/settings';
+import { toast } from '@/hooks/use-toast'; // Assuming you have a toast component
+import { openExternalUrl } from '@/api/external';
 
 interface ModelConfigProps {
   // You can add props here if needed
@@ -25,31 +28,246 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
   const [showingAnthropicKey, setShowingAnthropicKey] = useState(false);
   const [showingGoogleKey, setShowingGoogleKey] = useState(false);
   const [showingAzureKey, setShowingAzureKey] = useState(false);
+  
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await getSettings();
+
+        const externalConfig = settings.models?.externalConfig;
+        if (externalConfig) {
+          // Decode and set keys if they exist
+          if (externalConfig.openai?.apiKey) {
+            try {
+              setOpenAIKey(atob(externalConfig.openai.apiKey));
+            } catch (e) {
+              console.error('Failed to decode OpenAI key');
+            }
+          }
+          
+          if (externalConfig.anthropic?.apiKey) {
+            try {
+              setAnthropicKey(atob(externalConfig.anthropic.apiKey));
+            } catch (e) {
+              console.error('Failed to decode Anthropic key');
+            }
+          }
+          
+          if (externalConfig.google?.apiKey) {
+            try {
+              setGoogleKey(atob(externalConfig.google.apiKey));
+            } catch (e) {
+              console.error('Failed to decode Google key');
+            }
+          }
+          
+          // Set OpenAI base URL if it exists
+          if (externalConfig.openai?.baseUrl) {
+            setOpenAIBaseURL(externalConfig.openai.baseUrl);
+            setShowOpenAIBaseURL(true);
+          }
+          
+          // Load Azure config if it exists
+          if (externalConfig.azure) {
+            setAzureEnabled(true);
+            setAzureBaseURL(externalConfig.azure.baseUrl || '');
+            setAzureDeploymentName(externalConfig.azure.deploymentName || '');
+            if (externalConfig.azure.apiKey) {
+              try {
+                setAzureKey(atob(externalConfig.azure.apiKey));
+              } catch (e) {
+                console.error('Failed to decode Azure key');
+              }
+            }
+            // If we have Azure config, consider it saved
+            if (externalConfig.azure.apiKey) {
+              setAzureSaved(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load model configuration',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    loadSettings();
+  }, []);
+
+  // Function to encode in base64
+  const encodeBase64 = (str: string): string => {
+    try {
+      return btoa(str);
+    } catch (e) {
+      console.error('Failed to encode to base64:', e);
+      return '';
+    }
+  };
 
   // Handle verification for each provider
-  const verifyOpenAIKey = () => {
-    // This would be an API call in production
-    console.log('Verifying OpenAI key:', openAIKey);
-    // Show success/error message
+  const verifyOpenAIKey = async () => {
+    try {
+      if (!openAIKey.trim()) {
+        toast({
+          title: 'Error',
+          description: 'Please enter an OpenAI API key',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Save the OpenAI key
+      const configUpdate = {
+        models: {
+          externalConfig: {
+            openai: {
+              apiKey: encodeBase64(openAIKey),
+              ...(openAIBaseURL ? { baseUrl: openAIBaseURL } : {})
+            }
+          }
+        }
+      };
+
+      await patchConfig(configUpdate);
+      
+      toast({
+        title: 'Success',
+        description: 'OpenAI API key saved successfully',
+        variant: 'default',
+      });
+    } catch (error) {
+      console.error('Error saving OpenAI key:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save OpenAI API key',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const verifyAnthropicKey = () => {
-    console.log('Verifying Anthropic key:', anthropicKey);
+  const verifyAnthropicKey = async () => {
+    try {
+      if (!anthropicKey.trim()) {
+        toast({
+          title: 'Error',
+          description: 'Please enter an Anthropic API key',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Save the Anthropic key
+      const configUpdate = {
+        models: {
+          externalConfig: {
+            anthropic: {
+              apiKey: encodeBase64(anthropicKey)
+            }
+          }
+        }
+      };
+
+      await patchConfig(configUpdate);
+      
+      toast({
+        title: 'Success',
+        description: 'Anthropic API key saved successfully',
+        variant: 'default',
+      });
+    } catch (error) {
+      console.error('Error saving Anthropic key:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save Anthropic API key',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const verifyGoogleKey = () => {
-    console.log('Verifying Google key:', googleKey);
+  const verifyGoogleKey = async () => {
+    try {
+      if (!googleKey.trim()) {
+        toast({
+          title: 'Error',
+          description: 'Please enter a Google API key',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Save the Google key
+      const configUpdate = {
+        models: {
+          externalConfig: {
+            google: {
+              apiKey: encodeBase64(googleKey)
+            }
+          }
+        }
+      };
+
+      await patchConfig(configUpdate);
+      
+      toast({
+        title: 'Success',
+        description: 'Google API key saved successfully',
+        variant: 'default',
+      });
+    } catch (error) {
+      console.error('Error saving Google key:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save Google API key',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const saveAzureConfig = () => {
-    console.log('Saving Azure config:', {
-      baseURL: azureBaseURL,
-      deploymentName: azureDeploymentName,
-      key: azureKey
-    });
-    setAzureSaved(true);
-  };
+  const saveAzureConfig = async () => {
+    try {
+      if (!azureBaseURL.trim() || !azureDeploymentName.trim() || !azureKey.trim()) {
+        toast({
+          title: 'Error',
+          description: 'Please fill in all Azure configuration fields',
+          variant: 'destructive',
+        });
+        return;
+      }
 
+      // Save the Azure config
+      const configUpdate = {
+        models: {
+          externalConfig: {
+            azure: {
+              baseUrl: azureBaseURL,
+              deploymentName: azureDeploymentName,
+              apiKey: encodeBase64(azureKey)
+            }
+          }
+        }
+      };
+
+      await patchConfig(configUpdate);
+      setAzureSaved(true);
+      
+      toast({
+        title: 'Success',
+        description: 'Azure configuration saved successfully',
+        variant: 'default',
+      });
+    } catch (error) {
+      console.error('Error saving Azure config:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save Azure configuration',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Toggle password visibility
   const toggleOpenAIKeyVisibility = () => setShowingOpenAIKey(!showingOpenAIKey);
@@ -86,7 +304,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           </div>
           <Button 
             onClick={verifyOpenAIKey}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className=" text-white"
           >
             Verify <ArrowRight size={16} className="ml-1" />
           </Button>
@@ -120,7 +338,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
         <div>
           <h3 className="text-2xl font-medium text-black dark:text-white">Anthropic API Key</h3>
           <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
-            You can put in <a href="#" className="text-blue-500 hover:underline">your Anthropic key</a> to use Claude at cost. When enabled, this key will be used for all models beginning with "claude-".
+            You can put in <a onClick={() => openExternalUrl("https://docs.anthropic.com/en/api/getting-started")} className="text-blue-500 hover:underline">your Anthropic key</a> to use Claude at cost. When enabled, this key will be used for all models beginning with "claude-".
           </p>
         </div>
         
@@ -142,7 +360,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           </div>
           <Button 
             onClick={verifyAnthropicKey}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className=" text-white"
           >
             Verify <ArrowRight size={16} className="ml-1" />
           </Button>
@@ -156,7 +374,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
         <div>
           <h3 className="text-2xl font-medium text-black dark:text-white">Google API Key</h3>
           <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
-            You can put in <a href="#" className="text-blue-500 hover:underline">your Google AI Studio key</a> to use Google models at-cost.
+            You can put in <a onClick={() => openExternalUrl("https://aistudio.google.com/app/apikey")} className="text-blue-500 hover:underline">your Google AI Studio key</a> to use Google models at-cost.
           </p>
         </div>
         
@@ -178,7 +396,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           </div>
           <Button 
             onClick={verifyGoogleKey}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className=" text-white"
           >
             Verify <ArrowRight size={16} className="ml-1" />
           </Button>
@@ -186,7 +404,6 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       </div>
       
       <div className="border-t border-gray-200 dark:border-gray-800/70 my-6"></div>
-      
       
       <div className="border-t border-gray-200 dark:border-gray-800/70 my-6"></div>
       
@@ -202,7 +419,6 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           <Switch
             checked={azureEnabled}
             onCheckedChange={setAzureEnabled}
-            className="data-[state=checked]:bg-red-500"
           />
         </div>
         
@@ -260,7 +476,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               ) : (
                 <Button 
                   onClick={saveAzureConfig}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className=" text-white"
                 >
                   Save
                 </Button>
@@ -269,7 +485,6 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           </div>
         )}
       </div>
-
     </div>
   );
 };

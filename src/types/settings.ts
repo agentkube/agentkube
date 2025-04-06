@@ -50,6 +50,23 @@ export interface AgentKubeConfig {
       temperature: number;
       contextSize: number;
     };
+    externalConfig?: {
+      openai?: {
+        apiKey: string;
+        baseUrl?: string;
+      };
+      anthropic?: {
+        apiKey: string;
+      };
+      google?: {
+        apiKey: string;
+      };
+      azure?: {
+        baseUrl: string;
+        deploymentName: string;
+        apiKey: string;
+      };
+    };
   };
   terminal: {
     shell: string;
