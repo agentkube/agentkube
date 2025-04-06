@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { Send } from 'lucide-react';
 import React, { useState } from 'react';
 
 const Shortcuts = () => {
@@ -108,7 +110,7 @@ const Shortcuts = () => {
           <span className="text-sm">Let us know what shortcuts you'd like see being added.</span>
         </div>
         
-        <form onSubmit={handleFeedbackSubmit} className="mt-2">
+        {/* <form onSubmit={handleFeedbackSubmit} className="mt-2">
           <input
             type="text"
             value={feedback}
@@ -116,7 +118,12 @@ const Shortcuts = () => {
             placeholder="Enter your suggestions here..."
             className="w-full bg-transparent border-b border-gray-700 py-1 text-sm focus:outline-none focus:border-gray-500"
           />
-        </form>
+        </form> */}
+        <div className='py-2'>
+          <Button data-tally-open="n94eZY" data-tally-emoji-text="👋" data-tally-width="500" data-tally-emoji-animation="bounce">
+            Request Shortcut <Send />
+          </Button>
+        </div>
       </div>
     </div>
   );
