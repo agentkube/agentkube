@@ -15,6 +15,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
 import { DeleteContextDialog } from '@/components/custom';
 import { useTheme } from 'next-themes';
+import { toast } from '@/hooks/use-toast';
 
 // Interface for our cluster UI data
 interface ClusterItem {
@@ -420,7 +421,7 @@ const HomePage: React.FC = () => {
                 <Button
                   className={`mt-4 flex items-center gap-2 
                   ${hasSelectedCluster
-                      ? 'bg-blue-600 dark:bg-blue-800 hover:bg-blue-700 text-white'
+                      ? 'bg-blue-700 dark:bg-blue-800 hover:bg-blue-700 text-white'
                       : 'bg-gray-300 hover:bg-gray-300 text-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-600'}`}
                   onClick={() => {
                     if (selectedClusterId) {
@@ -438,8 +439,13 @@ const HomePage: React.FC = () => {
                 </Button>
                 <Button
                   className="mt-4 bg-blue-600 hover:bg-blue-700 flex items-center gap-2 text-black dark:text-black bg-[#54C895] dark:bg-[#54C895] dark:hover:bg-[#0E9F6E]"
-                  onClick={() => navigate('/dashboard')}
-                  disabled={true}
+                  onClick={() => {
+                    toast({
+                      title: "Feature not implemented",
+                      description: "The Provision feature is part of our roadmap and will be available soon."
+                    })
+                  }}
+                  // disabled={true}
                 >
                   <AlignVerticalJustifyEnd size={16} />
                   Provision

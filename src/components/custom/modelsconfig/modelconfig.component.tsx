@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { ArrowRight, Eye, EyeOff, Plus } from 'lucide-react';
+import { ArrowRight, Check, Eye, EyeOff, Plus } from 'lucide-react';
 import { getSettings, patchConfig } from '@/api/settings';
 import { toast } from '@/hooks/use-toast'; // Assuming you have a toast component
 import { openExternalUrl } from '@/api/external';
@@ -531,7 +531,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               {azureSaved ? (
                 <div className="text-green-600 dark:text-green-400 flex items-center">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                    ✓
+                    <Check className='h-4 w-4' />
                   </span>
                   <span className="ml-2">Saved</span>
                 </div>
