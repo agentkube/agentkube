@@ -6,6 +6,14 @@ import { ArrowRight, Eye, EyeOff, Plus } from 'lucide-react';
 import { getSettings, patchConfig } from '@/api/settings';
 import { toast } from '@/hooks/use-toast'; // Assuming you have a toast component
 import { openExternalUrl } from '@/api/external';
+import { 
+  validateOpenAIKey, 
+  validateAnthropicKey, 
+  validateGoogleKey, 
+  validateAzureKey, 
+  validateUrl, 
+  validateAzureUrl 
+} from '@/utils/key-validator.utils';
 
 interface ModelConfigProps {
   // You can add props here if needed
@@ -120,6 +128,24 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
         return;
       }
 
+      if (!validateOpenAIKey(openAIKey)) {
+        toast({
+          title: 'Warning',
+          description: 'The OpenAI key format appears to be invalid. Keys typically start with "sk-".',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (openAIBaseURL && !validateUrl(openAIBaseURL)) {
+        toast({
+          title: 'Error',
+          description: 'The OpenAI base URL format is invalid.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Save the OpenAI key
       const configUpdate = {
         models: {
@@ -155,6 +181,15 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
         toast({
           title: 'Error',
           description: 'Please enter an Anthropic API key',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!validateAnthropicKey(anthropicKey)) {
+        toast({
+          title: 'Warning',
+          description: 'The Anthropic key format appears to be invalid. Keys typically start with "sk-ant-".',
           variant: 'destructive',
         });
         return;
@@ -199,6 +234,15 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
         return;
       }
 
+      if (!validateGoogleKey(googleKey)) {
+        toast({
+          title: 'Warning',
+          description: 'The Google key format appears to be invalid. Please check your key.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Save the Google key
       const configUpdate = {
         models: {
@@ -233,6 +277,24 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
         toast({
           title: 'Error',
           description: 'Please fill in all Azure configuration fields',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!validateAzureUrl(azureBaseURL)) {
+        toast({
+          title: 'Error',
+          description: 'The Azure base URL format is invalid. It should be an Azure domain.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!validateAzureKey(azureKey)) {
+        toast({
+          title: 'Warning',
+          description: 'The Azure key format appears to be invalid. Please check your key.',
           variant: 'destructive',
         });
         return;
