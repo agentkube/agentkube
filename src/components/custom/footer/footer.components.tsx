@@ -4,7 +4,7 @@ import TerminalContainer from '../terminal/terminalcontainer.component';
 import { openExternalUrl } from '@/api/external';
 const Footer = () => {
   return (
-    <footer className="flex-none text-xs border-t border-gray-100/10 pr-2">
+    <footer className="mt-4 flex-none text-xs border-t border-gray-100/10 pr-2">
       <div className="flex justify-between items-center">
         <div>
           <TerminalContainer />

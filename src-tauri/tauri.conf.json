@@ -18,10 +18,15 @@
         "width": 1400,
         "height": 900,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "decorations": true,
+        "hiddenTitle": true,
+        "shadow": true,
+        "titleBarStyle": "Overlay"
       }
     ],
     "security": {
+      
       "csp": "default-src 'self' http://localhost:4688 http://localhost:65001",
       "assetProtocol": {
         "scope": [
@@ -55,6 +60,22 @@
               "allow": ["http://localhost:1420/*", "http://localhost:4688/*", "http://localhost:65001/*"]
             }
           ]
+        },
+        {
+           "identifier": "core:window:default",
+           "local": true,
+           "windows": ["main"],
+            "permissions": [
+              "core:webview:default",
+              "core:window:default",
+              "core:window:allow-minimize",
+              "core:window:allow-maximize",
+              "core:window:allow-toggle-maximize",
+              "core:window:allow-internal-toggle-maximize",
+              "core:window:allow-close",
+              "core:window:allow-set-size",
+              "core:window:allow-start-dragging"
+            ]
         }
       ]
     }

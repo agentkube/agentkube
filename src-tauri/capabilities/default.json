@@ -12,6 +12,9 @@
     "cors-fetch:default",
     "core:window:default",
     "core:window:allow-start-dragging",
+    "core:window:allow-close",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
     "cors-fetch:allow-cors-request",
     "websocket:default",
     {
@@ -41,6 +44,7 @@
           "url": "http://localhost:65001/*"
         }
       ]
-    }
+    },
+    "os:default"
   ]
 }

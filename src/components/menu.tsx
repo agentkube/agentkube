@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Globe, Mic, Sailboat, Airplay, Settings, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+import { Airplay, Settings, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom';
 import SwitchDarkMode from './SwitchDarkMode';
 import { useDrawer } from '@/contexts/useDrawer';
-import { WindowTitlebar } from "tauri-controls"
+import { WindowTitlebar } from "./WindowTitlebar"
 
 interface NavigationHistoryState {
   history: string[];
@@ -85,10 +85,10 @@ export function Menu() {
 
   return (
     <WindowTitlebar
-      controlsOrder="platform"
-      windowControlsProps={{ platform: "macos", className: "" }}
+      controlsOrder="right"
+      windowControlsProps={{ className: "" }}
     >
-      <div className="py-2 px-4 flex items-center w-full justify-between draggable">
+      <div className="py-1 px-4 flex items-center w-full justify-between draggable">
         <div className="inline-flex ml-2 space-x-1.5">
           {/* Window Controls */}
         </div>

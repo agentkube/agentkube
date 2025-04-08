@@ -730,7 +730,7 @@ const Nodes: React.FC = () => {
                   <TableCell>
                     {node.conditions.map((condition: any) =>
                       condition.type === 'Ready' && condition.status === 'True' && (
-                        <span key={condition.type} className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-emerald-300 dark:bg-emerald-900 text-green-800 dark:text-green-300">
+                        <span key={condition.type} className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-emerald-300 dark:bg-emerald-900/30 text-green-800 dark:text-green-300">
                           {condition.type}
                         </span>
                       )
