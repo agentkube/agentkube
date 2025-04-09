@@ -9,6 +9,8 @@
   "permissions": [
     "core:default",
     "http:default",
+    "core:event:default",
+    "core:event:allow-listen",
     "cors-fetch:default",
     "core:window:default",
     "core:window:allow-start-dragging",
@@ -16,6 +18,9 @@
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",
     "cors-fetch:allow-cors-request",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
     "websocket:default",
     {
       "identifier": "http:default",

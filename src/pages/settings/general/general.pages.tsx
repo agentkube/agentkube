@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getSettings, updateSettings, updateSettingsSection } from '@/api/settings';
+import { getSettings, updateSettingsSection } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
+import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 
 const GeneralSettings: React.FC = () => {
   const { toast } = useToast();
@@ -35,7 +36,11 @@ const GeneralSettings: React.FC = () => {
         setLanguage(settings.general?.language || 'en');
         setAutoUpdate(settings.general?.autoUpdate || false);
         setUsageAnalytics(settings.general?.usageAnalytics || false);
-        setStartOnLogin(settings.general?.startOnLogin || false);
+        
+        // Check actual autostart status from Tauri
+        const autoStartEnabled = await isEnabled();
+        setStartOnLogin(autoStartEnabled);
+        
         setExcludeNamespaces(settings.general?.excludeNamespaces || []);
 
         // Default location is stored in agentkubeconfig.path
@@ -61,6 +66,28 @@ const GeneralSettings: React.FC = () => {
     // Note: i18n handling is removed until proper i18n setup is done
   };
 
+  // Handle autostart toggle
+  const handleAutoStartChange = async (checked: boolean) => {
+    try {
+      if (checked) {
+        await enable();
+      } else {
+        await disable();
+      }
+      setStartOnLogin(checked);
+    } catch (error) {
+      console.error('Failed to update autostart setting:', error);
+      toast({
+        title: "Error updating autostart",
+        description: "Could not update the autostart setting. Please try again.",
+        variant: "destructive",
+      });
+      // Revert the UI state back to actual state
+      const autoStartEnabled = await isEnabled();
+      setStartOnLogin(autoStartEnabled);
+    }
+  };
+
   // Handle settings save
   const handleSaveSettings = async () => {
     try {
@@ -71,7 +98,7 @@ const GeneralSettings: React.FC = () => {
         language,
         autoUpdate,
         usageAnalytics,
-        startOnLogin,
+        startOnLogin, // Store the current state in settings too
         excludeNamespaces
       });
 
@@ -184,7 +211,7 @@ const GeneralSettings: React.FC = () => {
           <Switch
             id="start-on-login"
             checked={startOnLogin}
-            onCheckedChange={setStartOnLogin}
+            onCheckedChange={handleAutoStartChange}
           />
         </div>
       </div>

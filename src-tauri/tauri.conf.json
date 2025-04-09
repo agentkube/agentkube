@@ -76,6 +76,26 @@
               "core:window:allow-set-size",
               "core:window:allow-start-dragging"
             ]
+        },
+        {
+          "identifier": "core:event:default",
+          "local": true,
+          "windows": ["main"],
+           "permissions": [
+             "core:event:default",
+             "core:event:allow-listen"
+           ]
+        },
+        {
+          "identifier": "autostart:default",
+          "local": true,
+          "windows": ["main"],
+           "permissions": [
+              "autostart:default",
+              "autostart:allow-enable",
+              "autostart:allow-disable",
+              "autostart:allow-is-enabled"
+           ]
         }
       ]
     }
@@ -98,5 +118,6 @@
     "category": "Productivity",
     "shortDescription": "Agentkube: AI-powered Kubernetes management platform.",
     "longDescription": "Agentkube: AI-powered Kubernetes management platform"
-  }
+  },
+  "plugins": {}
 }
