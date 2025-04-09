@@ -45,6 +45,18 @@
         }
       ]
     },
-    "os:default"
+    "os:default",
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "args": true,
+          "name": "bin/operator/operator",
+          "sidecar": true
+        }
+      ]
+    },
+    "shell:allow-open"
   ]
 }
