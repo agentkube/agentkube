@@ -16,12 +16,6 @@ export function Menu() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setIsOpen } = useDrawer();
-
-  const closeWindow = useCallback(async () => {
-    const { appWindow } = await import("@tauri-apps/plugin-window")
-
-    appWindow.close()
-  }, []);
   
   const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryState>({
     history: [location.pathname],

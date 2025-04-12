@@ -112,7 +112,7 @@ export const chatStream = async (
       throw new Error(`Chat request failed with status: ${response.status}`);
     }
 
-    await processEventStream(response, callbacks);
+    await processChatStream(response, callbacks);
   } catch (error) {
     if (callbacks.onError) {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
@@ -122,6 +122,110 @@ export const chatStream = async (
   }
 };
 
+
+// Process chat stream from orchestrator API
+async function processChatStream(
+  response: Response,
+  callbacks: ChatStreamCallbacks
+): Promise<void> {
+  if (!response.body) {
+    throw new Error('Response has no body');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let doneReceived = false;
+  // Keep track of the last tool call to associate with outputs
+  let lastToolName = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      // Decode the chunk and add to buffer
+      buffer += decoder.decode(value, { stream: true });
+      
+      // Process complete lines
+      const lines = buffer.split('\n');
+      // Keep the last potentially incomplete line
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        // Skip empty lines
+        if (!line.trim()) continue;
+        
+        // Handle the double "data: data:" format from your API
+        if (line.startsWith('data: data: ')) {
+          const dataString = line.substring(12); // Remove 'data: data: ' prefix
+          
+          try {
+            const data = JSON.parse(dataString);
+            
+            // Handle text content
+            if (data.text && callbacks.onContent) {
+              callbacks.onContent(0, data.text);
+            }
+            
+            // Handle tool calls
+            if (data.tool_call && callbacks.onToolCall) {
+              // Create a ToolCall object from the data
+              lastToolName = data.tool_call.name || "unknown";
+              const toolCall: ToolCall = {
+                tool: lastToolName,
+                command: typeof data.tool_call.arguments === 'string' 
+                  ? JSON.parse(data.tool_call.arguments) 
+                  : data.tool_call.arguments || {},
+                output: ""
+              };
+              callbacks.onToolCall(toolCall);
+            }
+            
+            // Handle tool outputs - this is the format your backend is sending
+            if (data.tool_output && callbacks.onToolCall) {
+              // Create a proper ToolCall object matching your interface
+              const toolCall: ToolCall = {
+                tool: lastToolName,
+                command: { command: data.tool_output.command },
+                output: data.tool_output.output
+              };
+              callbacks.onToolCall(toolCall);
+            }
+            
+            // Handle trace ID
+            if (data.trace_id) {
+              console.log(`Trace ID: ${data.trace_id}`);
+              // You can optionally store this or pass it to a callback
+            }
+            
+            // Handle completion event
+            if (data.done === true && !doneReceived) {
+              doneReceived = true;
+              if (callbacks.onComplete) {
+                callbacks.onComplete('done');
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing event data:', error, dataString);
+          }
+        }
+      }
+    }
+    
+    // If we haven't received a done event yet, call onComplete
+    if (!doneReceived && callbacks.onComplete) {
+      callbacks.onComplete('stream_end');
+    }
+  } catch (error) {
+    if (callbacks.onError) {
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+    } else {
+      console.error('Chat stream processing error:', error);
+    }
+  }
+}
 /**
  * Send a completion request that stores the conversation in the database
  */

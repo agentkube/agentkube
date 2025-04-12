@@ -10,6 +10,18 @@ interface ToolCallAccordionProps {
 const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const formatCommand = () => {
+    if (typeof toolCall.command === 'object') {
+      // If command includes the actual command string
+      if (toolCall.command.command) {
+        return toolCall.command.command;
+      }
+      // Otherwise format as JSON
+      return JSON.stringify(toolCall.command, null, 2);
+    }
+    return String(toolCall.command);
+  };
+
   const getToolIcon = (toolName: string) => {
     // You can customize this based on the actual tool names you have
     return <Terminal className="h-3 w-3" />;
@@ -49,7 +61,7 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
       {isOpen && (
         <div className="bg-gray-100 dark:bg-gray-800/50">
           <div className="bg-gray-200 text-gray-600 dark:text-gray-500 bg-gray-300 dark:bg-gray-800/50 p-2 rounded text-sm font-mono">
-            {getCommandText()}
+            {formatCommand()}
           </div>
 
           {/* Output section */}

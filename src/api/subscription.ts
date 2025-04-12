@@ -7,7 +7,7 @@ import {
   ListLicenseKeyInstancesResponse
 } from '@/types/subscription';
 
-const BASE_URL = 'https://api.lemonsqueezy.com/v1';
+const LEMONSQUEEZY_BASE_URL = 'https://api.lemonsqueezy.com/v1';
 
 /**
  * Validates a LemonSqueezy license key
@@ -18,7 +18,7 @@ export const validateLicense = async (
   licenseKey: string,
   instanceId?: string
 ): Promise<ValidateLicenseResponse> => {
-  const url = `${BASE_URL}/licenses/validate`;
+  const url = `${LEMONSQUEEZY_BASE_URL}/licenses/validate`;
   const formData = new URLSearchParams();
   formData.append('license_key', licenseKey);
   
@@ -51,7 +51,7 @@ export const activateLicense = async (
   licenseKey: string,
   instanceName: string
 ): Promise<ActivateLicenseResponse> => {
-  const url = `${BASE_URL}/licenses/activate`;
+  const url = `${LEMONSQUEEZY_BASE_URL}/licenses/activate`;
   const formData = new URLSearchParams();
   formData.append('license_key', licenseKey);
   formData.append('instance_name', instanceName);
@@ -81,7 +81,7 @@ export const deactivateLicense = async (
   licenseKey: string,
   instanceId: string
 ): Promise<DeactivateLicenseResponse> => {
-  const url = `${BASE_URL}/licenses/deactivate`;
+  const url = `${LEMONSQUEEZY_BASE_URL}/licenses/deactivate`;
   const formData = new URLSearchParams();
   formData.append('license_key', licenseKey);
   formData.append('instance_id', instanceId);
@@ -115,7 +115,7 @@ export const listLicenseKeyInstances = async (
     throw new Error('API key is required for listing license key instances');
   }
 
-  const url = `${BASE_URL}/license-key-instances?filter[license_key_id]=${licenseKeyId}`;
+  const url = `${LEMONSQUEEZY_BASE_URL}/license-key-instances?filter[license_key_id]=${licenseKeyId}`;
   
   const response = await fetch(url, {
     method: 'GET',

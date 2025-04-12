@@ -141,7 +141,6 @@ const RightDrawer: React.FC = () => {
       await chatStream(
         {
           message: inputValue,
-          
         },
         {
           onStart: (messageId, messageUuid) => {
@@ -154,15 +153,10 @@ const RightDrawer: React.FC = () => {
             setCurrentResponse(responseRef.current);
           },
           onToolCall: (toolCall) => {
-            // Add the new tool call to our collection
-            console.log("Tool call received:", toolCall);
             toolCallsRef.current = [...toolCallsRef.current, toolCall];
             setCurrentToolCalls([...toolCallsRef.current]);
           },
           onComplete: (reason) => {
-            console.log(`Message completed: ${reason}`);
-            
-            // Add the complete response to the messages
             setMessages(prev => [
               ...prev, 
               { 
@@ -172,7 +166,6 @@ const RightDrawer: React.FC = () => {
               }
             ]);
             
-            // Reset current response and loading state
             setCurrentResponse('');
             setCurrentToolCalls([]);
             setIsLoading(false);

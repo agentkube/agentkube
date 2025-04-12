@@ -1,13 +1,20 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './codeblock.righdrawer';
 import ToolCallAccordion from './tool-call.component';
 import { ToolCall } from '@/api/orchestrator.chat';
+import { openExternalUrl } from '@/api/external';
+import { LinkPreview } from '@/components/ui/link-preview';
 
 interface CodeProps {
   inline?: boolean;
   className?: string;
+  children?: React.ReactNode;
+}
+
+interface TableProps {
   children?: React.ReactNode;
 }
 
@@ -17,6 +24,21 @@ interface AssistantMessageProps {
 }
 
 const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls = [] }) => {
+  // logicaly its wrong
+  const cleanContent = (() => {
+    try {
+      // Check if the content starts with a JSON object
+      const jsonMatch = content.match(/^(\{.*?\})(.*)/s);
+      if (jsonMatch) {
+        // Return only the content part after the JSON
+        return jsonMatch[2];
+      }
+      return content;
+    } catch (e) {
+      return content;
+    }
+  })();
+
   return (
     <div className="w-full">
       <div className="bg-gray-300/50 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
@@ -24,7 +46,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
           <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
             <Sparkles className="h-4 w-4" />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 overflow-auto">
             {/* Display tool calls if available */}
             {toolCalls.length > 0 && (
               <div className="mb-4">
@@ -36,6 +58,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
 
             {/* Display the regular message content */}
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => (
                   <h1 className="text-2xl font-bold mt-6 mb-4">{children}</h1>
@@ -58,6 +81,45 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                 li: ({ children }) => (
                   <li className="text-gray-700 dark:text-gray-300">{children}</li>
                 ),
+                // Fixed table support
+                table: ({ children }: TableProps) => (
+                  <div className="overflow-x-auto my-4 rounded-md">
+                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-800/60 rounded-xl border border-gray-300 dark:border-gray-900">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                thead: ({ children }) => (
+                  <thead className="bg-gray-200 dark:bg-gray-900">{children}</thead>
+                ),
+                tbody: ({ children }) => (
+                  <tbody className="divide-y divide-gray-300 dark:divide-gray-800 rounded-xl">{children}</tbody>
+                ),
+                tr: ({ children }) => (
+                  <tr className='hover:bg-gray-200 dark:hover:bg-gray-800/50 cursor-pointer'>{children}</tr>
+                ),
+                th: ({ children }) => (
+                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border border-gray-300 dark:border-gray-800">{children}</th>
+                ),
+                td: ({ children }) => (
+                  <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300  border border-gray-300 dark:border-gray-800">{children}</td>
+                ),
+
+                a: ({ href, children }) => (
+                  <LinkPreview
+                    url={href as string}
+                    className='cursor-pointer'
+                  >
+                      <a 
+                        onClick={() => openExternalUrl(href as string)} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {children}
+                      </a>
+                  </LinkPreview>
+                ),
                 code: ({ inline, children, className }: CodeProps) => {
                   // Handle inline code (single backticks)
                   if (inline) {
@@ -75,10 +137,20 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                 },
                 pre: ({ children }) => (
                   <div className="my-4">{children}</div>
+                ),
+                // Add blockquote support
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-gray-400 dark:border-gray-600 pl-4 py-2 my-4 text-gray-700 dark:text-gray-300 italic">
+                    {children}
+                  </blockquote>
+                ),
+                // Add horizontal rule
+                hr: () => (
+                  <hr className="my-6 border-t border-gray-300 dark:border-gray-700" />
                 )
               }}
             >
-              {content}
+              {cleanContent}
             </ReactMarkdown>
           </div>
         </div>
