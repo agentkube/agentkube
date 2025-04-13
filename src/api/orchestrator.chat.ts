@@ -154,7 +154,6 @@ async function processChatStream(
       buffer = lines.pop() || '';
       
       for (const line of lines) {
-        // Skip empty lines
         if (!line.trim()) continue;
         
         // Handle the double "data: data:" format from your API
@@ -170,20 +169,16 @@ async function processChatStream(
             }
             
             // Handle tool calls
-            if (data.tool_call && callbacks.onToolCall) {
-              // Create a ToolCall object from the data
-              lastToolName = data.tool_call.name || "unknown";
+            if (data.tool_call  && callbacks.onToolCall ) {
               const toolCall: ToolCall = {
-                tool: lastToolName,
-                command: typeof data.tool_call.arguments === 'string' 
-                  ? JSON.parse(data.tool_call.arguments) 
-                  : data.tool_call.arguments || {},
-                output: ""
+                tool: data.tool_call.tool,
+                command: { command: data.tool_call.command },
+                output: data.tool_call.output
               };
               callbacks.onToolCall(toolCall);
             }
             
-            // Handle tool outputs - this is the format your backend is sending
+            // // Handle tool outputs - this is the format your backend is sending
             if (data.tool_output && callbacks.onToolCall) {
               // Create a proper ToolCall object matching your interface
               const toolCall: ToolCall = {
@@ -197,7 +192,6 @@ async function processChatStream(
             // Handle trace ID
             if (data.trace_id) {
               console.log(`Trace ID: ${data.trace_id}`);
-              // You can optionally store this or pass it to a callback
             }
             
             // Handle completion event
