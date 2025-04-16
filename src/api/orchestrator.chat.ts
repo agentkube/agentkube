@@ -76,8 +76,8 @@ export interface ConversationUpdateRequest {
 // Tool call interface
 export interface ToolCall {
   tool: string;
-  command: Record<string, any>;
-  output: string;
+  command?: Record<string, any>;
+  output?: string;
 }
 
 // Stream callback types

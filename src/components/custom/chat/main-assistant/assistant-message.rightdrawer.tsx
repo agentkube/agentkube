@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Sparkles, Copy, ThumbsUp, ThumbsDown, Check } from 'lucide-react';
+import { Sparkles, Copy, ThumbsUp, ThumbsDown, Check, ChevronDown, ChevronUp, Braces } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './codeblock.righdrawer';
@@ -28,26 +28,39 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showJsonData, setShowJsonData] = useState(false);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const dislikeButtonRef = useRef<HTMLButtonElement>(null);
 
-
-  const cleanContent = (() => {
+  // Extract JSON objects and actual content
+  const extractJsonObjects = (text: string) => {
     try {
-      // Check if the content starts with a JSON object
-      const jsonMatch = content.match(/^(\{.*?\})(.*)/s);
-      if (jsonMatch) {
-        // Return only the content part after the JSON
-        return jsonMatch[2];
+      const jsonObjects: string[] = [];
+      let remainingText = text;
+      
+      // Regular expression to match a JSON object
+      const jsonObjectRegex = /^\{.*?\}/s;
+      
+      let match = remainingText.match(jsonObjectRegex);
+      while (match && match[0]) {
+        jsonObjects.push(match[0]);
+        remainingText = remainingText.substring(match[0].length);
+        match = remainingText.match(jsonObjectRegex);
       }
-      return content;
+      
+      return {
+        jsonObjects: jsonObjects.length > 0 ? jsonObjects : null,
+        remainingContent: remainingText
+      };
     } catch (e) {
-      return content;
+      return { jsonObjects: null, remainingContent: text };
     }
-  })();
+  };
+  
+  const { jsonObjects, remainingContent } = extractJsonObjects(content);
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(cleanContent).then(() => {
+    navigator.clipboard.writeText(remainingContent).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -67,7 +80,6 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
     //TODO Here you could add API call to save feedback
   };
 
-
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (feedbackRef.current &&
@@ -86,7 +98,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
 
   return (
     <div className="w-full relative">
-      <div className="bg-gray-300/50 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
+      <div className="bg-gray-300/30 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
         <div className="flex items-start">
           <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
             <Sparkles className="h-4 w-4" />
@@ -98,6 +110,34 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                 {toolCalls.map((toolCall, index) => (
                   <ToolCallAccordion key={index} toolCall={toolCall} />
                 ))}
+              </div>
+            )}
+
+            {/* Display JSON data in an accordion if it exists */}
+            {jsonObjects && jsonObjects.length > 0 && (
+              <div className="mb-4 border border-gray-300 dark:border-gray-800/50 rounded-md">
+                <div 
+                  className="flex justify-between items-center p-1 bg-gray-200 dark:bg-transparent cursor-pointer"
+                  onClick={() => setShowJsonData(!showJsonData)}
+                >
+                  <span className="flex items-center font-medium text-xs"><Braces className='h-3 w-3 mx-1' /> Parameters: ({jsonObjects.length})</span>
+                  {showJsonData ? (
+                    <ChevronUp className="dark:text-gray-500 h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="dark:text-gray-500 h-4 w-4" />
+                  )}
+                </div>
+                {showJsonData && (
+                  <div className="p-3 dark:bg-transparent rounded-b-md overflow-auto">
+                    {jsonObjects.map((jsonObj, index) => (
+                      <div key={index} className="mb-2 last:mb-0">
+                        <pre className="bg-gray-300/50 dark:bg-gray-800/50 p-2 rounded-md overflow-x-auto text-xs font-mono text-gray-700 dark:text-gray-300">
+                          {jsonObj}
+                        </pre>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -195,7 +235,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                 )
               }}
             >
-              {cleanContent}
+              {remainingContent}
             </ReactMarkdown>
 
             {/* Feedback icons at bottom right */}
@@ -203,9 +243,9 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
               {showFeedback && (
                 <div
                   ref={feedbackRef}
-                  className="absolute bottom-10 right-5 w-72 bg-gray-100 dark:bg-[#0F121B] rounded-lg shadow-lg border border-gray-800 text-sm z-10">
+                  className="absolute bottom-10 right-5 w-72 bg-gray-100 dark:bg-[#0F121B] rounded-lg shadow-lg border dark:border-gray-800 text-sm z-10">
                   <textarea
-                    className="w-full p-2 bg-gray-800/40 backdrop-blur-md border border-gray-700 rounded-t-lg text-gray-300 text-sm resize-none"
+                    className="w-full p-2 bg-gray-300/70 dark:bg-gray-800/40 backdrop-blur-md  rounded-t-lg text-gray-800 dark:text-gray-300 text-sm resize-none"
                     placeholder="Tell us what you liked about the response or how it could be improved."
                     rows={3}
                   />
@@ -222,7 +262,6 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                   </div>
                 </div>
               )}
-
 
               <button
                 onClick={copyToClipboard}

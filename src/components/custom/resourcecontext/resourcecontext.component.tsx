@@ -90,7 +90,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 bottom-full mb-1 w-96 rounded-md shadow-lg dark:bg-[#0B0D13]/80 backdrop-blur-sm border border-gray-300 dark:border-gray-800/50 z-50">
+        <div className="absolute left-0 bottom-full mb-1 w-96 rounded-md shadow-lg bg-gray-100/60 dark:bg-[#0B0D13]/80 backdrop-blur-sm border border-gray-300 dark:border-gray-800/50 z-50">
           <div className="p-2">
             <div className="relative">
               <input
@@ -144,7 +144,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
                 onClick={() => handleResourceSelection(result)}
               >
                 <div className="flex items-center">
-                  <img src={KUBERNETES_LOGO} alt="Kubernetes Logo" className="w-4 h-4 mr-2" />
+                  <img src={KUBERNETES_LOGO} alt="Kubernetes Logo" className="w-4 h-4" />
                   <span className="ml-2">{result.resourceType}/{result.resourceName}</span>
                 </div>
                 <div className="text-gray-500 text-xs">

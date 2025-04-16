@@ -716,11 +716,11 @@ const Nodes: React.FC = () => {
                   <TableCell className="text-center">{node.taints.length}</TableCell>
                   <TableCell>
                     {node.roles.includes("master") ?
-                      <span className="px-2 py-1 rounded-[0.3rem] border border-red-500/30 dark:border-red-400/30 text-xs font-medium bg-red-500/30 dark:bg-red-900/10 text-red-800 dark:text-red-400">
+                      <span className="px-2 py-1 rounded-[0.3rem]  text-xs font-medium bg-red-500/30 dark:bg-red-800/20 text-red-800 dark:text-red-400">
                         Control Plane
                       </span> :
                       <span
-                        className="px-2 py-1 rounded-[0.3rem] border border-yellow-800/40 dark:border-yellow-400/20 text-xs font-medium bg-yellow-400/50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-800">
+                        className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-yellow-400/50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-500">
                         worker
                       </span>
                     }

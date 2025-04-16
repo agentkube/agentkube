@@ -14,7 +14,7 @@ export { default as PodMetrics } from './metrics/pod-metrics.component';
 export { default as CostReport } from './costreport/cost-report.component';
 export { default as DeleteContextDialog } from './deletecontextdialog/deletecontextdialog.component';
 export { default as ModelDialog } from './modeldialog/modeldialog.component';
-
+export { default as ProxyConfigDialog } from './proxyconfigdialog/proxyconfigdialog.component';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
 export { default as LicenseKeyDialog } from './licensekey/licensekey.component';

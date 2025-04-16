@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, ExternalLink, CloudIcon, Download, Copy, Check } from "lucide-react";
+import { DollarSign, ExternalLink, Settings, Download, Copy, Check } from "lucide-react";
 import Editor from '@monaco-editor/react';
 import { AWS_PROVIDER, GCP_PROVIDER, AZURE_PROVIDER } from '@/assets/providers';
-import KUBERNETES from '@/assets/kubernetes.svg'
+import KUBERNETES from '@/assets/kubernetes.svg';
+import ProxyConfigDialog from '../proxyconfigdialog/proxyconfigdialog.component';
+import { openExternalUrl } from '@/api/external';
+
+
 interface OpenCostInstallerProps {
   loading: boolean;
   onInstall: (cloudProvider: string) => void;
@@ -19,6 +23,39 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
   const [activeTab, setActiveTab] = useState("options");
   const [copied, setCopied] = useState(false);
   const [yamlContent, setYamlContent] = useState('');
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [openCostConfig, setOpenCostConfig] = useState<{
+    namespace: string;
+    service: string;
+  }>({
+    namespace: 'opencost',
+    service: 'opencost:9090'
+  });
+
+  const handleSaveConfig = (config: { namespace: string; service: string }) => {
+    setOpenCostConfig(config);
+    console.log('Saving OpenCost config:', config);
+    localStorage.setItem('openCostConfig', JSON.stringify({
+      externalConfig: {
+        opencost: config
+      }
+    }));
+  };
+
+  useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem('openCostConfig');
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig);
+        if (parsedConfig.externalConfig?.opencost) {
+          setOpenCostConfig(parsedConfig.externalConfig.opencost);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading saved config:', err);
+    }
+  }, []);
+
 
   const handleInstallClick = () => {
     setIsInstallDialogOpen(true);
@@ -38,16 +75,15 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
 
   // Update the YAML content when cloud provider changes
   const updateYamlContent = () => {
-    const valuesYaml = `# OpenCost Helm Values for ${
-      selectedCloudProvider === "aws" ? "AWS" :
+    const valuesYaml = `# OpenCost Helm Values for ${selectedCloudProvider === "aws" ? "AWS" :
       selectedCloudProvider === "gcp" ? "Google Cloud" :
-      selectedCloudProvider === "azure" ? "Azure" : "Custom"
-    }
+        selectedCloudProvider === "azure" ? "Azure" : "Custom"
+      }
 opencost:
   exporter:
-    cloudProviderApiKey: "${selectedCloudProvider === "aws" ? "AWS_ACCESS_KEY" : 
-      selectedCloudProvider === "gcp" ? "GOOGLE_APPLICATION_CREDENTIALS" : 
-      selectedCloudProvider === "azure" ? "AZURE_SERVICE_KEY" : "YOUR_API_KEY"}"
+    cloudProviderApiKey: "${selectedCloudProvider === "aws" ? "AWS_ACCESS_KEY" :
+        selectedCloudProvider === "gcp" ? "GOOGLE_APPLICATION_CREDENTIALS" :
+          selectedCloudProvider === "azure" ? "AZURE_SERVICE_KEY" : "YOUR_API_KEY"}"
   prometheus:
     server: http://prometheus-server.monitoring.svc.cluster.local:9090
 
@@ -90,7 +126,7 @@ customPricing:
   enabled: true
   configPath: /models/pricing/custom.json
 `}`;
-    
+
     setYamlContent(valuesYaml);
   };
 
@@ -107,7 +143,25 @@ customPricing:
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Cost Overview</h1>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsConfigDialogOpen(true)}
+            className="flex items-center gap-1"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
+
+        <ProxyConfigDialog
+          isOpen={isConfigDialogOpen}
+          onClose={() => setIsConfigDialogOpen(false)}
+          onSave={handleSaveConfig}
+          defaultConfig={openCostConfig}
+          serviceName="OpenCost"
+          defaultNamespace="opencost"
+          defaultService="opencost:9090"
+        />
 
         <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
           <CardContent className="p-8">
@@ -129,7 +183,7 @@ customPricing:
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => window.open('https://www.opencost.io/docs/installation', '_blank')}
+                  onClick={() => openExternalUrl('https://opencost.io/docs/installation/install')}
                   className="flex items-center gap-1"
                 >
                   <ExternalLink className="h-4 w-4" />
@@ -206,9 +260,9 @@ customPricing:
             <TabsContent value="values" className="mt-4">
               <div className="relative">
                 <div className="absolute right-2 top-2 z-10 flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="h-8 px-2"
                     onClick={handleCopyValuesYaml}
                   >
@@ -218,9 +272,9 @@ customPricing:
                       <Copy className="h-4 w-4" />
                     )}
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="h-8 px-2"
                     onClick={() => {
                       const blob = new Blob([yamlContent], { type: 'text/yaml' });
@@ -234,7 +288,7 @@ customPricing:
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 <div className="h-96 mt-2 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                   <Editor
                     height="100%"
@@ -256,7 +310,7 @@ customPricing:
                   />
                 </div>
               </div>
-              
+
               <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
                 This configuration can be used with the Helm chart to install OpenCost.
                 <br />
@@ -269,7 +323,7 @@ customPricing:
             <Button variant="outline" onClick={() => setIsInstallDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleInstallConfirm}
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-700 text-white"
