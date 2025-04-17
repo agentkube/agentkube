@@ -8,6 +8,7 @@ import {
   posthogCaptureAppStarted,
   posthogCaptureAppClosed
 } from '@/api/analytics/posthog';
+import { useAuth } from './useAuth';
 
 // Define the context type
 interface PostHogContextType {
@@ -48,6 +49,7 @@ export const PostHogProvider: React.FC<PostHogProviderProps> = ({
 }) => {
   // State to track whether analytics is enabled
   const [analyticsEnabled, setAnalyticsEnabled] = useState<boolean>(initialAnalyticsEnabled);
+  const { user } = useAuth();
   
   // Load analytics preference from localStorage on mount
   useEffect(() => {
@@ -65,14 +67,27 @@ export const PostHogProvider: React.FC<PostHogProviderProps> = ({
   
   // Capture app_started event on initial mount
   useEffect(() => {
-    posthogCaptureAppStarted();
-
+    if (!user) return;
+    const currentUrl = (typeof window !== 'undefined' ? window.location.href : '');
     
-    // Capture app_closed event when component unmounts (app closes)
-    return () => {
-      posthogCaptureAppClosed();
-    };
-  }, [analyticsEnabled]);
+    if (user.isLicensed) {
+      posthogCapture("user_session", {
+        "is_licensed": true,
+        "email": user.email,
+        "plan": user.subscription.product_name,
+        "name": user.customer_name,
+        $current_url: currentUrl.replace("http://localhost:5422/#", ""),
+        $lib: "desktop"
+      });
+    } else {
+      posthogCapture("user_session", {
+        "is_licensed": false,
+        $current_url: currentUrl,
+        $lib: "desktop"
+      });
+    }
+        
+  }, [analyticsEnabled, user]);
   
   // Wrapper for capture that respects the enabled setting
   const captureEvent = async (event: string, properties?: Record<string, any>) => {

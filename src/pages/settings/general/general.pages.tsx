@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getSettings, patchConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { usePostHog } from '@/contexts/useAnalytics'; 
 
 const GeneralSettings: React.FC = () => {
   const { toast } = useToast();
+  const { analyticsEnabled, setAnalyticsEnabled } = usePostHog();
 
   // State for settings
   const [language, setLanguage] = useState<string | undefined>(undefined);
@@ -34,7 +36,15 @@ const GeneralSettings: React.FC = () => {
         // Set state with fetched settings using nullish coalescing
         setLanguage(settings.general?.language ?? 'en');
         setAutoUpdate(settings.general?.autoUpdate);
-        setUsageAnalytics(settings.general?.usageAnalytics);
+        
+        // Set usageAnalytics and sync with PostHog
+        const analyticsValue = settings.general?.usageAnalytics;
+        setUsageAnalytics(analyticsValue);
+        
+        // Sync PostHog state with settings - only if we have a defined value
+        if (analyticsValue !== undefined) {
+          setAnalyticsEnabled(analyticsValue);
+        }
         
         // Check actual autostart status from Tauri
         const autoStartEnabled = await isEnabled();
@@ -57,7 +67,15 @@ const GeneralSettings: React.FC = () => {
     };
 
     fetchSettings();
-  }, [toast]);
+  }, [toast, setAnalyticsEnabled]);
+
+  // Sync state when PostHog analyticsEnabled changes externally
+  useEffect(() => {
+    // Only update if we've already loaded initial settings
+    if (!isLoading && usageAnalytics !== analyticsEnabled) {
+      setUsageAnalytics(analyticsEnabled);
+    }
+  }, [analyticsEnabled, isLoading, usageAnalytics]);
 
   // Handle language change
   const handleLanguageChange = (lang: string) => {
@@ -85,6 +103,13 @@ const GeneralSettings: React.FC = () => {
       const autoStartEnabled = await isEnabled();
       setStartOnLogin(autoStartEnabled);
     }
+  };
+
+  // Handle analytics toggle with PostHog sync
+  const handleAnalyticsChange = (checked: boolean) => {
+    setUsageAnalytics(checked);
+    // Also update PostHog context
+    setAnalyticsEnabled(checked);
   };
 
   // Handle settings save
@@ -211,7 +236,7 @@ const GeneralSettings: React.FC = () => {
           <Switch
             id="send-analytics"
             checked={!!usageAnalytics}
-            onCheckedChange={setUsageAnalytics}
+            onCheckedChange={handleAnalyticsChange}
           />
         </div>
 
