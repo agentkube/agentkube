@@ -1,4 +1,3 @@
-// pages/settings/GeneralSettings.tsx
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getSettings, updateSettingsSection } from '@/api/settings';
+import { getSettings, patchConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 
@@ -14,12 +13,12 @@ const GeneralSettings: React.FC = () => {
   const { toast } = useToast();
 
   // State for settings
-  const [language, setLanguage] = useState('en');
-  const [defaultLocation, setDefaultLocation] = useState('');
-  const [autoUpdate, setAutoUpdate] = useState(true);
-  const [usageAnalytics, setUsageAnalytics] = useState(true);
-  const [startOnLogin, setStartOnLogin] = useState(false);
-  const [excludeNamespaces, setExcludeNamespaces] = useState<string[]>([]);
+  const [language, setLanguage] = useState<string | undefined>(undefined);
+  const [defaultLocation, setDefaultLocation] = useState<string | undefined>(undefined);
+  const [autoUpdate, setAutoUpdate] = useState<boolean | undefined>(undefined);
+  const [usageAnalytics, setUsageAnalytics] = useState<boolean | undefined>(undefined);
+  const [startOnLogin, setStartOnLogin] = useState<boolean | undefined>(undefined);
+  const [excludeNamespaces, setExcludeNamespaces] = useState<string[] | undefined>(undefined);
 
   // Loading and saving states
   const [isLoading, setIsLoading] = useState(true);
@@ -32,19 +31,19 @@ const GeneralSettings: React.FC = () => {
         setIsLoading(true);
         const settings = await getSettings();
 
-        // Set state with fetched settings
-        setLanguage(settings.general?.language || 'en');
-        setAutoUpdate(settings.general?.autoUpdate || false);
-        setUsageAnalytics(settings.general?.usageAnalytics || false);
+        // Set state with fetched settings using nullish coalescing
+        setLanguage(settings.general?.language ?? 'en');
+        setAutoUpdate(settings.general?.autoUpdate);
+        setUsageAnalytics(settings.general?.usageAnalytics);
         
         // Check actual autostart status from Tauri
         const autoStartEnabled = await isEnabled();
         setStartOnLogin(autoStartEnabled);
         
-        setExcludeNamespaces(settings.general?.excludeNamespaces || []);
+        setExcludeNamespaces(settings.general?.excludeNamespaces ?? []);
 
         // Default location is stored in agentkubeconfig.path
-        setDefaultLocation(settings.agentkubeconfig?.path || '');
+        setDefaultLocation(settings.agentkubeconfig?.path ?? '');
       } catch (error) {
         console.error('Failed to load settings:', error);
         toast({
@@ -93,19 +92,32 @@ const GeneralSettings: React.FC = () => {
     try {
       setIsSaving(true);
 
-      // Update general settings
-      await updateSettingsSection('general', {
-        language,
-        autoUpdate,
-        usageAnalytics,
-        startOnLogin, // Store the current state in settings too
-        excludeNamespaces
-      });
+      // Create a config patch object with only defined values
+      const configPatch: Record<string, any> = {};
+      
+      // Only add general section if there are changes
+      const generalChanges: Record<string, any> = {};
+      if (language !== undefined) generalChanges.language = language;
+      if (autoUpdate !== undefined) generalChanges.autoUpdate = autoUpdate;
+      if (usageAnalytics !== undefined) generalChanges.usageAnalytics = usageAnalytics;
+      if (startOnLogin !== undefined) generalChanges.startOnLogin = startOnLogin;
+      if (excludeNamespaces !== undefined) generalChanges.excludeNamespaces = excludeNamespaces;
+      
+      if (Object.keys(generalChanges).length > 0) {
+        configPatch.general = generalChanges;
+      }
+      
+      // Only add agentkubeconfig section if there are changes
+      if (defaultLocation !== undefined) {
+        configPatch.agentkubeconfig = {
+          path: defaultLocation
+        };
+      }
 
-      // Update agent kube config path
-      await updateSettingsSection('agentkubeconfig', {
-        path: defaultLocation
-      });
+      // Only send patch request if there are any changes
+      if (Object.keys(configPatch).length > 0) {
+        await patchConfig(configPatch);
+      }
 
       toast({
         title: "Settings saved",
@@ -157,7 +169,7 @@ const GeneralSettings: React.FC = () => {
           <Label htmlFor="default-location">Default Config Location</Label>
           <Input
             id="default-location"
-            value={defaultLocation}
+            value={defaultLocation || ''}
             onChange={(e) => setDefaultLocation(e.target.value)}
           />
         </div>
@@ -165,7 +177,7 @@ const GeneralSettings: React.FC = () => {
         <div className="grid gap-2">
           <Label>Language</Label>
           <Select
-            value={language}
+            value={language || 'en'}
             onValueChange={handleLanguageChange}
           >
             <SelectTrigger className="w-full">
@@ -186,7 +198,7 @@ const GeneralSettings: React.FC = () => {
           </div>
           <Switch
             id="auto-update"
-            checked={autoUpdate}
+            checked={!!autoUpdate}
             onCheckedChange={setAutoUpdate}
           />
         </div>
@@ -198,7 +210,7 @@ const GeneralSettings: React.FC = () => {
           </div>
           <Switch
             id="send-analytics"
-            checked={usageAnalytics}
+            checked={!!usageAnalytics}
             onCheckedChange={setUsageAnalytics}
           />
         </div>
@@ -210,7 +222,7 @@ const GeneralSettings: React.FC = () => {
           </div>
           <Switch
             id="start-on-login"
-            checked={startOnLogin}
+            checked={!!startOnLogin}
             onCheckedChange={handleAutoStartChange}
           />
         </div>
