@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { useCluster } from '@/contexts/clusterContext';
-import { queryResource } from '@/api/internal/resources';
+import { listResources, queryResource } from '@/api/internal/resources';
 import { SearchResult } from '@/types/search';
+import { jsonToYaml } from '@/utils/yaml';
 
 interface ContextSelectorProps {
   onResourceSelect: (resource: SearchResult) => void;
@@ -33,6 +34,35 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+
+  const fetchResourceContent = async (resource: SearchResult): Promise<string> => {
+    try {
+      if (!currentContext) return '';
+      
+      // Get the resource details using the existing listResources function
+      const result = await listResources(
+        currentContext.name,
+        resource.resourceType,
+        {
+          namespace: resource.namespaced ? resource.namespace : undefined,
+          name: resource.resourceName,
+          apiGroup: resource.group || undefined,
+          apiVersion: resource.version || 'v1'
+        }
+      );
+      
+      // Convert the resource to YAML format using the existing utility
+      if (result.length > 0) {
+        return jsonToYaml(result[0]);
+      }
+      
+      return '';
+    } catch (err) {
+      console.error('Failed to fetch resource content:', err);
+      return '';
+    }
+  };
+  
 
   // Fetch search results when dropdown opens or search query changes
   useEffect(() => {
@@ -74,9 +104,26 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
     }
   };
 
-  const handleResourceSelection = (resource: SearchResult) => {
-    onResourceSelect(resource);
-    setIsOpen(false);
+  const handleResourceSelection = async (resource: SearchResult) => {
+    setIsLoading(true);
+    try {
+      // Fetch the resource content (YAML)
+      const resourceContent = await fetchResourceContent(resource);
+      
+      const enrichedResource = {
+        ...resource,
+        resourceContent
+      };
+      
+      onResourceSelect(enrichedResource);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error fetching resource content:', error);
+      onResourceSelect(resource);
+      setIsOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

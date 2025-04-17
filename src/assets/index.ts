@@ -1,0 +1,1 @@
+export { default as KUBERNETES } from './kubernetes-blue.png'

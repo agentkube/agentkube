@@ -3,6 +3,9 @@ import { User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { CodeBlock } from './codeblock.righdrawer';
 
+import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { EnrichedSearchResult } from '@/types/search';
+
 interface CodeProps {
   inline?: boolean;
   className?: string;
@@ -11,9 +14,10 @@ interface CodeProps {
 
 interface UserMessageProps {
   content: string;
+  contextFiles?: EnrichedSearchResult[];
 }
 
-const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
+const UserMessage: React.FC<UserMessageProps> = ({ content, contextFiles = [] })  => {
   return (
     <div className="flex p-4 w-full">
       <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden mr-2">
@@ -66,6 +70,19 @@ const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
           {content}
         </ReactMarkdown>
       </div>
+      {contextFiles.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {contextFiles.map(file => (
+              <div
+                key={`${file.resourceType}-${file.resourceName}`}
+                className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
+              >
+                <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+                <span className="ml-1">{file.resourceType}/{file.resourceName}</span>
+              </div>
+            ))}
+          </div>
+        )}
     </div>
   );
 };

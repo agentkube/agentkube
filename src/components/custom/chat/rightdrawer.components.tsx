@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
-import { AutoResizeTextarea, ModelSelector, ResourceContext } from '@/components/custom';
+import { AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
 import Messages from './main-assistant/message';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
-import { SearchResult } from '@/types/search';
+import { EnrichedSearchResult, SearchResult } from '@/types/search';
 import { drawerVariants, backdropVariants } from '@/utils/styles.utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatStream, executeCommand, ToolCall } from '@/api/orchestrator.chat';
+import { useCluster } from '@/contexts/clusterContext';
 
 interface SuggestedQuestion {
   question: string;
@@ -39,14 +40,16 @@ const suggestedQuestions: SuggestedQuestion[] = [
 
 // TODO: Make api call to get the available functions
 const mentionData = [
-  { id: 1, name: 'create_ticket', description: 'Create a ticket' },
-  { id: 2, name: 'create_task', description: 'Create a task' },
-  { id: 3, name: 'create_issue', description: 'Create an issue' },
-  { id: 4, name: 'create_project', description: 'Create a project' },
-  { id: 5, name: 'create_user', description: 'Create a user' },
-  { id: 6, name: 'create_customer', description: 'Create a customer' },
-  { id: 7, name: 'create_product', description: 'Create a product' },
+  { id: 1, name: '', description: '' },
+  // { id: 1, name: 'create_ticket', description: 'Create a ticket' },
+  // { id: 2, name: 'create_task', description: 'Create a task' },
+  // { id: 3, name: 'create_issue', description: 'Create an issue' },
+  // { id: 4, name: 'create_project', description: 'Create a project' },
+  // { id: 5, name: 'create_user', description: 'Create a user' },
+  // { id: 6, name: 'create_customer', description: 'Create a customer' },
+  // { id: 7, name: 'create_product', description: 'Create a product' },
 ];
+
 
 const RightDrawer: React.FC = () => {
   const { isOpen, setIsOpen } = useDrawer();
@@ -61,11 +64,14 @@ const RightDrawer: React.FC = () => {
   const [drawerMounted, setDrawerMounted] = useState<boolean>(false);
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
-  const [contextFiles, setContextFiles] = useState<SearchResult[]>([]);
-  
+  // TODO context files will also contain resource_name, resource_content
+  const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
+  const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
+  const { currentContext } = useCluster()
+
   // Conversation ID state to maintain session with the orchestrator
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
-  
+
   // Use a ref to accumulate streaming response
   const responseRef = useRef('');
   const toolCallsRef = useRef<ToolCall[]>([]);
@@ -96,6 +102,10 @@ const RightDrawer: React.FC = () => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen]);
+
+  const handleResourcePreview = (resource: EnrichedSearchResult) => {
+    setPreviewResource(resource);
+  };
 
   const handleClose = (): void => {
     try {
@@ -133,22 +143,29 @@ const RightDrawer: React.FC = () => {
     setIsLoading(true);
     setCurrentResponse('');
     setCurrentToolCalls([]);
-    responseRef.current = ''; // Reset accumulated response
-    toolCallsRef.current = []; // Reset accumulated tool calls
+    responseRef.current = '';
+    toolCallsRef.current = [];
     setIsInputFocused(false);
 
     try {
+      // Transform contextFiles to the format expected by the API
+      const formattedFiles = contextFiles.map(file => ({
+        resource_name: `${file.resourceType}/${file.resourceName}`,
+        resource_content: file.resourceContent || ''
+      }));
+
       await chatStream(
         {
           message: inputValue,
+          model: selectedModel, //Will be replaced with selectedModel
+          kubecontext: currentContext?.name,
+          files: formattedFiles.length > 0 ? formattedFiles : undefined
         },
         {
           onStart: (messageId, messageUuid) => {
             console.log(`Message started: ${messageId}`);
-            // Could store the message ID if needed
           },
           onContent: (index, text) => {
-            // Update the streaming response
             responseRef.current += text;
             setCurrentResponse(responseRef.current);
           },
@@ -158,28 +175,28 @@ const RightDrawer: React.FC = () => {
           },
           onComplete: (reason) => {
             setMessages(prev => [
-              ...prev, 
-              { 
-                role: 'assistant', 
+              ...prev,
+              {
+                role: 'assistant',
                 content: responseRef.current,
                 toolCalls: toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
               }
             ]);
-            
+
             setCurrentResponse('');
             setCurrentToolCalls([]);
+            setContextFiles([]);
             setIsLoading(false);
           },
           onError: (error) => {
             console.error('Error in chat stream:', error);
             setIsLoading(false);
-            
-            // Add error message
+
             setMessages(prev => [
               ...prev,
               {
                 role: 'assistant',
-                content: `Error: ${error.message || 'Something went wrong during the chat.'}`
+                content: `${'Something went wrong during the chat.'}`
               }
             ]);
           }
@@ -193,7 +210,7 @@ const RightDrawer: React.FC = () => {
     } catch (error) {
       console.error('Failed to process message:', error);
       setIsLoading(false);
-      
+
       setMessages(prev => [
         ...prev,
         {
@@ -215,23 +232,23 @@ const RightDrawer: React.FC = () => {
           content: `Execute: \`${command}\``
         }
       ]);
-      
+
       // Execute the command with analysis
       const result = await executeCommand(command);
-      
+
       // Add the result to messages
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: result.success 
+          content: result.success
             ? `**Command executed:**\n\`\`\`\n${result.output}\n\`\`\`\n`
             : `**Command failed:**\n\`\`\`\n${result.output || 'No output'}\n\`\`\`\n`
         }
       ]);
     } catch (error) {
       console.error('Failed to execute command:', error);
-      
+
       // Add error message
       setMessages(prev => [
         ...prev,
@@ -385,21 +402,36 @@ const RightDrawer: React.FC = () => {
                 </div>
 
                 {contextFiles.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-1">
+                  <div className="mb-2 flex flex-wrap gap-1 relative">
                     {contextFiles.map(file => (
                       <div
                         key={file.resourceName}
                         className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
                       >
-                        <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
-                        <span className="ml-1">{file.resourceName}</span>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleResourcePreview(file)}
+                        >
+                          <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+                          <span className="ml-1">{file.resourceName}</span>
+                        </div>
                         <X
                           size={12}
                           className="ml-1 cursor-pointer"
-                          onClick={() => setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName))}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
+                          }}
                         />
                       </div>
                     ))}
+
+                    {previewResource && (
+                      <ResourcePreview
+                        resource={previewResource}
+                        onClose={() => setPreviewResource(null)}
+                      />
+                    )}
                   </div>
                 )}
 

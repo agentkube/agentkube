@@ -7,6 +7,10 @@ export interface SearchResult {
   namespaced: boolean;
 }
 
+export interface EnrichedSearchResult extends SearchResult {
+  resourceContent?: string;
+}
+
 export interface SearchResponse {
   results: SearchResult[];
   count: number;

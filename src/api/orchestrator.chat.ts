@@ -26,8 +26,8 @@ export interface ChatMessage {
 }
 
 export interface FileContent {
-  title: string;
-  content: string;
+  resource_name: string;
+  resource_content: string;
 }
 
 export interface ExecuteCommandRequest {
