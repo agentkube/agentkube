@@ -3,6 +3,12 @@ import { Pencil, RotateCw, Trash2, Wrench } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { getServerTools } from '@/api/settings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MCPTool {
   name: string;
@@ -12,10 +18,10 @@ interface MCPTool {
 
 interface MCPServer {
   name: string;
-  type: string;      
-  url?: string;       
-  command?: string;  
-  args?: string[];   
+  type: string;
+  url?: string;
+  command?: string;
+  args?: string[];
   env?: Record<string, string>;
   connected: boolean;
   tools_count: number;
@@ -46,7 +52,7 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
             const toolsData = await getServerTools(server.name);
             setServerTools(prev => ({
               ...prev,
-              [server.name]: toolsData.tools || []
+              [server.name]: toolsData || []
             }));
           } catch (error) {
             console.error(`Error fetching tools for ${server.name}:`, error);
@@ -83,7 +89,7 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
         .then(toolsData => {
           setServerTools(prev => ({
             ...prev,
-            [server.name]: toolsData.tools || []
+            [server.name]: toolsData || []
           }));
         })
         .catch(error => {
@@ -139,12 +145,18 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
     return (
       <div className="flex flex-wrap gap-1 mt-1">
         {tools.map((tool, idx) => (
-          <span
-            key={idx}
-            className="text-xs font-mono bg-gray-200 dark:bg-gray-900 border dark:border-gray-800 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300"
-          >
-            {tool.name}
-          </span>
+          <TooltipProvider key={idx}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs font-mono bg-gray-200 dark:bg-gray-900 border dark:border-gray-800 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300 cursor-pointer">
+                  {tool.name}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className='bg-gray-50 dark:bg-[#0B0D13]/20 dark:text-white  backdrop-blur-md border border-gray-400/20 max-w-sm' side="top">
+                <p>{tool.description || "No description available"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ))}
       </div>
     );
@@ -241,19 +253,21 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
                 </span>
               </div>
             ) : server.connected ? (
-              <div className="mt-2 text-sm text-green-500 flex items-center">
-                <span className="inline-flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
-                  Connected
-                </span>
-              </div>
+              // <div className="mt-2 text-sm text-green-500 flex items-center">
+              //   <span className="inline-flex items-center">
+              //     <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
+              //     Connected
+              //   </span>
+              // </div>
+              <></>
             ) : (
-              <div className="mt-2 text-sm text-red-500 flex items-center">
-                <span className="inline-flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
-                  Disconnected
-                </span>
-              </div>
+              <></>
+              // <div className="mt-2 text-sm text-red-500 flex items-center">
+              //   <span className="inline-flex items-center">
+              //     <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
+              //     Disconnected
+              //   </span>
+              // </div>
             )}
           </div>
         ))}

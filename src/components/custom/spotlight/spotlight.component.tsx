@@ -112,7 +112,7 @@ const Spotlight: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-60">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative w-full max-w-3xl bg-gray-100 dark:bg-[#1B1C26]/70 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
+      <div className="relative w-full max-w-3xl bg-gray-100 dark:bg-[#1B1C26]/70 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden">
         {/* Search Input */}
         <div className="flex items-center justify-between py-1 px-4 text-2xl">
           <div className="flex items-center flex-grow">
@@ -177,7 +177,7 @@ const Spotlight: React.FC = () => {
                 <p className="text-sm mb-1 text-gray-500">Command</p>
                 <Separator className="bg-gray-200 dark:bg-gray-900/20" />
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-800/50">
+              <div>
                 {filteredCommandSuggestions.map((suggestion, index) => (
                   <CommandSpotlight
                     key={index}
@@ -194,7 +194,7 @@ const Spotlight: React.FC = () => {
         {showSuggestions && query && !chartSelected && (
           <>
             <div className="py-1">
-              <div className="border-t border-gray-200 dark:border-gray-900">
+              <div className="border-t border-gray-200 dark:border-gray-700/30">
                 <CommandSuggestions
                   query={query}
                   onCommandSelect={handleCommandExecution}
@@ -212,7 +212,7 @@ const Spotlight: React.FC = () => {
               <div className="px-4">
                 <p className="text-sm mb-1 text-gray-500">System</p>
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-900">
+              <div className="border-t border-gray-200 dark:border-gray-700/30">
                 {filteredSuggestions.map((suggestion, index) => (
                   <SpotlightSuggestion
                     key={index}
@@ -235,7 +235,7 @@ const Spotlight: React.FC = () => {
                 <p className="text-sm mb-1 text-gray-500">Explorer</p>
                 <Separator className="bg-gray-200" />
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-900">
+              <div className="border-gray-200 dark:border-gray-800/40">
                 {filteredExplorerSuggestions.map((suggestion, index) => (
                   <ExplorerSuggestion
                     key={index}

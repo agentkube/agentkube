@@ -55,23 +55,19 @@ const MCPServerConfigPage = () => {
         const serversData = await getMcpServers();
 
         // Convert the servers object to an array for easier manipulation in the UI
-        const serversArray: MCPServer[] = Object.entries(serversData.servers).map(([name, details]: [string, any]) => {
-          // Determine server type based on transport or presence of command
-          let serverType = 'remote';
-          if (details.transport === 'stdio' || details.command) {
-            serverType = 'process';
-          }
-
+        const serversArray: MCPServer[] = serversData.map((server: any) => {
+          let serverType = server.type === 'stdio' ? 'process' : 'remote';
+          
           return {
-            name,
+            name: server.name,
             type: serverType,
-            url: details.url || '',
-            command: details.command || '',
-            args: details.args || [],
-            env: details.env || {},
-            connected: details.connected || false,
-            tools_count: details.tools_count || 0,
-            error: details.error
+            url: server.url || '',
+            command: server.command || '',
+            args: server.args || [],
+            env: server.env || {},
+            connected: server.connected || false,
+            tools_count: server.tools_count || 0,
+            error: server.error
           };
         });
 
@@ -193,24 +189,25 @@ const MCPServerConfigPage = () => {
         title: "Reloading server",
         description: `Reloading server configuration for ${serverName}...`,
       });
-
+  
       // Fetch server tools to test connection
       const toolsData = await getServerTools(serverName);
-
+      
+      console.log(toolsData)
       // Update the server in the list
       const updatedServers = [...mcpServers];
       updatedServers[index] = {
         ...updatedServers[index],
         connected: true,
-        tools_count: toolsData.count || 0,
+        tools_count: toolsData.length || 0,  // Changed from toolsData.count to toolsData.length
         error: null
       };
-
+  
       setMcpServers(updatedServers);
-
+  
       toast({
         title: "Server reloaded",
-        description: `Successfully refreshed ${serverName} with ${toolsData.count} tools.`,
+        description: `Successfully refreshed ${serverName} with ${toolsData.length} tools.`,  // Changed here too
       });
     } catch (error) {
       console.error('Error reloading server:', error);
@@ -234,22 +231,19 @@ const MCPServerConfigPage = () => {
       const serversData = await getMcpServers();
 
       // Convert the servers object to an array for easier manipulation in the UI
-      const serversArray: MCPServer[] = Object.entries(serversData.servers).map(([name, details]: [string, any]) => {
-        // Determine server type based on transport or presence of command
-        let serverType = 'remote';
-        if (details.transport === 'stdio' || details.command) {
-          serverType = 'process';
-        }
-
+      const serversArray: MCPServer[] = serversData.map((server: any) => {
+        let serverType = server.type === 'stdio' ? 'process' : 'remote';
+        
         return {
-          name,
+          name: server.name,
           type: serverType,
-          url: details.url || '',
-          command: details.command || '',
-          args: details.args || [],
-          connected: details.connected || false,
-          tools_count: details.tools_count || 0,
-          error: details.error
+          url: server.url || '',
+          command: server.command || '',
+          args: server.args || [],
+          env: server.env || {},
+          connected: server.connected || false,
+          tools_count: server.tools_count || 0,
+          error: server.error
         };
       });
 
