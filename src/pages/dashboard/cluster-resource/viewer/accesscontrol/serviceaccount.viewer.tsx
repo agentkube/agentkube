@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -36,6 +37,9 @@ const ServiceAccountViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { serviceAccountName, namespace } = useParams<{ serviceAccountName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the service account
   const fetchEvents = async () => {
@@ -252,7 +256,7 @@ const ServiceAccountViewer: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${serviceAccountData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{serviceAccountData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${serviceAccountData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{serviceAccountData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -269,7 +273,14 @@ const ServiceAccountViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -360,8 +371,8 @@ const ServiceAccountViewer: React.FC = () => {
               {serviceAccountData.secrets && serviceAccountData.secrets.length > 0 ? (
                 <div className="space-y-2">
                   {serviceAccountData.secrets.map((secret, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="p-3 rounded-lg border border-gray-200 dark:border-gray-800 flex justify-between items-center"
                     >
                       <div>
@@ -370,8 +381,8 @@ const ServiceAccountViewer: React.FC = () => {
                           {secret.name?.includes('token') ? 'API Token' : 'Secret'}
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => navigate(`/dashboard/explore/secrets/${namespace}/${secret.name}`)}
                       >
@@ -393,13 +404,13 @@ const ServiceAccountViewer: React.FC = () => {
                 <h2 className="text-lg font-medium mb-4">Image Pull Secrets</h2>
                 <div className="space-y-2">
                   {serviceAccountData.imagePullSecrets.map((secret, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="p-3 rounded-lg border border-gray-200 dark:border-gray-800 flex justify-between items-center"
                     >
                       <div className="font-medium">{secret.name}</div>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => navigate(`/dashboard/explore/secrets/${namespace}/${secret.name}`)}
                       >
@@ -436,7 +447,7 @@ const ServiceAccountViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="roles" className="space-y-6">
-          {serviceAccountName && namespace && currentContext && (
+            {serviceAccountName && namespace && currentContext && (
               <ServiceAccountRoles
                 serviceAccountName={serviceAccountName}
                 namespace={namespace}

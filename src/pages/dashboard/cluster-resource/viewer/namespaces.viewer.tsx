@@ -21,6 +21,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from './components/properties.viewer';
 import EventsViewer from './components/event.viewer';
 import { ResourceViewerYamlTab } from '@/components/custom';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for namespace data
 interface NamespaceData extends V1Namespace {
@@ -36,6 +37,10 @@ const NamespaceViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { namespaceName } = useParams<{ namespaceName: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
+
 
   // Resource types to count
   const resourceTypes = [
@@ -345,7 +350,15 @@ const NamespaceViewer: React.FC = () => {
         )}
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6 bg-transparent">
+        <Tabs 
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6 bg-transparent">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>

@@ -23,7 +23,7 @@ import EventsViewer from '../components/event.viewer';
 import DeploymentPods from '../components/deploymentpods.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { ResourceCanvas } from '@/components/custom';
-import TestCanvas from '@/components/custom/canvas/testcanvas.component';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for deployment data (extending V1Deployment with events)
 interface DeploymentData extends V1Deployment {
@@ -38,6 +38,9 @@ const DeploymentViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { deploymentName, namespace } = useParams<{ deploymentName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the deployment
   const fetchEvents = async () => {
@@ -312,7 +315,15 @@ const DeploymentViewer: React.FC = () => {
         <DeploymentStatusAlert />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6 bg-transparent">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6 bg-transparent">
           <TabsList className="bg-transparent">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -599,9 +610,9 @@ const DeploymentViewer: React.FC = () => {
 
           <TabsContent value="canvas" className="space-y-6">
             <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-            {/* <TestCanvas />  */}
+              {/* <TestCanvas />  */}
               {deploymentData && (
-                <ResourceCanvas 
+                <ResourceCanvas
                   resourceDetails={{
                     namespace: deploymentData.metadata?.namespace || '',
                     group: 'apps',

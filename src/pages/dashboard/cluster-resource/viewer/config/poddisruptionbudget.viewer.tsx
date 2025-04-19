@@ -17,11 +17,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
-import { V1PodDisruptionBudget} from '@kubernetes/client-node';
+import { V1PodDisruptionBudget } from '@kubernetes/client-node';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import { ResourceViewerYamlTab } from '@/components/custom';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for PDB data with events
 interface PDBData extends V1PodDisruptionBudget {
@@ -36,6 +37,9 @@ const PodDisruptionBudgetViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { pdbName, namespace } = useParams<{ pdbName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the PDB
   const fetchEvents = async () => {
@@ -160,7 +164,7 @@ const PodDisruptionBudgetViewer: React.FC = () => {
 
     // Check if generation is up-to-date
     if (pdbData.metadata?.generation && pdbData.status.observedGeneration &&
-        pdbData.metadata.generation > pdbData.status.observedGeneration) {
+      pdbData.metadata.generation > pdbData.status.observedGeneration) {
       return { status: 'Updating', isHealthy: false };
     }
 
@@ -224,7 +228,7 @@ const PodDisruptionBudgetViewer: React.FC = () => {
     if (!pdbData?.status?.expectedPods || pdbData.status.expectedPods === 0) {
       return 0;
     }
-    
+
     return (pdbData.status.currentHealthy || 0) / pdbData.status.expectedPods * 100;
   };
 
@@ -285,11 +289,11 @@ const PodDisruptionBudgetViewer: React.FC = () => {
   const desiredHealthy = pdbData.status?.desiredHealthy || 0;
   const expectedPods = pdbData.status?.expectedPods || 0;
   const disruptionsAllowed = pdbData.status?.disruptionsAllowed || 0;
-  const statusColor = status === 'Healthy' || status === 'NoDisruptionsAllowed' 
-    ? 'text-green-600 dark:text-green-400' 
+  const statusColor = status === 'Healthy' || status === 'NoDisruptionsAllowed'
+    ? 'text-green-600 dark:text-green-400'
     : 'text-yellow-600 dark:text-yellow-400';
   const healthPercentage = calculateHealthPercentage();
-  
+
   return (
     <div className='max-h-[92vh] overflow-y-auto
           scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
@@ -366,7 +370,15 @@ const PodDisruptionBudgetViewer: React.FC = () => {
         <PDBStatusAlert />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -424,7 +436,7 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                   {getPDBAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {pdbData.metadata.creationTimestamp && 
+                  Created {pdbData.metadata.creationTimestamp &&
                     new Date(pdbData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -438,9 +450,9 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                   <span className="text-sm font-medium">Healthy Pods</span>
                   <span className="text-sm">{currentHealthy} of {expectedPods} ({Math.round(healthPercentage)}%)</span>
                 </div>
-                <Progress 
-                  value={healthPercentage} 
-                  className="h-2" 
+                <Progress
+                  value={healthPercentage}
+                  className="h-2"
                 />
                 <div className="flex justify-between mt-2">
                   <div className="text-sm">
@@ -448,8 +460,8 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                   </div>
                   <div className="text-sm">
                     <span className={`font-medium ${disruptionsAllowed > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {disruptionsAllowed > 0 
-                        ? `${disruptionsAllowed} disruption${disruptionsAllowed > 1 ? 's' : ''} allowed` 
+                      {disruptionsAllowed > 0
+                        ? `${disruptionsAllowed} disruption${disruptionsAllowed > 1 ? 's' : ''} allowed`
                         : 'No disruptions allowed'}
                     </span>
                   </div>
@@ -466,14 +478,14 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                     No selector specified. This PDB applies to all pods in the namespace.
                   </div>
                 )}
-                
+
                 {pdbData.spec?.selector?.matchLabels && (
                   <div>
                     <h3 className="text-sm font-medium mb-2">Match Labels</h3>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(pdbData.spec.selector.matchLabels).map(([key, value]) => (
-                        <Badge 
-                          key={key} 
+                        <Badge
+                          key={key}
                           variant="outline"
                           className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300"
                         >
@@ -483,7 +495,7 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {pdbData.spec?.selector?.matchExpressions && pdbData.spec.selector.matchExpressions.length > 0 && (
                   <div className="mt-4">
                     <h3 className="text-sm font-medium mb-2">Match Expressions</h3>
@@ -540,7 +552,7 @@ const PodDisruptionBudgetViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="yaml" className="space-y-6">
-          <ResourceViewerYamlTab
+            <ResourceViewerYamlTab
               resourceData={pdbData}
               namespace={pdbData.metadata.namespace || ''}
               currentContext={currentContext}

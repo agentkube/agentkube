@@ -22,6 +22,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import DaemonSetPods from '../components/daemonsetpods.viewer';
 import { ResourceViewerYamlTab } from '@/components/custom';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for daemonset data (extending V1DaemonSet with events)
 interface DaemonSetData extends V1DaemonSet {
@@ -36,8 +37,9 @@ const DaemonSetViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { daemonSetName, namespace } = useParams<{ daemonSetName: string; namespace: string }>();
   const navigate = useNavigate();
-
-  console.log(daemonSetName, namespace)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the daemonset
   const fetchEvents = async () => {
@@ -306,7 +308,15 @@ const DaemonSetViewer: React.FC = () => {
         <DaemonSetStatusAlert />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs 
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>

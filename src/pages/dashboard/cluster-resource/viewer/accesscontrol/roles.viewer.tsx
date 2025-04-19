@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -33,6 +34,9 @@ const RoleViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { roleName, namespace } = useParams<{ roleName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the Role
   const fetchEvents = async () => {
@@ -69,15 +73,15 @@ const RoleViewer: React.FC = () => {
       const bindings = await listResources(
         currentContext.name,
         'rolebindings',
-        { 
+        {
           namespace,
-          apiGroup: 'rbac.authorization.k8s.io' 
+          apiGroup: 'rbac.authorization.k8s.io'
         }
       );
 
       // Filter for bindings that reference this Role
-      const relevantBindings = bindings.filter((binding: any) => 
-        binding.roleRef.kind === 'Role' && 
+      const relevantBindings = bindings.filter((binding: any) =>
+        binding.roleRef.kind === 'Role' &&
         binding.roleRef.name === roleName
       );
 
@@ -179,29 +183,29 @@ const RoleViewer: React.FC = () => {
     const apiGroups = rule.apiGroups?.join(', ') || '';
     const resources = rule.resources?.join(', ') || '';
     const verbs = rule.verbs?.join(', ') || '';
-    
+
     return { apiGroups, resources, verbs };
   };
 
   // Get rule count by verb
   const getRuleCountByVerb = () => {
     if (!roleData?.rules) return {};
-    
+
     const verbCounts: Record<string, number> = {};
-    
+
     roleData.rules.forEach(rule => {
       rule.verbs.forEach((verb: string) => {
         verbCounts[verb] = (verbCounts[verb] || 0) + 1;
       });
     });
-    
+
     return verbCounts;
   };
 
   // Get subjects from role bindings
   const getSubjects = () => {
     if (!roleBindings) return [];
-    
+
     // Combine all subjects from all bindings
     return roleBindings.flatMap(binding => binding.subjects || []);
   };
@@ -310,14 +314,14 @@ const RoleViewer: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{roleData.metadata.name}</h1>
-                <Badge className={hasAdminVerbs 
+                <Badge className={hasAdminVerbs
                   ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                   : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"}>
                   {hasAdminVerbs ? 'Admin Rights' : 'Read-Only'}
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${roleData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{roleData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${roleData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{roleData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -334,7 +338,15 @@ const RoleViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs 
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="rules">Rules</TabsTrigger>
@@ -447,12 +459,12 @@ const RoleViewer: React.FC = () => {
               <div className="space-y-4">
                 {/* Resources with full access */}
                 {roleData.rules && roleData.rules
-                  .filter(rule => rule.verbs.includes('*') || 
-                    (rule.verbs.includes('get') && 
-                    rule.verbs.includes('list') && 
-                    rule.verbs.includes('create') && 
-                    rule.verbs.includes('update') && 
-                    rule.verbs.includes('delete')))
+                  .filter(rule => rule.verbs.includes('*') ||
+                    (rule.verbs.includes('get') &&
+                      rule.verbs.includes('list') &&
+                      rule.verbs.includes('create') &&
+                      rule.verbs.includes('update') &&
+                      rule.verbs.includes('delete')))
                   .slice(0, 5)
                   .map((rule, index) => {
                     const { apiGroups, resources, verbs } = formatRule(rule);
@@ -476,7 +488,7 @@ const RoleViewer: React.FC = () => {
 
                 {/* Resources with read-only access */}
                 {roleData.rules && roleData.rules
-                  .filter(rule => !rule.verbs.includes('*') && 
+                  .filter(rule => !rule.verbs.includes('*') &&
                     !rule.verbs.some(v => ['create', 'update', 'delete', 'patch'].includes(v)) &&
                     rule.verbs.some(v => ['get', 'list', 'watch'].includes(v)))
                   .slice(0, 5)
@@ -529,15 +541,14 @@ const RoleViewer: React.FC = () => {
                     const { apiGroups, resources, verbs } = formatRule(rule);
                     const isAdmin = rule.verbs.some(v => ['create', 'update', 'delete', 'patch', '*'].includes(v));
                     const nonResourceUrls = rule.nonResourceURLs?.join(', ');
-                    
+
                     return (
-                      <div 
-                        key={index} 
-                        className={`p-4 rounded-lg border ${
-                          isAdmin 
-                            ? 'border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10' 
+                      <div
+                        key={index}
+                        className={`p-4 rounded-lg border ${isAdmin
+                            ? 'border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10'
                             : 'border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10'
-                        }`}
+                          }`}
                       >
                         <div className="flex justify-between mb-2">
                           <div className="font-medium">Rule #{index + 1}</div>
@@ -547,7 +558,7 @@ const RoleViewer: React.FC = () => {
                             {isAdmin ? 'Admin' : 'Read-Only'}
                           </Badge>
                         </div>
-                        
+
                         <div className="space-y-2 mt-3">
                           {resources && (
                             <div className="grid grid-cols-4 gap-2">
@@ -555,29 +566,29 @@ const RoleViewer: React.FC = () => {
                               <div className="col-span-3 text-sm">{resources}</div>
                             </div>
                           )}
-                          
+
                           {apiGroups && (
                             <div className="grid grid-cols-4 gap-2">
                               <div className="text-sm font-medium text-gray-700 dark:text-gray-300">API Groups:</div>
                               <div className="col-span-3 text-sm">{apiGroups}</div>
                             </div>
                           )}
-                          
+
                           {nonResourceUrls && (
                             <div className="grid grid-cols-4 gap-2">
                               <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Non-Resource URLs:</div>
                               <div className="col-span-3 text-sm">{nonResourceUrls}</div>
                             </div>
                           )}
-                          
+
                           {verbs && (
                             <div className="grid grid-cols-4 gap-2">
                               <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Verbs:</div>
                               <div className="col-span-3 text-sm">
                                 <div className="flex flex-wrap gap-1">
                                   {rule.verbs.map((verb: string) => (
-                                    <Badge 
-                                      key={verb} 
+                                    <Badge
+                                      key={verb}
                                       className={['create', 'update', 'delete', 'patch', '*'].includes(verb)
                                         ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                                         : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"}
@@ -608,7 +619,7 @@ const RoleViewer: React.FC = () => {
                 <h2 className="text-lg font-medium">RoleBindings</h2>
                 <Badge className="text-xs">{roleBindings.length} Bindings</Badge>
               </div>
-              
+
               {roleBindings.length > 0 ? (
                 <div className="space-y-4">
                   {roleBindings.map((binding, index) => (
@@ -619,7 +630,7 @@ const RoleViewer: React.FC = () => {
                           {binding.subjects?.length || 0} Subject(s)
                         </Badge>
                       </div>
-                      
+
                       <div className="mt-3">
                         <h4 className="text-sm font-medium mb-2">Subjects:</h4>
                         <div className="space-y-2">
@@ -644,10 +655,10 @@ const RoleViewer: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="mt-3"
                         onClick={() => navigate(`/dashboard/explore/rolebindings/${namespace}/${binding.metadata.name}`)}
                       >

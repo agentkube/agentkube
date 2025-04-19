@@ -22,6 +22,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ReplicaSetPods from '../components/replicasetpods.viewer';
 import { ResourceViewerYamlTab } from '@/components/custom';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for replicaset data (extending V1ReplicaSet with events)
 interface ReplicaSetData extends V1ReplicaSet {
@@ -36,6 +37,10 @@ const ReplicaSetViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { replicaSetName, namespace } = useParams<{ replicaSetName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
+
 
   // Fetch events for the replicaset
   const fetchEvents = async () => {
@@ -167,11 +172,11 @@ const ReplicaSetViewer: React.FC = () => {
   // Helper function to find owner reference (usually a Deployment)
   const findOwnerReference = () => {
     if (!replicaSetData?.metadata?.ownerReferences) return null;
-    
+
     const deploymentOwner = replicaSetData.metadata.ownerReferences.find(
       ref => ref.kind === 'Deployment'
     );
-    
+
     return deploymentOwner;
   };
 
@@ -332,7 +337,15 @@ const ReplicaSetViewer: React.FC = () => {
         <ReplicaSetStatusAlert />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>

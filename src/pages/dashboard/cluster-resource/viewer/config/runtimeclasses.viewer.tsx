@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -32,6 +33,9 @@ const RuntimeClassViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { runtimeClassName } = useParams<{ runtimeClassName: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events related to this runtime class
   const fetchEvents = async () => {
@@ -274,7 +278,15 @@ const RuntimeClassViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs 
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -321,12 +333,12 @@ const RuntimeClassViewer: React.FC = () => {
                   {getRuntimeClassAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {runtimeClassData.metadata.creationTimestamp && 
+                  Created {runtimeClassData.metadata.creationTimestamp &&
                     new Date(runtimeClassData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
             </div>
-    
+
 
             {/* Overhead section if available */}
             {runtimeClassData.overhead && runtimeClassData.overhead.podFixed && (
@@ -334,7 +346,7 @@ const RuntimeClassViewer: React.FC = () => {
                 <h2 className="text-lg font-medium mb-4">Pod Overhead</h2>
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Pod overhead is defined as the resources consumed by the Pod infrastructure above the sum of 
+                    Pod overhead is defined as the resources consumed by the Pod infrastructure above the sum of
                     container requests & limits.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -362,8 +374,8 @@ const RuntimeClassViewer: React.FC = () => {
                       <h3 className="text-sm font-medium mb-2">Node Selector</h3>
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(runtimeClassData.scheduling.nodeSelector).map(([key, value]) => (
-                          <Badge 
-                            key={key} 
+                          <Badge
+                            key={key}
                             variant="outline"
                             className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300"
                           >
@@ -384,7 +396,7 @@ const RuntimeClassViewer: React.FC = () => {
                             {toleration.operator && <span> {toleration.operator}</span>}
                             {toleration.value && <span> {toleration.value}</span>}
                             {toleration.effect && <span> ({toleration.effect})</span>}
-                            {toleration.tolerationSeconds && 
+                            {toleration.tolerationSeconds &&
                               <span className="text-sm text-gray-500 dark:text-gray-400"> for {toleration.tolerationSeconds}s</span>
                             }
                           </div>

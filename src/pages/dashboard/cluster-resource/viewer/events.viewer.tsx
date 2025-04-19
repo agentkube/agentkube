@@ -9,7 +9,6 @@ import { useCluster } from '@/contexts/clusterContext';
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Clock, Info, Search, Bell, Filter } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";

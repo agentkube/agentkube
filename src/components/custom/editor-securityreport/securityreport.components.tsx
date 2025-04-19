@@ -11,6 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { openExternalUrl } from '@/api/external';
 
 interface SecurityReportProps {
   yamlContent: string;
@@ -195,7 +196,7 @@ const SecurityReport: React.FC<SecurityReportProps> = ({
 
                   <div className="mt-2 text-sm">
                     <a
-                      href={misconfig.PrimaryURL}
+                      onClick={() => openExternalUrl(misconfig.PrimaryURL)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"

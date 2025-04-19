@@ -21,6 +21,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for cronjob data (extending V1CronJob with events)
 interface CronJobData extends V1CronJob {
@@ -37,6 +38,9 @@ const CronJobViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { cronJobName, namespace } = useParams<{ cronJobName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the cronjob
   const fetchEvents = async () => {
@@ -65,7 +69,7 @@ const CronJobViewer: React.FC = () => {
       const jobsData = await listResources<'jobs'>(
         currentContext.name,
         'jobs',
-        { 
+        {
           namespace,
           apiGroup: 'batch'
         }
@@ -163,7 +167,7 @@ const CronJobViewer: React.FC = () => {
   // Format date time for display
   const formatDateTime = (timestamp: string | undefined) => {
     if (!timestamp) return 'N/A';
-    
+
     const date = new Date(timestamp);
     return date.toLocaleString();
   };
@@ -186,7 +190,7 @@ const CronJobViewer: React.FC = () => {
     }
 
     const isSuspended = cronJobData.spec?.suspend === true;
-    
+
     if (isSuspended) {
       return { status: 'Suspended', isSuspended: true };
     }
@@ -269,7 +273,7 @@ const CronJobViewer: React.FC = () => {
   const parseCronSchedule = (schedule: string) => {
     // This is a very simplified parser, production code would use a library
     const parts = schedule.split(' ');
-    
+
     if (parts.length !== 5) {
       return schedule; // Return original if not standard cron format
     }
@@ -431,7 +435,15 @@ const CronJobViewer: React.FC = () => {
         <CronJobStatusAlert />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -461,14 +473,14 @@ const CronJobViewer: React.FC = () => {
                   <h3 className="text-sm font-medium">Last Scheduled</h3>
                 </div>
                 <div className="text-lg font-semibold">
-                  {cronJobData.status?.lastScheduleTime ? 
-                    new Date(cronJobData.status.lastScheduleTime).toLocaleDateString() : 
+                  {cronJobData.status?.lastScheduleTime ?
+                    new Date(cronJobData.status.lastScheduleTime).toLocaleDateString() :
                     'Never'
                   }
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {cronJobData.status?.lastScheduleTime ? 
-                    new Date(cronJobData.status.lastScheduleTime).toLocaleTimeString() : 
+                  {cronJobData.status?.lastScheduleTime ?
+                    new Date(cronJobData.status.lastScheduleTime).toLocaleTimeString() :
                     'No jobs scheduled yet'
                   }
                 </div>
@@ -523,15 +535,15 @@ const CronJobViewer: React.FC = () => {
                 },
                 {
                   label: "Starting Deadline",
-                  value: cronJobData.spec?.startingDeadlineSeconds ? 
-                    `${cronJobData.spec.startingDeadlineSeconds}s` : 
+                  value: cronJobData.spec?.startingDeadlineSeconds ?
+                    `${cronJobData.spec.startingDeadlineSeconds}s` :
                     'Not set'
                 },
                 {
                   label: "History Limit",
                   value: (
                     <div>
-                      Successful: {cronJobData.spec?.successfulJobsHistoryLimit || 3}, 
+                      Successful: {cronJobData.spec?.successfulJobsHistoryLimit || 3},
                       Failed: {cronJobData.spec?.failedJobsHistoryLimit || 1}
                     </div>
                   )
@@ -550,27 +562,27 @@ const CronJobViewer: React.FC = () => {
                     {cronJobData.spec?.schedule ? parseCronSchedule(cronJobData.spec.schedule) : 'No schedule defined'}
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Last Schedule Time</div>
                   <div className="font-medium">
-                    {cronJobData.status?.lastScheduleTime ? 
-                      formatDateTime(cronJobData.status.lastScheduleTime?.toString()) : 
+                    {cronJobData.status?.lastScheduleTime ?
+                      formatDateTime(cronJobData.status.lastScheduleTime?.toString()) :
                       'Never scheduled'
                     }
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Last Successful Time</div>
                   <div className="font-medium">
-                    {cronJobData.status?.lastSuccessfulTime ? 
-                      formatDateTime(cronJobData.status.lastSuccessfulTime?.toString()) : 
+                    {cronJobData.status?.lastSuccessfulTime ?
+                      formatDateTime(cronJobData.status.lastSuccessfulTime?.toString()) :
                       'No successful jobs yet'
                     }
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Time Zone</div>
                   <div className="font-medium">
@@ -604,8 +616,8 @@ const CronJobViewer: React.FC = () => {
                   <div>
                     <div className="text-sm font-medium mb-1">Active Deadline</div>
                     <div>
-                      {cronJobData.spec?.jobTemplate?.spec?.activeDeadlineSeconds ? 
-                        `${cronJobData.spec.jobTemplate.spec.activeDeadlineSeconds}s` : 
+                      {cronJobData.spec?.jobTemplate?.spec?.activeDeadlineSeconds ?
+                        `${cronJobData.spec.jobTemplate.spec.activeDeadlineSeconds}s` :
                         'No deadline'
                       }
                     </div>
@@ -709,7 +721,7 @@ const CronJobViewer: React.FC = () => {
                       {jobs.slice(0, 5).map((job) => {
                         let statusColor = '';
                         let status = 'Unknown';
-                        
+
                         if (job.status?.active && job.status.active > 0) {
                           status = 'Running';
                           statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
@@ -720,7 +732,7 @@ const CronJobViewer: React.FC = () => {
                           status = 'Failed';
                           statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
                         }
-                        
+
                         return (
                           <tr key={job.metadata?.name} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -741,8 +753,8 @@ const CronJobViewer: React.FC = () => {
                               </Badge>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => navigate(`/dashboard/explore/jobs/${namespace}/${job.metadata?.name}`)}
                               >
@@ -757,7 +769,7 @@ const CronJobViewer: React.FC = () => {
                 </div>
                 {jobs.length > 5 && (
                   <div className="mt-4 text-center">
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => navigate(`/dashboard/explore/jobs?namespace=${namespace}&labelSelector=job-name=${cronJobData.metadata?.name}`)}
                     >
@@ -801,7 +813,7 @@ const CronJobViewer: React.FC = () => {
                   Refresh
                 </Button>
               </div>
-              
+
               {jobs.length === 0 ? (
                 <div className="text-center p-6 text-gray-500 dark:text-gray-400">
                   No jobs have been created by this CronJob yet.
@@ -822,7 +834,7 @@ const CronJobViewer: React.FC = () => {
                       {jobs.map((job) => {
                         let statusColor = '';
                         let status = 'Unknown';
-                        
+
                         if (job.status?.active && job.status.active > 0) {
                           status = 'Running';
                           statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
@@ -833,7 +845,7 @@ const CronJobViewer: React.FC = () => {
                           status = 'Failed';
                           statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
                         }
-                        
+
                         return (
                           <tr key={job.metadata?.name} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -857,8 +869,8 @@ const CronJobViewer: React.FC = () => {
                               </Badge>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => navigate(`/dashboard/explore/jobs/${namespace}/${job.metadata?.name}`)}
                               >

@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -37,6 +38,9 @@ const SecretViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { secretName, namespace } = useParams<{ secretName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the secret
   const fetchEvents = async () => {
@@ -184,9 +188,9 @@ const SecretViewer: React.FC = () => {
   // Determine secret type
   const getSecretType = (): string => {
     if (!secretData) return 'Unknown';
-    
+
     const type = secretData.type || 'Opaque';
-    
+
     // Map known secret types to more readable names
     const typeMap: Record<string, string> = {
       'kubernetes.io/service-account-token': 'Service Account Token',
@@ -198,7 +202,7 @@ const SecretViewer: React.FC = () => {
       'bootstrap.kubernetes.io/token': 'Bootstrap Token',
       'Opaque': 'Opaque'
     };
-    
+
     return typeMap[type] || type;
   };
 
@@ -256,9 +260,9 @@ const SecretViewer: React.FC = () => {
   // Calculate secret metrics
   const dataEntryCount = secretData.data ? Object.keys(secretData.data).length : 0;
   const secretType = getSecretType();
-  const totalSize = secretData.data ? 
+  const totalSize = secretData.data ?
     Object.values(secretData.data).reduce((acc, val) => acc + (val?.length || 0), 0) : 0;
-  
+
   return (
     <div className='max-h-[92vh] overflow-y-auto
           scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
@@ -266,7 +270,7 @@ const SecretViewer: React.FC = () => {
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
-          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'>    
+          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'>
       <div className="p-6 max-w-7xl mx-auto">
         {/* Breadcrumb navigation */}
         <Breadcrumb className="mb-6">
@@ -314,7 +318,7 @@ const SecretViewer: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${secretData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{secretData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${secretData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{secretData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -340,7 +344,14 @@ const SecretViewer: React.FC = () => {
         </Alert>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs 
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="data">Secret Data</TabsTrigger>
@@ -383,9 +394,9 @@ const SecretViewer: React.FC = () => {
                   <h3 className="text-sm font-medium">Total Size</h3>
                 </div>
                 <div className="text-2xl font-semibold">
-                  {totalSize < 1024 ? `${totalSize} B` : 
-                  totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` : 
-                  `${(totalSize / 1024 / 1024).toFixed(2)} MB`}
+                  {totalSize < 1024 ? `${totalSize} B` :
+                    totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` :
+                      `${(totalSize / 1024 / 1024).toFixed(2)} MB`}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Combined data size
@@ -401,7 +412,7 @@ const SecretViewer: React.FC = () => {
                   {getSecretAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {secretData.metadata.creationTimestamp && 
+                  Created {secretData.metadata.creationTimestamp &&
                     new Date(secretData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -423,15 +434,15 @@ const SecretViewer: React.FC = () => {
                 },
                 {
                   label: "Total Size",
-                  value: totalSize < 1024 ? `${totalSize} bytes` : 
-                        totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` : 
-                        `${(totalSize / 1024 / 1024).toFixed(2)} MB`
+                  value: totalSize < 1024 ? `${totalSize} bytes` :
+                    totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` :
+                      `${(totalSize / 1024 / 1024).toFixed(2)} MB`
                 },
                 {
                   label: "Creation Time",
-                  value: secretData.metadata.creationTimestamp ? 
-                        new Date(secretData.metadata.creationTimestamp).toLocaleString() : 
-                        'N/A'
+                  value: secretData.metadata.creationTimestamp ?
+                    new Date(secretData.metadata.creationTimestamp).toLocaleString() :
+                    'N/A'
                 }
               ]}
             />
@@ -469,8 +480,8 @@ const SecretViewer: React.FC = () => {
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Data Preview</h2>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => document.getElementById('data-tab')?.click()}
                   >
@@ -549,18 +560,18 @@ const SecretViewer: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-sm">Show All Values</span>
                     <Switch
-                      checked={Object.keys(secretData.data || {}).length > 0 && 
-                              Object.keys(secretData.data || {}).every(key => showSecretValues[key])}
+                      checked={Object.keys(secretData.data || {}).length > 0 &&
+                        Object.keys(secretData.data || {}).every(key => showSecretValues[key])}
                       onCheckedChange={() => {
                         const allKeys = Object.keys(secretData.data || {});
                         const allShown = allKeys.length > 0 && allKeys.every(key => showSecretValues[key]);
-                        
+
                         // Toggle all keys to the opposite of current state
                         const newState = allKeys.reduce((acc, key) => {
                           acc[key] = !allShown;
                           return acc;
                         }, {} as Record<string, boolean>);
-                        
+
                         setShowSecretValues(newState);
                       }}
                     />
@@ -640,7 +651,7 @@ const SecretViewer: React.FC = () => {
         </Tabs>
       </div>
     </div>
-    
+
   );
 };
 

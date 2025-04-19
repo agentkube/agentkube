@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -32,6 +33,9 @@ const PriorityClassViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { priorityClassName } = useParams<{ priorityClassName: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events related to this priority class
   const fetchEvents = async () => {
@@ -147,7 +151,7 @@ const PriorityClassViewer: React.FC = () => {
   // Get a color class based on the priority value
   const getPriorityColorClass = (value: number | undefined): string => {
     if (value === undefined) return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-    
+
     if (value >= 1000000) {
       return 'bg-red-200 text-red-800 dark:bg-red-900/30 dark:text-red-400';
     } else if (value >= 10000) {
@@ -278,7 +282,14 @@ const PriorityClassViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -323,7 +334,7 @@ const PriorityClassViewer: React.FC = () => {
                   {getPriorityClassAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {pcData.metadata.creationTimestamp && 
+                  Created {pcData.metadata.creationTimestamp &&
                     new Date(pcData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -345,12 +356,12 @@ const PriorityClassViewer: React.FC = () => {
               <h2 className="text-lg font-medium mb-2">About Priority</h2>
               <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
                 <p>
-                  Priority indicates the importance of a Pod relative to other Pods. 
+                  Priority indicates the importance of a Pod relative to other Pods.
                   Pods with higher priority values are scheduled ahead of Pods with lower priority values.
                 </p>
                 {pcData.value !== undefined && pcData.value >= 1000000 && (
                   <p className="text-red-600 dark:text-red-400 font-medium">
-                    This priority class has a value ≥ 1,000,000, making it a system-critical priority. 
+                    This priority class has a value ≥ 1,000,000, making it a system-critical priority.
                     System-critical Pods are exempt from eviction.
                   </p>
                 )}
@@ -401,7 +412,7 @@ const PriorityClassViewer: React.FC = () => {
             <ResourceViewerYamlTab
               resourceData={pcData}
               currentContext={currentContext}
-            />  
+            />
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6">

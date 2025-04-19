@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -36,6 +37,9 @@ const ResourceQuotaViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { resourceQuotaName, namespace } = useParams<{ resourceQuotaName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the resourcequota
   const fetchEvents = async () => {
@@ -151,16 +155,16 @@ const ResourceQuotaViewer: React.FC = () => {
     // If it's a number with millicpu units
     if (value.endsWith('m') && !isNaN(parseInt(value))) {
       const millicores = parseInt(value);
-      return millicores >= 1000 
-        ? `${(millicores / 1000).toFixed(1)} cores` 
+      return millicores >= 1000
+        ? `${(millicores / 1000).toFixed(1)} cores`
         : `${millicores} millicores`;
     }
-    
+
     // If it's a number with k8s memory units (Ki, Mi, Gi)
     if (value.endsWith('Ki') || value.endsWith('Mi') || value.endsWith('Gi')) {
       const units = value.slice(-2);
       const num = parseInt(value.slice(0, -2));
-      
+
       if (!isNaN(num)) {
         if (units === 'Ki' && num >= 1024) {
           return `${(num / 1024).toFixed(2)} Mi`;
@@ -170,20 +174,20 @@ const ResourceQuotaViewer: React.FC = () => {
         return `${num} ${units}`;
       }
     }
-    
+
     return value;
   };
 
   // Calculate usage percentage
   const calculateUsagePercentage = (used: string | undefined, hard: string | undefined): number => {
     if (!used || !hard) return 0;
-    
+
     // Extract numeric values and handle 'm' for millicores
     const getNumericValue = (val: string): number => {
       if (val.endsWith('m')) {
         return parseInt(val);
       }
-      
+
       // Handle Ki, Mi, Gi units by converting to bytes
       if (val.endsWith('Ki')) {
         return parseInt(val) * 1024;
@@ -192,15 +196,15 @@ const ResourceQuotaViewer: React.FC = () => {
       } else if (val.endsWith('Gi')) {
         return parseInt(val) * 1024 * 1024 * 1024;
       }
-      
+
       return parseInt(val);
     };
-    
+
     const usedVal = getNumericValue(used);
     const hardVal = getNumericValue(hard);
-    
+
     if (hardVal === 0) return 0;
-    
+
     return Math.min(100, Math.round((usedVal / hardVal) * 100));
   };
 
@@ -272,7 +276,7 @@ const ResourceQuotaViewer: React.FC = () => {
   const hardQuotas = resourceQuotaData.spec?.hard || {};
   const usedQuotas = resourceQuotaData.status?.used || {};
   const hardQuotaCount = Object.keys(hardQuotas).length;
-  
+
   return (
     <div className='max-h-[92vh] overflow-y-auto
           scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
@@ -325,7 +329,7 @@ const ResourceQuotaViewer: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${resourceQuotaData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{resourceQuotaData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${resourceQuotaData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{resourceQuotaData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -342,7 +346,14 @@ const ResourceQuotaViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs 
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -393,7 +404,7 @@ const ResourceQuotaViewer: React.FC = () => {
                   {getResourceQuotaAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {resourceQuotaData.metadata.creationTimestamp && 
+                  Created {resourceQuotaData.metadata.creationTimestamp &&
                     new Date(resourceQuotaData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -415,9 +426,9 @@ const ResourceQuotaViewer: React.FC = () => {
                 },
                 {
                   label: "Creation Time",
-                  value: resourceQuotaData.metadata.creationTimestamp ? 
-                        new Date(resourceQuotaData.metadata.creationTimestamp).toLocaleString() : 
-                        'N/A'
+                  value: resourceQuotaData.metadata.creationTimestamp ?
+                    new Date(resourceQuotaData.metadata.creationTimestamp).toLocaleString() :
+                    'N/A'
                 }
               ]}
             />
@@ -425,7 +436,7 @@ const ResourceQuotaViewer: React.FC = () => {
             {/* Resource Usage Section */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Resource Usage</h2>
-              
+
               {Object.keys(hardQuotas).length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   No resource quotas defined
@@ -446,7 +457,7 @@ const ResourceQuotaViewer: React.FC = () => {
                             const usedValue = usedQuotas[key];
                             const hardValue = hardQuotas[key];
                             const usagePercentage = calculateUsagePercentage(usedValue, hardValue);
-                            
+
                             return (
                               <div key={key} className="space-y-1">
                                 <div className="flex justify-between">
@@ -465,7 +476,7 @@ const ResourceQuotaViewer: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Memory Resources */}
                   {Object.keys(hardQuotas).filter(key => key.includes('memory')).length > 0 && (
                     <div>
@@ -480,7 +491,7 @@ const ResourceQuotaViewer: React.FC = () => {
                             const usedValue = usedQuotas[key];
                             const hardValue = hardQuotas[key];
                             const usagePercentage = calculateUsagePercentage(usedValue, hardValue);
-                            
+
                             return (
                               <div key={key} className="space-y-1">
                                 <div className="flex justify-between">
@@ -499,7 +510,7 @@ const ResourceQuotaViewer: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Storage Resources */}
                   {Object.keys(hardQuotas).filter(key => key.includes('storage')).length > 0 && (
                     <div>
@@ -514,7 +525,7 @@ const ResourceQuotaViewer: React.FC = () => {
                             const usedValue = usedQuotas[key];
                             const hardValue = hardQuotas[key];
                             const usagePercentage = calculateUsagePercentage(usedValue, hardValue);
-                            
+
                             return (
                               <div key={key} className="space-y-1">
                                 <div className="flex justify-between">
@@ -533,42 +544,42 @@ const ResourceQuotaViewer: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Object Count Resources */}
                   {Object.keys(hardQuotas)
                     .filter(key => !key.includes('cpu') && !key.includes('memory') && !key.includes('storage'))
                     .length > 0 && (
-                    <div>
-                      <h3 className="text-md font-medium mb-3 flex items-center gap-2">
-                        <Database className="h-4 w-4 text-gray-500" />
-                        Object Count Quotas
-                      </h3>
-                      <div className="space-y-4">
-                        {Object.keys(hardQuotas)
-                          .filter(key => !key.includes('cpu') && !key.includes('memory') && !key.includes('storage'))
-                          .map(key => {
-                            const usedValue = usedQuotas[key];
-                            const hardValue = hardQuotas[key];
-                            const usagePercentage = calculateUsagePercentage(usedValue, hardValue);
-                            
-                            return (
-                              <div key={key} className="space-y-1">
-                                <div className="flex justify-between">
-                                  <span className="text-sm font-medium">{key}</span>
-                                  <span className="text-sm">
-                                    {usedValue || '0'} / {hardValue}
-                                  </span>
+                      <div>
+                        <h3 className="text-md font-medium mb-3 flex items-center gap-2">
+                          <Database className="h-4 w-4 text-gray-500" />
+                          Object Count Quotas
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.keys(hardQuotas)
+                            .filter(key => !key.includes('cpu') && !key.includes('memory') && !key.includes('storage'))
+                            .map(key => {
+                              const usedValue = usedQuotas[key];
+                              const hardValue = hardQuotas[key];
+                              const usagePercentage = calculateUsagePercentage(usedValue, hardValue);
+
+                              return (
+                                <div key={key} className="space-y-1">
+                                  <div className="flex justify-between">
+                                    <span className="text-sm font-medium">{key}</span>
+                                    <span className="text-sm">
+                                      {usedValue || '0'} / {hardValue}
+                                    </span>
+                                  </div>
+                                  <Progress value={usagePercentage} className="h-2" />
+                                  <div className="text-xs text-gray-500">
+                                    {usagePercentage}% used
+                                  </div>
                                 </div>
-                                <Progress value={usagePercentage} className="h-2" />
-                                <div className="text-xs text-gray-500">
-                                  {usagePercentage}% used
-                                </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               )}
             </div>
@@ -576,7 +587,7 @@ const ResourceQuotaViewer: React.FC = () => {
             {/* All Quotas Table View */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">All Resource Quotas</h2>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
@@ -599,7 +610,7 @@ const ResourceQuotaViewer: React.FC = () => {
                         const usedValue = usedQuotas[key] || '0';
                         const hardValue = hardQuotas[key];
                         const usagePercentage = calculateUsagePercentage(usedValue, hardValue);
-                        
+
                         return (
                           <tr key={key} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -617,12 +628,11 @@ const ResourceQuotaViewer: React.FC = () => {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-2">
-                                  <div 
-                                    className={`h-2.5 rounded-full ${
-                                      usagePercentage > 90 ? 'bg-red-600' : 
-                                      usagePercentage > 75 ? 'bg-yellow-500' : 
-                                      'bg-green-600'
-                                    }`} 
+                                  <div
+                                    className={`h-2.5 rounded-full ${usagePercentage > 90 ? 'bg-red-600' :
+                                        usagePercentage > 75 ? 'bg-yellow-500' :
+                                          'bg-green-600'
+                                      }`}
                                     style={{ width: `${usagePercentage}%` }}
                                   ></div>
                                 </div>
@@ -654,7 +664,7 @@ const ResourceQuotaViewer: React.FC = () => {
               resourceData={resourceQuotaData}
               namespace={resourceQuotaData.metadata.namespace || ''}
               currentContext={currentContext}
-            />  
+            />
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6">

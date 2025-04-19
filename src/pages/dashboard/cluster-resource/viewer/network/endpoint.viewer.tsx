@@ -17,6 +17,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { useSearchParams } from 'react-router-dom';
 
 interface EndpointData extends V1Endpoints {
   events?: CoreV1Event[];
@@ -30,6 +31,9 @@ const EndpointViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { endpointName, namespace } = useParams<{ endpointName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -156,12 +160,12 @@ const EndpointViewer: React.FC = () => {
   };
 
   const getTotalAddresses = () => {
-    return endpointData.subsets?.reduce((total, subset) => 
+    return endpointData.subsets?.reduce((total, subset) =>
       total + (subset.addresses?.length || 0), 0) || 0;
   };
 
   const getTotalPorts = () => {
-    return endpointData.subsets?.reduce((total, subset) => 
+    return endpointData.subsets?.reduce((total, subset) =>
       total + (subset.ports?.length || 0), 0) || 0;
   };
 
@@ -214,7 +218,7 @@ const EndpointViewer: React.FC = () => {
                 <Badge variant="outline">Endpoints</Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${endpointData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{endpointData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${endpointData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{endpointData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -265,7 +269,15 @@ const EndpointViewer: React.FC = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -287,7 +299,7 @@ const EndpointViewer: React.FC = () => {
             {endpointData.subsets?.map((subset, index) => (
               <Card key={index} className="bg-white dark:bg-gray-900/30 p-4">
                 <h3 className="text-lg font-medium mb-4">Subset {index + 1}</h3>
-                
+
                 <div className="space-y-4">
                   {subset.addresses && subset.addresses.length > 0 && (
                     <div>
@@ -359,7 +371,7 @@ const EndpointViewer: React.FC = () => {
               resourceData={endpointData}
               namespace={endpointData.metadata.namespace || ''}
               currentContext={currentContext}
-              // resourceType="endpoints"
+            // resourceType="endpoints"
             />
           </TabsContent>
 

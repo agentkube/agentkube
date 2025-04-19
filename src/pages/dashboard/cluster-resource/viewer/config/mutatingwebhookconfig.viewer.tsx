@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -32,6 +33,9 @@ const MutatingWebhookViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { webhookName } = useParams<{ webhookName: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events related to this webhook
   const fetchEvents = async () => {
@@ -261,7 +265,14 @@ const MutatingWebhookViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs 
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
@@ -309,7 +320,7 @@ const MutatingWebhookViewer: React.FC = () => {
                   {getWebhookAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {webhookData.metadata.creationTimestamp && 
+                  Created {webhookData.metadata.creationTimestamp &&
                     new Date(webhookData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -350,7 +361,7 @@ const MutatingWebhookViewer: React.FC = () => {
                     <h2 className="text-lg font-medium mb-4">
                       {webhook.name}
                     </h2>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Webhook Configuration */}
                       <div>
@@ -384,19 +395,19 @@ const MutatingWebhookViewer: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Failure Policy:</div>
                               <Badge className={
-                                webhook.failurePolicy === 'Ignore' 
+                                webhook.failurePolicy === 'Ignore'
                                   ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                                   : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                               }>
                                 {webhook.failurePolicy || 'Fail'}
                               </Badge>
                             </div>
-                            
+
                             <div>
                               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Side Effects:</div>
                               <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
@@ -404,7 +415,7 @@ const MutatingWebhookViewer: React.FC = () => {
                               </Badge>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Timeout:</div>
@@ -412,7 +423,7 @@ const MutatingWebhookViewer: React.FC = () => {
                                 {webhook.timeoutSeconds ? `${webhook.timeoutSeconds}s` : 'Default (10s)'}
                               </div>
                             </div>
-                            
+
                             <div>
                               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Admission Review:</div>
                               <div className="font-medium">
@@ -422,7 +433,7 @@ const MutatingWebhookViewer: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Rules and Selector */}
                       <div>
                         <div className="mb-4">
@@ -460,7 +471,7 @@ const MutatingWebhookViewer: React.FC = () => {
                             <div className="text-gray-500 dark:text-gray-400">No rules defined</div>
                           )}
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium mb-2">Match Conditions</h3>
                           {webhook.matchConditions && webhook.matchConditions.length > 0 ? (
@@ -482,7 +493,7 @@ const MutatingWebhookViewer: React.FC = () => {
                             <div className="text-gray-500 dark:text-gray-400">No match conditions defined</div>
                           )}
                         </div>
-                        
+
                         <div className="mt-4">
                           <h3 className="text-sm font-medium mb-2">Object Selector</h3>
                           {webhook.objectSelector?.matchLabels || webhook.objectSelector?.matchExpressions ? (
@@ -499,7 +510,7 @@ const MutatingWebhookViewer: React.FC = () => {
                                   </div>
                                 </div>
                               )}
-                              
+
                               {webhook.objectSelector.matchExpressions && webhook.objectSelector.matchExpressions.length > 0 && (
                                 <div>
                                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Match Expressions:</div>
@@ -517,7 +528,7 @@ const MutatingWebhookViewer: React.FC = () => {
                             <div className="text-gray-500 dark:text-gray-400">No object selector defined</div>
                           )}
                         </div>
-                        
+
                         <div className="mt-4">
                           <h3 className="text-sm font-medium mb-2">Namespace Selector</h3>
                           {webhook.namespaceSelector?.matchLabels || webhook.namespaceSelector?.matchExpressions ? (
@@ -534,7 +545,7 @@ const MutatingWebhookViewer: React.FC = () => {
                                   </div>
                                 </div>
                               )}
-                              
+
                               {webhook.namespaceSelector.matchExpressions && webhook.namespaceSelector.matchExpressions.length > 0 && (
                                 <div>
                                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Match Expressions:</div>
@@ -554,7 +565,7 @@ const MutatingWebhookViewer: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Reinvocation Policy */}
                     {webhook.reinvocationPolicy && (
                       <div className="mt-4 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/50">
@@ -566,8 +577,8 @@ const MutatingWebhookViewer: React.FC = () => {
                           </Badge>
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {webhook.reinvocationPolicy === 'Never' 
-                            ? 'This webhook will never be reinvoked.' 
+                          {webhook.reinvocationPolicy === 'Never'
+                            ? 'This webhook will never be reinvoked.'
                             : 'This webhook may be called multiple times as part of a single admission evaluation.'}
                         </div>
                       </div>

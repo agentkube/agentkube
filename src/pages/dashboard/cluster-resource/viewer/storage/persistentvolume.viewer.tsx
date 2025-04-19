@@ -21,6 +21,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for PV data
 interface PVData extends V1PersistentVolume {
@@ -35,6 +36,9 @@ const PersistentVolumeViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { pvName } = useParams<{ pvName: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the PV
   const fetchEvents = async () => {
@@ -379,7 +383,15 @@ const PersistentVolumeViewer: React.FC = () => {
         )}
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6 bg-transparent">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6 bg-transparent">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -395,8 +407,8 @@ const PersistentVolumeViewer: React.FC = () => {
                   <h3 className="text-sm font-medium">Status</h3>
                 </div>
                 <div className={`text-lg font-semibold ${phase === 'Bound' || phase === 'Available'
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-yellow-600 dark:text-yellow-400'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-yellow-600 dark:text-yellow-400'
                   }`}>
                   {phase}
                 </div>

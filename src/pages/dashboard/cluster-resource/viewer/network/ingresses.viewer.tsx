@@ -17,6 +17,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { useSearchParams } from 'react-router-dom';
 
 interface IngressData extends V1Ingress {
   events?: CoreV1Event[];
@@ -30,6 +31,9 @@ const IngressViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { ingressName, namespace } = useParams<{ ingressName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -208,7 +212,7 @@ const IngressViewer: React.FC = () => {
                 <Badge variant="outline">Ingress</Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${ingressData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{ingressData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${ingressData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{ingressData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -272,7 +276,14 @@ const IngressViewer: React.FC = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -383,7 +394,7 @@ const IngressViewer: React.FC = () => {
               resourceData={ingressData}
               namespace={ingressData.metadata.namespace || ''}
               currentContext={currentContext}
-              // resourceType="ingresses"
+            // resourceType="ingresses"
             />
           </TabsContent>
 

@@ -24,6 +24,7 @@ import ContainerLogs from '../components/containerlogs.viewer';
 import { ResourceViewerYamlTab } from '@/components/custom';
 import PodMetricsComponent from '@/components/custom/metrics/pod-metrics.component';
 import { runExternalShell } from '@/api/external';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for pod data (extending V1Pod with events)
 interface PodData extends V1Pod {
@@ -38,6 +39,9 @@ const PodViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { podName, namespace } = useParams<{ podName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the pod
   const fetchEvents = async () => {
@@ -96,14 +100,14 @@ const PodViewer: React.FC = () => {
   const handleOpenShell = async () => {
     try {
       if (!currentContext?.name || !namespace || !podName) return;
-  
+
       // For the main container if there are multiple
       const containerName = podData?.spec?.containers?.[0]?.name;
-  
+
       // Remove unnecessary flags that might be causing problems
       // Simplify the command to avoid escaping issues
       const command = `kubectl exec -i -t -n ${namespace} ${podName} ${containerName ? `-c ${containerName}` : ''} -- sh`;
-  
+
       await runExternalShell(currentContext.name, command);
     } catch (err) {
       console.error('Error opening shell:', err);
@@ -299,7 +303,15 @@ const PodViewer: React.FC = () => {
         <PodStatusAlert phase={podData.status?.phase} />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6" >
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>

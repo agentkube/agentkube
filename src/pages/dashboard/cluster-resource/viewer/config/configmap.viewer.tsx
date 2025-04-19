@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -35,6 +36,9 @@ const ConfigMapViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { configMapName, namespace } = useParams<{ configMapName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the configmap
   const fetchEvents = async () => {
@@ -229,11 +233,11 @@ const ConfigMapViewer: React.FC = () => {
   // Calculate configmap metrics
   const dataEntryCount = configMapData.data ? Object.keys(configMapData.data).length : 0;
   const binaryEntryCount = configMapData.binaryData ? Object.keys(configMapData.binaryData).length : 0;
-  const totalSize = (configMapData.data ? 
+  const totalSize = (configMapData.data ?
     Object.values(configMapData.data).reduce((acc, val) => acc + (val?.length || 0), 0) : 0) +
-    (configMapData.binaryData ? 
-    Object.values(configMapData.binaryData).reduce((acc, val) => acc + (val?.length || 0), 0) : 0);
-  
+    (configMapData.binaryData ?
+      Object.values(configMapData.binaryData).reduce((acc, val) => acc + (val?.length || 0), 0) : 0);
+
   return (
     <div className='
           max-h-[92vh] overflow-y-auto
@@ -287,7 +291,7 @@ const ConfigMapViewer: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${configMapData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{configMapData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${configMapData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{configMapData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -304,7 +308,14 @@ const ConfigMapViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="data">Data</TabsTrigger>
@@ -347,9 +358,9 @@ const ConfigMapViewer: React.FC = () => {
                   <h3 className="text-sm font-medium">Total Size</h3>
                 </div>
                 <div className="text-2xl font-semibold">
-                  {totalSize < 1024 ? `${totalSize} B` : 
-                  totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` : 
-                  `${(totalSize / 1024 / 1024).toFixed(2)} MB`}
+                  {totalSize < 1024 ? `${totalSize} B` :
+                    totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` :
+                      `${(totalSize / 1024 / 1024).toFixed(2)} MB`}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Combined data size
@@ -365,7 +376,7 @@ const ConfigMapViewer: React.FC = () => {
                   {getConfigMapAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {configMapData.metadata.creationTimestamp && 
+                  Created {configMapData.metadata.creationTimestamp &&
                     new Date(configMapData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -387,15 +398,15 @@ const ConfigMapViewer: React.FC = () => {
                 },
                 {
                   label: "Total Size",
-                  value: totalSize < 1024 ? `${totalSize} bytes` : 
-                        totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` : 
-                        `${(totalSize / 1024 / 1024).toFixed(2)} MB`
+                  value: totalSize < 1024 ? `${totalSize} bytes` :
+                    totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(2)} KB` :
+                      `${(totalSize / 1024 / 1024).toFixed(2)} MB`
                 },
                 {
                   label: "Creation Time",
-                  value: configMapData.metadata.creationTimestamp ? 
-                        new Date(configMapData.metadata.creationTimestamp).toLocaleString() : 
-                        'N/A'
+                  value: configMapData.metadata.creationTimestamp ?
+                    new Date(configMapData.metadata.creationTimestamp).toLocaleString() :
+                    'N/A'
                 }
               ]}
             />
@@ -405,8 +416,8 @@ const ConfigMapViewer: React.FC = () => {
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Data Preview</h2>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => document.getElementById('data-tab')?.click()}
                   >

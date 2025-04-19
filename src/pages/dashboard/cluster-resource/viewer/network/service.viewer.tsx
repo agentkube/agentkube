@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -47,6 +48,9 @@ const ServiceViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { serviceName, namespace } = useParams<{ serviceName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the service
   const fetchEvents = async () => {
@@ -197,7 +201,7 @@ const ServiceViewer: React.FC = () => {
   // Convert V1ServicePort to SimplifiedPort format expected by PortForwardDialog
   const convertToPorts = (servicePorts: V1ServicePort[] | undefined): SimplifiedPort[] => {
     if (!servicePorts) return [];
-    
+
     return servicePorts.map(port => ({
       port: port.port,
       targetPort: port.targetPort || port.port,
@@ -358,7 +362,14 @@ const ServiceViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>

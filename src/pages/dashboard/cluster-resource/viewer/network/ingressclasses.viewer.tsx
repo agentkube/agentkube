@@ -21,6 +21,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for ingressclass data
 interface IngressClassData extends V1IngressClass {
@@ -35,6 +36,9 @@ const IngressClassViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { ingressClassName } = useParams<{ ingressClassName: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the ingressclass
   const fetchEvents = async () => {
@@ -139,7 +143,7 @@ const IngressClassViewer: React.FC = () => {
   // Format date time for display
   const formatDateTime = (timestamp: string | undefined) => {
     if (!timestamp) return 'N/A';
-    
+
     const date = new Date(timestamp);
     return date.toLocaleString();
   };
@@ -196,7 +200,7 @@ const IngressClassViewer: React.FC = () => {
   }
 
   // Check if this is the default IngressClass
-  const isDefault = ingressClassData.metadata.annotations && 
+  const isDefault = ingressClassData.metadata.annotations &&
     ingressClassData.metadata.annotations['ingressclass.kubernetes.io/is-default-class'] === 'true';
 
   return (
@@ -265,7 +269,14 @@ const IngressClassViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6 bg-transparent">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6 bg-transparent">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -354,26 +365,26 @@ const IngressClassViewer: React.FC = () => {
                       <div className="text-sm text-gray-600 dark:text-gray-400">API Group</div>
                       <div className="font-medium">{ingressClassData.spec.parameters.apiGroup || 'core'}</div>
                     </div>
-                    
+
                     <div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Kind</div>
                       <div className="font-medium">{ingressClassData.spec.parameters.kind}</div>
                     </div>
-                    
+
                     {ingressClassData.spec.parameters.name && (
                       <div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">Name</div>
                         <div className="font-medium">{ingressClassData.spec.parameters.name}</div>
                       </div>
                     )}
-                    
+
                     {ingressClassData.spec.parameters.namespace && (
                       <div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">Namespace</div>
                         <div className="font-medium">{ingressClassData.spec.parameters.namespace}</div>
                       </div>
                     )}
-                    
+
                     {ingressClassData.spec.parameters.scope && (
                       <div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">Scope</div>
@@ -381,11 +392,11 @@ const IngressClassViewer: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     <p>
-                      The parameters field refers to a resource with additional configuration 
-                      for this IngressClass. The parameters resource contains controller-specific 
+                      The parameters field refers to a resource with additional configuration
+                      for this IngressClass. The parameters resource contains controller-specific
                       configuration.
                     </p>
                   </div>
@@ -404,12 +415,12 @@ const IngressClassViewer: React.FC = () => {
                     {getControllerDescription(ingressClassData.spec?.controller || '')}
                   </div>
                 </div>
-                
+
                 <div className="mt-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400">Usage</div>
                   <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md font-mono text-xs">
                     <pre>
-  {`apiVersion: networking.k8s.io/v1
+                      {`apiVersion: networking.k8s.io/v1
   kind: Ingress
   metadata:
     name: example-ingress
@@ -440,7 +451,7 @@ const IngressClassViewer: React.FC = () => {
               resourceData={ingressClassData}
               namespace={ingressClassData.metadata.namespace || ''}
               currentContext={currentContext}
-              // resourceType="ingressclasses"
+            // resourceType="ingressclasses"
             />
           </TabsContent>
 
@@ -473,7 +484,7 @@ const getControllerDescription = (controller: string): string => {
     'kong.github.io/controller': 'Kong Ingress Controller using Kong API Gateway.'
   };
 
-  return descriptions[controller] || 
+  return descriptions[controller] ||
     'This controller handles the routing and load balancing for Ingress resources that specify this IngressClass.';
 };
 

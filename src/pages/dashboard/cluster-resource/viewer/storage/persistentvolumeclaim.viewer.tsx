@@ -21,6 +21,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interface for PVC data
 interface PVCData extends V1PersistentVolumeClaim {
@@ -36,6 +37,9 @@ const PersistentVolumeClaimViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { pvcName, namespace } = useParams<{ pvcName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the PVC
   const fetchEvents = async () => {
@@ -382,7 +386,14 @@ const PersistentVolumeClaimViewer: React.FC = () => {
         )}
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6 bg-transparent">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} className="space-y-6 bg-transparent">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>

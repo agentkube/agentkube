@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateAge } from '@/utils/age';
 import { ErrorComponent, ResourceViewerYamlTab } from '@/components/custom';
+import { useSearchParams } from 'react-router-dom';
 
 // Define interfaces
 interface CustomResourceDefinition {
@@ -86,40 +87,17 @@ interface CustomResource {
   [key: string]: any;
 }
 
-// YAML display component
-const YamlViewer = ({ data }: { data: any }) => {
-  const jsYaml = require('js-yaml');
-  try {
-    const yamlString = jsYaml.dump(data, { indent: 2, lineWidth: -1 });
-    
-    return (
-      <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-sm font-mono
-        max-h-[70vh] overflow-y-auto
-        scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
-        [&::-webkit-scrollbar]:w-1.5 
-        [&::-webkit-scrollbar-track]:bg-transparent 
-        [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-        {yamlString}
-      </pre>
-    );
-  } catch (error) {
-    return <div>Error rendering YAML: {String(error)}</div>;
-  }
-};
-
 // Schema display component
 const SchemaViewer = ({ schema }: { schema: any }) => {
   if (!schema || !schema.openAPIV3Schema) {
     return <div>No schema available</div>;
   }
-  
+
   // Helper function to render a property
   const renderProperty = (name: string, property: any, required: string[] = [], indent: number = 0) => {
     const isRequired = required.includes(name);
     const type = property.type || 'object';
-    
+
     return (
       <div key={name} style={{ marginLeft: `${indent * 20}px` }}>
         <div className="flex items-start">
@@ -128,30 +106,30 @@ const SchemaViewer = ({ schema }: { schema: any }) => {
           {isRequired && <Badge variant="destructive" className="mr-2">Required</Badge>}
           {property.format && <Badge variant="outline">{property.format}</Badge>}
         </div>
-        
+
         {property.description && (
           <div className="text-sm text-gray-600 dark:text-gray-400 ml-4 my-1">
             {property.description}
           </div>
         )}
-        
+
         {property.properties && (
           <div className="ml-4 mt-2 border-l-2 border-gray-300 dark:border-gray-700 pl-4 space-y-2">
-            {Object.entries(property.properties).map(([propName, propValue]: [string, any]) => 
+            {Object.entries(property.properties).map(([propName, propValue]: [string, any]) =>
               renderProperty(propName, propValue, property.required, indent + 1)
             )}
           </div>
         )}
-        
+
         {property.items && property.type === 'array' && (
           <div className="ml-4 mt-2">
             <div className="border-l-2 border-gray-300 dark:border-gray-700 pl-4">
               <Badge>Array Items</Badge>
               {property.items.type && <Badge className="ml-2">{property.items.type}</Badge>}
-              
+
               {property.items.properties && (
                 <div className="ml-4 mt-2 space-y-2">
-                  {Object.entries(property.items.properties).map(([propName, propValue]: [string, any]) => 
+                  {Object.entries(property.items.properties).map(([propName, propValue]: [string, any]) =>
                     renderProperty(propName, propValue, property.items.required, indent + 1)
                   )}
                 </div>
@@ -162,13 +140,13 @@ const SchemaViewer = ({ schema }: { schema: any }) => {
       </div>
     );
   };
-  
+
   const rootSchema = schema.openAPIV3Schema;
-  
+
   return (
     <div className="p-4 bg-gray-100 dark:bg-gray-900 rounded-md">
       <h3 className="text-lg font-medium mb-4">Schema Definition</h3>
-      
+
       {rootSchema.properties?.spec && (
         <div className="mb-6">
           <h4 className="text-md font-medium mb-2 flex items-center">
@@ -177,15 +155,15 @@ const SchemaViewer = ({ schema }: { schema: any }) => {
           <div className="ml-4 space-y-4">
             {rootSchema.properties.spec.properties && Object.entries(rootSchema.properties.spec.properties).map(
               ([name, property]: [string, any]) => renderProperty(
-                name, 
-                property, 
+                name,
+                property,
                 rootSchema.properties.spec.required
               )
             )}
           </div>
         </div>
       )}
-      
+
       {rootSchema.properties?.status && (
         <div>
           <h4 className="text-md font-medium mb-2 flex items-center">
@@ -194,8 +172,8 @@ const SchemaViewer = ({ schema }: { schema: any }) => {
           <div className="ml-4 space-y-4">
             {rootSchema.properties.status.properties && Object.entries(rootSchema.properties.status.properties).map(
               ([name, property]: [string, any]) => renderProperty(
-                name, 
-                property, 
+                name,
+                property,
                 rootSchema.properties.status.required
               )
             )}
@@ -211,14 +189,17 @@ const CustomResourceDefinitionViewer = () => {
   const { currentContext } = useCluster();
   const navigate = useNavigate();
   const params = useParams<{ name: string }>();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'schema';
+
   const [crd, setCRD] = useState<CustomResourceDefinition | null>(null);
   const [instances, setInstances] = useState<CustomResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingInstances, setLoadingInstances] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeVersion, setActiveVersion] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const fetchCRD = async () => {
       if (!currentContext || !params.name) {
@@ -226,10 +207,10 @@ const CustomResourceDefinitionViewer = () => {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
-        
+
         // Fetch the CRD
         const crdData = await getResource(
           currentContext.name,
@@ -239,13 +220,13 @@ const CustomResourceDefinitionViewer = () => {
           'apiextensions.k8s.io',
           'v1'
         );
-        
+
         setCRD(crdData);
-        
+
         // Set active version to the storage version or first version
         const storageVersion = crdData.spec.versions.find((v: any) => v.storage);
         setActiveVersion(storageVersion?.name || crdData.spec.versions[0]?.name);
-        
+
         setError(null);
       } catch (err) {
         console.error('Failed to fetch CRD:', err);
@@ -254,20 +235,20 @@ const CustomResourceDefinitionViewer = () => {
         setLoading(false);
       }
     };
-    
+
     fetchCRD();
   }, [currentContext, params.name]);
-  
+
   // Fetch instances when active version changes
   useEffect(() => {
     const fetchInstances = async () => {
       if (!currentContext || !crd || !activeVersion) return;
-      
+
       try {
         setLoadingInstances(true);
-        
+
         let resources: CustomResource[] = [];
-        
+
         if (crd.spec.scope === 'Cluster') {
           // Cluster-scoped resources
           resources = await listResources(currentContext.name, crd.spec.names.plural, {
@@ -281,7 +262,7 @@ const CustomResourceDefinitionViewer = () => {
             apiVersion: activeVersion
           });
         }
-        
+
         setInstances(resources);
       } catch (err) {
         console.error(`Failed to fetch instances:`, err);
@@ -291,10 +272,10 @@ const CustomResourceDefinitionViewer = () => {
         setLoadingInstances(false);
       }
     };
-    
+
     fetchInstances();
   }, [currentContext, crd, activeVersion]);
-  
+
   const handleDelete = () => {
     // Implement delete functionality
     // Show confirmation dialog first
@@ -303,24 +284,24 @@ const CustomResourceDefinitionViewer = () => {
       console.log('Delete CRD:', crd);
     }
   };
-  
+
   const handleEdit = () => {
     // Navigate to editor with CRD data
     navigate(`/dashboard/editor?kind=CustomResourceDefinition&name=${crd?.metadata.name}`);
   };
-  
-  
+
+
   const handleViewInstance = (instance: CustomResource) => {
     if (!crd) return;
-    
+
     if (crd.spec.scope === 'Namespaced') {
       navigate(`/dashboard/explore/customresources/view/${instance.metadata.namespace}/${instance.metadata.name}?apiGroup=${crd.spec.group}&apiVersion=${activeVersion}&plural=${crd.spec.names.plural}`);
     } else {
       navigate(`/dashboard/explore/customresources/view/${instance.metadata.name}?apiGroup=${crd.spec.group}&apiVersion=${activeVersion}&plural=${crd.spec.names.plural}`);
     }
   };
-  
-  
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -328,15 +309,15 @@ const CustomResourceDefinitionViewer = () => {
       </div>
     );
   }
-  
+
   if (error || !crd) {
     return <ErrorComponent message={error || 'CRD not found'} />;
   }
-  
+
   // Get active version schema
   const activeVersionData = crd.spec.versions.find(v => v.name === activeVersion);
   const schema = activeVersionData?.schema;
-  
+
   return (
     <div className="p-6 space-y-6
         max-h-[92vh] overflow-y-auto
@@ -346,14 +327,14 @@ const CustomResourceDefinitionViewer = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      
+
       {/* Header with breadcrumb */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="h-8 gap-1"
               onClick={() => navigate('/dashboard/explore/customresources')}
             >
@@ -368,7 +349,7 @@ const CustomResourceDefinitionViewer = () => {
             </Badge>
           </h1>
         </div>
-        
+
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleEdit}>
             <Edit className="h-4 w-4 mr-2" />
@@ -380,9 +361,9 @@ const CustomResourceDefinitionViewer = () => {
           </Button>
         </div>
       </div>
-      
+
       <Separator />
-      
+
       {/* CRD Metadata Card */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
@@ -396,43 +377,43 @@ const CustomResourceDefinitionViewer = () => {
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
               <div className="text-sm font-medium">API Group</div>
               <div className="text-sm">{crd.spec.group}</div>
-              
+
               <div className="text-sm font-medium">Kind</div>
               <div className="text-sm">{crd.spec.names.kind}</div>
-              
+
               <div className="text-sm font-medium">Plural Name</div>
               <div className="text-sm">{crd.spec.names.plural}</div>
-              
+
               <div className="text-sm font-medium">Singular Name</div>
               <div className="text-sm">{crd.spec.names.singular}</div>
-              
+
               {crd.spec.names.shortNames && crd.spec.names.shortNames.length > 0 && (
                 <>
                   <div className="text-sm font-medium">Short Names</div>
                   <div className="text-sm">{crd.spec.names.shortNames.join(', ')}</div>
                 </>
               )}
-              
+
               <div className="text-sm font-medium">Scope</div>
               <div className="text-sm">
                 <Badge variant={crd.spec.scope === 'Namespaced' ? 'secondary' : 'outline'}>
                   {crd.spec.scope}
                 </Badge>
               </div>
-              
+
               <div className="text-sm font-medium">Created</div>
               <div className="text-sm flex items-center">
                 <Clock className="h-3 w-3 mr-1 inline" />
                 {calculateAge(crd.metadata.creationTimestamp)} ago
               </div>
             </div>
-            
+
             <div className="pt-2">
               <div className="text-sm font-medium mb-1">Versions</div>
               <div className="flex flex-wrap gap-1">
                 {crd.spec.versions.map((version: any) => (
-                  <Badge 
-                    key={version.name} 
+                  <Badge
+                    key={version.name}
                     variant={activeVersion === version.name ? 'default' : 'outline'}
                     className="cursor-pointer"
                     onClick={() => setActiveVersion(version.name)}
@@ -446,7 +427,7 @@ const CustomResourceDefinitionViewer = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Status Card */}
         <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <CardHeader className="pb-2">
@@ -473,7 +454,7 @@ const CustomResourceDefinitionViewer = () => {
                       <TableRow key={index}>
                         <TableCell>{condition.type}</TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={condition.status === 'True' ? 'default' : 'destructive'}
                             className={condition.status === 'True' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : ''}
                           >
@@ -488,7 +469,7 @@ const CustomResourceDefinitionViewer = () => {
                 </Table>
               </div>
             )}
-            
+
             {crd.status?.storedVersions && (
               <div>
                 <h3 className="text-sm font-medium mb-2">Stored Versions</h3>
@@ -501,14 +482,14 @@ const CustomResourceDefinitionViewer = () => {
                 </div>
               </div>
             )}
-            
+
             {(!crd.status?.conditions || crd.status.conditions.length === 0) && (
               <div className="text-sm text-gray-500 dark:text-gray-400">No status conditions</div>
             )}
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Instances Table */}
       <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
         <CardHeader className="pb-2">
@@ -546,7 +527,7 @@ const CustomResourceDefinitionViewer = () => {
               </TableHeader>
               <TableBody>
                 {instances.map((instance) => (
-                  <TableRow 
+                  <TableRow
                     key={`${instance.metadata.namespace || ''}-${instance.metadata.name}`}
                     className="cursor-pointer hover:bg-gray-200/50 dark:hover:bg-gray-800/30"
                     onClick={() => handleViewInstance(instance)}
@@ -563,7 +544,7 @@ const CustomResourceDefinitionViewer = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Schema and YAML Tabs */}
       <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
         <CardHeader className="pb-2">
@@ -573,13 +554,21 @@ const CustomResourceDefinitionViewer = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="schema" className="w-full">
+          <Tabs
+            defaultValue={defaultTab}
+            onValueChange={(value) => {
+              setSearchParams(params => {
+                params.set('tab', value);
+                return params;
+              });
+            }}
+            className="w-full">
             <TabsList className="grid grid-cols-3 w-full max-w-md">
               <TabsTrigger value="schema">Schema</TabsTrigger>
               <TabsTrigger value="yaml">YAML</TabsTrigger>
               <TabsTrigger value="json">JSON</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="schema" className="mt-4">
               {schema ? (
                 <SchemaViewer schema={schema} />
@@ -589,11 +578,11 @@ const CustomResourceDefinitionViewer = () => {
                 </Alert>
               )}
             </TabsContent>
-            
+
             <TabsContent value="yaml" className="mt-4">
-              <ResourceViewerYamlTab resourceData={crd} currentContext={currentContext} /> 
+              <ResourceViewerYamlTab resourceData={crd} currentContext={currentContext} />
             </TabsContent>
-            
+
             <TabsContent value="json" className="mt-4">
               <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-sm font-mono
                 max-h-[70vh] overflow-y-auto

@@ -6,6 +6,7 @@ import {
   listResources
 } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
+import { useSearchParams } from 'react-router-dom';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -36,6 +37,9 @@ const ReplicationControllerViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { rcName, namespace } = useParams<{ rcName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the replication controller
   const fetchEvents = async () => {
@@ -298,7 +302,15 @@ const ReplicationControllerViewer: React.FC = () => {
         <RCStatusAlert />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -532,7 +544,7 @@ const ReplicationControllerViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="yaml" className="space-y-6">
-          <ResourceViewerYamlTab
+            <ResourceViewerYamlTab
               resourceData={rcData}
               namespace={rcData.metadata.namespace || ''}
               currentContext={currentContext}

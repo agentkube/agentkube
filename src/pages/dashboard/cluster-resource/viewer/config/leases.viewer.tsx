@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -32,6 +33,9 @@ const LeaseViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { leaseName, namespace } = useParams<{ leaseName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the lease
   const fetchEvents = async () => {
@@ -147,10 +151,10 @@ const LeaseViewer: React.FC = () => {
   // Check if lease is active
   const isLeaseActive = () => {
     if (!leaseData?.spec?.renewTime) return false;
-    
+
     const renewTime = new Date(leaseData.spec.renewTime);
     const now = new Date();
-    
+
     // If the lease hasn't been renewed in 1 minute, consider it inactive
     // (This is a simple heuristic - actual determination depends on the lease's intended duration)
     return (now.getTime() - renewTime.getTime()) < 60000;
@@ -159,7 +163,7 @@ const LeaseViewer: React.FC = () => {
   // Format time in seconds nicely
   const formatDuration = (seconds: number | undefined) => {
     if (seconds === undefined) return 'N/A';
-    
+
     if (seconds < 60) {
       return `${seconds} second${seconds !== 1 ? 's' : ''}`;
     } else if (seconds < 3600) {
@@ -223,18 +227,18 @@ const LeaseViewer: React.FC = () => {
   }
 
   // Format renewTime for display
-  const renewTimeFormatted = leaseData.spec?.renewTime 
-    ? new Date(leaseData.spec.renewTime).toLocaleString() 
+  const renewTimeFormatted = leaseData.spec?.renewTime
+    ? new Date(leaseData.spec.renewTime).toLocaleString()
     : 'Never';
 
   // Calculate time since last renewal
   const getTimeSinceRenewal = () => {
     if (!leaseData.spec?.renewTime) return 'Never renewed';
-    
+
     const renewTime = new Date(leaseData.spec.renewTime);
     const now = new Date();
     const diffMs = now.getTime() - renewTime.getTime();
-    
+
     if (diffMs < 1000) return 'Just now';
     if (diffMs < 60000) return `${Math.floor(diffMs / 1000)} seconds ago`;
     if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)} minutes ago`;
@@ -290,7 +294,7 @@ const LeaseViewer: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{leaseData.metadata.name}</h1>
                 <Badge
-                  className={isLeaseActive() 
+                  className={isLeaseActive()
                     ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                     : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}
                 >
@@ -298,7 +302,7 @@ const LeaseViewer: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${leaseData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{leaseData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${leaseData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{leaseData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -315,7 +319,15 @@ const LeaseViewer: React.FC = () => {
         </div>
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }} 
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
@@ -360,7 +372,7 @@ const LeaseViewer: React.FC = () => {
                   {getLeaseAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {leaseData.metadata.creationTimestamp && 
+                  Created {leaseData.metadata.creationTimestamp &&
                     new Date(leaseData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -385,8 +397,8 @@ const LeaseViewer: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Acquire Time:</span>
                       <span className="font-medium">
-                        {leaseData.spec?.acquireTime 
-                          ? new Date(leaseData.spec.acquireTime).toLocaleString() 
+                        {leaseData.spec?.acquireTime
+                          ? new Date(leaseData.spec.acquireTime).toLocaleString()
                           : 'Not acquired'}
                       </span>
                     </div>
@@ -401,7 +413,7 @@ const LeaseViewer: React.FC = () => {
                   </div>
                 </div>
 
-      
+
               </div>
             </div>
 

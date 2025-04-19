@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useSearchParams } from 'react-router-dom';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -37,6 +38,9 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
   const { currentContext } = useCluster();
   const { hpaName, namespace } = useParams<{ hpaName: string; namespace: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || 'overview';
 
   // Fetch events for the HPA
   const fetchEvents = async () => {
@@ -151,7 +155,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
   // Get the target reference string
   const getTargetReference = () => {
     if (!hpaData?.spec?.scaleTargetRef) return 'Unknown';
-    
+
     const target = hpaData.spec.scaleTargetRef;
     return `${target.kind}/${target.name}`;
   };
@@ -192,7 +196,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
       const lastScaleDate = new Date(lastScaleTime);
       const now = new Date();
       const timeSinceScale = now.getTime() - lastScaleDate.getTime();
-      
+
       // If hasn't scaled in 5 minutes, consider it stable
       if (timeSinceScale > 5 * 60 * 1000) {
         return { status: 'Stable', isStable: true };
@@ -214,10 +218,10 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
   // Format CPU value
   const formatCPUValue = (value: string | number | undefined) => {
     if (value === undefined) return 'N/A';
-    
+
     // Convert to number if it's a string
     const numValue = typeof value === 'string' ? parseInt(value) : value;
-    
+
     // Format based on size
     if (numValue < 1000) {
       return `${numValue}m`;
@@ -312,11 +316,11 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
   const minReplicas = hpaData.spec?.minReplicas || 1;
   const maxReplicas = hpaData.spec?.maxReplicas || 1;
   const currentReplicas = hpaData.status?.currentReplicas || 0;
-  const statusColor = status === 'Scaling' 
-    ? 'text-yellow-600 dark:text-yellow-400' 
+  const statusColor = status === 'Scaling'
+    ? 'text-yellow-600 dark:text-yellow-400'
     : 'text-green-600 dark:text-green-400';
   const targetRef = getTargetReference();
-  
+
   return (
     <div className='max-h-[92vh] overflow-y-auto
           scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
@@ -373,7 +377,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${hpaData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{hpaData.metadata.namespace}</span>
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${hpaData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{hpaData.metadata.namespace}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -393,7 +397,15 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
         <HPAStatusAlert />
 
         {/* Main content tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue={defaultTab}
+          onValueChange={(value) => {
+            setSearchParams(params => {
+              params.set('tab', value);
+              return params;
+            });
+          }}
+          className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
@@ -439,8 +451,8 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                   {status}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {hpaData.status?.lastScaleTime ? 
-                    `Last scaled: ${new Date(hpaData.status.lastScaleTime).toLocaleString()}` : 
+                  {hpaData.status?.lastScaleTime ?
+                    `Last scaled: ${new Date(hpaData.status.lastScaleTime).toLocaleString()}` :
                     'Not yet scaled'}
                 </div>
               </div>
@@ -454,7 +466,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                   {getHPAAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Created {hpaData.metadata.creationTimestamp && 
+                  Created {hpaData.metadata.creationTimestamp &&
                     new Date(hpaData.metadata.creationTimestamp).toLocaleString()}
                 </div>
               </div>
@@ -466,34 +478,34 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
               <div className="mt-6 px-4">
                 <div className="h-8 relative">
                   {/* Scaling range bar */}
-                  <div className="absolute inset-y-0 bg-blue-100 dark:bg-blue-900/20 rounded-full" 
-                      style={{ 
-                        left: '0%', 
-                        right: `${100 - (maxReplicas / (maxReplicas || 1) * 100)}%` 
-                      }}>
+                  <div className="absolute inset-y-0 bg-blue-100 dark:bg-blue-900/20 rounded-full"
+                    style={{
+                      left: '0%',
+                      right: `${100 - (maxReplicas / (maxReplicas || 1) * 100)}%`
+                    }}>
                   </div>
-                  
+
                   {/* Min replica marker */}
                   <div className="absolute top-0 bottom-0 flex items-center justify-center"
-                      style={{ left: `${minReplicas / (maxReplicas || 1) * 100}%` }}>
+                    style={{ left: `${minReplicas / (maxReplicas || 1) * 100}%` }}>
                     <div className="h-10 w-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div className="absolute bottom-full mb-1 transform -translate-x-1/2 text-xs font-medium">
                       Min: {minReplicas}
                     </div>
                   </div>
-                  
+
                   {/* Current replica marker */}
                   <div className="absolute top-0 bottom-0 flex items-center justify-center"
-                      style={{ left: `${Math.min(currentReplicas, maxReplicas) / (maxReplicas || 1) * 100}%` }}>
+                    style={{ left: `${Math.min(currentReplicas, maxReplicas) / (maxReplicas || 1) * 100}%` }}>
                     <div className="h-14 w-1 bg-green-500"></div>
                     <div className="absolute top-full mt-1 transform -translate-x-1/2 text-xs font-medium text-green-600 dark:text-green-400">
                       Current: {currentReplicas}
                     </div>
                   </div>
-                  
+
                   {/* Max replica marker */}
                   <div className="absolute top-0 bottom-0 flex items-center justify-center"
-                      style={{ left: '100%' }}>
+                    style={{ left: '100%' }}>
                     <div className="h-10 w-0.5 bg-gray-300 dark:bg-gray-600"></div>
                     <div className="absolute bottom-full mb-1 transform -translate-x-1/2 text-xs font-medium">
                       Max: {maxReplicas}
@@ -527,9 +539,9 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                 },
                 {
                   label: "Last Scale Time",
-                  value: hpaData.status?.lastScaleTime ? 
-                        new Date(hpaData.status.lastScaleTime).toLocaleString() : 
-                        'Never scaled'
+                  value: hpaData.status?.lastScaleTime ?
+                    new Date(hpaData.status.lastScaleTime).toLocaleString() :
+                    'Never scaled'
                 }
               ]}
             />
@@ -537,7 +549,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
             {/* Metrics Summary */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Metrics Summary</h2>
-              
+
               {!hpaData.spec?.metrics || hpaData.spec.metrics.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   No metrics configured for this HPA
@@ -551,28 +563,28 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                     let targetValue = 'Unknown';
                     let currentValue = 'Unknown';
                     let usagePercentage = 0;
-                    
+
                     // Extract metric name based on type
                     if (metric.resource) {
                       metricName = metric.resource.name;
-                      
+
                       // Extract target value
                       if (metric.resource.target?.type === 'Utilization') {
                         targetValue = `${metric.resource.target.averageUtilization || 0}%`;
                       } else if (metric.resource.target?.type === 'AverageValue') {
                         targetValue = formatCPUValue(metric.resource.target.averageValue);
                       }
-                      
+
                       // Extract current value if available
                       if (hpaData.status?.currentMetrics && hpaData.status.currentMetrics[index]?.resource) {
                         const currentMetric = hpaData.status.currentMetrics[index].resource;
-                        
+
                         if (currentMetric.current?.averageUtilization) {
                           currentValue = `${currentMetric.current.averageUtilization}%`;
                           usagePercentage = currentMetric.current.averageUtilization;
                         } else if (currentMetric.current?.averageValue) {
                           currentValue = formatCPUValue(currentMetric.current.averageValue);
-                          
+
                           // Calculate percentage from average value if target is utilization
                           if (metric.resource.target?.averageUtilization && currentMetric.current?.averageValue) {
                             const targetUtilization = metric.resource.target.averageUtilization;
@@ -590,7 +602,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                       metricName = metric.external.metric.name;
                       // Handle external metric...
                     }
-                    
+
                     return (
                       <div key={index} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
@@ -607,7 +619,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                             Target: <span className="font-medium">{targetValue}</span>
                           </div>
                         </div>
-                        
+
                         {currentValue !== 'Unknown' && (
                           <div className="mt-2">
                             <div className="flex justify-between items-center mb-1">
@@ -616,8 +628,8 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                                 {Math.round(usagePercentage)}% of target
                               </span>
                             </div>
-                            <Progress 
-                              value={Math.min(100, usagePercentage)} 
+                            <Progress
+                              value={Math.min(100, usagePercentage)}
                               className="h-2"
                             />
                           </div>
@@ -625,7 +637,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                       </div>
                     );
                   })}
-                  
+
                   {/* Stabilization window if configured */}
                   {hpaData.spec?.behavior && (
                     <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
@@ -700,7 +712,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
           <TabsContent value="metrics" className="space-y-6">
             <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
               <h2 className="text-lg font-medium mb-4">HPA Metrics Configuration</h2>
-              
+
               {!hpaData.spec?.metrics || hpaData.spec.metrics.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   No metrics configured for this HPA
@@ -718,7 +730,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                           )}
                           <h3 className="font-medium">{formatMetricType(metric.type)} Metric</h3>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* Configuration */}
                           <div>
@@ -753,7 +765,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                               {/* Handle other metric types here (pods, object, external) */}
                             </div>
                           </div>
-                          
+
                           {/* Current Status */}
                           <div>
                             <h4 className="text-sm font-medium mb-2">Current Status</h4>
@@ -794,7 +806,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Scaling Behavior */}
             {hpaData.spec?.behavior && (
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
@@ -835,7 +847,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Scale Down */}
                   {hpaData.spec.behavior.scaleDown && (
                     <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
