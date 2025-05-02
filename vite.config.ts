@@ -19,6 +19,10 @@ export default defineConfig({
     port: 5422,
     strictPort: true,
     proxy: {
+      '/api': {
+        target: 'http://localhost:7654', 
+        changeOrigin: true,
+      },
       '/operator': {
         target: 'http://localhost:4688',
         changeOrigin: true,
@@ -39,7 +43,7 @@ export default defineConfig({
     },
     cors: true,
   },
-  // to make use of `TAURI_DEBUG` and other env variables
+  // to make use of `TAURI_DEBUG` and other env variables`
   // https://tauri.studio/v1/api/config#buildconfig.beforedevcommand
   envPrefix: ["VITE_", "TAURI_"],
   build: {
