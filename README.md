@@ -8,8 +8,8 @@
     <a href="https://docs.agentkube.com" target="_blank">Docs</a>&nbsp;&#8226;&nbsp;
     <a href="https://agentkube.com/about" target="_blank">About</a>&nbsp;&#8226;&nbsp;
     <a href="https://agentkube.com/contact" target="_blank">Contact</a>&nbsp;&#8226;&nbsp;
-    <a href="https://github.com/agentkube/platform/issues" target="_blank">Issue Tracker</a>&nbsp;&#8226;&nbsp;
-    <a href="https://auth.agentkube.com" target="_blank">Login</a>&nbsp;&nbsp;
+    <a href="https://github.com/agentkube/agentkube/issues" target="_blank">Issue Tracker</a>&nbsp;&#8226;&nbsp;
+    <a href="https://account.agentkube.com" target="_blank">Login</a>&nbsp;&nbsp;
   </p>
   <h3 align="center">
     Run Kubernetes Like Never Before
