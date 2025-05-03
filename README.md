@@ -6,6 +6,7 @@
     <a href="https://agentkube.com" target="_blank">Website</a>&nbsp;&#8226;&nbsp;
     <a href="https://agentkube.com/pricing" target="_blank">Pricing</a>&nbsp;&#8226;&nbsp;
     <a href="https://docs.agentkube.com" target="_blank">Docs</a>&nbsp;&#8226;&nbsp;
+    <a href="https://docs.agentkube.com/changelog" target="_blank">Changelog</a>&nbsp;&#8226;&nbsp;
     <a href="https://agentkube.com/about" target="_blank">About</a>&nbsp;&#8226;&nbsp;
     <a href="https://agentkube.com/contact" target="_blank">Contact</a>&nbsp;&#8226;&nbsp;
     <a href="https://github.com/agentkube/agentkube/issues" target="_blank">Issue Tracker</a>&nbsp;&#8226;&nbsp;
