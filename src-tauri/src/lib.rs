@@ -1,13 +1,14 @@
+use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{Manager, RunEvent};
-use tauri_plugin_shell::{ShellExt, process::CommandEvent, process::CommandChild};
-use std::sync::Mutex;
+use tauri_plugin_shell::{process::CommandChild, process::CommandEvent, ShellExt};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize a state to store the child process with proper type annotation
-    let child_state: Mutex<Option<CommandChild>> = Mutex::new(None);
-    
+    // Initialize states to store the child processes
+    let operator_state: Mutex<Option<CommandChild>> = Mutex::new(None);
+    let orchestrator_state: Mutex<Option<CommandChild>> = Mutex::new(None);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -28,8 +29,9 @@ pub fn run() {
                 )?;
             }
 
-            // Store our child_state in the app state
-            app.manage(child_state);
+            // Store our child states in the app state
+            app.manage(operator_state);
+            app.manage(orchestrator_state);
             
             Ok(())
         })
@@ -43,19 +45,67 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app_handle, event| match event {
             RunEvent::Ready => {
-                // Start the operator sidecar when the app is fully ready
+                // Start the sidecars when the app is fully ready
                 let app_handle_clone = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     // Wait a short time to ensure any previous instances have completely terminated
                     std::thread::sleep(Duration::from_millis(500));
                     
+                    // First start orchestrator sidecar
+                    match app_handle_clone.shell().sidecar("orchestrator") {
+                        Ok(sidecar) => {
+                            match sidecar.spawn() {
+                                Ok((mut rx, child)) => {
+                                    // Store the child process so we can terminate it later
+                                    let orchestrator_state = app_handle_clone.state::<Mutex<Option<CommandChild>>>();
+                                    *orchestrator_state.lock().unwrap() = Some(child);
+                                    
+                                    // Optionally handle the sidecar output
+                                    tauri::async_runtime::spawn(async move {
+                                        while let Some(event) = rx.recv().await {
+                                            match event {
+                                                CommandEvent::Stdout(line) => {
+                                                    println!("Orchestrator output: {}", String::from_utf8_lossy(&line));
+                                                },
+                                                CommandEvent::Stderr(line) => {
+                                                    eprintln!("Orchestrator error: {}", String::from_utf8_lossy(&line));
+                                                },
+                                                CommandEvent::Error(err) => {
+                                                    eprintln!("Orchestrator process error: {}", err);
+                                                },
+                                                CommandEvent::Terminated(status) => {
+                                                    println!("Orchestrator process terminated with status: {:?}", status);
+                                                    
+                                                    // If the process terminated unexpectedly, try to restart it
+                                                    if status.code.unwrap_or(-1) != 0 {
+                                                        println!("Attempting to restart orchestrator...");
+                                                        // Add restart logic here if needed
+                                                    }
+                                                },
+                                                _ => {}
+                                            }
+                                        }
+                                    });
+                                    
+                                    println!("Successfully started orchestrator sidecar");
+                                }
+                                Err(e) => eprintln!("Failed to spawn orchestrator sidecar: {}", e),
+                            }
+                        }
+                        Err(e) => eprintln!("Failed to create orchestrator sidecar: {}", e),
+                    }
+                    
+                    // Wait a bit before starting the operator to ensure orchestrator is ready
+                    std::thread::sleep(Duration::from_millis(500));
+                    
+                    // Then start operator sidecar
                     match app_handle_clone.shell().sidecar("operator") {
                         Ok(sidecar) => {
                             match sidecar.spawn() {
                                 Ok((mut rx, child)) => {
                                     // Store the child process so we can terminate it later
-                                    let state = app_handle_clone.state::<Mutex<Option<CommandChild>>>();
-                                    *state.lock().unwrap() = Some(child);
+                                    let operator_state = app_handle_clone.state::<Mutex<Option<CommandChild>>>();
+                                    *operator_state.lock().unwrap() = Some(child);
                                     
                                     // Optionally handle the sidecar output
                                     tauri::async_runtime::spawn(async move {
@@ -94,18 +144,28 @@ pub fn run() {
                 });
             },
             RunEvent::Exit => {
-                // Make sure to terminate the sidecar process
-                let state = app_handle.state::<Mutex<Option<CommandChild>>>();
+                // Make sure to terminate both sidecar processes
+                // First terminate operator
+                let operator_state = app_handle.state::<Mutex<Option<CommandChild>>>();
                 println!("Terminating operator sidecar...");
                 
-                // Fix the borrowing issue by using a separate scope
                 {
-                    let mut lock = state.lock().unwrap();
+                    let mut lock = operator_state.lock().unwrap();
                     if let Some(child) = lock.take() {
                         let _ = child.kill();
                     }
                 } // lock is dropped here
                 
+                // Then terminate orchestrator
+                let orchestrator_state = app_handle.state::<Mutex<Option<CommandChild>>>();
+                println!("Terminating orchestrator sidecar...");
+                
+                {
+                    let mut lock = orchestrator_state.lock().unwrap();
+                    if let Some(child) = lock.take() {
+                        let _ = child.kill();
+                    }
+                } // lock is dropped here
             },
             _ => {}
         });

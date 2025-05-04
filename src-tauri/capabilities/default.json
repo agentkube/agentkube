@@ -62,6 +62,16 @@
         }
       ]
     },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "args": true,
+          "name": "bin/orchestrator/orchestrator",
+          "sidecar": true
+        }
+      ]
+    },
     "shell:allow-open"
   ]
 }
