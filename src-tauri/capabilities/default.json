@@ -59,12 +59,7 @@
           "args": true,
           "name": "bin/operator/operator",
           "sidecar": true
-        }
-      ]
-    },
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
+        },
         {
           "args": true,
           "name": "bin/orchestrator/orchestrator",

@@ -103,6 +103,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": [],
     "externalBin": ["bin/operator/operator", "bin/orchestrator/orchestrator"],
     "icon": [
       "icons/32x32.png",
