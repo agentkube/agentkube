@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Window } from "@tauri-apps/api/window";
 import { platform } from '@tauri-apps/plugin-os';
+import { Minus, Square, X } from "lucide-react";
 
 type WindowControls = {
   platform?: "windows" | "macos" | "linux" | "auto";
@@ -149,9 +150,10 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
             className="px-4 py-2.5 hover:bg-gray-200 dark:hover:bg-gray-700"
             title="Minimize"
           >
-            <svg width="12" height="12" viewBox="0 0 12 12">
+            <Minus className="w-4 h-4 dark:text-gray-200/70 hover:dark:text-gray-100" />
+            {/* <svg width="12" height="12" viewBox="0 0 12 12">
               <rect x="1" y="5.5" width="10" height="1" fill="currentColor" />
-            </svg>
+            </svg> */}
           </button>
           <button
             onClick={handleMaximize}
@@ -159,24 +161,26 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
             title={isMaximized ? "Restore" : "Maximize"}
           >
             {isMaximized ? (
-              <svg width="12" height="12" viewBox="0 0 12 12">
-                <path
-                  d="M3.5 4.5v-2h6v6h-2v2h-6v-6h2zm1 1h4v4h-4v-4z"
-                  fill="none"
-                  stroke="currentColor"
-                />
-              </svg>
+              <Square className="h-4 w-4 dark:text-gray-200/70 hover:dark:text-gray-100" />
+              // <svg width="12" height="12" viewBox="0 0 12 12">
+              //   <path
+              //     d="M3.5 4.5v-2h6v6h-2v2h-6v-6h2zm1 1h4v4h-4v-4z"
+              //     fill="none"
+              //     stroke="currentColor"
+              //   />
+              // </svg>
             ) : (
-              <svg width="12" height="12" viewBox="0 0 12 12">
-                <rect
-                  x="1.5"
-                  y="1.5"
-                  width="9"
-                  height="9"
-                  fill="none"
-                  stroke="currentColor"
-                />
-              </svg>
+              // <svg width="12" height="12" viewBox="0 0 12 12">
+              //   <rect
+              //     x="1.5"
+              //     y="1.5"
+              //     width="9"
+              //     height="9"
+              //     fill="none"
+              //     stroke="currentColor"
+              //   />
+              // </svg>
+              <Square className="h-3.5 w-3.5 dark:text-gray-200/70 hover:dark:text-gray-100" />
             )}
           </button>
           <button
@@ -184,13 +188,14 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
             className="px-4 py-2.5 hover:bg-red-500 hover:text-white"
             title="Close"
           >
-            <svg width="12" height="12" viewBox="0 0 12 12">
+            {/* <svg width="12" height="12" viewBox="0 0 12 12">
               <path
                 d="M2.5 2.5l7 7m0-7l-7 7"
                 stroke="currentColor"
                 strokeWidth="1.5"
               />
-            </svg>
+            </svg> */}
+            <X className="w-4 h-4 dark:text-gray-200/70 hover:dark:text-gray-100" />
           </button>
         </div>
       );

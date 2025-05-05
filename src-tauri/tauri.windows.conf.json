@@ -1,0 +1,23 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Agentkube",
+  "version": "0.1.0",
+  "identifier": "platform.agentkube.app",
+  "mainBinaryName": "agentkube",
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Agentkube",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false,
+        "hiddenTitle": true,
+        "shadow": true,
+        "titleBarStyle": "Overlay"
+      }
+    ]
+  }
+}
