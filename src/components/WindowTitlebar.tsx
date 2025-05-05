@@ -135,7 +135,7 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
   // Platform-specific controls
   const renderControls = () => {
     const platform = windowControlsProps?.platform || currentPlatform || "windows";
-    
+
     if (windowControlsProps?.hide) return null;
 
     if (platform === "macos") {
@@ -202,50 +202,31 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
     } else {
       // Linux/GNOME style
       return (
-        <div className={`flex items-center space-x-1 ${windowControlsProps?.className || ""}`}>
+        <div className={`flex items-center space-x-2 pr-3 ${windowControlsProps?.className || ""}`}>
           <button
             onClick={handleMinimize}
-            className="w-6 h-6 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center"
+            className="w-6 h-6 rounded-[0.3rem] mt-1 hover:bg-gray-300 dark:hover:bg-gray-200/20 flex items-center justify-center"
             title="Minimize"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14">
-              <rect x="2" y="6.5" width="10" height="1" fill="currentColor" />
-            </svg>
+            <Minus className="w-4 h-4 dark:text-gray-200/70 hover:dark:text-gray-100" />
           </button>
           <button
             onClick={handleMaximize}
-            className="w-6 h-6 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center"
+            className="w-6 h-6 rounded-[0.3rem] mt-1  hover:bg-gray-300 dark:hover:bg-gray-200/20 flex items-center justify-center"
             title={isMaximized ? "Restore" : "Maximize"}
           >
             {isMaximized ? (
-              <svg width="14" height="14" viewBox="0 0 14 14">
-                <path
-                  d="M3 9h8V3H3v6zm1-5h6v4H4V4z"
-                  fill="currentColor"
-                />
-              </svg>
+              <Square className="h-3 w-3 dark:text-gray-200/70 hover:dark:text-gray-100" />
             ) : (
-              <svg width="14" height="14" viewBox="0 0 14 14">
-                <path
-                  d="M3 3v8h8V3H3zm1 1h6v6H4V4z"
-                  fill="currentColor"
-                />
-              </svg>
+              <Square className="h-3 w-3 dark:text-gray-200/70 hover:dark:text-gray-100" />
             )}
           </button>
           <button
             onClick={handleClose}
-            className="w-6 h-6 rounded-full hover:bg-red-500 hover:text-white flex items-center justify-center"
+            className="w-6 h-6 rounded-[0.3rem] mt-1  hover:bg-red-500 hover:text-white flex items-center justify-center"
             title="Close"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14">
-              <path
-                d="M4 4l6 6m0-6l-6 6"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
+            <X className="w-4 h-4 dark:text-gray-200/70 hover:dark:text-gray-100" />
           </button>
         </div>
       );
