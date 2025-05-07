@@ -44,18 +44,6 @@ const Shortcuts = () => {
             </div>
             <div>Navigate Forward</div>
           </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ Shift N</span>
-            </div>
-            <div>New window</div>
-          </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ Click</span>
-            </div>
-            <div>Open link in new window</div>
-          </div>
         </div>
       </div>
 

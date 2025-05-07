@@ -46,11 +46,11 @@ const EventsViewer: React.FC<EventsViewerProps> = ({
     
     switch (type) {
       case 'Normal':
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+        return "bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/30 dark:hover:dark:bg-green-900/10 dark:text-green-300";
       case 'Warning':
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+        return "bg-yellow-100 hover:bg-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/10  dark:text-yellow-300";
       default:
-        return "bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+        return "bg-gray-200 hover:bg-gray-200 text-gray-800 dark:bg-gray-800 dark:hover:bg-gray-800/20 dark:text-gray-200";
     }
   };
   

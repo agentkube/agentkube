@@ -183,7 +183,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
             <div className="text-xs text-gray-500 flex justify-between items-center">
               <span>⌘/ toggle, ⌘\ open</span>
               {!isLicensed && (
-                <span className="text-xxs text-gray-400">Some models require Pro Plan</span>
+                <></>
+                // <span className="text-xxs text-gray-400">Some models require Pro Plan</span>
               )}
             </div>
           </div>

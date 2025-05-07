@@ -37,7 +37,7 @@ const Support = () => {
             Find quick answers to common questions about using Agentkube.
           </p>
           <a 
-            onClick={() => openExternalUrl("https://agentkube.com/#faq")} 
+            onClick={() => openExternalUrl("https://agentkube.com/help")} 
             rel="noopener noreferrer"
             className="flex items-center text-purple-400 hover:text-purple-300 text-sm"
           >
@@ -55,7 +55,7 @@ const Support = () => {
             Report bugs, request features, or contribute to the project on GitHub.
           </p>
           <a 
-            onClick={() => openExternalUrl("https://github.com/agentkube/platform/issues")}
+            onClick={() => openExternalUrl("https://github.com/agentkube/agentkube/issues")}
             rel="noopener noreferrer"
             className="flex items-center text-gray-700 dark:text-gray-400 hover:text-gray-300 text-sm cursor-pointer"
           >
