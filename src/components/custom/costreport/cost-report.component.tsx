@@ -241,13 +241,13 @@ const CostOverviewReport = () => {
                 Running {clusterMetrics.pods} pods across {clusterMetrics.namespaces} namespaces.
               </div>
               
-              <div className="flex justify-end">
+              <div className="">
                 {isOpenCostInstalled ? (
                   <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white gap-2" onClick={() => navigate('/dashboard/cost')}>
                     Details <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2" onClick={handleInstallOpenCost}>
+                  <Button variant="outline" className="gap-2" onClick={handleInstallOpenCost}>
                     Install OpenCost <ArrowRight className="h-4 w-4" />
                   </Button>
                 )}
@@ -263,13 +263,13 @@ const CostOverviewReport = () => {
                   ? "View detailed resource utilization and cost data on the Cost Overview page." 
                   : "Install OpenCost to track resource utilization and costs."}
               </p>
-              <div className="flex justify-end">
+              <div className="flex">
                 {isOpenCostInstalled ? (
                   <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white gap-2" onClick={() => window.location.href = '/costs'}>
                     View Details <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2" onClick={handleInstallOpenCost}>
+                  <Button variant="outline" onClick={handleInstallOpenCost}>
                     Install OpenCost <ArrowRight className="h-4 w-4" />
                   </Button>
                 )}

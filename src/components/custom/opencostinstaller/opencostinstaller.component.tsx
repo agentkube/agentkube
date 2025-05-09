@@ -177,7 +177,7 @@ customPricing:
                 <Button
                   onClick={handleInstallClick}
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className=""
                 >
                   {loading ? 'Installing...' : 'Install OpenCost'}
                 </Button>

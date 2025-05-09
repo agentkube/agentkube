@@ -332,25 +332,26 @@ const MCPServerConfigPage = () => {
     <div className="p-6 space-y-6 text-gray-300">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-2xl font-medium text-black dark:text-white">MCP Servers</h3>
+          <h3 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">MCP Servers</h3>
           <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
             Model Context Protocol is a way to offer new tools to Agentkube Agent. You can find more information about MCP in Agentkube here.
           </p>
         </div>
         <div className="flex space-x-2">
           <Button
-            className="bg-gray-600 hover:bg-gray-700 text-white flex items-center"
+            className="text-gray-700"
+            variant="outline"
             onClick={handleReloadAllServers}
             disabled={isSaving || isLoading}
           >
             {isLoading ? (
-              <Loader2 size={16} className="mr-1 animate-spin" />
+              <Loader2 size={16} className=" animate-spin" />
             ) : (
-              <RotateCw size={16} className="mr-1" />
+              <RotateCw size={16} className="" />
             )}
           </Button>
           <Button
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
+            className="flex items-center"
             onClick={openAddServerDialog}
             disabled={isSaving || isLoading}
           >

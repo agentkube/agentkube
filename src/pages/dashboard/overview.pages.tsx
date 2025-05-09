@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Server, AlertCircle, Clock, HardDrive, Cpu, Database } from "lucide-react";
 import { EventMetricsCard, NamespacesMetricCard, PodsMetricCard, ResourceUsageChart } from '@/components/custom';
 import { CostReport } from '@/components/custom';
+import { toast } from '@/hooks/use-toast';
 const Overview = () => {
   return (
     <div className="p-6 space-y-6 max-h-[92vh] overflow-y-auto
@@ -29,16 +30,24 @@ const Overview = () => {
           <CardContent className="p-6 relative z-10">
             <div className="space-y-3">
               <h2 className="text-4xl font-bold text-gray-900 dark:text-white leading-tight">
-                Cluster<br />Health 98%
+                Cluster<br />Health
               </h2>
               
               <p className="text-gray-500 dark:text-gray-400">
-                2 pending alerts require attention
+                {/* 2 pending alerts require attention */}
+                .
               </p>
               
               <div className="pt-20">
-                <Button variant="outline" className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 hover:bg-gray-200/50 dark:hover:text-white dark:hover:bg-gray-700/50">
-                  View alerts
+                <Button 
+                onClick={() => {
+                  toast({
+                    title: "Feature Not Implemented",
+                    description: "The Cluster Health feature is part of our roadmap and will be available soon.",
+                  })
+                }}
+                variant="outline" className="">
+                  View Health <ArrowRight />
                 </Button>
               </div>
             </div>

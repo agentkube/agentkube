@@ -10,7 +10,7 @@ const Support = () => {
       {/* Support Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {/* Documentation */}
-        <div className="rounded-lg p-4 border border-gray-800/60">
+        <div className="rounded-lg p-4 border dark:border-gray-800/60">
           <div className="flex items-center mb-3">
             <Book size={18} className="text-blue-400 mr-2" />
             <h2 className="text-lg font-medium">Documentation</h2>
@@ -28,7 +28,7 @@ const Support = () => {
         </div>
         
         {/* FAQ */}
-        <div className="rounded-lg p-4 border border-gray-800/60">
+        <div className="rounded-lg p-4 border dark:border-gray-800/60">
           <div className="flex items-center mb-3">
             <HelpCircle size={18} className="text-purple-400 mr-2" />
             <h2 className="text-lg font-medium">Frequently Asked Questions</h2>
@@ -46,7 +46,7 @@ const Support = () => {
         </div>
         
         {/* GitHub Issues */}
-        <div className="rounded-lg p-4 border border-gray-800/60">
+        <div className="rounded-lg p-4 border dark:border-gray-800/60">
           <div className="flex items-center mb-3">
             <Github size={18} className="text-gray-700 dark:text-gray-400 mr-2" />
             <h2 className="text-lg font-medium">GitHub Issues</h2>
@@ -64,7 +64,7 @@ const Support = () => {
         </div>
         
         {/* Email Support */}
-        <div className="rounded-lg p-4 border border-gray-800/60">
+        <div className="rounded-lg p-4 border dark:border-gray-800/60">
           <div className="flex items-center mb-3">
             <Mail size={18} className="text-green-400 mr-2" />
             <h2 className="text-lg font-medium">Email Support</h2>
@@ -84,7 +84,7 @@ const Support = () => {
       {/* Community Section */}
       <div className="mb-8">
         <h2 className="text-lg font-medium mb-4">Join Our Community</h2>
-        <div className="rounded-lg p-4 border border-gray-800/60">
+        <div className="rounded-lg p-4 border dark:border-gray-800/60">
           <div className="flex items-center mb-3">
             <MessageSquare size={18} className="text-indigo-400 mr-2" />
             <h3 className="text-base font-medium">Discord Server</h3>
@@ -105,7 +105,7 @@ const Support = () => {
 
       
       {/* Feedback Section */}
-      <div className="rounded-lg p-4 border border-gray-800/60">
+      <div className="rounded-lg p-4 border dark:border-gray-800/60">
         <div className="flex items-center mb-3">
           <Heart size={18} className="text-red-400 mr-2" />
           <h2 className="text-lg font-medium">We Value Your Feedback</h2>

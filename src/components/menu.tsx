@@ -131,7 +131,7 @@ export function Menu() {
           <button
             onClick={handleOpenDrawer}
             className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer rounded-[0.3rem] transition-colors"
-            title="Assistant"
+            title="AI Assistant"
             role="button"
             aria-label="Open Assistant"
           >
@@ -141,7 +141,7 @@ export function Menu() {
           <button
             onClick={() => navigate('/')}
             className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Airplay"
+            title="Home"
           >
             <Airplay size={15} className="text-gray-700 dark:text-gray-300" />
           </button>

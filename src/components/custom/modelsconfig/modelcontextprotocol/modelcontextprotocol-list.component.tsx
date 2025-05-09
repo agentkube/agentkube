@@ -166,7 +166,7 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
     <>
       <div className="space-y-2">
         {servers.map((server, index) => (
-          <div key={index} className="px-3 py-2 bg-gray-100 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800/50 rounded-md">
+          <div key={index} className="px-3 py-2 bg-transparent dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800/50 rounded-md">
             <div className='flex items-center justify-between'>
               <div className="flex items-center">
                 <div className={`w-2 h-2 rounded-full ${server.connected ? 'bg-green-500' : 'bg-red-500'} mr-2`}></div>

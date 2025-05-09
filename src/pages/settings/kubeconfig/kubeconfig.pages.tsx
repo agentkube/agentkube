@@ -159,7 +159,7 @@ const Kubeconfig = () => {
     <div className="px-4 dark:text-white">
       {/* Kubeconfig Sources Section */}
       <div className="mb-10">
-        <h2 className="text-xl font-medium mb-2">Kubeconfig Sources</h2>
+        <h2 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Kubeconfig Sources</h2>
         <p className="text-gray-600 dark:text-gray-400 text-xs mb-1">
           Agentkube needs to know where your Kubeconfig files are located.
         </p>

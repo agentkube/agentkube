@@ -178,7 +178,7 @@ const ModelConfiguration = () => {
   return (
     <div className="p-6 space-y-6 text-gray-300">
       <div>
-        <h1 className="text-2xl font-medium text-black dark:text-white">Model Names</h1>
+        <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Model Names</h1>
         <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
           Add new models to agentkube. Often used to configure the latest OpenAI models or OpenRouter models.
         </p>

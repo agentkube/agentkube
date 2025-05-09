@@ -221,7 +221,7 @@ const Appearance = () => {
   return (
     <div className="p-4 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold dark:text-white mb-2">Appearance</h1>
+        <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Appearance</h1>
         <p className="text-gray-500 dark:text-gray-400">Customize how Agentkube looks and feels</p>
       </div>
 

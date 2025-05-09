@@ -276,7 +276,7 @@ const IngressClassViewer: React.FC = () => {
               params.set('tab', value);
               return params;
             });
-          }} className="space-y-6 bg-transparent">
+          }} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>

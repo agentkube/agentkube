@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2, Lock, CreditCardIcon } from 'lucide-react';
+import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2, Lock, CreditCardIcon, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -141,7 +141,7 @@ const Account = () => {
   return (
     <div className="p-6 mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold dark:text-white mb-2">Account</h1>
+        <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Account</h1>
         <p className="text-gray-500 dark:text-gray-400">
           Manage your account settings and preferences
         </p>
@@ -191,6 +191,21 @@ const Account = () => {
                 >
                   Manage
                   <Settings2 className="ml-2 h-4 w-4" />
+                </Button>
+                {/* TODO to be implemented, replace existing license key */}
+                <Button
+                  variant="outline"
+                  className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                  onClick={() => {
+                    openExternalUrl("https://account.agentkube.com/settings");
+                    toast({
+                      title: "Edit Profile",
+                      description: "Opening settings page...",
+                    });
+                  }}
+                >
+                  <Key className=" h-4 w-4" />
+                  Change License Key
                 </Button>
               </div>
             </div>

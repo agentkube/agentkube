@@ -1,9 +1,70 @@
+// Import necessary dependencies
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { platform } from '@tauri-apps/plugin-os';
+
+// Define shortcut mapping type
+type Shortcut = {
+  macos: string;
+  windows: string;
+  linux: string;
+  description: string;
+};
 
 const Shortcuts = () => {
   const [feedback, setFeedback] = useState('');
+  const [currentPlatform, setCurrentPlatform] = useState<'macos' | 'windows' | 'linux'>('macos');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // All shortcuts organized by category
+  const shortcutCategories = {
+    general: [
+      { macos: '⌘ K', windows: 'Ctrl+K', linux: 'Ctrl+K', description: 'Kube spotlight' },
+      { macos: '⌘ L', windows: 'Ctrl+L', linux: 'Ctrl+L', description: 'Talk to cluster Panel' },
+      { macos: '⌘ ←', windows: 'Alt+←', linux: 'Alt+←', description: 'Navigate Back' },
+      { macos: '⌘ →', windows: 'Alt+→', linux: 'Alt+→', description: 'Navigate Forward' },
+      { macos: '⌘ S', windows: 'Ctrl+S', linux: 'Ctrl+S', description: 'Collapse Sidebar' },
+    ],
+    zoom: [
+      { macos: '⌘ 0', windows: 'Ctrl+0', linux: 'Ctrl+0', description: 'Reset Zoom' },
+      { macos: '⌘ -', windows: 'Ctrl+-', linux: 'Ctrl+-', description: 'Zoom Out' },
+      { macos: '⌘ +', windows: 'Ctrl++', linux: 'Ctrl++', description: 'Zoom In' },
+    ],
+    resources: [
+      { macos: '⌘ N', windows: 'Ctrl+N', linux: 'Ctrl+N', description: 'Namespace Selector' },
+      { macos: '⌘ F', windows: 'Ctrl+F', linux: 'Ctrl+F', description: 'Focus on Filter' },
+    ],
+  };
+
+  useEffect(() => {
+    const detectPlatform = async () => {
+      try {
+        setIsLoading(true);
+        const osType = await platform();
+        console.log("Detected OS:", osType);
+
+        if (osType === 'macos') {
+          setCurrentPlatform('macos');
+        } else if (osType === 'windows') {
+          setCurrentPlatform('windows');
+        } else if (['linux', 'freebsd', 'dragonfly', 'netbsd', 'openbsd', 'solaris'].includes(osType)) {
+          setCurrentPlatform('linux');
+        } else {
+          // Default fallback to Windows
+          console.warn(`Unsupported OS type: ${osType}, falling back to Windows`);
+          setCurrentPlatform('windows');
+        }
+      } catch (error) {
+        console.error("Failed to detect platform:", error);
+        setCurrentPlatform('windows'); // Default fallback
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    detectPlatform();
+  }, []);
 
   const handleFeedbackSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -12,38 +73,40 @@ const Shortcuts = () => {
     setFeedback('');
   };
 
+  // Helper function to render each shortcut based on platform
+  const renderShortcutList = (category: Shortcut[]) => {
+    return category.map((shortcut, index) => (
+      <div className="flex" key={index}>
+        <div className="w-24 text-gray-500">
+          <span className="text-sm">{shortcut[currentPlatform]}</span>
+        </div>
+        <div>{shortcut.description}</div>
+      </div>
+    ));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 text-gray-800 dark:text-white">
+        <p>Loading shortcuts...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 text-gray-800 dark:text-white">
-      <h1 className="text-xl font-medium mb-6">Keyboard Shortcuts</h1>
+      <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Keyboard Shortcuts</h1>
+      
+      {/* Platform indicator */}
+      <div className="mb-4 text-sm text-gray-500">
+        Showing shortcuts for {currentPlatform === 'macos' ? 'macOS' : currentPlatform === 'windows' ? 'Windows' : 'Linux'}
+      </div>
 
       {/* General Section */}
       <div className="mb-6">
         <h2 className="text-base font-medium mb-3">General</h2>
         <div className="space-y-2">
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ K</span>
-            </div>
-            <div>Kube spotlight</div>
-          </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ L</span>
-            </div>
-            <div>Talk to cluster Panel</div>
-          </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ ←</span>
-            </div>
-            <div>Navigate Back</div>
-          </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ →</span>
-            </div>
-            <div>Navigate Forward</div>
-          </div>
+          {renderShortcutList(shortcutCategories.general)}
         </div>
       </div>
 
@@ -51,24 +114,7 @@ const Shortcuts = () => {
       <div className="mb-6">
         <h2 className="text-base font-medium mb-3">Zoom</h2>
         <div className="space-y-2">
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ 0</span>
-            </div>
-            <div>Reset Zoom</div>
-          </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ -</span>
-            </div>
-            <div>Zoom Out</div>
-          </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ +</span>
-            </div>
-            <div>Zoom In</div>
-          </div>
+          {renderShortcutList(shortcutCategories.zoom)}
         </div>
       </div>
 
@@ -76,18 +122,7 @@ const Shortcuts = () => {
       <div className="mb-10">
         <h2 className="text-base font-medium mb-3">Resources</h2>
         <div className="space-y-2">
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ N</span>
-            </div>
-            <div>Namespace Selector</div>
-          </div>
-          <div className="flex">
-            <div className="w-24 text-gray-500">
-              <span className="text-sm">⌘ F</span>
-            </div>
-            <div>Focus on Filter</div>
-          </div>
+          {renderShortcutList(shortcutCategories.resources)}
         </div>
       </div>
 
@@ -97,19 +132,9 @@ const Shortcuts = () => {
           <span className="mr-2">✨</span>
           <span className="text-sm">Let us know what shortcuts you'd like see being added.</span>
         </div>
-        
-        {/* <form onSubmit={handleFeedbackSubmit} className="mt-2">
-          <input
-            type="text"
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="Enter your suggestions here..."
-            className="w-full bg-transparent border-b border-gray-700 py-1 text-sm focus:outline-none focus:border-gray-500"
-          />
-        </form> */}
         <div className='py-2'>
           <Button data-tally-open="n94eZY" data-tally-emoji-text="👋" data-tally-width="500" data-tally-emoji-animation="bounce">
-            Request Shortcut <Send />
+            Request Shortcut <Send className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
