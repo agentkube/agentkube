@@ -63,7 +63,7 @@ const EventMetricsCard: React.FC = () => {
     .slice(0, 2);
 
   return (
-    <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+    <Card className="bg-white dark:bg-transparent border-gray-200/50 dark:border-gray-700/30 shadow-lg">
       <CardContent className="p-6">
         <div className="flex justify-between">
           <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">Events</h3>
@@ -113,7 +113,7 @@ const EventMetricsCard: React.FC = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-center text-gray-800 dark:text-white hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            className="w-full justify-center "
             onClick={() => navigate('/dashboard/explore/events')}
           >
             View all events <ArrowRight className="h-4 w-4" />

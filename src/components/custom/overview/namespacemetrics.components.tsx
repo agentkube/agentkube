@@ -52,7 +52,7 @@ const NamespacesMetricCard: React.FC<NamespacesMetricCardProps> = () => {
   const emptySlots = totalNamespaces - activeNamespaces;
   
   return (
-    <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+    <Card className="bg-white dark:bg-transparent border-gray-200/50 dark:border-gray-700/30 shadow-lg">
       <CardContent className="p-6">
         <div className="flex justify-between">
           <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">Namespaces</h3>

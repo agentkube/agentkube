@@ -254,7 +254,7 @@ const ResourceUsageChart = () => {
   };
 
   return (
-    <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/20 shadow-lg">
+    <Card className="bg-white dark:bg-transparent border-gray-200/50 dark:border-gray-700/20 shadow-lg">
       <CardContent className="p-6">
         <div className="space-y-6">
           {loading ? (
