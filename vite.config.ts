@@ -30,7 +30,7 @@ export default defineConfig({
         ws: true,
       },
       '/orchestrator': {
-        target: 'http://localhost:65001/orchestrator', 
+        target: 'http://localhost:4689/orchestrator', 
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/orchestrator/, ""),
       },

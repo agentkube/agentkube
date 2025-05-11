@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { securityChatStream } from '@/api/chat';
+import { securityRemediationStream } from '@/api/remediation';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import SecurityCodeBlock from '../security-codeblock/security-codeblock.component';
 import ReactMarkdown from 'react-markdown';
@@ -42,7 +42,7 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
     let responseText = '';
     
     try {
-      await securityChatStream(
+      await securityRemediationStream(
         {
           message: `Provide only the YAML to add to fix this security issue`,
           manifest_content: yamlContent,
@@ -51,16 +51,20 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
             description: misconfiguration.Description,
             code_snippet: misconfiguration.CauseMetadata?.Code?.Lines ? 
               misconfiguration.CauseMetadata.Code.Lines.map((line: any) => line.Content).join('\n') : ''
-          }
+          },
+          model: "openai/o3-mini"
         },
         {
           onToken: (token) => {
             responseText += token;
             setSuggestion(responseText);
           },
-          onComplete: () => {
+          onComplete: (finalResponse) => {
+            // Use the finalResponse parameter to ensure we have the complete text
             setIsLoading(false);
             setHasFetched(true);
+            // Set the final response again to ensure we have the complete text
+            setSuggestion(finalResponse);
           },
           onError: (error) => {
             console.error('Error getting security suggestion:', error);
@@ -109,7 +113,7 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
         <CollapsibleTrigger asChild>
           <Button 
             variant="outline" 
-            className="w-full flex justify-between rounded-[0.4rem] items-center bg-gray-100 hover:bg-gray-200 border border-gray-400"
+            className="w-full flex justify-between rounded-[0.4rem] items-center bg-gray-100 hover:bg-gray-200 border border-gray-400/20"
             onClick={handleClick}
           >
             <div className="flex items-center">
@@ -120,18 +124,18 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="rounded-[0.4rem] border border-gray-300">
+          <div className="rounded-[0.4rem]">
             {isLoading ? (
               <div className="flex justify-center items-center py-4">
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                <span>Generating suggestions...</span>
+                {/* <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                <span>Generating suggestions...</span> */}
               </div>
             ) : suggestion ? (
               <div>
                 {codeBlock ? (
                   <div>
                     {/* Show brief explanation text before code block */}
-                    <div className="p-3 text-sm">
+                    <div className=" text-sm">
                       {suggestion.split('```')[0].trim()}
                     </div>
                     
