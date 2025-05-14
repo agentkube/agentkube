@@ -406,7 +406,7 @@ const Spotlight: React.FC = () => {
           )}
 
           {/* Natural Language Command Suggestions */}
-          {showSuggestions && query && !chartSelected && !resourceMode && (
+          {/* {showSuggestions && query && !chartSelected && !resourceMode && (
             <>
               <div className="py-1">
                 <div className="">
@@ -417,7 +417,7 @@ const Spotlight: React.FC = () => {
                 </div>
               </div>
             </>
-          )}
+          )} */}
 
 
           {/* System Suggestions Section */}
