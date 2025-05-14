@@ -75,9 +75,10 @@ type SearchResult struct {
 
 // SearchOptions contains parameters for search operations
 type SearchOptions struct {
-	Query      string `json:"query"`
-	Limit      int    `json:"limit,omitempty"`
-	ClusterKey string `json:"clusterKey"`
+	Query        string `json:"query"`
+	Limit        int    `json:"limit,omitempty"`
+	ClusterKey   string `json:"clusterKey"`
+	ResourceType string `json:"resourceType,omitempty"`
 }
 
 // APIResource represents a Kubernetes API resource
@@ -119,14 +120,33 @@ func (c *Controller) Search(ctx context.Context, options SearchOptions) ([]Searc
 	// Split query into search terms
 	searchTerms := splitSearchTerms(options.Query)
 
-	// Check if any term is a resource type, if so filter by resource type
+	// Filter resources by type if specified
 	var resources []APIResource
-	for _, term := range searchTerms {
-		resourcesByType := c.filterResourcesByType(allResources, term)
-		if len(resourcesByType) > 0 {
-			// We found a resource type match, use these resources
-			resources = resourcesByType
-			break
+	if options.ResourceType != "" {
+		// Filter resources by the specified type
+		for _, resource := range allResources {
+			if strings.EqualFold(resource.Resource, options.ResourceType) {
+				resources = append(resources, resource)
+				break // Found the exact match, no need to continue
+			}
+		}
+		// If no match found, check for partial matches
+		if len(resources) == 0 {
+			for _, resource := range allResources {
+				if strings.Contains(strings.ToLower(resource.Resource), strings.ToLower(options.ResourceType)) {
+					resources = append(resources, resource)
+				}
+			}
+		}
+	} else {
+		// Check if any term is a resource type, if so filter by resource type
+		for _, term := range searchTerms {
+			resourcesByType := c.filterResourcesByType(allResources, term)
+			if len(resourcesByType) > 0 {
+				// We found a resource type match, use these resources
+				resources = resourcesByType
+				break
+			}
 		}
 	}
 

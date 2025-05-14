@@ -11,6 +11,9 @@ import (
 
 // SearchResources handles cluster resource search requests
 func SearchResources(c *gin.Context) {
+	// Get resource type filter from query parameter
+	resourceType := c.Query("type")
+
 	// Parse the search options from the request body
 	var searchOptions search.SearchOptions
 	if err := c.ShouldBindJSON(&searchOptions); err != nil {
@@ -18,6 +21,11 @@ func SearchResources(c *gin.Context) {
 			"error": fmt.Sprintf("invalid search options: %v", err),
 		})
 		return
+	}
+
+	// Set resource type filter if provided in query
+	if resourceType != "" {
+		searchOptions.ResourceType = resourceType
 	}
 
 	// Get context from the cluster manager
