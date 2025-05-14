@@ -331,15 +331,21 @@ export async function getApiGroups(clusterName: string): Promise<any> {
  * @param contextName The contextName for the Kubernetes cluster
  * @param query The search query
  * @param limit Maximum number of results to return
-* @returns A promise resolving to search results
+ * @param resourceType Optional resource type to filter the search
+ * @returns A promise resolving to search results
  */
 export const queryResource = async (
   contextName: string,
   query: string,
-  limit: number = 10
+  limit: number = 10,
+  resourceType?: string,
 ): Promise<SearchResponse> => {
+  // Construct the URL with resource type if provided
+  const url = resourceType
+    ? `${OPERATOR_URL}/cluster/${contextName}/search?type=${resourceType}`
+    : `${OPERATOR_URL}/cluster/${contextName}/search`;
 
-  const response = await fetch(`${OPERATOR_URL}/cluster/${contextName}/search`, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -358,7 +364,6 @@ export const queryResource = async (
 
   return await response.json();
 };
-
 
 /**
  * Creates a new Kubernetes resource

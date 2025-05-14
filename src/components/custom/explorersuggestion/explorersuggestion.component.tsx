@@ -17,7 +17,7 @@ const ExplorerSuggestion: React.FC<ExplorerSuggestionProps> = ({
   const navigate = useNavigate();
   return (
     <a className="flex items-center px-4 py-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800/20" onClick={() => navigate(`/dashboard/explore/${id}`)}>
-      <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gray-300/60 dark:bg-gray-900">
+      <div className="flex items-center justify-center w-8 h-8 rounded-md bg-gray-300/60 dark:bg-gray-500/10">
         {icon}
       </div>
       <div className="ml-3">

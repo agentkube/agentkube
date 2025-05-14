@@ -10,12 +10,14 @@ interface SearchResultsProps {
   query: string;
   onResultClick?: () => void; // Optional callback for result click
   limit?: number;
+  resourceType?: string; // Add this prop
 }
 
 const SearchResults: React.FC<SearchResultsProps> = ({ 
   query, 
   onResultClick,
-  limit = 10
+  limit = 10,
+  resourceType
 }) => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
           currentContext.name,
           query,
           limit,
+          resourceType // Add the resourceType parameter
         );
         
         setResults(response.results || []);
@@ -52,7 +55,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     }, 300);
     
     return () => clearTimeout(timeout);
-  }, [query, limit]);
+  }, [query, limit, resourceType]);
 
   const handleResultClick = (result: SearchResult) => {
     const path = getResourceViewPath(result);
@@ -117,7 +120,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   }
 
   return (
-    <div className="py-2">
+    <div className="py-0">
       {results.map((result, index) => (
         <div
           key={`${result.resourceType}-${result.namespace}-${result.resourceName}-${index}`}
