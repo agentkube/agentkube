@@ -98,5 +98,12 @@ export const kubeShortcuts: kubeResourceShortcuts[] = [
     description: 'Search endpoints in your cluster',
     color: 'rgba(6, 182, 212, 0.6)', // Cyan
     resourceType: 'endpoints'
+  },
+  {
+    title: 'ServiceAccounts',
+    shortcut: 'sa',
+    description: 'Search service accounts in your cluster',
+    color: 'rgba(107, 114, 128, 0.6)', // Gray
+    resourceType: 'serviceaccounts'
   }
 ];
