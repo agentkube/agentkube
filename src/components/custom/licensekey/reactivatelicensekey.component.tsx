@@ -70,6 +70,8 @@ const ReactivateLicense: React.FC<ReactivateLicenseProps> = ({
         const instanceName = generateInstanceName();
         const activationResult = await activateLicense(formattedKey, instanceName) as ActivateLicenseResponse;
         
+        console.log(activationResult)
+
         if (!activationResult.activated) {
           setError(activationResult.error || 'Failed to reactivate license');
           toast({

@@ -51,6 +51,8 @@ export const activateLicense = async (
   licenseKey: string,
   instanceName: string
 ): Promise<ActivateLicenseResponse> => {
+  console.log(licenseKey)
+  console.log(instanceName)
   const url = `${LEMONSQUEEZY_BASE_URL}/licenses/activate`;
   const formData = new URLSearchParams();
   formData.append('license_key', licenseKey);
@@ -63,10 +65,6 @@ export const activateLicense = async (
     },
     body: formData,
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to activate license: ${response.statusText}`);
-  }
 
   return response.json();
 };

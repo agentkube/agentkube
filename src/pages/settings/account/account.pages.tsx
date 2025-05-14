@@ -193,20 +193,14 @@ const Account = () => {
                   <Settings2 className="ml-2 h-4 w-4" />
                 </Button>
                 {/* TODO to be implemented, replace existing license key */}
-                <Button
-                  variant="outline"
-                  className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
-                  onClick={() => {
-                    openExternalUrl("https://account.agentkube.com/settings");
-                    toast({
-                      title: "Edit Profile",
-                      description: "Opening settings page...",
-                    });
-                  }}
-                >
-                  <Key className=" h-4 w-4" />
-                  Change License Key
-                </Button>
+
+                {user?.license_key && (
+                  <ReactivateLicense
+                    variant="outline"
+                    className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                    onSuccess={handleLicenseSuccess}
+                  />
+                )}
               </div>
             </div>
           </div>
