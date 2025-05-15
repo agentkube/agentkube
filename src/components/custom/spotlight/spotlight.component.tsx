@@ -4,7 +4,7 @@ import { useSpotlight } from '@/contexts/useSpotlight';
 import { debounce } from 'lodash';
 import { Separator } from "@/components/ui/separator";
 import { ExecuteCommand } from '@/api/internal/execute';
-import { ExecutionResult } from "@/types/cluster";
+import { ExecutionResult, KubeContext } from "@/types/cluster";
 import { motion, AnimatePresence } from 'framer-motion';
 
 import SpotlightSuggestion from '../spotlightsuggestion/spotlightsuggestion.component';
@@ -17,12 +17,13 @@ import CommandSuggestions from '../commandsuggestion/commandsuggestion.component
 import CommandOutputSpotlight from '../commandoutputspotlight/commandoutputspotlight.command';
 import SearchResults from '../searchResult/searchresult.component';
 import { SYSTEM_SUGGESTIONS } from '@/constants/system-suggestion.constant';
-import { kubeShortcuts, kubeResourceShortcuts } from '@/constants/spotlight-shortcuts.constant';
+import { kubeShortcuts, kubeResourceShortcuts, contextShortcuts } from '@/constants/spotlight-shortcuts.constant';
 import { useCluster } from '@/contexts/clusterContext';
+import ContextSwitcher from '../contextswitcher/contextswitcher.component';
 
 const Spotlight: React.FC = () => {
   const { isOpen, query, setQuery, onClose } = useSpotlight();
-  const { currentContext } = useCluster();
+  const { currentContext, setCurrentContext, contexts } = useCluster();
   const inputRef = useRef<HTMLInputElement>(null);
   const [chartSelected, setChartSelected] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -36,6 +37,9 @@ const Spotlight: React.FC = () => {
   const [resourceQuery, setResourceQuery] = useState<string>('');
   const [tabPressed, setTabPressed] = useState<boolean>(false);
   const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+  const [contextMode, setContextMode] = useState<boolean>(false);
+  const [contextQuery, setContextQuery] = useState<string>('');
+  const [filteredContexts, setFilteredContexts] = useState<KubeContext[]>([]);
 
   // Debounced search handler for suggestions
   const debouncedSearch = useCallback(
@@ -45,6 +49,23 @@ const Spotlight: React.FC = () => {
     }, 300),
     []
   );
+
+  // Check if search term matches the context shortcut
+  useEffect(() => {
+    if (debouncedQuery.trim() === '') {
+      return;
+    }
+
+    const queryLower = debouncedQuery.toLowerCase();
+    
+    // Check if there's a match for the context shortcut
+    if (contextShortcuts.shortcut.toLowerCase() === queryLower || 
+        "context".toLowerCase().includes(queryLower) || 
+        "contexts".toLowerCase().includes(queryLower)) {
+      setMatchingResource(null); // Clear any resource matches
+      // We'll handle context mode separately
+    }
+  }, [debouncedQuery]);
 
   // Check if search term matches any Kubernetes resource shortcuts
   useEffect(() => {
@@ -80,7 +101,7 @@ const Spotlight: React.FC = () => {
     debouncedSearch(query);
 
     // Set showSearchResults when there's a query and it's not in chart mode
-    if (query && !chartSelected && !resourceMode) {
+    if (query && !chartSelected && !resourceMode && !contextMode) {
       setShowSearchResults(true);
     } else {
       setShowSearchResults(false);
@@ -89,7 +110,7 @@ const Spotlight: React.FC = () => {
     if (!query) {
       setCommandOutput(null);
     }
-  }, [query, debouncedSearch, chartSelected, resourceMode]);
+  }, [query, debouncedSearch, chartSelected, resourceMode, contextMode]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -104,6 +125,8 @@ const Spotlight: React.FC = () => {
       setResourceMode(false);
       setActiveResource(null);
       setResourceQuery('');
+      setContextMode(false);
+      setContextQuery('');
     }
   }, [isOpen]);
 
@@ -133,11 +156,36 @@ const Spotlight: React.FC = () => {
     }
   };
 
-
   // Handle keyboard navigation and selection
   const handleKeyDown = useCallback((e: KeyboardEvent): void => {
     if (isOpen) {
-      if (resourceMode) {
+      if (contextMode) {
+        if (e.code === 'Enter' && filteredContexts.length > 0) {
+          e.preventDefault();
+          // Switch to the selected context
+          const selectedContext = filteredContexts[activeResourceIndex];
+          setCurrentContext(selectedContext);
+
+          // Reset after execution
+          setContextMode(false);
+          setContextQuery('');
+          onClose();
+        } else if (e.code === 'Backspace' && contextQuery === '') {
+          // If backspace is pressed when the context query is empty, exit context mode
+          e.preventDefault();
+          setContextMode(false);
+          setContextQuery('');
+          setQuery('');
+        } else if (e.code === 'ArrowDown') {
+          e.preventDefault();
+          setActiveResourceIndex(prev =>
+            prev < filteredContexts.length - 1 ? prev + 1 : prev
+          );
+        } else if (e.code === 'ArrowUp') {
+          e.preventDefault();
+          setActiveResourceIndex(prev => prev > 0 ? prev - 1 : 0);
+        }
+      } else if (resourceMode) {
         if (e.code === 'Enter' && activeResource) {
           e.preventDefault();
           // Handle resource query execution
@@ -157,7 +205,28 @@ const Spotlight: React.FC = () => {
           setQuery('');
         }
       } else {
-        if (e.code === 'Tab' && matchingResource) {
+        // Check for context shortcut
+        const isContextMatch = 
+          debouncedQuery.toLowerCase() === contextShortcuts.shortcut.toLowerCase() || 
+          "context".toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+          "contexts".toLowerCase().includes(debouncedQuery.toLowerCase());
+        
+        if ((e.code === 'Tab' || e.code === 'Enter') && isContextMatch) {
+          e.preventDefault();
+          // Enter context search mode
+          setContextMode(true);
+          setContextQuery('');
+          setFilteredContexts(contexts);
+          setActiveResourceIndex(0);
+
+          // Animation for tab press
+          setTabPressed(true);
+          setTimeout(() => {
+            setTabPressed(false);
+          }, 300);
+        }
+        // Resource shortcut handling
+        else if (e.code === 'Tab' && matchingResource) {
           e.preventDefault();
           // Enter resource search mode with matching resource
           setActiveResource(matchingResource);
@@ -184,7 +253,7 @@ const Spotlight: React.FC = () => {
         }
       }
     }
-  }, [isOpen, matchingResource, resourceMode, activeResource, resourceQuery, handleCommandExecution]);
+  }, [isOpen, matchingResource, resourceMode, activeResource, resourceQuery, handleCommandExecution, contextMode, filteredContexts, contexts, debouncedQuery, activeResourceIndex, setCurrentContext]);
 
   // Set up keyboard event listeners
   useEffect(() => {
@@ -196,12 +265,25 @@ const Spotlight: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     if (resourceMode) {
       setResourceQuery(e.target.value);
+    } else if (contextMode) {
+      setContextQuery(e.target.value);
+      // Filter contexts based on query
+      const filtered = contexts.filter(ctx =>
+        ctx.name.toLowerCase().includes(e.target.value.toLowerCase())
+      );
+      setFilteredContexts(filtered);
     } else {
       setQuery(e.target.value);
     }
   };
 
   if (!isOpen) return null;
+
+  // Is context match check
+  const isContextMatch = 
+    debouncedQuery.toLowerCase() === contextShortcuts.shortcut.toLowerCase() || 
+    "context".toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+    "contexts".toLowerCase().includes(debouncedQuery.toLowerCase());
 
   // Filter and limit suggestions to 5
   const filteredSuggestions = SYSTEM_SUGGESTIONS.filter(suggestion =>
@@ -237,16 +319,24 @@ const Spotlight: React.FC = () => {
             opacity: 1,
             boxShadow: tabPressed
               ? ["0px 0px 0px rgba(0, 0, 0, 0)",
-                activeResource
-                  ? `0px 0px 30px ${activeResource.color}`
-                  : matchingResource
-                    ? `0px 0px 30px ${matchingResource.color}`
-                    : "0px 0px 30px rgba(59, 130, 246, 0.6)",
-                activeResource
-                  ? `0px 0px 15px ${activeResource.color}`
-                  : matchingResource
-                    ? `0px 0px 15px ${matchingResource.color}`
-                    : "0px 0px 15px rgba(59, 130, 246, 0.4)"]
+                contextMode
+                  ? `0px 0px 30px ${contextShortcuts.color}`
+                  : activeResource
+                    ? `0px 0px 30px ${activeResource.color}`
+                    : matchingResource
+                      ? `0px 0px 30px ${matchingResource.color}`
+                      : isContextMatch
+                        ? `0px 0px 30px ${contextShortcuts.color}`
+                        : "0px 0px 30px rgba(59, 130, 246, 0.6)",
+                contextMode
+                  ? `0px 0px 15px ${contextShortcuts.color}`
+                  : activeResource
+                    ? `0px 0px 15px ${activeResource.color}`
+                    : matchingResource
+                      ? `0px 0px 15px ${matchingResource.color}`
+                      : isContextMatch
+                        ? `0px 0px 15px ${contextShortcuts.color}`
+                        : "0px 0px 15px rgba(59, 130, 246, 0.4)"]
               : "0px 0px 0px rgba(0, 0, 0, 0)",
             transition: {
               duration: 0.3,
@@ -276,8 +366,26 @@ const Spotlight: React.FC = () => {
                 <Search className="w-5 h-5 text-gray-400" />
               </div>
 
-              {/* Resource search mode */}
-              {resourceMode ? (
+              {/* Context or Resource search mode badge */}
+              {contextMode ? (
+                <motion.div
+                  className="flex items-center px-1 ml-2"
+                  initial={false}
+                  animate={{
+                    scale: tabPressed ? [1, 1.1, 1] : 1,
+                    transition: {
+                      duration: 0.3,
+                      ease: "easeOut"
+                    }
+                  }}
+                >
+                  <span className="font-medium text-sm text-white bg-blue-500 px-2 py-1 rounded-[0.3rem]" style={{
+                    backgroundColor: contextShortcuts.color.replace('0.6', '1')
+                  }}>
+                    {contextShortcuts.title}
+                  </span>
+                </motion.div>
+              ) : resourceMode ? (
                 <motion.div
                   className="flex items-center px-1 ml-2"
                   initial={false}
@@ -300,23 +408,37 @@ const Spotlight: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                value={resourceMode ? resourceQuery : query}
+                value={contextMode ? contextQuery : resourceMode ? resourceQuery : query}
                 onChange={handleInputChange}
-                placeholder={resourceMode
-                  ? `Search ${activeResource?.title}...`
-                  : "Kube Spotlight Search"
+                placeholder={
+                  contextMode
+                    ? `Search contexts...`
+                    : resourceMode
+                      ? `Search ${activeResource?.title}...`
+                      : "Kube Spotlight Search"
                 }
                 className="w-full p-2 text-gray-900 dark:text-gray-100 placeholder-gray-600 bg-transparent border-none focus:outline-none focus:ring-0"
                 autoComplete="off"
               />
 
-              {/* Resource match description and Tab button */}
-              {!resourceMode && matchingResource && (
+              {/* Match description and Tab button */}
+              {!contextMode && !resourceMode && (
                 <div className="absolute right-0 text-gray-600 dark:text-gray-400 text-sm flex items-center">
-                  <span>{matchingResource.description}</span>
-                  <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
-                    <span>Tab</span>
-                  </div>
+                  {isContextMatch ? (
+                    <>
+                      <span>{contextShortcuts.description}</span>
+                      <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
+                        <span>Tab</span>
+                      </div>
+                    </>
+                  ) : matchingResource ? (
+                    <>
+                      <span>{matchingResource.description}</span>
+                      <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
+                        <span>Tab</span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -341,7 +463,7 @@ const Spotlight: React.FC = () => {
           )}
 
           {/* Search Results Section */}
-          {showSearchResults && query.length >= 2 && !resourceMode && !commandOutput && (
+          {showSearchResults && query.length >= 2 && !resourceMode && !contextMode && !commandOutput && (
             <>
               <div className="py-1">
                 <div className="px-4">
@@ -368,8 +490,30 @@ const Spotlight: React.FC = () => {
             </>
           )}
 
+          {/* Context Mode Section */}
+          {contextMode && (
+            <>
+              <div className="py-1">
+                <div className="px-4">
+                  <p className="text-sm mb-1 text-gray-500">Kubernetes Contexts</p>
+                </div>
+                <ContextSwitcher
+                  contexts={contexts}
+                  currentContext={currentContext}
+                  onContextSelect={(context) => {
+                    setCurrentContext(context);
+                    setContextMode(false);
+                    onClose();
+                  }}
+                  query={contextQuery}
+                  activeIndex={activeResourceIndex}
+                />
+              </div>
+            </>
+          )}
+
           {/* Command Section */}
-          {showSuggestions && filteredCommandSuggestions.length > 0 && !resourceMode && (
+          {showSuggestions && filteredCommandSuggestions.length > 0 && !resourceMode && !contextMode && (
             <>
               <div className="py-1">
                 <div className="px-4">
@@ -388,8 +532,9 @@ const Spotlight: React.FC = () => {
               </div>
             </>
           )}
+          
           {/* Explorer Section */}
-          {!chartSelected && showSuggestions && filteredExplorerSuggestions.length > 0 && !resourceMode && (
+          {!chartSelected && showSuggestions && filteredExplorerSuggestions.length > 0 && !resourceMode && !contextMode && (
             <>
               <div className="py-1">
                 <div className="px-4">
@@ -411,7 +556,7 @@ const Spotlight: React.FC = () => {
           )}
 
           {/* Natural Language Command Suggestions */}
-          {/* {showSuggestions && query && !chartSelected && !resourceMode && (
+          {/* {showSuggestions && query && !chartSelected && !resourceMode && !contextMode && (
             <>
               <div className="py-1">
                 <div className="">
@@ -424,9 +569,8 @@ const Spotlight: React.FC = () => {
             </>
           )} */}
 
-
           {/* System Suggestions Section */}
-          {showSuggestions && filteredSuggestions.length > 0 && !resourceMode && (
+          {showSuggestions && filteredSuggestions.length > 0 && !resourceMode && !contextMode && (
             <>
               <div className="">
                 <div className="px-4">
@@ -447,7 +591,8 @@ const Spotlight: React.FC = () => {
             </>
           )}
 
-          {query && resourceQuery  && (
+          {/* Escape hint */}
+          {(contextMode) && (
             <div className='bg-gray-200/80 dark:bg-gray-500/10 text-gray-500 dark:text-gray-500 py-1 px-4 text-xs flex justify-end items-center'>
               <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
                 <span>Esc</span>

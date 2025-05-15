@@ -107,3 +107,17 @@ export const kubeShortcuts: kubeResourceShortcuts[] = [
     resourceType: 'serviceaccounts'
   }
 ];
+
+export type kubeContextShortcut = {
+  title: string;
+  shortcut: string;
+  description: string;
+  color: string;
+};
+
+export const contextShortcuts: kubeContextShortcut = {
+  title: 'Context',
+  shortcut: 'ctx',
+  description: 'Switch context',
+  color: 'rgba(14, 165, 233, 0.6)', // Sky blue color
+};
