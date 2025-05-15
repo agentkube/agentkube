@@ -133,7 +133,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
           <div className="flex-1">
             <div className="flex items-center">
               <span className="font-medium">{result.resourceName}</span>
-              <span className="ml-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-800/50 border-t border-gray-500 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-[0.3rem] text-xs text-gray-600">
+              <span className="ml-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 rounded-[0.3rem] text-xs text-gray-600">
                 {result.resourceType}
               </span>
             </div>
