@@ -80,7 +80,7 @@ export const CodeBlock = ({
       setResult(null);
 
       // const args = parseKubectlCommand(content.trim());
-      const result = await ExecuteCommand(content);
+      const result = await ExecuteCommand(content, currentContext.name);
       setResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to execute command');

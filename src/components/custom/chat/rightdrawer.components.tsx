@@ -223,6 +223,7 @@ const RightDrawer: React.FC = () => {
 
   // Helper function to handle kubectl commands
   const handleKubectlCommand = async (command: string): Promise<void> => {
+    if (!currentContext) return;
     try {
       // Add user command message if not already added
       setMessages(prev => [
@@ -234,7 +235,7 @@ const RightDrawer: React.FC = () => {
       ]);
 
       // Execute the command with analysis
-      const result = await executeCommand(command);
+      const result = await executeCommand(command, currentContext.name);
 
       // Add the result to messages
       setMessages(prev => [

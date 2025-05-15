@@ -60,7 +60,7 @@ const CommandBlock = ({ command }: { command: Command }) => {
       setResult(null);
 
       const args = parseKubectlCommand(command.format.trim());
-      const result = await ExecuteCommand(command.format);
+      const result = await ExecuteCommand(command.format, currentContext.name);
       setResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to execute command');

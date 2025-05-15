@@ -18,9 +18,11 @@ import CommandOutputSpotlight from '../commandoutputspotlight/commandoutputspotl
 import SearchResults from '../searchResult/searchresult.component';
 import { SYSTEM_SUGGESTIONS } from '@/constants/system-suggestion.constant';
 import { kubeShortcuts, kubeResourceShortcuts } from '@/constants/spotlight-shortcuts.constant';
+import { useCluster } from '@/contexts/clusterContext';
 
 const Spotlight: React.FC = () => {
   const { isOpen, query, setQuery, onClose } = useSpotlight();
+  const { currentContext } = useCluster();
   const inputRef = useRef<HTMLInputElement>(null);
   const [chartSelected, setChartSelected] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -111,10 +113,12 @@ const Spotlight: React.FC = () => {
 
   const handleCommandExecution = async (command: string) => {
     setIsExecuting(true);
+    if (!currentContext) return;
     try {
       // const args = command.replace(/^kubectl\s+/, '').split(' ')
       const result = await ExecuteCommand(
-        command
+        command,
+        currentContext.name
       );
       setCommandOutput(result);
     } catch (error) {

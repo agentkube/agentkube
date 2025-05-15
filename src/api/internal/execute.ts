@@ -2,7 +2,7 @@
 import { ORCHESTRATOR_URL } from "@/config";
 import { ExecutionResult } from "@/types/cluster";
 
-export const ExecuteCommand = async (args: string): Promise<ExecutionResult> => {
+export const ExecuteCommand = async (args: string, clusterName: string): Promise<ExecutionResult> => {
 
   const response = await fetch(`${ORCHESTRATOR_URL}/api/execute`, {
     method: "POST",
@@ -10,6 +10,7 @@ export const ExecuteCommand = async (args: string): Promise<ExecutionResult> => 
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      kubecontext: clusterName,
       command: args
     })
   });

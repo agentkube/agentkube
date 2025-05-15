@@ -88,7 +88,7 @@ export const CodeBlock = ({
       setCommandSuccess(null);
       setShowOutput(false);
 
-      const result = await executeCommand(content);
+      const result = await executeCommand(content, currentContext.name);
       setResult(result);
       setCommandSuccess(result.success);
     } catch (err) {

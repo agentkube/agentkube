@@ -134,7 +134,7 @@
       "minimumSystemVersion": "10.13"
     },
     "resources": [],
-    "externalBin": ["bin/operator/operator", "bin/orchestrator/orchestrator"],
+    "externalBin": ["bin/operator/operator"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

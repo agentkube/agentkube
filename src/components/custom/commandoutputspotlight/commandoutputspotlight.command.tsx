@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ExecutionResult } from "@/types/cluster";
 import { ExecuteCommand } from '@/api/internal/execute';
+import { useCluster } from '@/contexts/clusterContext';
 
 interface CommandOutputSpotlightProps {
   output: ExecutionResult;
@@ -17,14 +18,18 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isExecuting, setIsExecuting] = useState(initialIsExecuting);
   const [currentOutput, setCurrentOutput] = useState(output);
-
+  const { currentContext } = useCluster();
 
   const handleRerun = async () => {
     setIsExecuting(true);
+
+    if (!currentContext) return;
+
     try {
       // const args = currentOutput.command.replace(/^kubectl\s+/, '').split(' ');
       const result = await ExecuteCommand(
-        currentOutput.command
+        currentOutput.command,
+        currentContext.name
       );
       setCurrentOutput(result);
     } catch (error) {

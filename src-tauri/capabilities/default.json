@@ -64,11 +64,6 @@
           "args": true,
           "name": "bin/operator/operator",
           "sidecar": true
-        },
-        {
-          "args": true,
-          "name": "bin/orchestrator/orchestrator",
-          "sidecar": true
         }
       ]
     },
