@@ -112,10 +112,10 @@ const Spotlight: React.FC = () => {
   };
 
   const handleCommandExecution = async (command: string) => {
+    setCommandOutput(null);
     setIsExecuting(true);
     if (!currentContext) return;
     try {
-      // const args = command.replace(/^kubectl\s+/, '').split(' ')
       const result = await ExecuteCommand(
         command,
         currentContext.name
@@ -132,6 +132,7 @@ const Spotlight: React.FC = () => {
       setIsExecuting(false);
     }
   };
+
 
   // Handle keyboard navigation and selection
   const handleKeyDown = useCallback((e: KeyboardEvent): void => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Maximize2, Play } from 'lucide-react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,11 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
   const [isExecuting, setIsExecuting] = useState(initialIsExecuting);
   const [currentOutput, setCurrentOutput] = useState(output);
   const { currentContext } = useCluster();
+
+  useEffect(() => {
+    setCurrentOutput(output);
+    setIsExecuting(initialIsExecuting);
+  }, [output, initialIsExecuting]);
 
   const handleRerun = async () => {
     setIsExecuting(true);

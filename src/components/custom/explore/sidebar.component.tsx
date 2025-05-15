@@ -1,6 +1,6 @@
 // ExploreSidebar.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeft, CircleDollarSign, TextSearch, ChartLine, ShieldUser, BotMessageSquare, Code, Book } from 'lucide-react';
+import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCluster } from '@/contexts/clusterContext';
 import { SidebarItem } from '@/types/sidebar';
