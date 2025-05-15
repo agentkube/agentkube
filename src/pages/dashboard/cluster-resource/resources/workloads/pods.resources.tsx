@@ -1167,7 +1167,7 @@ const Pods: React.FC = () => {
                       <TableCell className="text-center">
                         <div className="hover:text-blue-500 hover:underline" onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/dashboard/explore/nodes`);
+                          navigate(`/dashboard/explore/nodes/${pod.spec?.nodeName}`);
                         }}>
                           {pod.spec?.nodeName || '-'}
                         </div>

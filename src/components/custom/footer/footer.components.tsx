@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { currentVersion } from '@/config';
 
 // Define types for Update object
 interface UpdateInfo {
@@ -71,7 +72,7 @@ const Footer: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   
-  const currentVersion: string = "v1.0.0";
+
 
   const checkForUpdates = async (): Promise<void> => {
     // Only run if we're in a Tauri environment
