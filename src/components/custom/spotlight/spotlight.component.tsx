@@ -447,7 +447,7 @@ const Spotlight: React.FC = () => {
             </>
           )}
 
-          {/* {query && (
+          {query && resourceQuery  && (
             <div className='bg-gray-200/80 dark:bg-gray-500/10 text-gray-500 dark:text-gray-500 py-1 px-4 text-xs flex justify-end items-center'>
               <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
                 <span>Esc</span>
@@ -456,7 +456,7 @@ const Spotlight: React.FC = () => {
                 to close
               </span>
             </div>
-          )} */}
+          )}
         </motion.div>
       </AnimatePresence>
     </div>
