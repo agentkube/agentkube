@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { installTrivyOperator } from '@/api/scanner/security';
 import { useCluster } from '@/contexts/clusterContext';
+import { openExternalUrl } from '@/api/external';
 
 interface TrivyNotInstalledProps {
   title: string;
@@ -69,7 +70,7 @@ const TrivyNotInstalled: React.FC<TrivyNotInstalledProps> = ({ title, subtitle, 
               </Button>
               <Button
                 variant="outline"
-                onClick={() => window.open('https://aquasecurity.github.io/trivy-operator/latest/getting-started/installation/', '_blank')}
+                onClick={() => openExternalUrl('https://aquasecurity.github.io/trivy-operator/latest/getting-started/installation/')}
                 className="flex items-center gap-1"
               >
                 <ExternalLink className="h-4 w-4" />
