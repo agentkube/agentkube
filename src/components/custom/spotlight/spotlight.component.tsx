@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Search, ChartColumnBig, FileText } from 'lucide-react';
+import { Search, ChartColumnBig, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSpotlight } from '@/contexts/useSpotlight';
 import { debounce } from 'lodash';
 import { Separator } from "@/components/ui/separator";
@@ -57,11 +57,11 @@ const Spotlight: React.FC = () => {
     }
 
     const queryLower = debouncedQuery.toLowerCase();
-    
+
     // Check if there's a match for the context shortcut
-    if (contextShortcuts.shortcut.toLowerCase() === queryLower || 
-        "context".toLowerCase().includes(queryLower) || 
-        "contexts".toLowerCase().includes(queryLower)) {
+    if (contextShortcuts.shortcut.toLowerCase() === queryLower ||
+      "context".toLowerCase().includes(queryLower) ||
+      "contexts".toLowerCase().includes(queryLower)) {
       setMatchingResource(null); // Clear any resource matches
       // We'll handle context mode separately
     }
@@ -206,11 +206,11 @@ const Spotlight: React.FC = () => {
         }
       } else {
         // Check for context shortcut
-        const isContextMatch = 
-          debouncedQuery.toLowerCase() === contextShortcuts.shortcut.toLowerCase() || 
+        const isContextMatch =
+          debouncedQuery.toLowerCase() === contextShortcuts.shortcut.toLowerCase() ||
           "context".toLowerCase().includes(debouncedQuery.toLowerCase()) ||
           "contexts".toLowerCase().includes(debouncedQuery.toLowerCase());
-        
+
         if ((e.code === 'Tab' || e.code === 'Enter') && isContextMatch) {
           e.preventDefault();
           // Enter context search mode
@@ -280,8 +280,8 @@ const Spotlight: React.FC = () => {
   if (!isOpen) return null;
 
   // Is context match check
-  const isContextMatch = 
-    debouncedQuery.toLowerCase() === contextShortcuts.shortcut.toLowerCase() || 
+  const isContextMatch =
+    debouncedQuery.toLowerCase() === contextShortcuts.shortcut.toLowerCase() ||
     "context".toLowerCase().includes(debouncedQuery.toLowerCase()) ||
     "contexts".toLowerCase().includes(debouncedQuery.toLowerCase());
 
@@ -532,7 +532,7 @@ const Spotlight: React.FC = () => {
               </div>
             </>
           )}
-          
+
           {/* Explorer Section */}
           {!chartSelected && showSuggestions && filteredExplorerSuggestions.length > 0 && !resourceMode && !contextMode && (
             <>
@@ -594,6 +594,12 @@ const Spotlight: React.FC = () => {
           {/* Escape hint */}
           {(contextMode) && (
             <div className='bg-gray-200/80 dark:bg-gray-500/10 text-gray-500 dark:text-gray-500 py-1 px-4 text-xs flex justify-end items-center'>
+              <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1 py-0.5 mr-1 flex items-center">
+                <span><ChevronDown className='h-4 w-4' /></span>
+              </div>
+              <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1 py-0.5 mr-1 flex items-center">
+                <span><ChevronUp className='h-4 w-4' /></span>
+              </div>
               <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
                 <span>Esc</span>
               </div>
