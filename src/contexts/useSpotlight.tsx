@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const useSpotlight = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const navigate = useNavigate();
+
+
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -16,6 +20,12 @@ export const useSpotlight = () => {
         if (isOpen) {
           setQuery('');
         }
+      }
+
+      // Check for Cmd (Meta)/Ctrl + D
+      if ((event.metaKey || event.ctrlKey) && event.key === 'd') {
+        event.preventDefault();
+        navigate("/")
       }
 
       // Close on escape
