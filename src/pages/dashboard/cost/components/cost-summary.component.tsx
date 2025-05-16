@@ -17,7 +17,30 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
   const [costData, setCostData] = useState<ClusterCostSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [openCostConfig, setOpenCostConfig] = useState({
+    namespace: 'opencost',
+    service: 'opencost:9090'
+  });
 
+
+  useEffect(() => {
+    if (!currentContext) return;
+    
+    try {
+      const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig);
+        if (parsedConfig.externalConfig?.opencost) {
+          setOpenCostConfig(parsedConfig.externalConfig.opencost);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading saved OpenCost config:', err);
+    }
+  }, [currentContext]);
+
+
+  
   const fetchClusterCostData = async () => {
     if (!currentContext?.name) {
       setLoading(false);
@@ -30,9 +53,9 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       setError(null);
 
       // Define constants
-      const OPENCOST_NAMESPACE = 'opencost';
-      const OPENCOST_SERVICE = 'opencost:9090';
-
+      const OPENCOST_NAMESPACE = openCostConfig.namespace;
+      const OPENCOST_SERVICE = openCostConfig.service;
+      
       // Build path and query parameters for daily trend data
       const trendPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
       const trendParams = new URLSearchParams({

@@ -62,7 +62,6 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
     }
   }, [currentContext]);
 
-
   const handleInstallClick = () => {
     setIsInstallDialogOpen(true);
     updateYamlContent();

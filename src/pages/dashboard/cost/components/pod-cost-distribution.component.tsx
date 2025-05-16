@@ -57,6 +57,26 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [openCostConfig, setOpenCostConfig] = useState({
+    namespace: 'opencost',
+    service: 'opencost:9090'
+  });
+
+  useEffect(() => {
+    if (!currentContext) return;
+
+    try {
+      const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig);
+        if (parsedConfig.externalConfig?.opencost) {
+          setOpenCostConfig(parsedConfig.externalConfig.opencost);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading saved OpenCost config:', err);
+    }
+  }, [currentContext]);
 
   useEffect(() => {
     const fetchPodCostData = async () => {
@@ -65,15 +85,15 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
         setError("No cluster selected. Please select a cluster to view cost data.");
         return;
       }
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Define constants
-        const OPENCOST_NAMESPACE = 'opencost';
-        const OPENCOST_SERVICE = 'opencost:9090';
-        
+        const OPENCOST_NAMESPACE = openCostConfig.namespace;
+        const OPENCOST_SERVICE = openCostConfig.service;
+
         // Build path and query parameters
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
@@ -82,12 +102,12 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
           includeIdle: 'true', // include idle resources
           accumulate: 'true'   // accumulate the values
         }).toString();
-        
+
         const fullPath = `${path}?${queryParams}`;
-        
+
         // Directly use kubeProxyRequest
         const response = await kubeProxyRequest(currentContext.name, fullPath, 'GET') as OpenCostAllocationResponse;
-        
+
         // Transform the data
         const transformedData = transformOpenCostPodData(response.data);
         setCostData(transformedData);
@@ -98,7 +118,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
         setLoading(false);
       }
     };
-    
+
     fetchPodCostData();
   }, [currentContext, timeRange]);
 
@@ -106,8 +126,8 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
   const transformOpenCostPodData = (data: Record<string, any>[]): PodCostSummary => {
     // If no data is available, return empty object
     if (!data || data.length === 0 || !data[0]) {
-      return { 
-        pods: [], 
+      return {
+        pods: [],
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
@@ -121,7 +141,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
     try {
       // Extract the single allocation set (since we're using accumulate=true)
       const podData = data[0];
-      
+
       // Initialize resource totals
       let totalCpuCost = 0;
       let totalRamCost = 0;
@@ -131,28 +151,28 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
       let podsTotalCost = 0;
       let weightedEfficiency = 0;
       let totalResourceCostForEfficiency = 0;
-      
+
       // Calculate total cost across all pods (excluding __idle__ and __unallocated__)
       Object.entries(podData).forEach(([name, data]) => {
         if (name !== '__idle__' && name !== '__unallocated__') {
           const allocation = data as any;
           podsTotalCost += allocation.totalCost || 0;
-          
+
           // Add to resource totals
           totalCpuCost += allocation.cpuCost || 0;
           totalRamCost += allocation.ramCost || 0;
           totalPvCost += allocation.pvCost || 0;
-          
+
           // Calculate network costs (sum of all network-related costs)
-          const networkCost = (allocation.networkCost || 0) + 
-                            (allocation.networkCrossZoneCost || 0) + 
-                            (allocation.networkCrossRegionCost || 0) + 
-                            (allocation.networkInternetCost || 0);
+          const networkCost = (allocation.networkCost || 0) +
+            (allocation.networkCrossZoneCost || 0) +
+            (allocation.networkCrossRegionCost || 0) +
+            (allocation.networkInternetCost || 0);
           totalNetworkCost += networkCost;
-          
+
           // GPU costs
           totalGpuCost += allocation.gpuCost || 0;
-          
+
           // Calculate weighted efficiency
           const efficiency = allocation.totalEfficiency || 0;
           const resourceCostForEfficiency = (allocation.cpuCost || 0) + (allocation.ramCost || 0);
@@ -160,7 +180,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
           totalResourceCostForEfficiency += resourceCostForEfficiency;
         }
       });
-      
+
       // Transform each pod entry to the expected format
       const pods = Object.entries(podData)
         .filter(([name, _]) => name !== '__idle__' && name !== '__unallocated__')
@@ -168,21 +188,21 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
           const allocation = data as any;
           const cost = allocation.totalCost || 0;
           const percentage = podsTotalCost > 0 ? (cost / podsTotalCost) * 100 : 0;
-          
+
           // Extract namespace and node information
           const namespace = allocation.properties?.namespace || 'unknown';
           const nodeName = allocation.properties?.node || allocation.properties?.providerID || 'unknown';
-          
+
           // Extract efficiency metric - convert to percentage
-          const efficiency = allocation.totalEfficiency != null ? 
+          const efficiency = allocation.totalEfficiency != null ?
             allocation.totalEfficiency * 100 : 0;
-          
+
           // Calculate network costs (sum of all network-related costs)
-          const networkCost = (allocation.networkCost || 0) + 
-                            (allocation.networkCrossZoneCost || 0) + 
-                            (allocation.networkCrossRegionCost || 0) + 
-                            (allocation.networkInternetCost || 0);
-          
+          const networkCost = (allocation.networkCost || 0) +
+            (allocation.networkCrossZoneCost || 0) +
+            (allocation.networkCrossRegionCost || 0) +
+            (allocation.networkInternetCost || 0);
+
           // Create resource cost breakdown
           const resources: ResourceCost = {
             cpu: allocation.cpuCost || 0,
@@ -192,7 +212,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
             gpu: allocation.gpuCost || 0,
             total: cost
           };
-          
+
           return {
             name: name,
             namespace: namespace,
@@ -204,14 +224,14 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
           };
         })
         .sort((a, b) => b.cost - a.cost); // Sort by cost (highest first)
-      
+
       // Calculate overall efficiency
-      const averageEfficiency = totalResourceCostForEfficiency > 0 
-        ? weightedEfficiency / totalResourceCostForEfficiency 
+      const averageEfficiency = totalResourceCostForEfficiency > 0
+        ? weightedEfficiency / totalResourceCostForEfficiency
         : 0;
-      
-      return { 
-        pods, 
+
+      return {
+        pods,
         totalCost: podsTotalCost,
         cpuCost: totalCpuCost,
         ramCost: totalRamCost,
@@ -222,8 +242,8 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
       };
     } catch (error) {
       console.error("Error processing OpenCost pod data:", error);
-      return { 
-        pods: [], 
+      return {
+        pods: [],
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
@@ -250,7 +270,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
     if (efficiency < 80) return "text-blue-500";
     return "text-green-500";
   };
-  
+
   // Format currency values consistently
   const formatCost = (value: number): string => {
     return value.toFixed(5);
@@ -304,13 +324,13 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
         <CardContent className="p-6">
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Pod Cost Summary</h2>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
               <div className="text-xs text-gray-500 dark:text-gray-400">Total Cost</div>
               <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.totalCost)}</div>
             </div>
-            
+
             <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
               <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                 <Cpu className="h-3 w-3 text-blue-500 mr-1" />
@@ -318,7 +338,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
               </div>
               <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.cpuCost)}</div>
             </div>
-            
+
             <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
               <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                 <Database className="h-3 w-3 text-indigo-500 mr-1" />
@@ -326,7 +346,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
               </div>
               <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.ramCost)}</div>
             </div>
-            
+
             {costData.pvCost > 0 && (
               <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                 <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
@@ -336,7 +356,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
                 <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.pvCost)}</div>
               </div>
             )}
-            
+
             {networkCost > 0 && (
               <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                 <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
@@ -346,19 +366,19 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
                 <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(networkCost)}</div>
               </div>
             )}
-            
+
             {gpuCost > 0 && (
               <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                 <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                   <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                    <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                   </svg>
                   GPU
                 </div>
                 <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(gpuCost)}</div>
               </div>
             )}
-            
+
             <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
               <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                 <Gauge className={`h-3 w-3 ${getEfficiencyColor(costData.efficiency)} mr-1`} />
@@ -371,18 +391,18 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Pod Distribution Card */}
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
         <CardContent className="p-6">
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Pod Cost Distribution</h2>
-          
+
           <div className="space-y-5">
             {costData.pods.map((pod, idx) => {
               // Safely access possibly undefined values
               const podNetworkCost = pod.resources.network ?? 0;
               const podGpuCost = pod.resources.gpu ?? 0;
-              
+
               return (
                 <div key={idx} className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -390,9 +410,9 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
                       <div className="flex items-center">
                         <div className={`w-3 h-3 rounded-full ${getPercentageColor(pod.percentage)} mr-2 opacity-80`}></div>
                         <span className="text-md font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:underline hover:text-blue-600 dark:hover:text-blue-400"
-                        onClick={() => {
-                          navigate(`/dashboard/explore/pods/${pod.namespace}/${pod.name}`);
-                        }}
+                          onClick={() => {
+                            navigate(`/dashboard/explore/pods/${pod.namespace}/${pod.name}`);
+                          }}
                         >{pod.name}</span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 text-sm text-gray-500 dark:text-gray-400 ml-5">
@@ -419,7 +439,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
                     <span className="text-sm font-bold text-gray-900 dark:text-white">${formatCost(pod.cost)}</span>
                   </div>
                   <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-[0.2rem]">
-                    <div 
+                    <div
                       className={`h-3 ${getPercentageColor(pod.percentage)} rounded-[0.2rem]`}
                       style={{ width: `${Math.min(pod.percentage, 100)}%` }}
                     ></div>
@@ -448,7 +468,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
                     {podGpuCost > 0 && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                         <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                          <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                         </svg>
                         GPU: ${formatCost(podGpuCost)}
                       </div>
