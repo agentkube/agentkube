@@ -10,6 +10,7 @@ import { AWS_PROVIDER, GCP_PROVIDER, AZURE_PROVIDER } from '@/assets/providers';
 import KUBERNETES from '@/assets/kubernetes.svg';
 import ProxyConfigDialog from '../proxyconfigdialog/proxyconfigdialog.component';
 import { openExternalUrl } from '@/api/external';
+import { useCluster } from '@/contexts/clusterContext';
 
 
 interface OpenCostInstallerProps {
@@ -18,6 +19,7 @@ interface OpenCostInstallerProps {
 }
 
 const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstall }) => {
+  const { currentContext } = useCluster();
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const [selectedCloudProvider, setSelectedCloudProvider] = useState("aws");
   const [activeTab, setActiveTab] = useState("options");
@@ -33,9 +35,11 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
   });
 
   const handleSaveConfig = (config: { namespace: string; service: string }) => {
+    if (!currentContext) return;
+
     setOpenCostConfig(config);
     console.log('Saving OpenCost config:', config);
-    localStorage.setItem('openCostConfig', JSON.stringify({
+    localStorage.setItem(`${currentContext.name}.openCostConfig`, JSON.stringify({
       externalConfig: {
         opencost: config
       }
@@ -43,8 +47,10 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
   };
 
   useEffect(() => {
+    if (!currentContext) return;
+
     try {
-      const savedConfig = localStorage.getItem('openCostConfig');
+      const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
         if (parsedConfig.externalConfig?.opencost) {
@@ -54,7 +60,7 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
     } catch (err) {
       console.error('Error loading saved config:', err);
     }
-  }, []);
+  }, [currentContext]);
 
 
   const handleInstallClick = () => {
