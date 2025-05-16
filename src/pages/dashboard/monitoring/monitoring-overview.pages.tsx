@@ -19,11 +19,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, AlertCircle, Cpu, HardDrive, Activity, Loader2 } from "lucide-react";
+import { RefreshCw, AlertCircle, Cpu, HardDrive, Activity, Loader2, Settings } from "lucide-react";
+import { ProxyConfigDialog } from '@/components/custom';
 
 const PodMonitoringOverview = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { currentContext } = useCluster();
   
   const { namespaces, loading: namespacesLoading, error: namespacesError } = useNamespace();
@@ -36,6 +36,16 @@ const PodMonitoringOverview = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Settings Dialog State
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState<boolean>(false);
+  const [monitoringConfig, setMonitoringConfig] = useState<{
+    namespace: string;
+    service: string;
+  }>({
+    namespace: 'monitoring',
+    service: 'prometheus:9090'
+  });
   
   // Metrics data for charts (derived from podMetrics)
   const [metricsData, setMetricsData] = useState<any[]>([]);
@@ -57,8 +67,47 @@ const PodMonitoringOverview = () => {
       if (podParam) {
         setSelectedPod(podParam);
       }
+      
     }
+    
+    // Load monitoring config
+    loadMonitoringConfig();
   }, [currentContext, searchParams, namespaces]);
+  
+  // Load monitoring configuration from localStorage
+  const loadMonitoringConfig = () => {
+    if (!currentContext) return;
+    
+    try {
+      const savedConfig = localStorage.getItem(`${currentContext.name}.monitoringConfig`);
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig);
+        if (parsedConfig.externalConfig?.monitoring) {
+          setMonitoringConfig(parsedConfig.externalConfig.monitoring);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading saved monitoring config:', err);
+    }
+  };
+  
+  // Save monitoring configuration to localStorage
+  const handleSaveConfig = (config: { namespace: string; service: string }) => {
+    if (!currentContext) return;
+    
+    setMonitoringConfig(config);
+    console.log('Saving monitoring config:', config);
+    localStorage.setItem(`${currentContext.name}.monitoringConfig`, JSON.stringify({
+      externalConfig: {
+        monitoring: config
+      }
+    }));
+    
+    // Refresh metrics with new config
+    if (selectedNamespace && selectedPod) {
+      fetchPodMetrics(selectedNamespace, selectedPod);
+    }
+  };
   
   // Initialize namespace from available namespaces
   const initializeNamespace = () => {
@@ -143,7 +192,12 @@ const PodMonitoringOverview = () => {
       setRefreshing(true);
       
       // Call our metrics API
-      const metrics = await getPodMetrics(currentContext.name, namespace, podName);
+      // You might need to update your API call to use the monitoringConfig
+      const metrics = await getPodMetrics(
+        currentContext.name, 
+        namespace, 
+        podName
+      );
       setPodMetrics(metrics);
       
       // Process metrics history for charts
@@ -334,8 +388,30 @@ const PodMonitoringOverview = () => {
                 <RefreshCw className="h-4 w-4" />
               )}
             </Button>
+            
+            {/* Settings Button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsConfigDialogOpen(true)}
+              className="flex items-center"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+        
+        {/* ProxyConfigDialog Component */}
+        <ProxyConfigDialog
+          isOpen={isConfigDialogOpen}
+          onClose={() => setIsConfigDialogOpen(false)}
+          onSave={handleSaveConfig}
+          defaultConfig={monitoringConfig}
+          serviceName="Prometheus"
+          serviceDescription="Configure the Prometheus monitoring service connection details for metrics collection. This affects where pod metrics are queried from."
+          defaultNamespace="monitoring"
+          defaultService="prometheus:9090"
+        />
         
         {/* Time Range Selector */}
         <div className="mb-6">

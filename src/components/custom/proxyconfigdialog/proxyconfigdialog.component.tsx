@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Save, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PROMETHEUS_OPERATOR } from '@/assets';
+import { OPENCOST } from '@/assets/providers';
 
 interface ServiceConfig {
   namespace: string;
@@ -42,6 +44,23 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
   const [namespace, setNamespace] = useState<string>(defaultConfig?.namespace || defaultNamespace);
   const [service, setService] = useState<string>(defaultConfig?.service || defaultService);
   const [error, setError] = useState<string | null>(null);
+
+  // Determine which image to use based on serviceName
+  const getServiceImage = () => {
+    // Convert serviceName to lowercase and check if it contains specific keywords
+    const serviceNameLower = serviceName.toLowerCase();
+    
+    if (serviceNameLower.includes('prometheus')) {
+      return PROMETHEUS_OPERATOR;
+    } else if (serviceNameLower.includes('opencost')) {
+      return OPENCOST;
+    }
+    
+    // Default case: no image or you could return a default image
+    return null;
+  };
+  
+  const serviceImage = getServiceImage();
 
   useEffect(() => {
     // Reset form when dialog is opened with default values
@@ -86,7 +105,12 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900/20 backdrop-blur-sm">
         <DialogHeader>
-          <DialogTitle className="text-xl">{serviceName} Connection Settings</DialogTitle>
+          <DialogTitle className="text-xl font-[Anton] uppercase flex items-center space-x-2">
+            {serviceImage && <img src={serviceImage} className='h-6 w-6' alt="" />}
+            <span>
+              {serviceName} Proxy Settings
+            </span>
+          </DialogTitle>
           <DialogDescription>
             {serviceDescription || `Configure the ${serviceName} service connection details if it's installed in a different namespace or with a custom service name.`}
           </DialogDescription>
