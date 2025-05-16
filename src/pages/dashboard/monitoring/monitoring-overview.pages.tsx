@@ -25,7 +25,7 @@ import { ProxyConfigDialog } from '@/components/custom';
 const PodMonitoringOverview = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentContext } = useCluster();
-  
+
   const { namespaces, loading: namespacesLoading, error: namespacesError } = useNamespace();
   const [pods, setPods] = useState<V1Pod[]>([]);
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
@@ -36,7 +36,7 @@ const PodMonitoringOverview = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Settings Dialog State
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState<boolean>(false);
   const [monitoringConfig, setMonitoringConfig] = useState<{
@@ -46,16 +46,16 @@ const PodMonitoringOverview = () => {
     namespace: 'monitoring',
     service: 'prometheus:9090'
   });
-  
+
   // Metrics data for charts (derived from podMetrics)
   const [metricsData, setMetricsData] = useState<any[]>([]);
-  
+
   // Initialize from URL params or defaults
   useEffect(() => {
     if (currentContext) {
       const namespaceParam = searchParams.get('namespace');
       const podParam = searchParams.get('pod');
-      
+
       if (namespaceParam) {
         setSelectedNamespace(namespaceParam);
         fetchPods(namespaceParam);
@@ -63,21 +63,21 @@ const PodMonitoringOverview = () => {
         // Use namespaces from the context instead of fetching them again
         initializeNamespace();
       }
-      
+
       if (podParam) {
         setSelectedPod(podParam);
       }
-      
+
     }
-    
+
     // Load monitoring config
     loadMonitoringConfig();
   }, [currentContext, searchParams, namespaces]);
-  
+
   // Load monitoring configuration from localStorage
   const loadMonitoringConfig = () => {
     if (!currentContext) return;
-    
+
     try {
       const savedConfig = localStorage.getItem(`${currentContext.name}.monitoringConfig`);
       if (savedConfig) {
@@ -90,11 +90,11 @@ const PodMonitoringOverview = () => {
       console.error('Error loading saved monitoring config:', err);
     }
   };
-  
+
   // Save monitoring configuration to localStorage
   const handleSaveConfig = (config: { namespace: string; service: string }) => {
     if (!currentContext) return;
-    
+
     setMonitoringConfig(config);
     console.log('Saving monitoring config:', config);
     localStorage.setItem(`${currentContext.name}.monitoringConfig`, JSON.stringify({
@@ -102,13 +102,13 @@ const PodMonitoringOverview = () => {
         monitoring: config
       }
     }));
-    
+
     // Refresh metrics with new config
     if (selectedNamespace && selectedPod) {
       fetchPodMetrics(selectedNamespace, selectedPod);
     }
   };
-  
+
   // Initialize namespace from available namespaces
   const initializeNamespace = () => {
     if (namespaces.length > 0) {
@@ -116,18 +116,18 @@ const PodMonitoringOverview = () => {
       const defaultNamespace = namespaces.find(
         ns => ns.metadata?.name === 'default'
       ) || namespaces[0];
-      
+
       if (defaultNamespace.metadata?.name) {
         setSelectedNamespace(defaultNamespace.metadata.name);
         fetchPods(defaultNamespace.metadata.name);
       }
     }
   };
-  
+
   // Fetch pods in the selected namespace
   const fetchPods = async (namespace: string) => {
     if (!currentContext || !namespace) return;
-    
+
     try {
       setLoading(true);
       const podList = await listResources<'pods'>(
@@ -135,9 +135,9 @@ const PodMonitoringOverview = () => {
         'pods',
         { namespace }
       );
-      
+
       setPods(podList);
-      
+
       // Select first pod if none selected
       if ((!selectedPod || !podList.find(p => p.metadata?.name === selectedPod)) && podList.length > 0) {
         const firstPodName = podList[0].metadata?.name;
@@ -145,7 +145,7 @@ const PodMonitoringOverview = () => {
           setSelectedPod(firstPodName);
           fetchPodDetails(namespace, firstPodName);
           fetchPodMetrics(namespace, firstPodName);
-          
+
           // Update URL with namespace and pod
           setSearchParams({
             namespace,
@@ -163,11 +163,11 @@ const PodMonitoringOverview = () => {
       setLoading(false);
     }
   };
-  
+
   // Fetch pod details
   const fetchPodDetails = async (namespace: string, podName: string) => {
     if (!currentContext || !namespace || !podName) return;
-    
+
     try {
       // Fetch the pod to get its details
       const pod = await getResource<'pods'>(
@@ -176,34 +176,34 @@ const PodMonitoringOverview = () => {
         podName,
         namespace
       );
-      
+
       setPodDetails(pod);
     } catch (err) {
       console.error('Error fetching pod details:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch pod details');
     }
   };
-  
+
   // Fetch metrics for the selected pod using our metrics API
   const fetchPodMetrics = async (namespace: string, podName: string) => {
     if (!currentContext || !namespace || !podName) return;
-    
+
     try {
       setRefreshing(true);
-      
+
       // Call our metrics API
       // You might need to update your API call to use the monitoringConfig
       const metrics = await getPodMetrics(
-        currentContext.name, 
-        namespace, 
+        currentContext.name,
+        namespace,
         podName
       );
       setPodMetrics(metrics);
-      
+
       // Process metrics history for charts
       const formattedData = processMetricsForCharts(metrics, timeRange);
       setMetricsData(formattedData);
-      
+
       setError(null);
     } catch (err) {
       console.error('Error fetching pod metrics:', err);
@@ -212,33 +212,33 @@ const PodMonitoringOverview = () => {
       setRefreshing(false);
     }
   };
-  
+
   // Process metrics history data for charts (keeping your existing format)
   const processMetricsForCharts = (metrics: PodMetrics, timeRangeFilter: string) => {
     if (!metrics || !metrics.history || metrics.history.length === 0) {
       return [];
     }
-    
+
     // Sort history by timestamp
-    const sortedHistory = [...metrics.history].sort((a, b) => 
+    const sortedHistory = [...metrics.history].sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
-    
+
     // Filter based on time range if needed
     let filteredHistory = sortedHistory;
     if (timeRangeFilter) {
       const now = new Date();
       const cutoff = new Date();
-      
+
       if (timeRangeFilter === '1h') cutoff.setHours(now.getHours() - 1);
       else if (timeRangeFilter === '6h') cutoff.setHours(now.getHours() - 6);
       else if (timeRangeFilter === '24h') cutoff.setHours(now.getHours() - 24);
-      
-      filteredHistory = sortedHistory.filter(point => 
+
+      filteredHistory = sortedHistory.filter(point =>
         new Date(point.timestamp) >= cutoff
       );
     }
-    
+
     // Format data to match your chart expectations
     return filteredHistory.map(point => ({
       time: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -250,7 +250,7 @@ const PodMonitoringOverview = () => {
       network_out: 0, // Placeholder
     }));
   };
-  
+
   // Handle namespace change
   const handleNamespaceChange = (value: string) => {
     setSelectedNamespace(value);
@@ -258,33 +258,33 @@ const PodMonitoringOverview = () => {
     setPodMetrics(null); // Clear metrics
     setMetricsData([]); // Clear chart data
     fetchPods(value);
-    
+
     // Update URL with new namespace
     setSearchParams({
       namespace: value
     });
   };
-  
+
   // Handle pod change
   const handlePodChange = (value: string) => {
     setSelectedPod(value);
     fetchPodDetails(selectedNamespace, value);
     fetchPodMetrics(selectedNamespace, value);
-    
+
     // Update URL with new pod
     setSearchParams({
       namespace: selectedNamespace,
       pod: value
     });
   };
-  
+
   // Handle refresh
   const handleRefresh = () => {
     if (selectedNamespace && selectedPod) {
       fetchPodMetrics(selectedNamespace, selectedPod);
     }
   };
-  
+
   // Handle time range change
   const handleTimeRangeChange = (value: '1h' | '6h' | '24h') => {
     setTimeRange(value);
@@ -292,12 +292,12 @@ const PodMonitoringOverview = () => {
       // Reprocess existing metrics data for new time range
       const formattedData = processMetricsForCharts(podMetrics, value);
       setMetricsData(formattedData);
-      
+
       // Optionally refetch with new time range parameter
       // fetchPodMetrics(selectedNamespace, selectedPod);
     }
   };
-  
+
   // Loading state
   if ((loading || namespacesLoading) && !pods.length && !namespaces.length) {
     return (
@@ -309,7 +309,7 @@ const PodMonitoringOverview = () => {
       </div>
     );
   }
-  
+
   // Error state
   if ((error || namespacesError) && !pods.length && !namespaces.length) {
     const errorMessage = error || namespacesError;
@@ -323,7 +323,7 @@ const PodMonitoringOverview = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="max-h-[92vh] overflow-y-auto
           scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
@@ -336,15 +336,15 @@ const PodMonitoringOverview = () => {
         {/* Header and Selection Controls */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-5xl font-[Anton] uppercase text-gray-800/30 dark:text-gray-700/50">Pod Monitoring</h1>
+            <h1 className="text-5xl font-[Anton] uppercase text-gray-800/30 dark:text-gray-700/50">Monitoring</h1>
             <p className="text-gray-500 dark:text-gray-400">
-              Real-time performance metrics for Kubernetes pods
+              Real-time performance metrics for Kubernetes pods (Experimentation)
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            <Select 
-              value={selectedNamespace} 
+            <Select
+              value={selectedNamespace}
               onValueChange={handleNamespaceChange}
             >
               <SelectTrigger className="w-full sm:w-[180px]">
@@ -358,9 +358,9 @@ const PodMonitoringOverview = () => {
                 ) : null)}
               </SelectContent>
             </Select>
-            
-            <Select 
-              value={selectedPod} 
+
+            <Select
+              value={selectedPod}
               onValueChange={handlePodChange}
               disabled={!selectedNamespace || pods.length === 0}
             >
@@ -375,9 +375,9 @@ const PodMonitoringOverview = () => {
                 ) : null)}
               </SelectContent>
             </Select>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               size="icon"
               onClick={handleRefresh}
               disabled={!selectedPod || refreshing}
@@ -388,7 +388,7 @@ const PodMonitoringOverview = () => {
                 <RefreshCw className="h-4 w-4" />
               )}
             </Button>
-            
+
             {/* Settings Button */}
             <Button
               variant="outline"
@@ -400,7 +400,14 @@ const PodMonitoringOverview = () => {
             </Button>
           </div>
         </div>
-        
+        <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-200/80">
+          <AlertCircle color='yellow' className="h-4 w-4 mr-2" />
+          <AlertTitle className="font-semibold text-amber-800 dark:text-amber-200">Development Preview</AlertTitle>
+          <AlertDescription>
+            Pod monitoring is currently under development and will be fully functional in future updates.
+            Some features may be limited or unavailable. Stay tuned for improvements!
+          </AlertDescription>
+        </Alert>
         {/* ProxyConfigDialog Component */}
         <ProxyConfigDialog
           isOpen={isConfigDialogOpen}
@@ -412,12 +419,12 @@ const PodMonitoringOverview = () => {
           defaultNamespace="monitoring"
           defaultService="prometheus:9090"
         />
-        
+
         {/* Time Range Selector */}
         <div className="mb-6">
-          <Tabs 
-            defaultValue={timeRange} 
-            onValueChange={(value: any) => handleTimeRangeChange(value)} 
+          <Tabs
+            defaultValue={timeRange}
+            onValueChange={(value: any) => handleTimeRangeChange(value)}
             className="w-full sm:w-auto"
           >
             <TabsList>
@@ -427,7 +434,7 @@ const PodMonitoringOverview = () => {
             </TabsList>
           </Tabs>
         </div>
-        
+
         {/* Pod Basic Info (if pod is selected) */}
         {podDetails && (
           <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
@@ -452,7 +459,7 @@ const PodMonitoringOverview = () => {
             </CardContent>
           </Card>
         )}
-        
+
         {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* CPU Usage Chart */}
@@ -470,18 +477,18 @@ const PodMonitoringOverview = () => {
                     <AreaChart data={metricsData}>
                       <defs>
                         <linearGradient id="cpuColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                      <XAxis 
-                        dataKey="time" 
+                      <XAxis
+                        dataKey="time"
                         scale="band"
-                        tick={{fontSize: 12}}
+                        tick={{ fontSize: 12 }}
                       />
-                      <YAxis 
-                        tick={{fontSize: 12}}
+                      <YAxis
+                        tick={{ fontSize: 12 }}
                         domain={[0, 100]}
                         unit="%"
                       />
@@ -490,12 +497,12 @@ const PodMonitoringOverview = () => {
                         formatter={(value) => [`${value}%`, 'CPU Usage']}
                         labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="cpu" 
-                        stroke="#3b82f6" 
-                        fillOpacity={1} 
-                        fill="url(#cpuColor)" 
+                      <Area
+                        type="monotone"
+                        dataKey="cpu"
+                        stroke="#3b82f6"
+                        fillOpacity={1}
+                        fill="url(#cpuColor)"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -514,7 +521,7 @@ const PodMonitoringOverview = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Memory Usage Chart */}
           <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <CardHeader className="pb-4">
@@ -530,18 +537,18 @@ const PodMonitoringOverview = () => {
                     <AreaChart data={metricsData}>
                       <defs>
                         <linearGradient id="memoryColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                      <XAxis 
-                        dataKey="time" 
+                      <XAxis
+                        dataKey="time"
                         scale="band"
-                        tick={{fontSize: 12}}
+                        tick={{ fontSize: 12 }}
                       />
-                      <YAxis 
-                        tick={{fontSize: 12}}
+                      <YAxis
+                        tick={{ fontSize: 12 }}
                         domain={[0, 100]}
                         unit="%"
                       />
@@ -550,12 +557,12 @@ const PodMonitoringOverview = () => {
                         formatter={(value) => [`${value}%`, 'Memory Usage']}
                         labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="memory" 
-                        stroke="#10b981" 
-                        fillOpacity={1} 
-                        fill="url(#memoryColor)" 
+                      <Area
+                        type="monotone"
+                        dataKey="memory"
+                        stroke="#10b981"
+                        fillOpacity={1}
+                        fill="url(#memoryColor)"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -575,7 +582,7 @@ const PodMonitoringOverview = () => {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Network Chart */}
         {/* Note: This is preserved from your original design, but populated with placeholders since your API doesn't include network metrics */}
         <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
@@ -591,13 +598,13 @@ const PodMonitoringOverview = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={metricsData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                    <XAxis 
-                      dataKey="time" 
+                    <XAxis
+                      dataKey="time"
                       scale="band"
-                      tick={{fontSize: 12}}
+                      tick={{ fontSize: 12 }}
                     />
-                    <YAxis 
-                      tick={{fontSize: 12}}
+                    <YAxis
+                      tick={{ fontSize: 12 }}
                       unit="KB"
                     />
                     <Tooltip
@@ -606,20 +613,20 @@ const PodMonitoringOverview = () => {
                       labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
                     />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="network_in" 
+                    <Line
+                      type="monotone"
+                      dataKey="network_in"
                       name="Inbound"
-                      stroke="#8b5cf6" 
+                      stroke="#8b5cf6"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 5 }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="network_out" 
+                    <Line
+                      type="monotone"
+                      dataKey="network_out"
                       name="Outbound"
-                      stroke="#ec4899" 
+                      stroke="#ec4899"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 5 }}
@@ -641,7 +648,7 @@ const PodMonitoringOverview = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Container Details (if available) */}
         {podMetrics && podMetrics.containers.length > 0 && (
           <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">

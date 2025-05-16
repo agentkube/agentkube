@@ -1,0 +1,710 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  Area, AreaChart, Bar, BarChart 
+} from 'recharts';
+import { kubeProxyRequest } from '@/api/cluster';
+import { useCluster } from '@/contexts/clusterContext';
+import { useNamespace } from '@/contexts/useNamespace';
+
+// Component imports
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw, Cpu, Loader2, Settings, BarChart3, LineChart as LineChartIcon, TrendingUp } from "lucide-react";
+import { ProxyConfigDialog } from '@/components/custom';
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+
+// Define types for Prometheus data
+interface PrometheusQueryResult {
+  status: string;
+  data: {
+    resultType: string;
+    result: Array<{
+      metric: Record<string, string>;
+      values?: Array<[number, string]>;
+      value?: [number, string];
+    }>;
+  };
+}
+
+interface ChartDataPoint {
+  time: string;
+  date: string;
+  value: number;
+  pod: string;
+}
+
+interface PrometheusConfig {
+  namespace: string;
+  service: string;
+}
+
+const Monitoring: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { currentContext } = useCluster();
+  
+  const { namespaces, loading: namespacesLoading } = useNamespace();
+  const [selectedNamespace, setSelectedNamespace] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  // Metric query configuration
+  const [timeInterval, setTimeInterval] = useState<string>('5m');
+    
+  // State for toggling pod visibility
+  const [visiblePods, setVisiblePods] = useState<Set<string>>(new Set());
+  
+  // Settings Dialog State
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState<boolean>(false);
+  const [prometheusConfig, setPrometheusConfig] = useState<PrometheusConfig>({
+    namespace: 'monitoring',
+    service: 'kube-prometheus-stack-prometheus:9090'
+  });
+  
+  // Metrics data for chart
+  const [metricsData, setMetricsData] = useState<ChartDataPoint[]>([]);
+  const [podMetrics, setPodMetrics] = useState<Map<string, number>>(new Map());
+  
+  // Initialize from URL params or defaults
+  useEffect(() => {
+    if (currentContext) {
+      const namespaceParam = searchParams.get('namespace');
+      
+      if (namespaceParam) {
+        setSelectedNamespace(namespaceParam);
+        fetchMetrics(namespaceParam);
+      } else if (namespaces.length > 0) {
+        initializeNamespace();
+      }
+    }
+    
+    // Load prometheus config
+    loadPrometheusConfig();
+  }, [currentContext, searchParams, namespaces]);
+  
+  // Load prometheus configuration from localStorage
+  const loadPrometheusConfig = (): void => {
+    if (!currentContext) return;
+    
+    try {
+      const savedConfig = localStorage.getItem(`${currentContext.name}.prometheusConfig`);
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig);
+        if (parsedConfig.externalConfig?.prometheus) {
+          setPrometheusConfig(parsedConfig.externalConfig.prometheus);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading saved Prometheus config:', err);
+    }
+  };
+  
+  // Save prometheus configuration to localStorage
+  const handleSaveConfig = (config: PrometheusConfig): void => {
+    if (!currentContext) return;
+    
+    setPrometheusConfig(config);
+    localStorage.setItem(`${currentContext.name}.prometheusConfig`, JSON.stringify({
+      externalConfig: {
+        prometheus: config
+      }
+    }));
+    
+    // Refresh metrics with new config
+    if (selectedNamespace) {
+      fetchMetrics(selectedNamespace);
+    }
+  };
+  
+  // Initialize namespace from available namespaces
+  const initializeNamespace = (): void => {
+    if (namespaces.length > 0) {
+      // Try to find default namespace first
+      const defaultNamespace = namespaces.find(
+        ns => ns.metadata?.name === 'default'
+      ) || namespaces[0];
+      
+      if (defaultNamespace.metadata?.name) {
+        setSelectedNamespace(defaultNamespace.metadata.name);
+        fetchMetrics(defaultNamespace.metadata.name);
+      }
+    }
+  };
+  
+  // Fetch metrics using Prometheus
+  const fetchMetrics = async (namespace: string): Promise<void> => {
+    if (!currentContext || !namespace) return;
+    
+    try {
+      setRefreshing(true);
+      
+      const PROM_NS = prometheusConfig.namespace;
+      const PROM_SVC = prometheusConfig.service;
+      const proxyPath = `api/v1/namespaces/${PROM_NS}/services/${PROM_SVC}/proxy`;
+      
+      // Current timestamp
+      const endTime = Math.floor(Date.now() / 1000);
+      const startTime = endTime - 3600; // Last hour
+      const step = '15s';
+      
+      // The Prometheus query to fetch CPU usage data from your Grafana
+      const query = `sum(rate(container_cpu_usage_seconds_total{service="kube-prometheus-stack-kubelet"}[$__rate_interval]))by(pod)`;
+      
+      // Replace variable with actual value for the API call
+      const processedQuery = query.replace('$__rate_interval', timeInterval);
+      
+      console.log('Fetching Prometheus metrics with query:', processedQuery);
+      
+      // Fetch metrics history
+      const metricsRes = await kubeProxyRequest(
+        currentContext.name, 
+        `${proxyPath}/api/v1/query_range?query=${encodeURIComponent(processedQuery)}&start=${startTime}&end=${endTime}&step=${step}`, 
+        'GET'
+      ) as PrometheusQueryResult;
+      
+      console.log('Metrics Response:', metricsRes);
+      
+      // Process metrics data
+      if (metricsRes?.data?.result && metricsRes.data.result.length > 0) {
+        const newMetricsData: ChartDataPoint[] = [];
+        const podCpuMap = new Map<string, number>();
+        
+        // Get the latest values for all pods
+        for (const result of metricsRes.data.result) {
+          const pod = result.metric.pod || 'unknown';
+          
+          if (result.values && result.values.length > 0) {
+            const latestValue = result.values[result.values.length - 1];
+            const value = parseFloat(latestValue[1]);
+            podCpuMap.set(pod, value);
+          }
+        }
+        
+        // Set pod metrics map
+        setPodMetrics(podCpuMap);
+        
+        // Create chart data - take most recent time points and use values from all pods
+        if (metricsRes.data.result.length > 0 && metricsRes.data.result[0].values) {
+          // Use the timestamps from the first result as reference
+          const timePoints = metricsRes.data.result[0].values.map(v => v[0]);
+          
+          // Take only the last 20 time points for a cleaner chart
+          const recentTimePoints = timePoints.slice(-20);
+          
+          // For each time point, add data points for each pod
+          for (const timestamp of recentTimePoints) {
+            const timeKey = Number(timestamp);
+            const date = new Date(timeKey * 1000);
+            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Create data point for this timestamp for each pod
+            for (const result of metricsRes.data.result) {
+              const pod = result.metric.pod || 'unknown';
+              
+              if (result.values) {
+                // Find the value at this timestamp
+                const dataPoint = result.values.find(v => v[0] === timestamp);
+                if (dataPoint) {
+                  const value = parseFloat(dataPoint[1]);
+                  
+                  newMetricsData.push({
+                    time: timeString,
+                    date: date.toLocaleDateString(),
+                    value: value,
+                    pod: pod
+                  });
+                }
+              }
+            }
+          }
+        }
+        
+        // Set chart data
+        setMetricsData(newMetricsData);
+        setError(null);
+      } else {
+        // Create synthetic data if no data is available
+        setError('No metrics data available from Prometheus');
+        const demoData = createSyntheticData();
+        setMetricsData(demoData);
+      }
+    } catch (err) {
+      console.error('Error fetching metrics:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch metrics');
+      
+      // Create fallback demo data
+      const demoData = createSyntheticData();
+      setMetricsData(demoData);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+  
+  // Create synthetic data for demo purposes
+  const createSyntheticData = (): ChartDataPoint[] => {
+    const now = Math.floor(Date.now() / 1000);
+    const timestamps = Array.from({length: 20}, (_, i) => now - (19-i) * 180); // Last 20 points, 3 min apart
+    const pods = ['pod-a', 'pod-b', 'pod-c', 'pod-d', 'pod-e'];
+    const demoData: ChartDataPoint[] = [];
+    
+    // Create a synthetic value for each pod at each timestamp
+    for (const pod of pods) {
+      for (const timestamp of timestamps) {
+        const date = new Date(timestamp * 1000);
+        const value = Math.random() * 0.1 + 0.02; // Random value between 0.02-0.12
+        
+        demoData.push({
+          time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: date.toLocaleDateString(),
+          value: value,
+          pod: pod
+        });
+      }
+      
+      // Also set the current value in the map
+      setPodMetrics(prev => new Map(prev).set(pod, Math.random() * 0.1 + 0.02));
+    }
+    
+    return demoData;
+  };
+  
+  // Handle namespace change
+  const handleNamespaceChange = (value: string): void => {
+    setSelectedNamespace(value);
+    fetchMetrics(value);
+    
+    // Update URL with new namespace
+    setSearchParams({
+      namespace: value
+    });
+  };
+  
+  // Handle refresh - add timeInterval
+  const handleRefresh = (): void => {
+    if (selectedNamespace) {
+      fetchMetrics(selectedNamespace);
+    }
+  };
+  
+  // Effect to refetch when time interval changes
+  useEffect(() => {
+    if (selectedNamespace) {
+      fetchMetrics(selectedNamespace);
+    }
+  }, [timeInterval]);
+  
+  // Helper function to get unique pod names from metrics data
+  const uniquePods = useMemo(() => {
+    const pods = new Set<string>();
+    metricsData.forEach(data => pods.add(data.pod));
+    return Array.from(pods);
+  }, [metricsData]);
+  
+  // Generate colors for pods
+  const podColors = useMemo(() => {
+    const colors = [
+      'hsl(var(--chart-1))', // Primary theme color
+      'hsl(var(--chart-2))', // Secondary theme color
+      'hsl(var(--chart-3))', // Third theme color
+      'hsl(var(--chart-4))', // Fourth theme color
+      'hsl(var(--chart-5))', // Fifth theme color
+      '#FFD700', // Gold
+      '#4682B4', // Steel Blue
+      '#FF6347', // Tomato
+      '#32CD32', // Lime Green
+      '#9370DB', // Medium Purple
+    ];
+    
+    const colorMap = new Map<string, string>();
+    uniquePods.forEach((pod, index) => {
+      colorMap.set(pod, colors[index % colors.length]);
+    });
+    
+    return colorMap;
+  }, [uniquePods]);
+  
+
+  // Chart display type
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
+  
+  // Initialize visible pods when uniquePods changes
+  useEffect(() => {
+    if (uniquePods.length > 0 && visiblePods.size === 0) {
+      // Initially show all pods
+      setVisiblePods(new Set(uniquePods));
+    }
+  }, [uniquePods, visiblePods.size]);
+  
+  // Toggle pod visibility - single selection mode
+  const togglePodVisibility = (pod: string): void => {
+    setVisiblePods(prev => {
+      // If this is the only pod currently visible and user clicks it,
+      // show all pods instead of hiding everything
+      if (prev.size === 1 && prev.has(pod)) {
+        return new Set(uniquePods);
+      }
+      
+      // Otherwise, show only the clicked pod
+      return new Set([pod]);
+    });
+  };
+  
+  // Toggle "All Pods" view
+  const showAllPods = (): void => {
+    setVisiblePods(new Set(uniquePods));
+  };
+  
+  // Get unique time points for the X-axis
+  const uniqueTimePoints = useMemo(() => {
+    return Array.from(new Set(metricsData.map(d => d.time)));
+  }, [metricsData]);
+
+  // Initialize visible pods when uniquePods changes
+  useEffect(() => {
+    if (uniquePods.length > 0 && visiblePods.size === 0) {
+      // Initially show all pods
+      setVisiblePods(new Set(uniquePods));
+    }
+  }, [uniquePods, visiblePods.size]);
+  
+  // Custom tooltip formatter that handles all value types properly
+  const customFormatter = (value: any) => {
+    if (typeof value === 'number') {
+      return [`${value.toFixed(4)} cores`, undefined];
+    }
+    return [`${value}`, undefined];
+  };
+  
+  // Loading state
+  if ((loading || namespacesLoading) && !namespaces.length) {
+    return (
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-8 w-96 mb-8" />
+        <Skeleton className="h-48 w-full mb-4" />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="max-h-[92vh] overflow-y-auto
+          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          [&::-webkit-scrollbar]:w-1.5 
+          [&::-webkit-scrollbar-track]:bg-transparent 
+          [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+      <div className="p-6 max-w-7xl mx-auto">
+        {/* Header and Settings Controls */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-5xl font-[Anton] uppercase text-gray-800/30 dark:text-gray-700/50">Monitoring</h1>
+            <p className="text-gray-500 dark:text-gray-400">
+              Prometheus metrics
+            </p>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsConfigDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* ProxyConfigDialog Component */}
+        <ProxyConfigDialog
+          isOpen={isConfigDialogOpen}
+          onClose={() => setIsConfigDialogOpen(false)}
+          onSave={handleSaveConfig}
+          defaultConfig={prometheusConfig}
+          serviceName="Prometheus"
+          serviceDescription="Configure the Prometheus monitoring service connection details for metrics collection. This affects where metrics are queried from."
+          defaultNamespace="monitoring"
+          defaultService="kube-prometheus-stack-prometheus:9090"
+        />
+        
+        {/* Error message */}
+        {error && (
+          <Alert className="my-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        {/* CPU Usage Chart */}
+        <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+            <div className="grid flex-1 gap-1 text-center sm:text-left">
+              <CardTitle>CPU Usage Metrics</CardTitle>
+              <CardDescription>
+                Pod resource utilization over time
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select 
+                value={timeInterval} 
+                onValueChange={setTimeInterval}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Time Range" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+                  <SelectItem value="1m">1 minute</SelectItem>
+                  <SelectItem value="5m">5 minutes</SelectItem>
+                  <SelectItem value="15m">15 minutes</SelectItem>
+                  <SelectItem value="30m">30 minutes</SelectItem>
+                  <SelectItem value="1h">1 hour</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="flex items-center rounded-md border border-gray-200 dark:border-gray-800">
+                <Button
+                  size="sm"
+                  variant={chartType === 'line' ? 'default' : 'ghost'}
+                  className="h-8 px-3 rounded-r-none flex gap-1 items-center"
+                  onClick={() => setChartType('line')}
+                >
+                  <LineChartIcon className="h-3.5 w-3.5" />
+                  <span className="text-xs">Area</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={chartType === 'bar' ? 'default' : 'ghost'}
+                  className="h-8 px-3 rounded-l-none flex gap-1 items-center"
+                  onClick={() => setChartType('bar')}
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  <span className="text-xs">Bar</span>
+                </Button>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                {refreshing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[400px]">
+              {metricsData.length > 0 ? (
+                <ChartContainer 
+                  config={podColors.size > 0 ? 
+                    Object.fromEntries([...podColors].map(([pod, color]) => [
+                      pod, { label: pod, color: color }
+                    ])) : {}
+                  }
+                  className="h-full w-full"
+                >
+                  {chartType === 'line' ? (
+                    <AreaChart
+                      data={uniqueTimePoints.map(time => {
+                        const result: any = { time };
+                        // For each visible pod, add its value at this time point
+                        uniquePods
+                          .filter(pod => visiblePods.has(pod))
+                          .forEach(pod => {
+                            const dataPoint = metricsData.find(d => d.pod === pod && d.time === time);
+                            result[pod] = dataPoint ? dataPoint.value : 0;
+                          });
+                        return result;
+                      })}
+                    >
+                      <defs>
+                        {uniquePods
+                          .filter(pod => visiblePods.has(pod))
+                          .map(pod => (
+                            <linearGradient 
+                              key={`fill-${pod}`} 
+                              id={`fill-${pod}`} 
+                              x1="0" y1="0" x2="0" y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor={podColors.get(pod) || '#8884d8'}
+                                stopOpacity={0.8}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor={podColors.get(pod) || '#8884d8'}
+                                stopOpacity={0.1}
+                              />
+                            </linearGradient>
+                          ))
+                        }
+                      </defs>
+                      <CartesianGrid vertical={false} />
+                      <XAxis 
+                        dataKey="time" 
+                        scale="band"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        minTickGap={32}
+                      />
+                      <YAxis 
+                        tick={{fontSize: 10}}
+                        domain={[0, 'auto']}
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                      />
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent
+                            indicator="dot"
+                            formatter={customFormatter}
+                          />
+                        }
+                      />
+                      
+                      {uniquePods
+                        .filter(pod => visiblePods.has(pod))
+                        .map(pod => (
+                          <Area 
+                            key={pod}
+                            type="monotone"
+                            dataKey={pod}
+                            stroke={podColors.get(pod) || '#8884d8'}
+                            fill={`url(#fill-${pod})`}
+                            strokeWidth={2}
+                          />
+                        ))
+                      }
+                    </AreaChart>
+                  ) : (
+                    // Bar Chart
+                    <BarChart
+                      data={uniqueTimePoints.map(time => {
+                        const result: any = { time };
+                        // For each visible pod, add its value at this time point
+                        uniquePods
+                          .filter(pod => visiblePods.has(pod))
+                          .forEach(pod => {
+                            const dataPoint = metricsData.find(d => d.pod === pod && d.time === time);
+                            result[pod] = dataPoint ? dataPoint.value : 0;
+                          });
+                        return result;
+                      })}
+                      barCategoryGap={8}
+                    >
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="time"
+                        tickLine={false}
+                        tickMargin={10}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                      />
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent
+                            indicator="dashed"
+                            formatter={customFormatter}
+                          />
+                        }
+                      />
+                      
+                      {uniquePods
+                        .filter(pod => visiblePods.has(pod))
+                        .map(pod => (
+                          <Bar 
+                            key={pod}
+                            dataKey={pod} 
+                            fill={podColors.get(pod) || '#8884d8'} 
+                            radius={4}
+                          />
+                        ))
+                      }
+                    </BarChart>
+                  )}
+                </ChartContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  {refreshing ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading metrics...</span>
+                    </div>
+                  ) : (
+                    <span>No metrics data available</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="flex-col items-start space-y-2 text-sm border-t pt-4">
+            <div className="w-full flex justify-between items-center">
+              <div className="flex flex-wrap gap-2">
+                <div 
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer transition-colors ${
+                    visiblePods.size === uniquePods.length 
+                      ? 'bg-gray-200 dark:bg-gray-800' 
+                      : 'bg-gray-100 dark:bg-gray-900 opacity-60'
+                  }`}
+                  onClick={showAllPods}
+                >
+                  <div className="w-3 h-3 rounded-full bg-gray-500" />
+                  <span className="text-xs font-medium">All Pods</span>
+                </div>
+                {uniquePods.map(pod => (
+                  <div 
+                    key={pod} 
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer transition-colors ${
+                      visiblePods.has(pod) && visiblePods.size === 1
+                        ? 'bg-gray-200 dark:bg-gray-800' 
+                        : 'bg-gray-100 dark:bg-gray-900 opacity-60'
+                    }`}
+                    onClick={() => togglePodVisibility(pod)}
+                  >
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: podColors.get(pod) }} 
+                    />
+                    <span className="text-xs font-medium">{pod}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex gap-1 text-muted-foreground">
+                <span className="text-xs">Sample rate:</span>
+                <span className="text-xs font-medium">{timeInterval}</span>
+              </div>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Monitoring;
