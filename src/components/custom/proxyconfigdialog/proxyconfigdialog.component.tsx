@@ -103,7 +103,7 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900/20 backdrop-blur-sm">
+      <DialogContent className="sm:max-w-md bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md border-gray-200/10 dark:border-gray-200/10">
         <DialogHeader>
           <DialogTitle className="text-xl font-[Anton] uppercase flex items-center space-x-2">
             {serviceImage && <img src={serviceImage} className='h-6 w-6' alt="" />}
