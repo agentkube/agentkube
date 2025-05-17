@@ -69,7 +69,7 @@ const IngressClasses: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
-      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault(); 
         
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;

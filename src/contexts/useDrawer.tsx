@@ -55,7 +55,7 @@ export const DrawerProvider: React.FC<DrawerProviderProps> = ({ children }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Command+L (Mac) or Ctrl+L (Windows/Linux)
-      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'l' || e.key === 'L')) {
         e.preventDefault(); // Prevent default browser behavior (like focusing address bar)
         toggleDrawer(); // Toggle the drawer instead of just opening it
       }

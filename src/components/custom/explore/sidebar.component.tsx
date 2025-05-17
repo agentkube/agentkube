@@ -36,7 +36,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+S (Mac) or Ctrl+S (Windows)
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 's')) {
         e.preventDefault(); 
 
         const sidebar = document.querySelector('[aria-label="Expand sidebar"], [aria-label="Collapse sidebar"]');

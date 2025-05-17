@@ -94,7 +94,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle CMD+F or CTRL+F to open search
-      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         setSearchVisible(true);
         setTimeout(() => {

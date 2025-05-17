@@ -11,7 +11,8 @@ export const useSpotlight = () => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Check for Cmd (Meta) + K
-      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+      
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'k' || event.key === 'K')) {
         event.preventDefault();
         // Toggle the spotlight instead of just opening it
         setIsOpen(prevState => !prevState);

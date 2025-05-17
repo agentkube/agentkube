@@ -60,7 +60,7 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   // Handle keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Check for Ctrl+N or Cmd+N
-    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
       e.preventDefault(); // Prevent default browser behavior
       setIsNamespacePickerOpen(true);
     }
