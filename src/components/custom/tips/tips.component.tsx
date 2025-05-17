@@ -104,7 +104,7 @@ const TipsModal: React.FC = () => {
         <ModalFooter className="gap-4 flex items-center">
 
           <div className="flex-1 text-xs text-neutral-500 dark:text-neutral-400">
-            Tip {activeIndex + 1} of {tips.length}
+            {activeIndex + 1} of {tips.length}
           </div>
           <Button
             onClick={() => {
