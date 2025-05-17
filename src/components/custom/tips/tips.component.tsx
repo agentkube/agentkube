@@ -27,7 +27,7 @@ const TipsModal: React.FC = () => {
   return (
     <Modal>
       <ModalTrigger className="text-blue-600 hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10">
-        <Lightbulb className="h-3 w-3 text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors " />
+        <Lightbulb onClick={() => setActiveIndex(0)} className="h-3 w-3 text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors " />
       </ModalTrigger>
       <ModalBody className="md:max-w-xl">
         <ModalContent>
