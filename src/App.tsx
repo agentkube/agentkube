@@ -11,7 +11,8 @@ import HomePage from './pages/home.pages';
 import {
   Appearance, BestPractices, Dashboard, GeneralSettings, Kubeconfig, Settings,
   Shortcuts, Support, VulnerabilityReport, MonitoringOverview, CostOverview, Overview, AIEditor,
-  AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account, LLMComparison, ModelCompare
+  AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account, LLMComparison, ModelCompare,
+  Updates
 } from '@/pages';
 import { Footer, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -254,6 +255,7 @@ function App() {
                           <Route path="support" element={<Support />} />
                           <Route path="mcp" element={<MCPServerConfig />} />
                           <Route path="account" element={<Account />} />
+                          <Route path="updates" element={<Updates />} />
                           <Route index element={<GeneralSettings />} />
                         </Route>
                       </Routes>
