@@ -13,15 +13,63 @@ import React, {
 interface ModalContextType {
   open: boolean;
   setOpen: (open: boolean) => void;
+  shouldAutoOpen?: boolean;
+  featureKey?: string;
 }
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
-export const ModalProvider = ({ children }: { children: ReactNode }) => {
+interface ModalProviderProps {
+  children: ReactNode;
+  shouldAutoOpen?: boolean;
+  featureKey?: string;
+}
+
+export const ModalProvider = ({ 
+  children, 
+  shouldAutoOpen = false, 
+  featureKey = '' 
+}: ModalProviderProps) => {
   const [open, setOpen] = useState(false);
 
+  // Auto-open functionality
+  useEffect(() => {
+    if (shouldAutoOpen && featureKey) {
+      const checkAndAutoOpen = async () => {
+        let currentVersion = "1.0.0";
+        
+        try {
+          // Import and use getVersion similar to your example
+          const { getVersion } = await import('@tauri-apps/api/app');
+          currentVersion = await getVersion();
+          console.log("The App version", currentVersion);
+        } catch (error) {
+          console.log("Not in Tauri environment or error getting version", error);
+        }
+        
+        const storageKey = `${currentVersion}.${featureKey}`;
+        const hasBeenShown = localStorage.getItem(storageKey) === 'true';
+        
+        if (!hasBeenShown) {
+          // Wait 10 seconds then open the modal
+          const timer = setTimeout(() => {
+            console.log(`Auto-opening modal with feature key: ${featureKey}`);
+            setOpen(true);
+            
+            // Mark as shown
+            localStorage.setItem(storageKey, 'true');
+          }, 3000);
+          
+          return () => clearTimeout(timer);
+        }
+      };
+      
+      checkAndAutoOpen();
+    }
+  }, [shouldAutoOpen, featureKey]);
+
   return (
-    <ModalContext.Provider value={{ open, setOpen }}>
+    <ModalContext.Provider value={{ open, setOpen, shouldAutoOpen, featureKey }}>
       {children}
     </ModalContext.Provider>
   );
@@ -35,8 +83,22 @@ export const useModal = () => {
   return context;
 };
 
-export function Modal({ children }: { children: ReactNode }) {
-  return <ModalProvider>{children}</ModalProvider>;
+interface ModalProps {
+  children: ReactNode;
+  shouldAutoOpen?: boolean;
+  featureKey?: string;
+}
+
+export function Modal({ 
+  children, 
+  shouldAutoOpen = false, 
+  featureKey = '' 
+}: ModalProps) {
+  return (
+    <ModalProvider shouldAutoOpen={shouldAutoOpen} featureKey={featureKey}>
+      {children}
+    </ModalProvider>
+  );
 }
 
 export const ModalTrigger = ({
@@ -125,6 +187,7 @@ export const ModalBody = ({
             }}
             transition={{
               type: "spring",
+              duration: 1.5,
               stiffness: 260,
               damping: 15,
             }}

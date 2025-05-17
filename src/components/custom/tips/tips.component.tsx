@@ -1,13 +1,11 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
-  ModalProvider,
   ModalTrigger,
-  useModal,
 } from "@/components/ui/animatedmodal";
 import { Lightbulb } from "lucide-react";
 import {
@@ -22,12 +20,21 @@ import { Button } from "@/components/ui/button";
 import { tips } from "@/constants/tips.constants";
 
 const TipsModal: React.FC = () => {
-  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+
+  const handleSkip = (): void => {
+    // Find and click the close button
+    const closeButton = document.querySelector('.absolute.top-4.right-4.group') as HTMLButtonElement | null;
+    closeButton?.click();
+  };
 
   return (
-    <Modal>
+    <Modal shouldAutoOpen={true} featureKey="featured_update_shown">
       <ModalTrigger className="text-blue-600 hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10">
-        <Lightbulb onClick={() => setActiveIndex(0)} className="h-3 w-3 text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors " />
+        <Lightbulb 
+          onClick={() => setActiveIndex(0)} 
+          className="h-3 w-3 text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors" 
+        />
       </ModalTrigger>
       <ModalBody className="md:max-w-xl">
         <ModalContent>
@@ -102,17 +109,11 @@ const TipsModal: React.FC = () => {
           </div>
         </ModalContent>
         <ModalFooter className="gap-4 flex items-center">
-
           <div className="flex-1 text-xs text-neutral-500 dark:text-neutral-400">
             {activeIndex + 1} of {tips.length}
           </div>
           <Button
-            onClick={() => {
-              // Find and click the close button
-              // TODO may conflict with any component in future
-              const closeButton = document.querySelector('.absolute.top-4.right-4.group') as HTMLButtonElement;
-              closeButton?.click();
-            }}
+            onClick={handleSkip}
             variant="link"
             className="underline text-gray-800/50 dark:text-gray-300/40 hover:text-gray-800 dark:hover:text-gray-300 transition-all text-sm px-4 py-1.5 rounded-md"
           >
