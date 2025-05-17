@@ -1,5 +1,6 @@
 export { default as SettingSidebar } from './settings/settingsidebar.component';
 export { default as Footer } from './footer/footer.components';
+export { default as TipsModal } from './tips/tips.component';
 export { default as TerminalContainer } from './terminal/terminalcontainer.component';
 export { default as ExploreSidebar } from './explore/sidebar.component';
 export { default as ModelConfig } from './modelsconfig/modelconfig.component';

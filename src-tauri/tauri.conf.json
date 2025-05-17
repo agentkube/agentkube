@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Agentkube",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "platform.agentkube.app",
   "mainBinaryName": "agentkube",
   "build": {
@@ -35,6 +35,15 @@
         "enable": true
       },
       "capabilities": [
+          {
+          "identifier": "core:app:default",
+          "description": "Allows making HTTP requests to specific domains",
+          "windows": ["main"],
+          "permissions": [
+              "core:app:default",
+              "core:app:allow-version"
+            ]
+        },
         {
           "identifier": "http:default",
           "description": "Allows making HTTP requests to specific domains",

@@ -29,8 +29,6 @@ export const CreateResponseProtocol = async (
   request: CreateResponseProtocolRequest 
 ): Promise<ResponseProtocolCreatedResponse> => {
 
-  console.log(request)
-
   const response = await fetch(`/api/organizations/protocols`, {
     method: "POST",
     headers: getHeaders(),

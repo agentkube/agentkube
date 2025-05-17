@@ -193,7 +193,6 @@ const MCPServerConfigPage = () => {
       // Fetch server tools to test connection
       const toolsData = await getServerTools(serverName);
       
-      console.log(toolsData)
       // Update the server in the list
       const updatedServers = [...mcpServers];
       updatedServers[index] = {

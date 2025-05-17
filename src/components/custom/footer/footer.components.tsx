@@ -1,4 +1,4 @@
-import { Rss, Sparkles, Terminal, Download, ExternalLink } from 'lucide-react';
+import { Rss, Sparkles, Terminal, Download, ExternalLink, Lightbulb } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import TerminalContainer from '../terminal/terminalcontainer.component';
 import { openExternalUrl } from '@/api/external';
@@ -9,17 +9,20 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { 
-  Dialog, 
+import {
+  Dialog,
   DialogContent,
-  DialogDescription, 
+  DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle 
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { currentVersion } from '@/config';
+// import { currentVersion } from '@/config';
+import { getVersion } from '@tauri-apps/api/app';
+import TipsModal from '../tips/tips.component';
+import { ModalProvider } from '@/components/ui/animatedmodal';
 
 // Define types for Update object
 interface UpdateInfo {
@@ -71,20 +74,33 @@ const Footer: React.FC = () => {
   const [installing, setInstalling] = useState<boolean>(false);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  
+  const [currentVersion, setCurrentVersion] = useState<string>("v1.0.0")
+
+
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      const appVersion = await getVersion()
+
+      console.log("The App version", appVersion)
+      setCurrentVersion(appVersion)
+    }
+
+    fetchVersion();
+  }, [])
 
 
   const checkForUpdates = async (): Promise<void> => {
     // Only run if we're in a Tauri environment
     if (!updaterModule) return;
-    
+
     try {
       setChecking(true);
       setError(null);
-      
+
       const { check } = await updaterModule;
       const update = await check();
-      
+
       if (update) {
         setUpdateAvailable(true);
         setUpdateInfo(update);
@@ -100,28 +116,28 @@ const Footer: React.FC = () => {
       setChecking(false);
     }
   };
-  
+
   // Check for updates when component mounts
   useEffect(() => {
     const initialCheck = async (): Promise<void> => {
       // Wait a moment before checking to ensure app is fully loaded
       setTimeout(() => checkForUpdates(), 2000);
     };
-    
+
     initialCheck();
   }, []);
-  
+
   const installUpdate = async (): Promise<void> => {
     if (!updateInfo || !updaterModule || !processModule) return;
-    
+
     try {
       setInstalling(true);
-      
+
       let downloaded: number = 0;
       let contentLength: number = 0;
-      
+
       const { relaunch } = await processModule;
-      
+
       await updateInfo.downloadAndInstall((event: UpdateEvent) => {
         switch (event.event) {
           case 'Started':
@@ -140,7 +156,7 @@ const Footer: React.FC = () => {
             break;
         }
       });
-      
+
       console.log('Update installed, relaunching...');
       await relaunch();
     } catch (err: any) {
@@ -149,26 +165,27 @@ const Footer: React.FC = () => {
       setInstalling(false);
     }
   };
-  
+
   const openUpdateDialog = (): void => {
     setDialogOpen(true);
   };
-  
+
   const UpdateIcon: React.FC = () => {
     if (checking) {
       return <Rss className="h-3 w-3 animate-spin" />;
     }
-    
+
     if (updateAvailable) {
       return <Sparkles className="h-3 w-3 text-amber-400" />;
     }
-    
+
     return <Rss className="h-3 w-3" />;
   };
 
   const handleManualDownload = () => {
     openExternalUrl("https://agentkube.com/downloads");
   };
+
 
   return (
     <footer className="mt-4 flex-none text-xs border-t border-gray-100/10 pr-2">
@@ -177,21 +194,30 @@ const Footer: React.FC = () => {
           <TerminalContainer />
         </div>
         <div className="flex">
-          <div className="text-gray-600 px-2 py-0.5">
-            {currentVersion}
+          <div className="text-gray-600 px-2 py-1 hover:bg-gray-200/10 hover:dark:bg-gray-200/10">
+            v{currentVersion}
           </div>
-          <a
+          <div
             onClick={() => openExternalUrl("https://docs.agentkube.com/changelog")}
             className="text-blue-600 hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10"
           >
             changelog
-          </a>
-          
+          </div>
+
+          <ModalProvider>
+            <TipsModal />
+          </ModalProvider>
+          {/* <div
+            className="text-blue-600 hover:text-blue-500 cursor-pointer group px-2 py-1 hover:bg-gray-100/10"
+          >
+            <Lightbulb className="h-3 w-3 text-gray-400" />
+          </div> */}
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div 
-                  className="text-gray-500 py-1 px-2 group hover:bg-gray-100/10 hover:text-gray-300 transition-all cursor-pointer"
+                <div
+                  className="text-gray-500 py-0.5 px-2 group hover:bg-gray-100/10 hover:text-gray-300 transition-all cursor-pointer"
                   onClick={updateAvailable ? openUpdateDialog : checkForUpdates}
                 >
                   {updateAvailable ? (
@@ -208,7 +234,7 @@ const Footer: React.FC = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent className="bg-white dark:bg-[#131112] text-gray-900 dark:text-gray-100 space-y-2">
-                <button 
+                <button
                   className="rounded-[0.3rem] py-1 px-3 bg-gray-200 dark:bg-gray-400/10 hover:dark:bg-gray-300/10 transition-all"
                   onClick={updateAvailable ? openUpdateDialog : checkForUpdates}
                 >
@@ -219,7 +245,7 @@ const Footer: React.FC = () => {
           </TooltipProvider>
         </div>
       </div>
-      
+
       {/* Update Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[425px] bg-white dark:bg-black dark:bg-gradient-to-b dark:from-blue-400/10 dark:to-gray-950/50 backdrop-blur-md text-gray-100 border-gray-800">
@@ -229,7 +255,7 @@ const Footer: React.FC = () => {
               {updateInfo && (
                 <div className="space-y-2 py-2">
                   <p>A new version of Agentkube is available: v{updateInfo.version}</p>
-                  
+
                   {updateInfo.body && (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium mb-1">Release Notes:</h4>
@@ -242,7 +268,7 @@ const Footer: React.FC = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-          
+
           {installing && (
             <div className="space-y-2 py-4">
               <div className="flex items-center justify-between">
@@ -252,7 +278,7 @@ const Footer: React.FC = () => {
               <Progress value={downloadProgress} className="h-2" />
             </div>
           )}
-          
+
           {error && (
             <div className="py-2">
               <Alert variant="destructive" className="bg-red-500/10 border border-red-500/20">
@@ -260,14 +286,14 @@ const Footer: React.FC = () => {
                   {error}
                 </AlertDescription>
               </Alert>
-              
+
               {/* Manual installation note */}
               <div className="mt-3 bg-blue-500/10 border border-blue-500/20 rounded-md p-3">
                 <p className="text-sm text-blue-400 flex items-start">
                   <ExternalLink className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
                   <span>
-                    If automatic installation fails, please install it manually from 
-                    <a 
+                    If automatic installation fails, please install it manually from
+                    <a
                       onClick={handleManualDownload}
                       className="text-blue-400 underline ml-1 cursor-pointer hover:text-blue-300"
                     >
@@ -278,18 +304,18 @@ const Footer: React.FC = () => {
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setDialogOpen(false)}
               disabled={installing}
               className="bg-gray-200 dark:bg-transparent text-gray-800 dark:text-gray-300 hover:bg-gray-300 hover:dark:bg-gray-800"
             >
               Later
             </Button>
-            <Button 
-              onClick={installUpdate} 
+            <Button
+              onClick={installUpdate}
               disabled={installing}
               className="bg-blue-600 dark:bg-gray-200/10 hover:bg-blue-700 text-white"
             >

@@ -65,6 +65,7 @@
     "canvas-confetti": "^1.9.3",
     "cmdk": "^0.2.0",
     "date-fns": "^2.30.0",
+    "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.5.0",
     "i18next": "^24.2.3",
     "lodash": "^4.17.21",

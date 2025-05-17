@@ -228,8 +228,7 @@ const CronJobs: React.FC = () => {
     if (!jobTemplate) {
       throw new Error('CronJob does not have a job template');
     }
-    console.log(cronJob.apiVersion);
-    console.log(cronJob.kind);
+
 
     const job = {
       apiVersion: 'batch/v1',

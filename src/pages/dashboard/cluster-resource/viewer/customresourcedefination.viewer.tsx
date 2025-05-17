@@ -281,6 +281,7 @@ const CustomResourceDefinitionViewer = () => {
     // Show confirmation dialog first
     if (window.confirm(`Are you sure you want to delete CustomResourceDefinition "${crd?.metadata.name}"?`)) {
       // Call API to delete the CRD
+      // TODO delete CRD
       console.log('Delete CRD:', crd);
     }
   };

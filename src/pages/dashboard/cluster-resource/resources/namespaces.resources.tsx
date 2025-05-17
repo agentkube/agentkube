@@ -70,7 +70,6 @@ const Namespaces: React.FC = () => {
         setLoading(true);
         const namespacesData = await getNamespaces(currentContext.name);
         setNamespaces(namespacesData);
-        console.log('Fetched namespaces:', namespacesData);
       } catch (err) {
         console.error('Failed to fetch namespaces:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch namespaces');
@@ -184,8 +183,6 @@ const Namespaces: React.FC = () => {
 
   // Handlers for namespace actions
   const handleViewNamespace = (namespace: V1Namespace) => {
-    // console.log('View namespace:', namespace.metadata?.name);
-    // Implement view functionality
     navigate(`/dashboard/explore/namespaces/${namespace.metadata?.name}`);
   };
 

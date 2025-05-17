@@ -137,7 +137,7 @@ const MemoryChart: React.FC<ChartProps> = ({ metrics, selectedNamespaces }) => {
 
 // Pod-specific Memory Chart
 const PodMemoryChart: React.FC<PodMetricsProps> = ({ metrics, selectedNamespaces, selectedPod, onPodSelect, pods }) => {
-  console.log(selectedPod, onPodSelect, pods)
+
   const chartData = metrics
     .filter(metric => selectedNamespaces.includes(metric.name))
     .map(metric => ({
@@ -245,7 +245,7 @@ const CpuChart: React.FC<ChartProps> = ({ metrics, selectedNamespaces }) => {
 
 // Pod-specific CPU Chart
 const PodCpuChart: React.FC<PodMetricsProps> = ({ metrics, selectedNamespaces, selectedPod, onPodSelect, pods }) => {
-  console.log(selectedPod, onPodSelect, pods)
+
   const chartData = metrics
     .filter(metric => selectedNamespaces.includes(metric.name))
     .map(metric => ({

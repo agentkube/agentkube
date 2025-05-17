@@ -49,7 +49,6 @@ const Dashboard = () => {
   // Updated to handle null values
   const handleItemClick = (itemId: string | null) => {
     setSelectedItem(itemId);
-    console.log(location.pathname);
 
     // Only navigate if itemId is not null
     if (itemId !== null) {
