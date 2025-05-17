@@ -1,15 +1,15 @@
 export interface Tip {
   id: number;
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   imageUrl: string;
 }
 
 export const tips: Tip[] = [
   {
     id: 1,
-    title: "Automatic Updates",
-    description: "Agentkube checks for updates in the background using Tauri's secure update system. When a new version is available, you'll be notified and can install it with a single click.",
+    // title: "Automatic Updates",
+    // description: "Agentkube checks for updates in the background using Tauri's secure update system. When a new version is available, you'll be notified and can install it with a single click.",
     imageUrl: "/api/placeholder/400/300",
   },
   {

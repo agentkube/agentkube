@@ -56,19 +56,23 @@ const TipsModal: React.FC = () => {
                     <div className="p-1">
                       <Card className="border-none shadow-none">
                         <CardContent className="flex flex-col items-center justify-center p-1">
-                          <div className="mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-1 w-full">
+                          <div className={`overflow-hidden rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-1 w-full ${!tip.title && !tip.description ? 'h-full' : 'mb-4'}`}>
                             <img
                               src={tip.imageUrl}
-                              alt={tip.title}
-                              className="h-56 w-full object-cover rounded-md"
+                              alt={tip.title || "Tip image"}
+                              className={`w-full object-cover rounded-md ${!tip.title && !tip.description ? 'h-80' : 'h-56'}`}
                             />
                           </div>
-                          <h3 className="text-xl font-medium mb-2 text-center text-gray-800 dark:text-gray-100">
-                            {tip.title}
-                          </h3>
-                          <p className="text-sm text-center text-neutral-600 dark:text-neutral-300">
-                            {tip.description}
-                          </p>
+                          {tip.title && (
+                            <h3 className="text-xl font-medium mb-2 text-center text-gray-800 dark:text-gray-100">
+                              {tip.title}
+                            </h3>
+                          )}
+                          {tip.description && (
+                            <p className="text-sm text-center text-neutral-600 dark:text-neutral-300">
+                              {tip.description}
+                            </p>
+                          )}
                         </CardContent>
                       </Card>
                     </div>
