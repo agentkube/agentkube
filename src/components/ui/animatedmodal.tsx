@@ -53,7 +53,6 @@ export const ModalProvider = ({
         if (!hasBeenShown) {
           // Wait 10 seconds then open the modal
           const timer = setTimeout(() => {
-            console.log(`Auto-opening modal with feature key: ${featureKey}`);
             setOpen(true);
             
             // Mark as shown
