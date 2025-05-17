@@ -81,7 +81,7 @@ const TipsModal: React.FC = () => {
               </div>
             </Carousel>
 
-            <div className="flex justify-center gap-1 mt-4">
+            <div className="flex justify-center gap-1 -mt-4">
               {tips.map((_, index) => (
                 <div
                   key={index}
@@ -107,7 +107,7 @@ const TipsModal: React.FC = () => {
               closeButton?.click();
             }}
             variant="link"
-            className="underline text-gray-800/50 dark:text-gray-300/40 text-sm px-4 py-1.5 rounded-md"
+            className="underline text-gray-800/50 dark:text-gray-300/40 hover:text-gray-800 dark:hover:text-gray-300 transition-all text-sm px-4 py-1.5 rounded-md"
           >
             Skip for now
           </Button>
