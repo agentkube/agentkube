@@ -24,7 +24,7 @@ export const useSpotlight = () => {
       }
 
       // Check for Cmd (Meta)/Ctrl + D
-      if ((event.metaKey || event.ctrlKey) && event.key === 'd') {
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'd' || event.key === 'D')) {
         event.preventDefault();
         navigate("/")
       }
