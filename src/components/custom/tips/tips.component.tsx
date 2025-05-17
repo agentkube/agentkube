@@ -53,16 +53,18 @@ const TipsModal: React.FC = () => {
               <CarouselContent>
                 {tips.map((tip) => (
                   <CarouselItem key={tip.id}>
-                    <div className="p-1">
+                    <div className="p-0">
                       <Card className="border-none shadow-none">
-                        <CardContent className="flex flex-col items-center justify-center p-1">
-                          <div className={`overflow-hidden rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-1 w-full ${!tip.title && !tip.description ? 'h-full' : 'mb-4'}`}>
+                        <CardContent className="flex flex-col items-center justify-center p-0">
+                          <div className={`overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 w-full ${!tip.title && !tip.description ? 'h-full' : 'mb-4'}`}>
                             <img
                               src={tip.imageUrl}
                               alt={tip.title || "Tip image"}
-                              className={`w-full object-cover rounded-md ${!tip.title && !tip.description ? 'h-80' : 'h-56'}`}
+                              className={`w-full object-cover ${!tip.title && !tip.description ? 'h-80' : 'h-64'}`}
                             />
                           </div>
+                          <div className="px-8 md:px-10">
+
                           {tip.title && (
                             <h3 className="text-xl font-medium mb-2 text-center text-gray-800 dark:text-gray-100">
                               {tip.title}
@@ -73,13 +75,14 @@ const TipsModal: React.FC = () => {
                               {tip.description}
                             </p>
                           )}
+                          </div>
                         </CardContent>
                       </Card>
                     </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <div className="flex justify-between mt-4">
+              <div className="flex justify-between mt-4 px-8 md:px-10">
                 <CarouselPrevious className="relative static transform-none bg-neutral-200 dark:bg-neutral-800 border-none hover:bg-neutral-300 dark:hover:bg-neutral-700" />
                 <CarouselNext className="relative static transform-none bg-neutral-200 dark:bg-neutral-800 border-none hover:bg-neutral-300 dark:hover:bg-neutral-700" />
               </div>

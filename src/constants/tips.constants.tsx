@@ -1,3 +1,5 @@
+import { TIPS1, TIPS2, TIPS3, TIPS4, TIPS5, TIPS6, WELCOME } from "@/assets";
+
 export interface Tip {
   id: number;
   title?: string;
@@ -8,44 +10,42 @@ export interface Tip {
 export const tips: Tip[] = [
   {
     id: 1,
-    // title: "Automatic Updates",
-    // description: "Agentkube checks for updates in the background using Tauri's secure update system. When a new version is available, you'll be notified and can install it with a single click.",
-    imageUrl: "/api/placeholder/400/300",
+    imageUrl: WELCOME,
   },
   {
     id: 2,
-    title: "Secure Update Verification",
-    description: "Every update is cryptographically signed and verified before installation to ensure it comes from a trusted source. This prevents malicious updates and ensures your application's integrity.",
-    imageUrl: "/api/placeholder/400/300",
+    title: "Context Switching",
+    description: "Navigate your multi-cluster environment effortlessly with Kube Spotlight (cmd + K/ctrl + K). Hit Tab to filter and instantly switch between contexts, eliminating configuration complexity.",
+    imageUrl: TIPS1,
   },
   {
     id: 3,
-    title: "Cross-Platform Updates",
-    description: "Agentkube handles updates seamlessly across Windows, macOS, and Linux. The update system automatically detects your platform and delivers the appropriate update package.",
-    imageUrl: "/api/placeholder/400/300",
+    title: "Focused Search",
+    description: "Open kube spotlight (cmd + k / ctrl + k) and use kubernetes shorthands as shortcuts for focused resource searches. For example, \"po\" is shortcut for searching only across pods.",
+    imageUrl: TIPS2,
   },
   {
     id: 4,
-    title: "Update Progress Tracking",
-    description: "Watch the update download progress in real-time. The update dialog shows how much has been downloaded and when it will be ready to install.",
-    imageUrl: "/api/placeholder/400/300",
+    title: "Run Commands from Spotlight",
+    description: "Execute kubectl commands directly from Spotlight without switching to terminal. Simplify your operations workflow with immediate command access and execution.",
+    imageUrl: TIPS3,
   },
   {
     id: 5,
-    title: "Release Notes",
-    description: "Each update comes with detailed release notes that explain what's new, what's improved, and what's fixed. Stay informed about the changes in each version.",
-    imageUrl: "/api/placeholder/400/300",
+    title: "Resource Canvas",
+    description: "Easily visualize your resource path and dependencies. Forget labelSelectors to search for any resource that is dependent.",
+    imageUrl: TIPS4,
   },
   {
     id: 6,
-    title: "Manual Update Options",
-    description: "If automatic updates fail, you can always download the latest version manually from our website. Just click the 'Later' button and visit agentkube.com/downloads.",
-    imageUrl: "/api/placeholder/400/300",
+    title: "Model Context Protocol Compatible",
+    description: "Now you can add MCP Servers to Agentkube app to extend the Agent compatibility.",
+    imageUrl: TIPS5,
   },
   {
     id: 7,
-    title: "Auto-Restart After Update",
-    description: "After an update is installed, Agentkube can automatically restart to apply the changes. Your work is saved, and you'll be right back where you left off.",
-    imageUrl: "/api/placeholder/400/300",
-  },
+    title: "Talk to Cluster",
+    description: "Interact with our AI Agent, ask anything about your cluster. Use cmd + L / ctrl + L to open the Talk to Cluster Panel.",
+    imageUrl: TIPS6,
+  }
 ];
