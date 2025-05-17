@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react';
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkle, Sparkles } from "lucide-react";
 import UserMessage from './user-message.rightdrawer';
 import AssistantMessage from './assistant-message.rightdrawer';
 import { ToolCall } from '@/api/orchestrator.chat';
+import { ShiningText } from '@/components/ui/text-shining';
 
 interface SuggestedQuestion {
   question: string;
@@ -86,13 +87,16 @@ const Messages: React.FC<MessagesProps> = ({
               />
             </div>
           )}
-
+          
+          {/* Assistant isLoading response */}
           {isLoading && !currentResponse && !currentToolCalls.length && (
             <div className="flex justify-center">
-              <div className="p-2">
-                <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1"></span>
+              <div className="flex items-center space-x-2 p-6 bg-gray-300/30 dark:bg-gray-800/20 w-full">
+                {/* <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1"></span>
                 <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1" style={{ animationDelay: '0.2s' }}></span>
-                <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1" style={{ animationDelay: '0.4s' }}></span>
+                <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1" style={{ animationDelay: '0.4s' }}></span> */}
+                <Sparkles className='h-4 w-4 text-green-500 dark:text-gray-100/50 animate-pulse' />
+                <ShiningText />
               </div>
             </div>
           )}

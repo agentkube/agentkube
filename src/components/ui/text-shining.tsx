@@ -12,7 +12,7 @@ import { motion } from "motion/react";
 export function ShiningText() {
   return (
     <motion.h1
-      className="bg-[linear-gradient(110deg,#404040,35%,#fff,50%,#404040,75%,#404040)] bg-[length:200%_100%] bg-clip-text text-base font-medium text-transparent"
+      className="bg-[linear-gradient(110deg,#404040,35%,#fff,50%,#404040,75%,#404040)] bg-[length:200%_100%] bg-clip-text text-xs font-medium text-transparent"
       initial={{ backgroundPosition: "200% 0" }}
       animate={{ backgroundPosition: "-200% 0" }}
       transition={{
@@ -21,7 +21,7 @@ export function ShiningText() {
         ease: "linear",
       }}
     >
-      Hang tight...
+     Crafting the response...
     </motion.h1>
   );
 }
