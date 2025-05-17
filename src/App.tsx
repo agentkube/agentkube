@@ -14,7 +14,7 @@ import {
   AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account, LLMComparison, ModelCompare,
   Updates
 } from '@/pages';
-import { Footer, Spotlight } from '@/components/custom';
+import { Footer, NamespacePickerContainer, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
 import { ClusterProvider } from '@/contexts/clusterContext';
 import {
@@ -107,6 +107,7 @@ function App() {
                     <Menu />
                     <div className="flex-auto min-h-[calc(100vh-70px)]">
                       <Spotlight />
+                      <NamespacePickerContainer />
                       <Routes>
                         <Route path="/" element={<HomePage />} />
 

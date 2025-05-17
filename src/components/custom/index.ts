@@ -45,6 +45,8 @@ export { default as NamespaceSelector } from './namespaceselector/namespaceselec
 export { default as ResourceTemplate } from './resourcetemplates/resourcetemplates.components';
 export { default as GuiResourceEditor } from './gui/gui.component';
 export { default as ScaleDialog } from './scaledialog/scaledialog.component';
+export { default as NamespacePicker } from './namespacepicker/namespacepicker.component';
+export { default as NamespacePickerContainer } from './namespacepicker/namespacepicker-container.component';
 
 // Overview
 export { default as PodsMetricCard } from './overview/podmetrics.components';
