@@ -120,7 +120,7 @@ const PromQLSpotlight: React.FC = () => {
           <div className="flex items-center justify-between py-1 px-4 text-2xl">
             <div className="flex items-center flex-grow relative">
               <div>
-                <img src={PROMETHEUS} className='w-7 h-6 ' alt="" />
+                <img src={PROMETHEUS} className='w-7 ' alt="" />
               </div>
 
               {/* PromQL Badge - only show in PromQL mode */}
