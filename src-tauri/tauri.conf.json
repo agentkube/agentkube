@@ -54,7 +54,7 @@
               "allow": [
                 "http://localhost:1420/*",
                 "http://localhost:4688/*",
-                "http://localhost:65001/*"
+                "http://localhost:4689/*"
               ]
             }
           ]
@@ -66,7 +66,7 @@
           "permissions": [
             {
               "identifier": "cors-fetch:default",
-              "allow": ["http://localhost:1420/*", "http://localhost:4688/*", "http://localhost:65001/*"]
+              "allow": ["http://localhost:1420/*", "http://localhost:4688/*", "http://localhost:4689/*"]
             }
           ]
         },

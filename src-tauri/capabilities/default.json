@@ -39,7 +39,7 @@
           "url": "http://localhost:4688/*"
         },
         {
-          "url": "http://localhost:65001/*"
+          "url": "http://localhost:4689/*"
         }
       ]
     },
@@ -53,7 +53,7 @@
           "url": "http://localhost:4688/*"
         },
         {
-          "url": "http://localhost:65001/*"
+          "url": "http://localhost:4689/*"
         }
       ]
     },
