@@ -47,6 +47,7 @@ export { default as GuiResourceEditor } from './gui/gui.component';
 export { default as ScaleDialog } from './scaledialog/scaledialog.component';
 export { default as NamespacePicker } from './namespacepicker/namespacepicker.component';
 export { default as NamespacePickerContainer } from './namespacepicker/namespacepicker-container.component';
+export { default as PromQLSpotlight } from './promqlspotlight/promqlspotlight.component';
 
 // Overview
 export { default as PodsMetricCard } from './overview/podmetrics.components';
