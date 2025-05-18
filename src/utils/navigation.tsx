@@ -49,7 +49,7 @@ export const getResourceViewPath = (result: SearchResult): string => {
 
     // Storage
     case 'persistentvolumeclaims':
-      return `/dashboard/explore/persistentvolumeclaims/${result.resourceName}/namespace/${result.namespace}`;
+      return `/dashboard/explore/persistentvolumeclaims/${result.namespace}/${result.resourceName}`;
     case 'persistentvolumes':
       return `/dashboard/explore/persistentvolumes/${result.resourceName}`;
     case 'storageclasses':
