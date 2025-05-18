@@ -247,7 +247,7 @@ const BestPractices = () => {
         <motion.div variants={itemVariants} className="col-span-3">
           <div className="flex justify-between">
             <div className="pb-6">
-              <h1 className="text-5xl dark:text-gray-500/40 font-bold">Best Practices</h1>
+              <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Best Practices</h1>
               <p>Security overview of your Kubernetes cluster, view your cluster vulnerabilities and compliance.</p>
             </div>
 
