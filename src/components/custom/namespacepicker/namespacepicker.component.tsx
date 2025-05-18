@@ -248,21 +248,20 @@ const NamespacePicker: React.FC<NamespacePickerProps> = ({ isOpen, onClose }) =>
                 {filteredNamespaces.length > 0 ? (
                   filteredNamespaces.map((namespace, index) => {
                     // Generate deterministic color based on namespace name
-                    const colorOptions = [
-                      'bg-orange-500',
-                      'bg-blue-500',
-                      'bg-purple-500',
-                      'bg-yellow-500',
-                      'bg-green-500',
-                      'bg-emerald-500',
-                      'bg-teal-500',
-                      'bg-red-500',
-                      'bg-indigo-500',
-                      'bg-[#219ebc]',
-                      'bg-[#3e5c76]',
-                      'bg-[#006494]',
-                      'bg-[#c9184a]',
-                      // '',
+                   const colorOptions = [
+                      'bg-orange-500 dark:bg-orange-500/30 border-orange-500',
+                      'bg-blue-500 dark:bg-blue-500/30 border-blue-500',
+                      'bg-purple-500 dark:bg-purple-500/30 border-purple-500',
+                      'bg-yellow-500 dark:bg-yellow-500/30 border-yellow-500',
+                      'bg-green-500 dark:bg-green-500/30 border-green-500',
+                      'bg-emerald-500 dark:bg-emerald-500/30 border-emerald-500',
+                      'bg-teal-500 dark:bg-teal-500/30 border-teal-500',
+                      'bg-red-500 dark:bg-red-500/30 border-red-500',
+                      'bg-indigo-500 dark:bg-indigo-500/30 border-indigo-500',
+                      'bg-[#219ebc] dark:bg-[#219ebc]/30 border-[#219ebc]',
+                      'bg-[#3e5c76] dark:bg-[#3e5c76]/30 border-[#3e5c76]',
+                      'bg-[#006494] dark:bg-[#006494]/30 border-[#006494]',
+                      'bg-[#c9184a] dark:bg-[#c9184a]/30 border-[#c9184a]',
                     ];
                     const colorIndex = namespace.length % colorOptions.length;
                     const bgColor = colorOptions[colorIndex];
@@ -274,19 +273,19 @@ const NamespacePicker: React.FC<NamespacePickerProps> = ({ isOpen, onClose }) =>
                         key={namespace}
                         onClick={() => toggleNamespace(namespace)}
                         className={`relative rounded-full cursor-pointer transition-all duration-200 ${
-                          isActive ? 'ring-2 ring-blue-400 ring-offset-1 dark:ring-offset-gray-800' : ''
+                          isActive ? 'ring-2 ring-blue-400 dark:ring-blue-600/60 ring-offset-1 dark:ring-offset-gray-800' : ''
                         }`}
                       >
                         <div 
-                          className={`flex items-center justify-between rounded-full py-2 px-3 ${
+                          className={`flex items-center justify-between rounded-full border py-2 px-3 ${
                             isSelected 
-                              ? `${bgColor} text-white` 
+                              ? `${bgColor} text-gray-900 dark:text-white` 
                               : 'bg-gray-200 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700/40'
                           }`}
                         >
                           <span className="text-xs font-medium truncate">{namespace}</span>
                           {isSelected && (
-                            <Check className="w-4 h-4 text-white ml-1 flex-shrink-0" />
+                            <Check className="w-4 h-4 text-gray-800 dark:text-white ml-1 flex-shrink-0" />
                           )}
                         </div>
                       </div>
