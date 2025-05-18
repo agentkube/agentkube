@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { listResources, getApiGroups } from '@/api/internal/resources';
+import { listResources, deleteResource, getApiGroups } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown, Trash, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -17,12 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -131,6 +125,7 @@ const CustomResources: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [activeCRD, setActiveCRD] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
   // Add sorting state
   const [sort, setSort] = useState<SortState>({
@@ -142,19 +137,19 @@ const CustomResources: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Fetch CRDs
   useEffect(() => {
     const fetchCRDs = async () => {
@@ -454,6 +449,51 @@ const CustomResources: React.FC = () => {
     });
   };
 
+  // Function to handle resource deletion
+  const handleDeleteResource = async (resource: CustomResource) => {
+    if (!resource.metadata?.name || !currentContext) {
+      return;
+    }
+
+    try {
+      setDeleteLoading(`${resource.metadata.namespace || 'cluster'}/${resource.metadata.name}`);
+
+      // Find the CRD for this resource to get API details
+      const crd = crds.find(c => c.spec.group === activeGroup && c.spec.names.kind === activeCRD);
+
+      if (!crd) {
+        throw new Error('Could not find CRD definition');
+      }
+
+      const storageVersion = crd.spec.versions.find(v => v.storage)?.name || crd.spec.versions[0]?.name;
+
+      await deleteResource(
+        currentContext.name,
+        crd.spec.names.plural,
+        resource.metadata.name,
+        {
+          namespace: resource.metadata.namespace,
+          apiGroup: crd.spec.group,
+          apiVersion: storageVersion
+        }
+      );
+
+      // Update the UI by removing the deleted resource
+      setCustomResources(prevResources =>
+        prevResources.filter(res =>
+          res.metadata?.name !== resource.metadata?.name ||
+          res.metadata?.namespace !== resource.metadata?.namespace
+        )
+      );
+
+    } catch (err) {
+      console.error('Failed to delete custom resource:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete custom resource');
+    } finally {
+      setDeleteLoading(null);
+    }
+  };
+
   // Render sort indicator
   const renderSortIndicator = (field: SortField) => {
     if (sort.field !== field) {
@@ -687,7 +727,7 @@ const CustomResources: React.FC = () => {
 
                   {isNamespaced && (
                     <TableCell>
-                      <div className="hover:text-blue-500 hover:underline"
+                      <div className="hover:text-blue-500 w-[150px] hover:underline"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/dashboard/explore/namespaces/${resource.metadata?.namespace}`);
@@ -713,7 +753,7 @@ const CustomResources: React.FC = () => {
                     </div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className='w-[80px]'>
                     {calculateAge(resource.metadata?.creationTimestamp?.toString())}
                   </TableCell>
 
@@ -733,19 +773,21 @@ const CustomResources: React.FC = () => {
                           e.stopPropagation();
                           handleResourceDetails(resource);
                         }}>
-                          View
+                          <Eye /> View
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement edit functionality
-                          navigate(`/dashboard/editor?kind=${activeCRD}&name=${resource.metadata.name}${isNamespaced ? `&namespace=${resource.metadata.namespace}` : ''}`);
-                        }}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement delete functionality
-                        }} className="text-red-500 dark:text-red-400">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteResource(resource);
+                          }}
+                          className="text-red-500 dark:text-red-400"
+                          disabled={deleteLoading === `${resource.metadata?.namespace || 'cluster'}/${resource.metadata?.name}`}
+                        >
+                          {deleteLoading === `${resource.metadata?.namespace || 'cluster'}/${resource.metadata?.name}` ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Trash className="mr-2 h-4 w-4" />
+                          )}
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

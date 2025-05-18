@@ -6,7 +6,6 @@ import {
   DeactivateLicenseResponse,
   ListLicenseKeyInstancesResponse
 } from '@/types/subscription';
-
 const LEMONSQUEEZY_BASE_URL = 'https://api.lemonsqueezy.com/v1';
 
 /**
@@ -137,7 +136,7 @@ export const listLicenseKeyInstances = async (
 export const storeLicenseKeyLocal = async (
   licenseKey: string
 ): Promise<{ success: boolean; message: string }> => {
-  const url = 'http://localhost:65001/orchestrator/api/license';
+  const url = `${ORCHESTRATOR_URL}/api/license`;
   
   const response = await fetch(url, {
     method: 'POST',

@@ -567,7 +567,6 @@ const AIResourceEditor: React.FC = () => {
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-blue-700 hover:bg-blue-800 text-white"
             >
               {isSaving ? 'Creating...' : <><Save className="h-4 w-4 mr-2" /> Create Resource</>}
             </Button>

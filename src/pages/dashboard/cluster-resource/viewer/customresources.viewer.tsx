@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getResource } from '@/api/internal/resources';
+import { deleteResource, getResource } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ArrowLeft, Edit, Clock, Tag, List, FileJson, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { calculateAge } from '@/utils/age';
-import { ErrorComponent, ResourceViewerYamlTab } from '@/components/custom';
+import { ErrorComponent, ResourceViewerYamlTab, DeletionDialog } from '@/components/custom';
 import { YamlViewer } from '@/utils/yaml.utils';
-
 // Define interfaces
 interface CustomResource {
   apiVersion: string;
@@ -52,6 +51,8 @@ const CustomResourceViewer = () => {
   const [resource, setResource] = useState<CustomResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchResource = async () => {
@@ -88,17 +89,39 @@ const CustomResourceViewer = () => {
   }, [currentContext, params, apiGroup, apiVersion, plural]);
 
   const handleDelete = () => {
-    // Implement delete functionality
-    // Show confirmation dialog first
-    if (window.confirm(`Are you sure you want to delete ${resource?.kind} "${resource?.metadata.name}"?`)) {
-      // Call API to delete the resource
-      console.log('Delete resource:', resource);
-    }
+    setShowDeleteDialog(true);
   };
 
-  const handleEdit = () => {
-    // Navigate to editor with resource data
-    navigate(`/dashboard/editor?kind=${resource?.kind}&name=${resource?.metadata.name}${resource?.metadata.namespace ? `&namespace=${resource?.metadata.namespace}` : ''}`);
+ 
+  const confirmResourceDeletion = async () => {
+    if (!resource || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        plural,
+        resource.metadata.name,
+        {
+          namespace: resource.metadata.namespace,
+          apiGroup: apiGroup,
+          apiVersion: apiVersion
+        }
+      );
+
+      // Navigate back to the custom resources list
+      navigate('/dashboard/explore/customresources');
+    } catch (err) {
+      console.error('Failed to delete custom resource:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete custom resource');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   if (loading) {
@@ -163,6 +186,19 @@ const CustomResourceViewer = () => {
           </Button>
         </div>
       </div>
+
+      {resource && (
+        <DeletionDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={confirmResourceDeletion}
+          title="Delete Custom Resource"
+          description={`Are you sure you want to delete the ${resource.kind} resource "${resource.metadata.name}"${resource.metadata.namespace ? ` in namespace "${resource.metadata.namespace}"` : ''}? This action cannot be undone.`}
+          resourceName={resource.metadata.name}
+          resourceType={resource.kind}
+          isLoading={deleteLoading}
+        />
+      )}
 
       <Separator />
 

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, Edit, Clock, FileJson, Trash, List, Table as TableIcon } from "lucide-react";
+import { Loader2, ArrowLeft, Edit, Clock, FileJson, Trash, List, Table as TableIcon, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateAge } from '@/utils/age';
@@ -144,7 +144,7 @@ const SchemaViewer = ({ schema }: { schema: any }) => {
   const rootSchema = schema.openAPIV3Schema;
 
   return (
-    <div className="p-4 bg-gray-100 dark:bg-gray-900 rounded-md">
+    <div className="p-4 bg-gray-100 dark:bg-gray-700/10 rounded-lg">
       <h3 className="text-lg font-medium mb-4">Schema Definition</h3>
 
       {rootSchema.properties?.spec && (
@@ -287,8 +287,7 @@ const CustomResourceDefinitionViewer = () => {
   };
 
   const handleEdit = () => {
-    // Navigate to editor with CRD data
-    navigate(`/dashboard/editor?kind=CustomResourceDefinition&name=${crd?.metadata.name}`);
+    navigate(`/dashboard/editor?kind=CustomResourceDefinition&name=${crd?.metadata.name}&apiGroup=apiextensions.k8s.io&apiVersion=v1`);
   };
 
 
@@ -336,7 +335,7 @@ const CustomResourceDefinitionViewer = () => {
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1"
+              className="h-8 gap-1 border-none"
               onClick={() => navigate('/dashboard/explore/customresources')}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -352,7 +351,12 @@ const CustomResourceDefinitionViewer = () => {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleEdit}>
+          <Button variant="outline" onClick={() => {
+            setSearchParams(params => {
+              params.set('tab', 'yaml');
+              return params;
+            });
+          }}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
@@ -457,7 +461,7 @@ const CustomResourceDefinitionViewer = () => {
                         <TableCell>
                           <Badge
                             variant={condition.status === 'True' ? 'default' : 'destructive'}
-                            className={condition.status === 'True' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : ''}
+                            className={condition.status === 'True' ? 'bg-green-300 text-green-800 dark:bg-green-900/20 dark:text-green-300 shadow-none' : ''}
                           >
                             {condition.status}
                           </Badge>
@@ -499,10 +503,10 @@ const CustomResourceDefinitionViewer = () => {
               <TableIcon className="h-5 w-5 mr-2" />
               Instances
             </div>
-            <Button size="sm" variant="outline" onClick={() => {
+            <Button onClick={() => {
               navigate(`/dashboard/editor?kind=${crd.spec.names.kind}&apiGroup=${crd.spec.group}&apiVersion=${activeVersion}`);
             }}>
-              Create
+              <Plus /> Create
             </Button>
           </CardTitle>
         </CardHeader>
@@ -556,7 +560,7 @@ const CustomResourceDefinitionViewer = () => {
         </CardHeader>
         <CardContent>
           <Tabs
-            defaultValue={defaultTab}
+            value={defaultTab}
             onValueChange={(value) => {
               setSearchParams(params => {
                 params.set('tab', value);
@@ -585,7 +589,7 @@ const CustomResourceDefinitionViewer = () => {
             </TabsContent>
 
             <TabsContent value="json" className="mt-4">
-              <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-sm font-mono
+              <pre className="bg-gray-100 dark:bg-gray-700/10 p-4 rounded-md overflow-auto text-sm font-mono
                 max-h-[70vh] overflow-y-auto
                 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
                 [&::-webkit-scrollbar]:w-1.5 
