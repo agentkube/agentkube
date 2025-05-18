@@ -488,14 +488,14 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
     <div className="rounded-lg border border-gray-200 dark:border-gray-800   p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-medium">Pods Running on This Node ({filteredPods.length})</h2>
-        <Button 
+        {/* <Button 
           variant="outline" 
           size="sm" 
           onClick={fetchNodePods}
         >
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
           Refresh
-        </Button>
+        </Button> */}
       </div>
 
       {error && (
@@ -595,7 +595,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
                           {renderResourceUsageBar(podMetrics.cpu, 'cpu')}
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">-</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400"></span>
                       )}
                     </div>
                   </TableCell>
@@ -617,7 +617,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
                           {renderResourceUsageBar(podMetrics.memory, 'memory')}
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">-</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400"></span>
                       )}
                     </div>
                   </TableCell>

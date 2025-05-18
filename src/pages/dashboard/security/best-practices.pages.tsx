@@ -17,10 +17,10 @@ import { containerVariants, itemVariants } from "@/utils/styles.utils";
 import { ClusterComplianceReport, ComplianceCheck } from "@/types/scanner/vulnerability-report";
 import { TrivyNotInstalled } from "@/components/custom";
 import { getSeverityColors } from "@/utils/severity.utils";
-import { 
-  getClusterComplianceReports, 
-  getComplianceDetails, 
-  getTrivyStatus 
+import {
+  getClusterComplianceReports,
+  getComplianceDetails,
+  getTrivyStatus
 } from '@/api/scanner/security';
 import { useCluster } from '@/contexts/clusterContext';
 
@@ -43,7 +43,7 @@ const BestPractices = () => {
   const [error, setError] = useState<string | null>(null);
   const { currentContext } = useCluster();
   const [isTrivyInstalled, setIsTrivyInstalled] = useState(false);
-  
+
   // For the details drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedReportName, setSelectedReportName] = useState<string>("");
@@ -58,12 +58,12 @@ const BestPractices = () => {
   useEffect(() => {
     const checkTrivyStatus = async () => {
       if (!currentContext?.name) return;
-      
+
       try {
         setLoading(true);
         const status = await getTrivyStatus(currentContext.name);
         setIsTrivyInstalled(status.installed);
-        
+
         if (status.installed) {
           await fetchComplianceReports();
         }
@@ -86,11 +86,11 @@ const BestPractices = () => {
       setLoading(true);
       // Get compliance reports from API
       const response = await getClusterComplianceReports(currentContext.name);
-      
+
       // Check if response has expected structure
       if (response && response.reports && Array.isArray(response.reports)) {
         setComplianceReports(response.reports);
-        
+
         // Select first standard if available
         if (response.reports.length > 0) {
           setSelectedStandard(response.reports[0].name);
@@ -114,9 +114,9 @@ const BestPractices = () => {
     try {
       setLoadingChecks(true);
       setError(null);
-      
+
       const response = await getComplianceDetails(currentContext.name, reportName);
-      
+
       if (response && response.report && response.report.controlChecks) {
         setComplianceChecks(response.report.controlChecks);
       } else {
@@ -163,7 +163,7 @@ const BestPractices = () => {
     if (!Array.isArray(complianceChecks)) {
       return [];
     }
-    
+
     return complianceChecks.filter(check => {
       const matchesSearch = searchQuery === "" ||
         check.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -202,8 +202,8 @@ const BestPractices = () => {
 
   if (!isTrivyInstalled) {
     return (
-      <TrivyNotInstalled 
-        title="Best Practices" 
+      <TrivyNotInstalled
+        title="Best Practices"
         subtitle="Trivy Operator is required to scan your cluster for compliance with security best practices. Install it to assess your security posture against standards like CIS Kubernetes Benchmark and NSA Hardening Guide."
         onInstallSuccess={handleTrivyInstallSuccess}
       />
@@ -226,6 +226,23 @@ const BestPractices = () => {
       "
     >
 
+      {/* Development Preview Notice */}
+      <motion.div
+        variants={itemVariants}
+        className="mx-6 mt-6 mb-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg text-xs"
+      >
+        <div className="flex items-center gap-3">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <div>
+            <span className="font-medium text-amber-800 dark:text-amber-200">Development Preview</span>
+            <p className="text-amber-700 dark:text-amber-300 mt-1">
+              The Trivy Plugin is in active development and currently in development preview.
+              Features may be subject to change and some functionality may be limited.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       <div className="grid grid-cols-3 gap-6 mb-32 dark:bg-transparent p-6 rounded-3xl">
         <motion.div variants={itemVariants} className="col-span-3">
           <div className="flex justify-between">
@@ -233,6 +250,7 @@ const BestPractices = () => {
               <h1 className="text-5xl dark:text-gray-500/40 font-bold">Best Practices</h1>
               <p>Security overview of your Kubernetes cluster, view your cluster vulnerabilities and compliance.</p>
             </div>
+
             <div className="flex gap-4 items-start">
               <div className="text-gray-500 border border-gray-400 dark:border-gray-800/50 h-fit py-2 px-4 rounded-lg">
                 {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
@@ -240,6 +258,7 @@ const BestPractices = () => {
             </div>
           </div>
         </motion.div>
+
 
         <motion.div variants={itemVariants} className="col-span-3 dark:bg-transparent border dark:border-gray-800/30 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
@@ -284,7 +303,7 @@ const BestPractices = () => {
           </div>
 
           <div className="flex gap-4 mb-6">
-  
+
             <Select value={selectedNamespace}>
               <SelectTrigger className="w-32 border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
                 <SelectValue placeholder="Namespaces" />
@@ -358,8 +377,8 @@ const BestPractices = () => {
               </TableHeader>
               <TableBody>
                 {filteredChecks.map((check) => (
-                  <TableRow 
-                    key={check.id} 
+                  <TableRow
+                    key={check.id}
                     className="hover:bg-gray-300/30 dark:hover:bg-gray-800/10 cursor-pointer"
                     onClick={() => handleCheckClick(check)}
                   >
@@ -385,7 +404,7 @@ const BestPractices = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-32 h-2 bg-red-200 dark:bg-red-900/30 rounded">
+                        <div className="w-32 h-2 bg-red-200 dark:bg-red-900/60 rounded">
                           <div
                             className="h-full bg-red-500 rounded"
                             style={{
@@ -393,9 +412,6 @@ const BestPractices = () => {
                             }}
                           ></div>
                         </div>
-                        <span className={check.totalFail > 0 ? "text-red-500" : "text-green-500"}>
-                          {check.totalFail > 0 ? check.totalFail : "Pass"}
-                        </span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -407,7 +423,7 @@ const BestPractices = () => {
               <Info className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-medium mb-2">No Compliance Checks Found</h3>
               <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                No compliance checks were found for the selected standard or filter criteria. 
+                No compliance checks were found for the selected standard or filter criteria.
                 Try selecting a different standard or clearing filters.
               </p>
             </div>
