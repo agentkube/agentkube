@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { V1Pod, CoreV1Event } from '@kubernetes/client-node';
 import {
   getResource,
-  listResources
+  listResources,
+  deleteResource
 } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, Maximize2, LayoutGrid, Flag, Menu, AlertCircle, Clock, ArrowLeft, Terminal } from "lucide-react";
+import { ChevronRight, Maximize2, LayoutGrid, Flag, Menu, AlertCircle, Clock, ArrowLeft, Terminal, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,7 +22,7 @@ import VolumeViewer from '../components/volume.viewer';
 import ContainersViewer from '../components/container.viewer';
 import EventsViewer from '../components/event.viewer';
 import ContainerLogs from '../components/containerlogs.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import PodMetricsComponent from '@/components/custom/metrics/pod-metrics.component';
 import { runExternalShell } from '@/api/external';
 import { useSearchParams } from 'react-router-dom';
@@ -42,6 +43,8 @@ const PodViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the pod
   const fetchEvents = async () => {
@@ -96,6 +99,39 @@ const PodViewer: React.FC = () => {
 
     fetchPodData();
   }, [currentContext, namespace, podName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!podData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'pods',
+        podData.metadata?.name as string,
+        {
+          namespace: podData.metadata?.namespace
+        }
+      );
+
+      // Navigate back to the pods list
+      navigate('/dashboard/explore/pods');
+    } catch (err) {
+      console.error('Failed to delete pod:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete pod');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   const handleOpenShell = async () => {
     try {
@@ -293,7 +329,11 @@ const PodViewer: React.FC = () => {
                 Refresh
               </Button>
               <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+                <ArrowLeft />
                 Back
+              </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -301,6 +341,19 @@ const PodViewer: React.FC = () => {
 
         {/* Status alert if needed */}
         <PodStatusAlert phase={podData.status?.phase} />
+
+        {podData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Pod"
+            description={`Are you sure you want to delete the pod "${podData.metadata.name}" in namespace "${podData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={podData.metadata.name as string}
+            resourceType="Pod"
+            isLoading={deleteLoading}
+          />
+        )}
 
         {/* Main content tabs */}
         <Tabs

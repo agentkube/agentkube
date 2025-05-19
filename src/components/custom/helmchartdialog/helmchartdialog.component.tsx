@@ -195,7 +195,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl bg-gray-100 dark:bg-gray-900/20 backdrop-blur-sm">
+      <DialogContent className="sm:max-w-4xl bg-gray-100 dark:bg-[#0B0D13] border-gray-200 dark:border-gray-900/10  backdrop-blur-sm">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
             {chart.logo_image_id ? (
@@ -232,10 +232,10 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
           </div>
 
           <Select value={selectedVersion} onValueChange={handleVersionChange}>
-            <SelectTrigger className="w-36 bg-transparent dark:text-white dark:border-gray-800/50">
+            <SelectTrigger className="w-36 bg-transparent dark:text-white dark:border-gray-500/40">
               <SelectValue placeholder="Version" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-100 dark:bg-gray-900 backdrop-blur-sm dark:text-white">
+            <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
               {versions.map((v) => (
                 <SelectItem key={v.version} value={v.version}>
                   {v.version}

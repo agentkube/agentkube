@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1Role, CoreV1Event } from '@kubernetes/client-node';
-import { getResource, listResources } from '@/api/internal/resources';
+import { deleteResource, getResource, listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, ShieldCheck, Key, Lock, Users } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, ShieldCheck, Key, Lock, Users, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,7 +18,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for Role data with events
 interface RoleData extends V1Role {
@@ -37,6 +37,8 @@ const RoleViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the Role
   const fetchEvents = async () => {
@@ -130,6 +132,40 @@ const RoleViewer: React.FC = () => {
 
     fetchRoleData();
   }, [currentContext, namespace, roleName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!roleData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'roles',
+        roleData.metadata?.name as string,
+        {
+          namespace: roleData.metadata?.namespace,
+          apiGroup: 'rbac.authorization.k8s.io'
+        }
+      );
+
+      // Navigate back to the roles list
+      navigate('/dashboard/explore/roles');
+    } catch (err) {
+      console.error('Failed to delete role:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete role');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -333,12 +369,28 @@ const RoleViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {roleData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Role"
+            description={`Are you sure you want to delete the role "${roleData.metadata.name}" in namespace "${roleData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={roleData.metadata.name as string}
+            resourceType="Role"
+            isLoading={deleteLoading}
+          />
+        )}
+        
         {/* Main content tabs */}
-        <Tabs 
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {
@@ -546,8 +598,8 @@ const RoleViewer: React.FC = () => {
                       <div
                         key={index}
                         className={`p-4 rounded-lg border ${isAdmin
-                            ? 'border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10'
-                            : 'border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10'
+                          ? 'border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10'
+                          : 'border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10'
                           }`}
                       >
                         <div className="flex justify-between mb-2">

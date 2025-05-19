@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1LimitRange, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Scale, Cpu, MemoryStick, HardDrive, Database } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Scale, Cpu, MemoryStick, HardDrive, Database, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,7 +22,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for LimitRange data (extending V1LimitRange with events)
 interface LimitRangeData extends V1LimitRange {
@@ -39,6 +40,8 @@ const LimitRangeViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the limit range
   const fetchEvents = async () => {
@@ -101,6 +104,40 @@ const LimitRangeViewer: React.FC = () => {
 
     fetchLimitRangeData();
   }, [currentContext, namespace, limitRangeName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!limitRangeData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'limitranges',
+        limitRangeData.metadata?.name as string,
+        {
+          namespace: limitRangeData.metadata?.namespace
+          // Note: LimitRange is in the core API group, so no apiGroup parameter needed
+        }
+      );
+
+      // Navigate back to the limit ranges list
+      navigate('/dashboard/explore/limitranges');
+    } catch (err) {
+      console.error('Failed to delete limit range:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete limit range');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -331,10 +368,25 @@ const LimitRangeViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {limitRangeData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete LimitRange"
+            description={`Are you sure you want to delete the limit range "${limitRangeData.metadata.name}" in namespace "${limitRangeData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={limitRangeData.metadata.name as string}
+            resourceType="LimitRange"
+            isLoading={deleteLoading}
+          />
+        )}
         {/* Main content tabs */}
         <Tabs
           defaultValue={defaultTab}

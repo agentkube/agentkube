@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1PersistentVolumeClaim, V1PersistentVolume, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Database, HardDrive, Clock, Link2 } from "lucide-react";
+import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Database, HardDrive, Clock, Link2, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { useSearchParams } from 'react-router-dom';
+import { DeletionDialog } from '@/components/custom';
 
 // Define interface for PVC data
 interface PVCData extends V1PersistentVolumeClaim {
@@ -40,6 +42,8 @@ const PersistentVolumeClaimViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the PVC
   const fetchEvents = async () => {
@@ -129,6 +133,40 @@ const PersistentVolumeClaimViewer: React.FC = () => {
 
     fetchPVCData();
   }, [currentContext, namespace, pvcName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!pvcData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'persistentvolumeclaims',
+        pvcData.metadata?.name as string,
+        {
+          namespace: pvcData.metadata?.namespace
+          // Note: PersistentVolumeClaims are in the core API group, so no apiGroup parameter needed
+        }
+      );
+
+      // Navigate back to the persistent volume claims list
+      navigate('/dashboard/explore/persistentvolumeclaims');
+    } catch (err) {
+      console.error('Failed to delete persistent volume claim:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete persistent volume claim');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -358,6 +396,9 @@ const PersistentVolumeClaimViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -382,6 +423,19 @@ const PersistentVolumeClaimViewer: React.FC = () => {
               This PVC has lost its bound volume. The volume may be deleted or unavailable. Data may be lost.
             </AlertDescription>
           </Alert>
+        )}
+
+        {pvcData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete PersistentVolumeClaim"
+            description={`Are you sure you want to delete the persistent volume claim "${pvcData.metadata.name}" in namespace "${pvcData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={pvcData.metadata.name as string}
+            resourceType="PersistentVolumeClaim"
+            isLoading={deleteLoading}
+          />
         )}
 
         {/* Main content tabs */}

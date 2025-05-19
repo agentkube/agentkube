@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1PersistentVolume, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Database, HardDrive, Clock, Link2 } from "lucide-react";
+import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Database, HardDrive, Clock, Link2, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { useSearchParams } from 'react-router-dom';
+import { DeletionDialog } from '@/components/custom';
 
 // Define interface for PV data
 interface PVData extends V1PersistentVolume {
@@ -39,6 +41,8 @@ const PersistentVolumeViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the PV
   const fetchEvents = async () => {
@@ -97,6 +101,40 @@ const PersistentVolumeViewer: React.FC = () => {
 
     fetchPVData();
   }, [currentContext, pvName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!pvData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'persistentvolumes',
+        pvData.metadata?.name as string,
+        {
+          // Note: PersistentVolumes are cluster-scoped, so no namespace parameter needed
+          // PVs are in the core API group, so no apiGroup parameter needed
+        }
+      );
+
+      // Navigate back to the persistent volumes list
+      navigate('/dashboard/explore/persistentvolumes');
+    } catch (err) {
+      console.error('Failed to delete persistent volume:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete persistent volume');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -354,6 +392,9 @@ const PersistentVolumeViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -380,6 +421,19 @@ const PersistentVolumeViewer: React.FC = () => {
               This PV has failed its automatic reclamation. Manual intervention is required to reclaim this volume.
             </AlertDescription>
           </Alert>
+        )}
+
+        {pvData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete PersistentVolume"
+            description={`Are you sure you want to delete the persistent volume "${pvData.metadata.name}"? This action cannot be undone.`}
+            resourceName={pvData.metadata.name as string}
+            resourceType="PersistentVolume"
+            isLoading={deleteLoading}
+          />
         )}
 
         {/* Main content tabs */}

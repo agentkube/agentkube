@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { V1Job, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Check, X, PlayCircle } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Check, X, PlayCircle, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import JobPods from '../components/jobpods.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { DeletionDialog } from '@/components/custom';
 
 // Define interface for job data (extending V1Job with events)
 interface JobData extends V1Job {
@@ -39,6 +41,8 @@ const JobViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the job
   const fetchEvents = async () => {
@@ -95,6 +99,39 @@ const JobViewer: React.FC = () => {
     fetchJobData();
   }, [currentContext, namespace, jobName]);
 
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!jobData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'jobs',
+        jobData.metadata?.name as string,
+        {
+          namespace: jobData.metadata?.namespace,
+          apiGroup: 'batch'
+        }
+      );
+
+      // Navigate back to the jobs list
+      navigate('/dashboard/explore/jobs');
+    } catch (err) {
+      console.error('Failed to delete job:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete job');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
   // Handle refresh data
   const handleRefresh = () => {
     setLoading(true);
@@ -427,12 +464,28 @@ const JobViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Status alert if needed */}
         <JobStatusAlert />
+
+        {jobData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Job"
+            description={`Are you sure you want to delete the job "${jobData.metadata.name}" in namespace "${jobData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={jobData.metadata.name as string}
+            resourceType="Job"
+            isLoading={deleteLoading}
+          />
+        )}
 
         {/* Main content tabs */}
         <Tabs defaultValue={defaultTab}
@@ -441,7 +494,7 @@ const JobViewer: React.FC = () => {
               params.set('tab', value);
               return params;
             });
-          }} 
+          }}
           className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>

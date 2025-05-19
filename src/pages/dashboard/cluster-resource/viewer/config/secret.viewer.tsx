@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1Secret, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, FileText, Lock, Eye, EyeOff, Shield, Download } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, FileText, Lock, Eye, EyeOff, Shield, Download, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,7 +23,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for secret data (extending V1Secret with events)
 interface SecretData extends V1Secret {
@@ -41,6 +42,8 @@ const SecretViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the secret
   const fetchEvents = async () => {
@@ -103,6 +106,40 @@ const SecretViewer: React.FC = () => {
 
     fetchSecretData();
   }, [currentContext, namespace, secretName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!secretData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'secrets',
+        secretData.metadata?.name as string,
+        {
+          namespace: secretData.metadata?.namespace
+          // Note: Secrets are in the core API group, so no apiGroup parameter needed
+        }
+      );
+
+      // Navigate back to the secrets list
+      navigate('/dashboard/explore/secrets');
+    } catch (err) {
+      console.error('Failed to delete secret:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete secret');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -330,9 +367,25 @@ const SecretViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
+
+        {secretData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Secret"
+            description={`Are you sure you want to delete the secret "${secretData.metadata.name}" in namespace "${secretData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={secretData.metadata.name as string}
+            resourceType="Secret"
+            isLoading={deleteLoading}
+          />
+        )}
 
         {/* Warning alert for sensitive data */}
         <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
@@ -344,7 +397,7 @@ const SecretViewer: React.FC = () => {
         </Alert>
 
         {/* Main content tabs */}
-        <Tabs 
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {

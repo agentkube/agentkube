@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1StatefulSet, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Database, Layers } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Database, Layers, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,7 +23,7 @@ import { useSearchParams } from 'react-router-dom';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import StatefulSetPods from '../components/statefulsetpod.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for statefulset data (extending V1StatefulSet with events)
 interface StatefulSetData extends V1StatefulSet {
@@ -40,6 +41,8 @@ const StatefulSetViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the statefulset
   const fetchEvents = async () => {
@@ -95,6 +98,41 @@ const StatefulSetViewer: React.FC = () => {
 
     fetchStatefulSetData();
   }, [currentContext, namespace, statefulSetName]);
+
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!statefulSetData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'statefulsets',
+        statefulSetData.metadata?.name as string,
+        {
+          namespace: statefulSetData.metadata?.namespace,
+          apiGroup: 'apps'
+        }
+      );
+
+      // Navigate back to the statefulsets list
+      navigate('/dashboard/explore/statefulsets');
+    } catch (err) {
+      console.error('Failed to delete statefulset:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete statefulset');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -316,12 +354,28 @@ const StatefulSetViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Status alert if needed */}
         <StatefulSetStatusAlert />
+
+        {statefulSetData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete StatefulSet"
+            description={`Are you sure you want to delete the statefulset "${statefulSetData.metadata.name}" in namespace "${statefulSetData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={statefulSetData.metadata.name as string}
+            resourceType="StatefulSet"
+            isLoading={deleteLoading}
+          />
+        )}
 
         {/* Main content tabs */}
         <Tabs

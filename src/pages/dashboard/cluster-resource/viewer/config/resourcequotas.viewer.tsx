@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1ResourceQuota, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Database, Cpu, CpuIcon, MemoryStick, HardDrive } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Database, Cpu, CpuIcon, MemoryStick, HardDrive, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,7 +23,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for resourcequota data (extending V1ResourceQuota with events)
 interface ResourceQuotaData extends V1ResourceQuota {
@@ -40,6 +41,8 @@ const ResourceQuotaViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the resourcequota
   const fetchEvents = async () => {
@@ -102,6 +105,40 @@ const ResourceQuotaViewer: React.FC = () => {
 
     fetchResourceQuotaData();
   }, [currentContext, namespace, resourceQuotaName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!resourceQuotaData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'resourcequotas',
+        resourceQuotaData.metadata?.name as string,
+        {
+          namespace: resourceQuotaData.metadata?.namespace
+          // Note: ResourceQuota is in the core API group, so no apiGroup parameter needed
+        }
+      );
+
+      // Navigate back to the resource quotas list
+      navigate('/dashboard/explore/resourcequotas');
+    } catch (err) {
+      console.error('Failed to delete resource quota:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete resource quota');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -341,12 +378,28 @@ const ResourceQuotaViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {resourceQuotaData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Resource Quota"
+            description={`Are you sure you want to delete the resource quota "${resourceQuotaData.metadata.name}" in namespace "${resourceQuotaData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={resourceQuotaData.metadata.name as string}
+            resourceType="ResourceQuota"
+            isLoading={deleteLoading}
+          />
+        )}
+
         {/* Main content tabs */}
-        <Tabs 
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {
@@ -630,8 +683,8 @@ const ResourceQuotaViewer: React.FC = () => {
                                 <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-2">
                                   <div
                                     className={`h-2.5 rounded-full ${usagePercentage > 90 ? 'bg-red-600' :
-                                        usagePercentage > 75 ? 'bg-yellow-500' :
-                                          'bg-green-600'
+                                      usagePercentage > 75 ? 'bg-yellow-500' :
+                                        'bg-green-600'
                                       }`}
                                     style={{ width: `${usagePercentage}%` }}
                                   ></div>

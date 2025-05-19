@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1ServiceAccount, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Key, Shield, FileText, User } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Key, Shield, FileText, User, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,7 +22,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import ServiceAccountRoles from '../components/serviceAccountroles.viewer';
 
 // Define interface for service account data (extending V1ServiceAccount with events)
@@ -40,7 +41,8 @@ const ServiceAccountViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
-
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // Fetch events for the service account
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -102,6 +104,40 @@ const ServiceAccountViewer: React.FC = () => {
 
     fetchServiceAccountData();
   }, [currentContext, namespace, serviceAccountName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!serviceAccountData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'serviceaccounts',
+        serviceAccountData.metadata?.name as string,
+        {
+          namespace: serviceAccountData.metadata?.namespace
+          // Note: ServiceAccounts are in the core API group, so no apiGroup parameter needed
+        }
+      );
+
+      // Navigate back to the service accounts list
+      navigate('/dashboard/explore/serviceaccounts');
+    } catch (err) {
+      console.error('Failed to delete service account:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete service account');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -268,10 +304,26 @@ const ServiceAccountViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {serviceAccountData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete ServiceAccount"
+            description={`Are you sure you want to delete the service account "${serviceAccountData.metadata.name}" in namespace "${serviceAccountData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={serviceAccountData.metadata.name as string}
+            resourceType="ServiceAccount"
+            isLoading={deleteLoading}
+          />
+        )}
+        
         {/* Main content tabs */}
         <Tabs defaultValue={defaultTab}
           onValueChange={(value) => {

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1MutatingWebhookConfiguration, CoreV1Event } from '@kubernetes/client-node';
-import { getResource, listResources } from '@/api/internal/resources';
+import { deleteResource, getResource, listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, WifiOff, Webhook, Shield } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, WifiOff, Webhook, Shield, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,7 +18,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for Webhook data with events
 interface WebhookData extends V1MutatingWebhookConfiguration {
@@ -36,6 +36,8 @@ const MutatingWebhookViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events related to this webhook
   const fetchEvents = async () => {
@@ -100,6 +102,40 @@ const MutatingWebhookViewer: React.FC = () => {
 
     fetchWebhookData();
   }, [currentContext, webhookName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!webhookData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'mutatingwebhookconfigurations',
+        webhookData.metadata?.name as string,
+        {
+          // No namespace parameter since MutatingWebhookConfigurations are cluster-scoped
+          apiGroup: 'admissionregistration.k8s.io' // API group for mutating webhooks
+        }
+      );
+
+      // Navigate back to the mutating webhooks list
+      navigate('/dashboard/explore/mutatingwebhookconfigurations');
+    } catch (err) {
+      console.error('Failed to delete mutating webhook:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete mutating webhook');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -260,12 +296,28 @@ const MutatingWebhookViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {webhookData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Mutating Webhook Configuration"
+            description={`Are you sure you want to delete the mutating webhook configuration "${webhookData.metadata.name}"? This action cannot be undone.`}
+            resourceName={webhookData.metadata.name as string}
+            resourceType="MutatingWebhookConfiguration"
+            isLoading={deleteLoading}
+          />
+        )}
+
         {/* Main content tabs */}
-        <Tabs 
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {

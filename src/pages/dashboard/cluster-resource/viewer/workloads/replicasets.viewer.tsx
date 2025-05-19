@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1ReplicaSet, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Copy } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Copy, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,7 +22,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ReplicaSetPods from '../components/replicasetpods.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
 
 // Define interface for replicaset data (extending V1ReplicaSet with events)
@@ -40,7 +41,8 @@ const ReplicaSetViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
-
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the replicaset
   const fetchEvents = async () => {
@@ -97,6 +99,39 @@ const ReplicaSetViewer: React.FC = () => {
     fetchReplicaSetData();
   }, [currentContext, namespace, replicaSetName]);
 
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!replicaSetData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'replicasets',
+        replicaSetData.metadata?.name as string,
+        {
+          namespace: replicaSetData.metadata?.namespace,
+          apiGroup: 'apps'
+        }
+      );
+
+      // Navigate back to the replicasets list
+      navigate('/dashboard/explore/replicasets');
+    } catch (err) {
+      console.error('Failed to delete replicaset:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete replicaset');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
   // Handle refresh data
   const handleRefresh = () => {
     setLoading(true);
@@ -309,6 +344,9 @@ const ReplicaSetViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -335,6 +373,19 @@ const ReplicaSetViewer: React.FC = () => {
 
         {/* Status alert if needed */}
         <ReplicaSetStatusAlert />
+
+        {replicaSetData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete ReplicaSet"
+            description={`Are you sure you want to delete the replicaset "${replicaSetData.metadata.name}" in namespace "${replicaSetData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={replicaSetData.metadata.name as string}
+            resourceType="ReplicaSet"
+            isLoading={deleteLoading}
+          />
+        )}
 
         {/* Main content tabs */}
         <Tabs

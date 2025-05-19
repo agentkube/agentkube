@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1RoleBinding, CoreV1Event } from '@kubernetes/client-node';
-import { getResource, listResources } from '@/api/internal/resources';
+import { deleteResource, getResource, listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, ShieldCheck, Users, Link2, UserPlus } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, ShieldCheck, Users, Link2, UserPlus, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,7 +18,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for RoleBinding data with events
 interface RoleBindingData extends V1RoleBinding {
@@ -37,6 +37,8 @@ const RoleBindingViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the RoleBinding
   const fetchEvents = async () => {
@@ -134,7 +136,39 @@ const RoleBindingViewer: React.FC = () => {
 
     fetchBindingData();
   }, [currentContext, namespace, bindingName]);
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
 
+  const confirmResourceDeletion = async () => {
+    if (!bindingData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'rolebindings',
+        bindingData.metadata?.name as string,
+        {
+          namespace: bindingData.metadata?.namespace,
+          apiGroup: 'rbac.authorization.k8s.io'
+        }
+      );
+
+      // Navigate back to the role bindings list
+      navigate('/dashboard/explore/rolebindings');
+    } catch (err) {
+      console.error('Failed to delete role binding:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete role binding');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
   // Handle refresh data
   const handleRefresh = () => {
     setLoading(true);
@@ -305,7 +339,7 @@ const RoleBindingViewer: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
-                Namespace: <span  onClick={() => navigate(`/dashboard/explore/namespaces/${bindingData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{bindingData.metadata.namespace}</span> • Subjects: {subjectCount}
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${bindingData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{bindingData.metadata.namespace}</span> • Subjects: {subjectCount}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -317,12 +351,28 @@ const RoleBindingViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {bindingData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete RoleBinding"
+            description={`Are you sure you want to delete the role binding "${bindingData.metadata.name}" in namespace "${bindingData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={bindingData.metadata.name as string}
+            resourceType="RoleBinding"
+            isLoading={deleteLoading}
+          />
+        )}
+
         {/* Main content tabs */}
-        <Tabs      
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {
@@ -441,8 +491,8 @@ const RoleBindingViewer: React.FC = () => {
                         </div>
                       </div>
                       {subject.kind === 'ServiceAccount' && (subject.namespace || namespace) && (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => navigate(`/dashboard/explore/serviceaccounts/${subject.namespace || namespace}/${subject.name}`)}
                         >
@@ -464,8 +514,8 @@ const RoleBindingViewer: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium">Referenced {roleKind}</h2>
                 {roleData && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       if (roleKind === 'ClusterRole') {
@@ -496,7 +546,7 @@ const RoleBindingViewer: React.FC = () => {
                         {roleData.rules.slice(0, 3).map((rule: any, index: number) => {
                           const resources = rule.resources?.join(', ') || '*';
                           const verbs = rule.verbs?.join(', ') || '*';
-                          
+
                           return (
                             <div key={index} className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md text-sm">
                               <div className="text-gray-700 dark:text-gray-300">
@@ -553,20 +603,20 @@ const RoleBindingViewer: React.FC = () => {
                         {getSubjectIcon(subject.kind)}
                         <h3 className="font-medium">{subject.kind}</h3>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <div className="grid grid-cols-4 gap-2">
                           <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Name:</div>
                           <div className="col-span-3 text-sm">{subject.name}</div>
                         </div>
-                        
+
                         {subject.namespace && (
                           <div className="grid grid-cols-4 gap-2">
                             <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Namespace:</div>
                             <div className="col-span-3 text-sm">{subject.namespace}</div>
                           </div>
                         )}
-                        
+
                         {subject.apiGroup && (
                           <div className="grid grid-cols-4 gap-2">
                             <div className="text-sm font-medium text-gray-700 dark:text-gray-300">API Group:</div>
@@ -574,10 +624,10 @@ const RoleBindingViewer: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       {subject.kind === 'ServiceAccount' && (subject.namespace || namespace) && (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="mt-3"
                           onClick={() => navigate(`/dashboard/explore/serviceaccounts/${subject.namespace || namespace}/${subject.name}`)}
@@ -601,8 +651,8 @@ const RoleBindingViewer: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium">Referenced {roleKind}</h2>
                 {roleData && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       if (roleKind === 'ClusterRole') {
@@ -616,7 +666,7 @@ const RoleBindingViewer: React.FC = () => {
                   </Button>
                 )}
               </div>
-              
+
               {roleData ? (
                 <div className="space-y-4">
                   <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
@@ -645,7 +695,7 @@ const RoleBindingViewer: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Role Rules */}
                   <div>
                     <h3 className="text-md font-medium mb-3">Permission Rules</h3>
@@ -656,19 +706,18 @@ const RoleBindingViewer: React.FC = () => {
                           const apiGroups = rule.apiGroups?.join(', ') || '';
                           const verbs = rule.verbs?.join(', ') || '*';
                           const nonResourceURLs = rule.nonResourceURLs?.join(', ');
-                          
-                          const isAdmin = rule.verbs.some((v: string) => 
+
+                          const isAdmin = rule.verbs.some((v: string) =>
                             ['create', 'update', 'delete', 'patch', '*'].includes(v)
                           );
-                          
+
                           return (
-                            <div 
-                              key={index} 
-                              className={`p-3 rounded-lg border ${
-                                isAdmin 
-                                  ? 'border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10' 
-                                  : 'border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10'
-                              }`}
+                            <div
+                              key={index}
+                              className={`p-3 rounded-lg border ${isAdmin
+                                ? 'border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10'
+                                : 'border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10'
+                                }`}
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <div className="font-medium">Rule #{index + 1}</div>
@@ -678,26 +727,26 @@ const RoleBindingViewer: React.FC = () => {
                                   {isAdmin ? 'Admin' : 'Read-Only'}
                                 </Badge>
                               </div>
-                              
+
                               <div className="space-y-1 mt-2 text-sm">
                                 {resources && (
                                   <div>
                                     <span className="font-medium">Resources:</span> {resources}
                                   </div>
                                 )}
-                                
+
                                 {apiGroups && (
                                   <div>
                                     <span className="font-medium">API Groups:</span> {apiGroups || 'core'}
                                   </div>
                                 )}
-                                
+
                                 {nonResourceURLs && (
                                   <div>
                                     <span className="font-medium">Non-Resource URLs:</span> {nonResourceURLs}
                                   </div>
                                 )}
-                                
+
                                 {verbs && (
                                   <div>
                                     <span className="font-medium">Verbs:</span> {verbs}
@@ -709,43 +758,43 @@ const RoleBindingViewer: React.FC = () => {
                         })
                       ) : (
                         <div className="text-center p-3 text-gray-500 dark:text-gray-400">
-                        No rules defined for this role
-                      </div>
-                    )}
+                          No rules defined for this role
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="p-6 text-center">
-                <div className="text-amber-500 dark:text-amber-400 mb-2">
-                  Referenced {roleKind} could not be retrieved
+              ) : (
+                <div className="p-6 text-center">
+                  <div className="text-amber-500 dark:text-amber-400 mb-2">
+                    Referenced {roleKind} could not be retrieved
+                  </div>
+                  <div className="text-gray-500 dark:text-gray-400">
+                    The {roleKind} "{roleName}" referenced by this binding either doesn't exist or cannot be accessed.
+                  </div>
                 </div>
-                <div className="text-gray-500 dark:text-gray-400">
-                  The {roleKind} "{roleName}" referenced by this binding either doesn't exist or cannot be accessed.
-                </div>
-              </div>
-            )}
-          </div>
-        </TabsContent>
+              )}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="yaml" className="space-y-6">
-          <ResourceViewerYamlTab
+          <TabsContent value="yaml" className="space-y-6">
+            <ResourceViewerYamlTab
               resourceData={bindingData}
               namespace={bindingData.metadata.namespace || ''}
               currentContext={currentContext}
             />
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="events" className="space-y-6">
-          <EventsViewer
-            events={events}
-            namespace={bindingData.metadata.namespace}
-          />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="events" className="space-y-6">
+            <EventsViewer
+              events={events}
+              namespace={bindingData.metadata.namespace}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
-);
+  );
 };
 
 export default RoleBindingViewer;

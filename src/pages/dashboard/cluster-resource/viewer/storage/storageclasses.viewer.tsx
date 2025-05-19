@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1StorageClass, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Database, HardDrive, Clock, Settings } from "lucide-react";
+import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Database, HardDrive, Clock, Settings, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ import { useSearchParams } from 'react-router-dom';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { DeletionDialog } from '@/components/custom';
 
 // Define interface for StorageClass data
 interface StorageClassData extends V1StorageClass {
@@ -39,6 +41,8 @@ const StorageClassViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the storageClass
   const fetchEvents = async () => {
@@ -99,6 +103,40 @@ const StorageClassViewer: React.FC = () => {
 
     fetchStorageClassData();
   }, [currentContext, storageClassName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!storageClassData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'storageclasses',
+        storageClassData.metadata?.name as string,
+        {
+          // Note: StorageClasses are cluster-scoped, so no namespace parameter needed
+          apiGroup: 'storage.k8s.io'
+        }
+      );
+
+      // Navigate back to the storage classes list
+      navigate('/dashboard/explore/storageclasses');
+    } catch (err) {
+      console.error('Failed to delete storage class:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete storage class');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -279,9 +317,25 @@ const StorageClassViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
+
+        {storageClassData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete StorageClass"
+            description={`Are you sure you want to delete the storage class "${storageClassData.metadata.name}"? This action cannot be undone.`}
+            resourceName={storageClassData.metadata.name as string}
+            resourceType="StorageClass"
+            isLoading={deleteLoading}
+          />
+        )}
 
         {/* Main content tabs */}
         <Tabs
@@ -502,69 +556,9 @@ const StorageClassViewer: React.FC = () => {
               </div>
             )}
 
-            {/* Volume Binding Mode Explanation */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
-              <h2 className="text-lg font-medium mb-4">Volume Binding Mode: {volumeBindingMode}</h2>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded">
-                {volumeBindingMode === 'Immediate' ? (
-                  <div className="text-sm">
-                    <p className="mb-2">
-                      <strong>Immediate</strong> binding means that PersistentVolumeClaims (PVCs) are bound to PersistentVolumes (PVs) as soon as they are created.
-                    </p>
-                    <p>
-                      The PV is provisioned immediately without waiting for a Pod that uses the PVC to be scheduled. This means that storage might be provisioned in a location that is not optimal for the Pod that will eventually use it.
-                    </p>
-                  </div>
-                ) : volumeBindingMode === 'WaitForFirstConsumer' ? (
-                  <div className="text-sm">
-                    <p className="mb-2">
-                      <strong>WaitForFirstConsumer</strong> binding delays the binding and provisioning of a PersistentVolume until a Pod using the PersistentVolumeClaim is created.
-                    </p>
-                    <p>
-                      This allows the storage to be provisioned with better information about Pod requirements (such as node locality), which is especially important for storage types that have topology constraints.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-sm">
-                    <p>
-                      This StorageClass uses a custom or unknown volume binding mode: <strong>{volumeBindingMode}</strong>. Please refer to the specific storage provider's documentation for details on how this binding mode behaves.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Usage Example */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
-              <h2 className="text-lg font-medium mb-4">Usage Example</h2>
-              <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto">
-                <pre className="text-xs font-mono">
-                  {`apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: example-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-  storageClassName: ${storageClassData.metadata.name}`}
-                </pre>
-              </div>
-              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                {isDefault ? (
-                  <p>
-                    This StorageClass is set as the default. You can omit the <code>storageClassName</code> field in your PVC to use it automatically.
-                  </p>
-                ) : (
-                  <p>
-                    Use this YAML as a template to create PersistentVolumeClaims that use this StorageClass.
-                  </p>
-                )}
-              </div>
-            </div>
+
+
           </TabsContent>
 
           <TabsContent value="yaml" className="space-y-6">

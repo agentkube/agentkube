@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -10,7 +11,7 @@ import { V1HorizontalPodAutoscalerExtended } from '@/types/horizontalPodAutoscal
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Scale, Cpu, ArrowUpDown, Target, Activity } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Scale, Cpu, ArrowUpDown, Target, Activity, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,7 +24,7 @@ import { useSearchParams } from 'react-router-dom';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for HPA data with events
 interface HPAData extends V1HorizontalPodAutoscalerExtended {
@@ -41,6 +42,8 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the HPA
   const fetchEvents = async () => {
@@ -105,6 +108,40 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
 
     fetchHPAData();
   }, [currentContext, namespace, hpaName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!hpaData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'horizontalpodautoscalers',
+        hpaData.metadata?.name as string,
+        {
+          namespace: hpaData.metadata?.namespace,
+          apiGroup: 'autoscaling' // HPA is in the autoscaling API group
+        }
+      );
+
+      // Navigate back to the HPA list
+      navigate('/dashboard/explore/horizontalpodautoscalers');
+    } catch (err) {
+      console.error('Failed to delete HPA:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete HPA');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -389,10 +426,26 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {hpaData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Horizontal Pod Autoscaler"
+            description={`Are you sure you want to delete the HPA "${hpaData.metadata.name}" in namespace "${hpaData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={hpaData.metadata.name as string}
+            resourceType="HorizontalPodAutoscaler"
+            isLoading={deleteLoading}
+          />
+        )}
+        
         {/* Status alert if needed */}
         <HPAStatusAlert />
 

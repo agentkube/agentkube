@@ -332,7 +332,18 @@ const PodMonitoringOverview = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+            
       <div className="p-6 max-w-7xl mx-auto">
+        <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-200/80">
+          <AlertCircle color='yellow' className="h-4 w-4 mr-2" />
+          <AlertTitle className="font-semibold text-amber-800 dark:text-amber-200">Development Preview</AlertTitle>
+          <AlertDescription>
+            Pod monitoring is currently under development and will be fully functional in future updates.
+            Some features may be limited or unavailable. Stay tuned for improvements!
+          </AlertDescription>
+        </Alert>
+
+
         {/* Header and Selection Controls */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
@@ -400,14 +411,6 @@ const PodMonitoringOverview = () => {
             </Button>
           </div>
         </div>
-        <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-200/80">
-          <AlertCircle color='yellow' className="h-4 w-4 mr-2" />
-          <AlertTitle className="font-semibold text-amber-800 dark:text-amber-200">Development Preview</AlertTitle>
-          <AlertDescription>
-            Pod monitoring is currently under development and will be fully functional in future updates.
-            Some features may be limited or unavailable. Stay tuned for improvements!
-          </AlertDescription>
-        </Alert>
         {/* ProxyConfigDialog Component */}
         <ProxyConfigDialog
           isOpen={isConfigDialogOpen}

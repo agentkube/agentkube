@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1DaemonSet, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Layers, Server } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Layers, Server, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,7 +22,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import DaemonSetPods from '../components/daemonsetpods.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
 
 // Define interface for daemonset data (extending V1DaemonSet with events)
@@ -40,6 +41,8 @@ const DaemonSetViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the daemonset
   const fetchEvents = async () => {
@@ -95,6 +98,40 @@ const DaemonSetViewer: React.FC = () => {
 
     fetchDaemonSetData();
   }, [currentContext, namespace, daemonSetName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!daemonSetData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'daemonsets',
+        daemonSetData.metadata?.name as string,
+        {
+          namespace: daemonSetData.metadata?.namespace,
+          apiGroup: 'apps'
+        }
+      );
+
+      // Navigate back to the daemonsets list
+      navigate('/dashboard/explore/daemonsets');
+    } catch (err) {
+      console.error('Failed to delete daemonset:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete daemonset');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -300,6 +337,9 @@ const DaemonSetViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -307,8 +347,21 @@ const DaemonSetViewer: React.FC = () => {
         {/* Status alert if needed */}
         <DaemonSetStatusAlert />
 
+        {daemonSetData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete DaemonSet"
+            description={`Are you sure you want to delete the daemonset "${daemonSetData.metadata.name}" in namespace "${daemonSetData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={daemonSetData.metadata.name as string}
+            resourceType="DaemonSet"
+            isLoading={deleteLoading}
+          />
+        )}
+
         {/* Main content tabs */}
-        <Tabs 
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {

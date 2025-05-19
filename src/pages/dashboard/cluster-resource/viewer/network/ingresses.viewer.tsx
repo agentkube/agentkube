@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1Ingress, CoreV1Event } from '@kubernetes/client-node';
-import { getResource, listResources } from '@/api/internal/resources';
+import { deleteResource, getResource, listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Globe, Router, Shield, Server } from "lucide-react";
+import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Globe, Router, Shield, Server, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,6 +18,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { useSearchParams } from 'react-router-dom';
+import { DeletionDialog } from '@/components/custom';
 
 interface IngressData extends V1Ingress {
   events?: CoreV1Event[];
@@ -34,6 +35,8 @@ const IngressViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -80,6 +83,40 @@ const IngressViewer: React.FC = () => {
 
     fetchIngressData();
   }, [currentContext, namespace, ingressName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!ingressData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'ingresses',
+        ingressData.metadata?.name as string,
+        {
+          namespace: ingressData.metadata?.namespace,
+          apiGroup: 'networking.k8s.io'
+        }
+      );
+
+      // Navigate back to the ingresses list
+      navigate('/dashboard/explore/ingresses');
+    } catch (err) {
+      console.error('Failed to delete ingress:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete ingress');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   const handleRefresh = () => {
     setLoading(true);
@@ -224,9 +261,25 @@ const IngressViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
+
+        {ingressData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Ingress"
+            description={`Are you sure you want to delete the ingress "${ingressData.metadata.name}" in namespace "${ingressData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={ingressData.metadata.name as string}
+            resourceType="Ingress"
+            isLoading={deleteLoading}
+          />
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card className="bg-white dark:bg-gray-900/30 p-4">

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { V1NetworkPolicy, CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Network, Shield, Filter } from "lucide-react";
+import { ChevronRight, AlertCircle, ArrowLeft, RefreshCw, Network, Shield, Filter, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ import { useSearchParams } from 'react-router-dom';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
+import { DeletionDialog } from '@/components/custom';
 
 // Define interface for networkpolicy data
 interface NetworkPolicyData extends V1NetworkPolicy {
@@ -39,7 +41,8 @@ const NetworkPolicyViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
-
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // Fetch events for the networkpolicy
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -94,6 +97,40 @@ const NetworkPolicyViewer: React.FC = () => {
 
     fetchNetworkPolicyData();
   }, [currentContext, namespace, networkPolicyName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!networkPolicyData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'networkpolicies',
+        networkPolicyData.metadata?.name as string,
+        {
+          namespace: networkPolicyData.metadata?.namespace,
+          apiGroup: 'networking.k8s.io'
+        }
+      );
+
+      // Navigate back to the network policies list
+      navigate('/dashboard/explore/networkpolicies');
+    } catch (err) {
+      console.error('Failed to delete network policy:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete network policy');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -264,12 +301,28 @@ const NetworkPolicyViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
+        {networkPolicyData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete NetworkPolicy"
+            description={`Are you sure you want to delete the network policy "${networkPolicyData.metadata.name}" in namespace "${networkPolicyData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={networkPolicyData.metadata.name as string}
+            resourceType="NetworkPolicy"
+            isLoading={deleteLoading}
+          />
+        )}
+
         {/* Main content tabs */}
-        <Tabs      
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {
@@ -678,7 +731,7 @@ const NetworkPolicyViewer: React.FC = () => {
               resourceData={networkPolicyData}
               namespace={networkPolicyData.metadata.namespace || ''}
               currentContext={currentContext}
-              // resourceType="networkpolicies"
+            // resourceType="networkpolicies"
             />
           </TabsContent>
 

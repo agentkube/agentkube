@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoreV1Event } from '@kubernetes/client-node';
 import {
+  deleteResource,
   getResource,
   listResources
 } from '@/api/internal/resources';
@@ -9,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Shield, Target, Percent } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Shield, Target, Percent, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,7 +22,7 @@ import { V1PodDisruptionBudget } from '@kubernetes/client-node';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
 
 // Define interface for PDB data with events
@@ -40,6 +41,8 @@ const PodDisruptionBudgetViewer: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch events for the PDB
   const fetchEvents = async () => {
@@ -104,6 +107,40 @@ const PodDisruptionBudgetViewer: React.FC = () => {
 
     fetchPDBData();
   }, [currentContext, namespace, pdbName]);
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmResourceDeletion = async () => {
+    if (!pdbData || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'poddisruptionbudgets',
+        pdbData.metadata?.name as string,
+        {
+          namespace: pdbData.metadata?.namespace,
+          apiGroup: 'policy' // PDB is in the policy API group
+        }
+      );
+
+      // Navigate back to the PDB list
+      navigate('/dashboard/explore/poddisruptionbudgets');
+    } catch (err) {
+      console.error('Failed to delete PDB:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete PDB');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
 
   // Handle refresh data
   const handleRefresh = () => {
@@ -362,9 +399,25 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Back
               </Button>
+              <Button variant="outline" size="sm" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
+
+        {pdbData && (
+          <DeletionDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={confirmResourceDeletion}
+            title="Delete Pod Disruption Budget"
+            description={`Are you sure you want to delete the PDB "${pdbData.metadata.name}" in namespace "${pdbData.metadata.namespace}"? This action cannot be undone.`}
+            resourceName={pdbData.metadata.name as string}
+            resourceType="PodDisruptionBudget"
+            isLoading={deleteLoading}
+          />
+        )}
 
         {/* Status alert if needed */}
         <PDBStatusAlert />
