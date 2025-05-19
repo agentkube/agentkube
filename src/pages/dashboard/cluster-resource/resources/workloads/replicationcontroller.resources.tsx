@@ -14,6 +14,13 @@ import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Scale } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
 
@@ -34,7 +41,7 @@ const ReplicationControllers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // --- Start of Multi-select ---
   const [selectedReplicationControllers, setSelectedReplicationControllers] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -47,19 +54,21 @@ const ReplicationControllers: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
+
+
   // Add click handler for ReplicationController selection with cmd/ctrl key
   const handleReplicationControllerClick = (e: React.MouseEvent, rc: any) => {
     const rcKey = `${rc.metadata?.namespace}/${rc.metadata?.name}`;
@@ -173,7 +182,7 @@ const ReplicationControllers: React.FC = () => {
       }
 
       // Refresh RC list
-      // You can call your fetchAllReplicationControllers function here
+      await fetchAllReplicationControllers();
 
     } catch (error) {
       console.error('Failed to scale ReplicationController(s):', error);
@@ -212,6 +221,20 @@ const ReplicationControllers: React.FC = () => {
     });
   };
 
+  const handleViewReplicationController = (e: React.MouseEvent, rc: any) => {
+    e.stopPropagation();
+    if (rc.metadata?.name && rc.metadata?.namespace) {
+      navigate(`/dashboard/explore/replicationcontrollers/${rc.metadata.namespace}/${rc.metadata.name}`);
+    }
+  };
+
+  const handleDeleteReplicationController = (e: React.MouseEvent, rc: any) => {
+    e.stopPropagation();
+    setActiveReplicationController(rc);
+    setSelectedReplicationControllers(new Set([`${rc.metadata?.namespace}/${rc.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
   // Handle delete action
   const handleDeleteClick = () => {
     setShowContextMenu(false);
@@ -221,6 +244,7 @@ const ReplicationControllers: React.FC = () => {
   // Perform actual deletion
   const deleteReplicationControllers = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedReplicationControllers.size === 0 && activeReplicationController) {
@@ -244,11 +268,13 @@ const ReplicationControllers: React.FC = () => {
       setSelectedReplicationControllers(new Set());
 
       // Refresh RC list
-      // You can call your fetchAllReplicationControllers function here
+      await fetchAllReplicationControllers();
 
     } catch (error) {
       console.error('Failed to delete ReplicationController(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete ReplicationController(s)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -329,12 +355,20 @@ const ReplicationControllers: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteReplicationControllers}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -349,45 +383,47 @@ const ReplicationControllers: React.FC = () => {
     direction: null
   });
 
-  // Fetch replication controllers for all selected namespaces
-  useEffect(() => {
-    const fetchAllReplicationControllers = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setReplicationControllers([]);
-        setLoading(false);
+
+  const fetchAllReplicationControllers = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setReplicationControllers([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const replicationControllersData = await listResources(currentContext.name, 'replicationcontrollers');
+        setReplicationControllers(replicationControllersData);
         return;
       }
 
-      try {
-        setLoading(true);
+      // Fetch replication controllers for each selected namespace
+      const replicationControllerPromises = selectedNamespaces.map(namespace =>
+        listResources(currentContext.name, 'replicationcontrollers', {
+          namespace
+        })
+      );
 
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const replicationControllersData = await listResources(currentContext.name, 'replicationcontrollers');
-          setReplicationControllers(replicationControllersData);
-          return;
-        }
+      const results = await Promise.all(replicationControllerPromises);
 
-        // Fetch replication controllers for each selected namespace
-        const replicationControllerPromises = selectedNamespaces.map(namespace =>
-          listResources(currentContext.name, 'replicationcontrollers', {
-            namespace
-          })
-        );
+      // Flatten the array of replication controller arrays
+      const allReplicationControllers = results.flat();
+      setReplicationControllers(allReplicationControllers);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch replication controllers:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch replication controllers');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Fetch replication controllers for all selected namespaces
+  useEffect(() => {
 
-        const results = await Promise.all(replicationControllerPromises);
-
-        // Flatten the array of replication controller arrays
-        const allReplicationControllers = results.flat();
-        setReplicationControllers(allReplicationControllers);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch replication controllers:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch replication controllers');
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchAllReplicationControllers();
   }, [currentContext, selectedNamespaces]);
@@ -576,7 +612,7 @@ const ReplicationControllers: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>ReplicationControllers</h1>
           <div className="w-full md:w-96 mt-2">
@@ -720,16 +756,30 @@ const ReplicationControllers: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => handleViewReplicationController(e, rc)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteReplicationController(e, rc)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

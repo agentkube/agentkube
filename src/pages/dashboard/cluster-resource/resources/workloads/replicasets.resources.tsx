@@ -14,6 +14,13 @@ import { NamespaceSelector, ErrorComponent, ScaleDialog } from '@/components/cus
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Scale } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
 
@@ -62,7 +69,7 @@ const ReplicaSets: React.FC = () => {
   const [activeReplicaSet, setActiveReplicaSet] = useState<any | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // Add click handler for replicaSet selection with cmd/ctrl key
   const handleReplicaSetClick = (e: React.MouseEvent, replicaSet: any) => {
     const replicaSetKey = `${replicaSet.metadata?.namespace}/${replicaSet.metadata?.name}`;
@@ -171,6 +178,7 @@ const ReplicaSets: React.FC = () => {
   // Perform actual deletion
   const deleteReplicaSets = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedReplicaSets.size === 0 && activeReplicaSet) {
@@ -194,11 +202,13 @@ const ReplicaSets: React.FC = () => {
       setSelectedReplicaSets(new Set());
 
       // Refresh replicaSet list
-      // You can call your fetchAllReplicaSets function here
+      await fetchAllReplicaSets();
 
     } catch (error) {
       console.error('Failed to delete replicaSet(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete replicaSet(s)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -268,6 +278,20 @@ const ReplicaSets: React.FC = () => {
     );
   };
 
+  const handleViewReplicaSet = (e: React.MouseEvent, replicaSet: any) => {
+    e.stopPropagation();
+    if (replicaSet.metadata?.name && replicaSet.metadata?.namespace) {
+      navigate(`/dashboard/explore/replicasets/${replicaSet.metadata.namespace}/${replicaSet.metadata.name}`);
+    }
+  };
+
+  const handleDeleteReplicaSet = (e: React.MouseEvent, replicaSet: any) => {
+    e.stopPropagation();
+    setActiveReplicaSet(replicaSet);
+    setSelectedReplicaSets(new Set([`${replicaSet.metadata?.namespace}/${replicaSet.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
   // Delete confirmation dialog
   const renderDeleteDialog = () => {
     const hasOwner = activeReplicaSet && !!getOwnerReference(activeReplicaSet);
@@ -292,12 +316,20 @@ const ReplicaSets: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteReplicaSets}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -560,7 +592,7 @@ const ReplicaSets: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>ReplicaSets</h1>
           <div className="w-full md:w-96 mt-2">
@@ -704,16 +736,30 @@ const ReplicaSets: React.FC = () => {
                       </TableCell>
 
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Implement actions menu if needed
-                          }}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                            <DropdownMenuItem onClick={(e) => handleViewReplicaSet(e, replicaSet)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeleteReplicaSet(e, replicaSet)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

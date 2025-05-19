@@ -15,6 +15,13 @@ import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, RefreshCw } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
 
@@ -35,24 +42,24 @@ const DaemonSets: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // --- Start of Multi-select ---
   const [selectedDaemonSets, setSelectedDaemonSets] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -157,7 +164,7 @@ const DaemonSets: React.FC = () => {
       }
 
       // Refresh daemonSet list
-      // You can call your fetchAllDaemonSets function here
+      await fetchAllDaemonSets();
 
     } catch (error) {
       console.error('Failed to restart daemonSet(s):', error);
@@ -203,6 +210,7 @@ const DaemonSets: React.FC = () => {
   // Perform actual deletion
   const deleteDaemonSets = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedDaemonSets.size === 0 && activeDaemonSet) {
@@ -226,11 +234,13 @@ const DaemonSets: React.FC = () => {
       setSelectedDaemonSets(new Set());
 
       // Refresh daemonSet list
-      // You can call your fetchAllDaemonSets function here
+      await fetchAllDaemonSets();
 
     } catch (error) {
       console.error('Failed to delete daemonSet(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete daemonSet(s)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -328,12 +338,20 @@ const DaemonSets: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteDaemonSets}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -342,49 +360,65 @@ const DaemonSets: React.FC = () => {
   };
   // --- End of Multi-select ---
 
+  const handleViewDaemonSet = (e: React.MouseEvent, daemonSet: V1DaemonSet) => {
+    e.stopPropagation();
+    if (daemonSet.metadata?.name && daemonSet.metadata?.namespace) {
+      navigate(`/dashboard/explore/daemonsets/${daemonSet.metadata.namespace}/${daemonSet.metadata.name}`);
+    }
+  };
+
+  const handleDeleteDaemonSet = (e: React.MouseEvent, daemonSet: V1DaemonSet) => {
+    e.stopPropagation();
+    setActiveDaemonSet(daemonSet);
+    setSelectedDaemonSets(new Set([`${daemonSet.metadata?.namespace}/${daemonSet.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
   // Add sorting state
   const [sort, setSort] = useState<SortState>({
     field: null,
     direction: null
   });
 
-  // Fetch daemonsets for all selected namespaces
-  useEffect(() => {
-    const fetchAllDaemonSets = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setDaemonSets([]);
-        setLoading(false);
+  const fetchAllDaemonSets = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setDaemonSets([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const daemonSetsData = await getDaemonSets(currentContext.name);
+        setDaemonSets(daemonSetsData);
         return;
       }
 
-      try {
-        setLoading(true);
+      // Fetch daemonsets for each selected namespace
+      const daemonSetPromises = selectedNamespaces.map(namespace =>
+        getDaemonSets(currentContext.name, namespace)
+      );
 
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const daemonSetsData = await getDaemonSets(currentContext.name);
-          setDaemonSets(daemonSetsData);
-          return;
-        }
+      const results = await Promise.all(daemonSetPromises);
 
-        // Fetch daemonsets for each selected namespace
-        const daemonSetPromises = selectedNamespaces.map(namespace =>
-          getDaemonSets(currentContext.name, namespace)
-        );
+      // Flatten the array of daemonset arrays
+      const allDaemonSets = results.flat();
+      setDaemonSets(allDaemonSets);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch daemonsets:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch daemonsets');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const results = await Promise.all(daemonSetPromises);
+  // Fetch daemonsets for all selected namespaces
+  useEffect(() => {
 
-        // Flatten the array of daemonset arrays
-        const allDaemonSets = results.flat();
-        setDaemonSets(allDaemonSets);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch daemonsets:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch daemonsets');
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchAllDaemonSets();
   }, [currentContext, selectedNamespaces]);
@@ -546,7 +580,7 @@ const DaemonSets: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>DaemonSets</h1>
           <div className="w-full md:w-96 mt-2">
@@ -681,16 +715,30 @@ const DaemonSets: React.FC = () => {
                       {calculateAge(daemonSet.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => handleViewDaemonSet(e, daemonSet)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteDaemonSet(e, daemonSet)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

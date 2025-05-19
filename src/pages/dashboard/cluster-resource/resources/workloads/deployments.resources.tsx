@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent, ScaleDialog } from '@/components/custom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogFooter, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogCancel, AlertDialogAction, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { createPortal } from 'react-dom';
 import { OPERATOR_URL } from '@/config';
@@ -36,6 +43,7 @@ const Deployments: React.FC = () => {
 
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [selectedResourcesForScaling, setSelectedResourcesForScaling] = useState<V1Deployment[]>([]);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -292,6 +300,20 @@ const Deployments: React.FC = () => {
     });
   };
 
+  const handleViewDeployment = (e: React.MouseEvent, deployment: V1Deployment) => {
+    e.stopPropagation();
+    if (deployment.metadata?.name && deployment.metadata?.namespace) {
+      navigate(`/dashboard/explore/deployments/${deployment.metadata.namespace}/${deployment.metadata.name}`);
+    }
+  };
+
+  const handleDeleteDeployment = (e: React.MouseEvent, deployment: V1Deployment) => {
+    e.stopPropagation();
+    setActiveDeployment(deployment);
+    setSelectedDeployments(new Set([`${deployment.metadata?.namespace}/${deployment.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
   // Handle delete action
   const handleDeleteClick = () => {
     setShowContextMenu(false);
@@ -301,6 +323,7 @@ const Deployments: React.FC = () => {
   // Perform actual deletion
   const deleteDeployments = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedDeployments.size === 0 && activeDeployment) {
@@ -324,10 +347,13 @@ const Deployments: React.FC = () => {
       setSelectedDeployments(new Set());
 
       // Refresh deployment list
+      await fetchAllDeployments();
 
     } catch (error) {
       console.error('Failed to delete deployment(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete deployment(s)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -427,16 +453,24 @@ const Deployments: React.FC = () => {
               Are you sure you want to delete {selectedDeployments.size > 1
                 ? `${selectedDeployments.size} deployments`
                 : `"${activeDeployment?.metadata?.name}"`}?
-              This action cannot be undone and will remove all associated pods.
+              This action cannot be undone and will remove all associated pods and replica sets.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteDeployments}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -457,24 +491,24 @@ const Deployments: React.FC = () => {
       setLoading(false);
       return;
     }
-  
+
     try {
       setLoading(true);
-  
+
       // If no namespaces are selected, fetch from all namespaces
       if (selectedNamespaces.length === 0) {
         const deploymentsData = await getDeployments(currentContext.name);
         setDeployments(deploymentsData);
         return;
       }
-  
+
       // Fetch deployments for each selected namespace
       const deploymentPromises = selectedNamespaces.map(namespace =>
         getDeployments(currentContext.name, namespace)
       );
-  
+
       const results = await Promise.all(deploymentPromises);
-  
+
       // Flatten the array of deployment arrays
       const allDeployments = results.flat();
       setDeployments(allDeployments);
@@ -789,16 +823,30 @@ const Deployments: React.FC = () => {
                     </TableCell>
 
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => handleViewDeployment(e, deployment)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteDeployment(e, deployment)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

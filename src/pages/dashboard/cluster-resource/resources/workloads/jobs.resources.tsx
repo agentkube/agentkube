@@ -14,6 +14,13 @@ import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { RefreshCw, Trash2, Play, XCircle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
 
@@ -35,7 +42,7 @@ const Jobs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // --- State for Multi-select ---
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -48,15 +55,15 @@ const Jobs: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -158,7 +165,7 @@ const Jobs: React.FC = () => {
       }
 
       // Refresh job list
-      // You can call your fetchAllJobs function here
+      await fetchAllJobs();
 
     } catch (error) {
       console.error('Failed to rerun job(s):', error);
@@ -214,6 +221,7 @@ const Jobs: React.FC = () => {
   // Perform actual deletion
   const deleteJobs = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedJobs.size === 0 && activeJob) {
@@ -237,11 +245,13 @@ const Jobs: React.FC = () => {
       setSelectedJobs(new Set());
 
       // Refresh job list
-      // You can call your fetchAllJobs function here
+      await fetchAllJobs();
 
     } catch (error) {
       console.error('Failed to delete job(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete job(s)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -284,7 +294,7 @@ const Jobs: React.FC = () => {
       }
 
       // Refresh job list
-      // You can call your fetchAllJobs function here
+      await fetchAllJobs();
 
     } catch (error) {
       console.error('Failed to terminate job(s):', error);
@@ -371,6 +381,20 @@ const Jobs: React.FC = () => {
     );
   };
 
+  const handleViewJob = (e: React.MouseEvent, job: any) => {
+    e.stopPropagation();
+    if (job.metadata?.name && job.metadata?.namespace) {
+      navigate(`/dashboard/explore/jobs/${job.metadata.namespace}/${job.metadata.name}`);
+    }
+  };
+
+  const handleDeleteJob = (e: React.MouseEvent, job: any) => {
+    e.stopPropagation();
+    setActiveJob(job);
+    setSelectedJobs(new Set([`${job.metadata?.namespace}/${job.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
   // Delete confirmation dialog
   const renderDeleteDialog = () => {
     return (
@@ -386,12 +410,20 @@ const Jobs: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteJobs}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -407,50 +439,51 @@ const Jobs: React.FC = () => {
     direction: null
   });
 
-  // Fetch jobs for all selected namespaces
-  useEffect(() => {
-    const fetchAllJobs = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setJobs([]);
-        setLoading(false);
+  const fetchAllJobs = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setJobs([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const jobsData = await listResources(currentContext.name, 'jobs', {
+          apiGroup: 'batch',
+          apiVersion: 'v1'
+        });
+        setJobs(jobsData);
         return;
       }
 
-      try {
-        setLoading(true);
+      // Fetch jobs for each selected namespace
+      const jobPromises = selectedNamespaces.map(namespace =>
+        listResources(currentContext.name, 'jobs', {
+          namespace,
+          apiGroup: 'batch',
+          apiVersion: 'v1'
+        })
+      );
 
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const jobsData = await listResources(currentContext.name, 'jobs', {
-            apiGroup: 'batch',
-            apiVersion: 'v1'
-          });
-          setJobs(jobsData);
-          return;
-        }
+      const results = await Promise.all(jobPromises);
 
-        // Fetch jobs for each selected namespace
-        const jobPromises = selectedNamespaces.map(namespace =>
-          listResources(currentContext.name, 'jobs', {
-            namespace,
-            apiGroup: 'batch',
-            apiVersion: 'v1'
-          })
-        );
+      // Flatten the array of job arrays
+      const allJobs = results.flat();
+      setJobs(allJobs);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch jobs:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch jobs');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Fetch jobs for all selected namespaces
+  useEffect(() => {
 
-        const results = await Promise.all(jobPromises);
-
-        // Flatten the array of job arrays
-        const allJobs = results.flat();
-        setJobs(allJobs);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch jobs:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch jobs');
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchAllJobs();
   }, [currentContext, selectedNamespaces]);
@@ -708,7 +741,7 @@ const Jobs: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Jobs</h1>
           <div className="w-full md:w-96 mt-2">
@@ -854,16 +887,30 @@ const Jobs: React.FC = () => {
                         {calculateAge(job.metadata?.creationTimestamp?.toString())}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Implement actions menu if needed
-                          }}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                            <DropdownMenuItem onClick={(e) => handleViewJob(e, job)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeleteJob(e, job)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

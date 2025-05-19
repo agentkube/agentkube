@@ -13,6 +13,13 @@ import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogHeader, AlertDialogCancel, AlertDialogFooter, AlertDialogDescription, AlertDialogTitle, AlertDialogContent, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { OPERATOR_URL } from '@/config';
 
@@ -112,20 +119,21 @@ const Pods: React.FC = () => {
   const [activePod, setActivePod] = useState<V1Pod | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -179,10 +187,10 @@ const Pods: React.FC = () => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
         setShowContextMenu(false);
       }
-      
+
       // Clear selection when clicking outside the table rows
       const target = event.target as Element; // Cast to Element instead of Node
-      
+
       // Make sure target is an Element before using closest
       if (target instanceof Element) {
         const isTableClick = target.closest('table') !== null;
@@ -190,13 +198,13 @@ const Pods: React.FC = () => {
         const isOutsideTable = !isTableClick || isTableHeadClick;
         const isContextMenuClick = contextMenuRef.current?.contains(event.target as Node) || false;
         const isAlertDialogClick = document.querySelector('.dialog-root')?.contains(event.target as Node) || false;
-        
+
         if (isOutsideTable && !isContextMenuClick && !isAlertDialogClick && selectedPods.size > 0) {
           setSelectedPods(new Set());
         }
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -206,11 +214,6 @@ const Pods: React.FC = () => {
   // Handle restart action
   const handleRestartPods = async () => {
     setShowContextMenu(false);
-
-    // Implementation for restarting pods
-    // For pods in the selectedPods set:
-    // 1. If only one pod is selected, use activePod
-    // 2. If multiple pods are selected, process all of them
 
     try {
       if (selectedPods.size === 0 && activePod) {
@@ -230,13 +233,27 @@ const Pods: React.FC = () => {
         }
       }
 
-      // Refresh pod list
-      // You can call your fetchAllPods function here
+      // Refresh pod list after restart
+      await fetchAllPods();
 
     } catch (error) {
       console.error('Failed to restart pod(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to restart pod(s)');
     }
+  };
+
+  const handleViewPod = (e: React.MouseEvent, pod: V1Pod) => {
+    e.stopPropagation(); // Stop the event from bubbling up
+    if (pod.metadata?.name && pod.metadata?.namespace) {
+      navigate(`/dashboard/explore/pods/${pod.metadata.namespace}/${pod.metadata.name}`);
+    }
+  };
+
+  const handleDeletePod = (e: React.MouseEvent, pod: V1Pod) => {
+    e.stopPropagation(); // Stop the event from bubbling up
+    setActivePod(pod);
+    setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
+    setShowDeleteDialog(true);
   };
 
   // Restart pod function
@@ -286,11 +303,11 @@ const Pods: React.FC = () => {
   // Perform actual deletion
   const deletePods = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedPods.size === 0 && activePod) {
         // Delete single active pod
-        // TODO: Implement deletion did not work, need to check if it is a deployment or statefulset
         await deletePod(activePod);
       } else {
         // Delete all selected pods
@@ -309,12 +326,51 @@ const Pods: React.FC = () => {
       // Clear selection after deletion
       setSelectedPods(new Set());
 
-      // Refresh pod list
-      // You can call your fetchAllPods function here
+      // Refresh pod list immediately after deletion
+      await fetchAllPods();
 
     } catch (error) {
       console.error('Failed to delete pod(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete pod(s)');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Extract fetchAllPods as a separate function
+  const fetchAllPods = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setPods([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const podsData = await getPods(currentContext.name);
+        setPods(podsData);
+        return;
+      }
+
+      // Fetch pods for each selected namespace
+      const podPromises = selectedNamespaces.map(namespace =>
+        getPods(currentContext.name, namespace)
+      );
+
+      const results = await Promise.all(podPromises);
+
+      // Flatten the array of pod arrays
+      const allPods = results.flat();
+      setPods(allPods);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch pods:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch pods');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -386,16 +442,24 @@ const Pods: React.FC = () => {
               Are you sure you want to delete {selectedPods.size > 1
                 ? `${selectedPods.size} pods`
                 : `"${activePod?.metadata?.name}"`}?
-              This action cannot be undone.
+              This action cannot be undone. Pods will enter terminating state and be removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deletePods}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -957,7 +1021,7 @@ const Pods: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Pods</h1>
           <div className="w-full md:w-96 mt-2">
@@ -1177,16 +1241,32 @@ const Pods: React.FC = () => {
                         {calculateAge(pod.metadata?.creationTimestamp?.toString())}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Implement actions menu if needed
-                          }}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+
+                            <DropdownMenuItem onClick={(e) => handleViewPod(e, pod)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeletePod(e, pod)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

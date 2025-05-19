@@ -14,6 +14,13 @@ import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Play, Pause, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { V1CronJob } from '@kubernetes/client-node';
 import { OPERATOR_URL } from '@/config';
@@ -35,24 +42,24 @@ const CronJobs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // --- Start of Multi-select ---
   const [selectedCronJobs, setSelectedCronJobs] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -86,6 +93,20 @@ const CronJobs: React.FC = () => {
     } else {
       handleCronJobDetails(cronJob);
     }
+  };
+
+  const handleViewCronJob = (e: React.MouseEvent, cronJob: any) => {
+    e.stopPropagation();
+    if (cronJob.metadata?.name && cronJob.metadata?.namespace) {
+      navigate(`/dashboard/explore/cronjobs/${cronJob.metadata.namespace}/${cronJob.metadata.name}`);
+    }
+  };
+
+  const handleDeleteCronJob = (e: React.MouseEvent, cronJob: any) => {
+    e.stopPropagation();
+    setActiveCronJob(cronJob);
+    setSelectedCronJobs(new Set([`${cronJob.metadata?.namespace}/${cronJob.metadata?.name}`]));
+    setShowDeleteDialog(true);
   };
 
   // Add context menu handlers
@@ -158,7 +179,7 @@ const CronJobs: React.FC = () => {
       }
 
       // Refresh cronJob list
-      // You can call your fetchAllCronJobs function here
+      await fetchAllCronJobs();
 
     } catch (error) {
       console.error('Failed to toggle suspend for cronJob(s):', error);
@@ -209,7 +230,7 @@ const CronJobs: React.FC = () => {
       }
 
       // Refresh cronJob list
-      // You can call your fetchAllCronJobs function here
+      await fetchAllCronJobs();
 
     } catch (error) {
       console.error('Failed to trigger cronJob(s):', error);
@@ -273,6 +294,7 @@ const CronJobs: React.FC = () => {
   // Perform actual deletion
   const deleteCronJobs = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedCronJobs.size === 0 && activeCronJob) {
@@ -296,11 +318,13 @@ const CronJobs: React.FC = () => {
       setSelectedCronJobs(new Set());
 
       // Refresh cronJob list
-      // You can call your fetchAllCronJobs function here
+      await fetchAllCronJobs();
 
     } catch (error) {
       console.error('Failed to delete cronJob(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete cronJob(s)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -410,12 +434,20 @@ const CronJobs: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteCronJobs}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -430,78 +462,78 @@ const CronJobs: React.FC = () => {
     direction: null
   });
 
-  // Fetch cron jobs for all selected namespaces
-  useEffect(() => {
-    const fetchAllCronJobs = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setCronJobs([]);
-        setLoading(false);
+  const fetchAllCronJobs = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setCronJobs([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const cronJobsData = await listResources(currentContext.name, 'cronjobs', {
+          apiGroup: 'batch',
+          apiVersion: 'v1'
+        });
+        setCronJobs(cronJobsData);
         return;
       }
 
-      try {
-        setLoading(true);
+      // Fetch cron jobs for each selected namespace
+      const cronJobPromises = selectedNamespaces.map(namespace =>
+        listResources(currentContext.name, 'cronjobs', {
+          namespace,
+          apiGroup: 'batch',
+          apiVersion: 'v1'
+        })
+      );
 
-        // If no namespaces are selected, fetch from all namespaces
+      const results = await Promise.all(cronJobPromises);
+
+      // Flatten the array of cron job arrays
+      const allCronJobs = results.flat();
+      setCronJobs(allCronJobs);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch cron jobs:', err);
+      // Try v1beta1 API version if v1 fails
+      try {
         if (selectedNamespaces.length === 0) {
           const cronJobsData = await listResources(currentContext.name, 'cronjobs', {
             apiGroup: 'batch',
-            apiVersion: 'v1'
+            apiVersion: 'v1beta1'
           });
           setCronJobs(cronJobsData);
           return;
         }
 
-        // Fetch cron jobs for each selected namespace
+        // Fetch cron jobs for each selected namespace with v1beta1
         const cronJobPromises = selectedNamespaces.map(namespace =>
           listResources(currentContext.name, 'cronjobs', {
             namespace,
             apiGroup: 'batch',
-            apiVersion: 'v1'
+            apiVersion: 'v1beta1'
           })
         );
 
         const results = await Promise.all(cronJobPromises);
-
-        // Flatten the array of cron job arrays
         const allCronJobs = results.flat();
         setCronJobs(allCronJobs);
         setError(null);
-      } catch (err) {
-        console.error('Failed to fetch cron jobs:', err);
-        // Try v1beta1 API version if v1 fails
-        try {
-          if (selectedNamespaces.length === 0) {
-            const cronJobsData = await listResources(currentContext.name, 'cronjobs', {
-              apiGroup: 'batch',
-              apiVersion: 'v1beta1'
-            });
-            setCronJobs(cronJobsData);
-            return;
-          }
-
-          // Fetch cron jobs for each selected namespace with v1beta1
-          const cronJobPromises = selectedNamespaces.map(namespace =>
-            listResources(currentContext.name, 'cronjobs', {
-              namespace,
-              apiGroup: 'batch',
-              apiVersion: 'v1beta1'
-            })
-          );
-
-          const results = await Promise.all(cronJobPromises);
-          const allCronJobs = results.flat();
-          setCronJobs(allCronJobs);
-          setError(null);
-        } catch (fallbackErr) {
-          console.error('Failed to fetch cron jobs with v1beta1:', fallbackErr);
-          setError(err instanceof Error ? err.message : 'Failed to fetch cron jobs');
-        }
-      } finally {
-        setLoading(false);
+      } catch (fallbackErr) {
+        console.error('Failed to fetch cron jobs with v1beta1:', fallbackErr);
+        setError(err instanceof Error ? err.message : 'Failed to fetch cron jobs');
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Fetch cron jobs for all selected namespaces
+  useEffect(() => {
     fetchAllCronJobs();
   }, [currentContext, selectedNamespaces]);
 
@@ -713,7 +745,7 @@ const CronJobs: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>CronJobs</h1>
           <div className="w-full md:w-96 mt-2">
@@ -854,16 +886,30 @@ const CronJobs: React.FC = () => {
                         {calculateAge(cronJob.metadata?.creationTimestamp?.toString())}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Implement actions menu if needed
-                          }}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                            <DropdownMenuItem onClick={(e) => handleViewCronJob(e, cronJob)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeleteCronJob(e, cronJob)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
