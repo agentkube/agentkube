@@ -178,7 +178,7 @@ export const ExplorerSuggestionsConstant = [
 
   // Storage
   {
-    id: 'persistentvolumecclaims',
+    id: 'persistentvolumeclaims',
     title: 'View Persistent Volume Claims',
     description: 'Check all persistent volume claims',
     icon: <Terminal className="w-4 h-4" />

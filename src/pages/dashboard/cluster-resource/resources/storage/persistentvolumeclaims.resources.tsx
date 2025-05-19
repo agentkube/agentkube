@@ -15,6 +15,13 @@ import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Database, Copy } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
@@ -36,7 +43,7 @@ const PersistentVolumeClaims: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // -- Start of Multi-select -- 
   const [selectedPvcs, setSelectedPvcs] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -61,6 +68,20 @@ const PersistentVolumeClaims: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleViewPvc = (e: React.MouseEvent, pvc: V1PersistentVolumeClaim) => {
+    e.stopPropagation();
+    if (pvc.metadata?.name && pvc.metadata?.namespace) {
+      navigate(`/dashboard/explore/persistentvolumeclaims/${pvc.metadata.namespace}/${pvc.metadata.name}`);
+    }
+  };
+
+  const handleDeletePvcMenuItem = (e: React.MouseEvent, pvc: V1PersistentVolumeClaim) => {
+    e.stopPropagation();
+    setActivePvc(pvc);
+    setSelectedPvcs(new Set([`${pvc.metadata?.namespace}/${pvc.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
 
   // Add click handler for PVC selection with cmd/ctrl key
   const handlePvcClick = (e: React.MouseEvent, pvc: V1PersistentVolumeClaim) => {
@@ -161,7 +182,7 @@ const PersistentVolumeClaims: React.FC = () => {
       }
 
       // Refresh PVC list
-      // You can call your fetchAllPVCs function here
+      await fetchAllPVCs();
 
     } catch (error) {
       console.error('Failed to clone PVC:', error);
@@ -215,6 +236,7 @@ const PersistentVolumeClaims: React.FC = () => {
   // Perform actual deletion
   const deletePVCs = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedPvcs.size === 0 && activePvc) {
@@ -237,31 +259,14 @@ const PersistentVolumeClaims: React.FC = () => {
       // Clear selection after deletion
       setSelectedPvcs(new Set());
 
-      // Refresh PVC list after deletion
-      if (currentContext && selectedNamespaces.length > 0) {
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const pvcsData = await getPersistentVolumeClaims(currentContext.name);
-          setPvcs(pvcsData);
-          return;
-        }
-
-        // Fetch PVCs for each selected namespace
-        const pvcPromises = selectedNamespaces.map(namespace =>
-          getPersistentVolumeClaims(currentContext.name, namespace)
-        );
-
-        const results = await Promise.all(pvcPromises);
-
-        // Flatten the array of PVC arrays
-        const allPvcs = results.flat();
-        setPvcs(allPvcs);
-        setError(null);
-      }
+      // Refresh PVC list
+      await fetchAllPVCs();
 
     } catch (error) {
       console.error('Failed to delete PVC(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete PVC(s)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -342,12 +347,20 @@ const PersistentVolumeClaims: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deletePVCs}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -362,43 +375,43 @@ const PersistentVolumeClaims: React.FC = () => {
     direction: null
   });
 
-  // Fetch PVCs for all selected namespaces
-  useEffect(() => {
-    const fetchAllPVCs = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setPvcs([]);
-        setLoading(false);
+  const fetchAllPVCs = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setPvcs([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const pvcsData = await getPersistentVolumeClaims(currentContext.name);
+        setPvcs(pvcsData);
         return;
       }
 
-      try {
-        setLoading(true);
+      // Fetch PVCs for each selected namespace
+      const pvcPromises = selectedNamespaces.map(namespace =>
+        getPersistentVolumeClaims(currentContext.name, namespace)
+      );
 
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const pvcsData = await getPersistentVolumeClaims(currentContext.name);
-          setPvcs(pvcsData);
-          return;
-        }
+      const results = await Promise.all(pvcPromises);
 
-        // Fetch PVCs for each selected namespace
-        const pvcPromises = selectedNamespaces.map(namespace =>
-          getPersistentVolumeClaims(currentContext.name, namespace)
-        );
-
-        const results = await Promise.all(pvcPromises);
-
-        // Flatten the array of PVC arrays
-        const allPvcs = results.flat();
-        setPvcs(allPvcs);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch persistent volume claims:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch persistent volume claims');
-      } finally {
-        setLoading(false);
-      }
-    };
+      // Flatten the array of PVC arrays
+      const allPvcs = results.flat();
+      setPvcs(allPvcs);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch persistent volume claims:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch persistent volume claims');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Fetch PVCs for all selected namespaces
+  useEffect(() => {
 
     fetchAllPVCs();
   }, [currentContext, selectedNamespaces]);
@@ -799,16 +812,30 @@ const PersistentVolumeClaims: React.FC = () => {
                       {calculateAge(pvc.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => handleViewPvc(e, pvc)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeletePvcMenuItem(e, pvc)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -13,6 +13,13 @@ import { ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Copy, Star } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
@@ -33,7 +40,7 @@ const StorageClasses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // --- Start of Multi-select ---
   const [selectedStorageClasses, setSelectedStorageClasses] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -46,19 +53,33 @@ const StorageClasses: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
+  const handleViewStorageClass = (e: React.MouseEvent, storageClass: any) => {
+    e.stopPropagation();
+    if (storageClass.metadata?.name) {
+      navigate(`/dashboard/explore/storageclasses/${storageClass.metadata.name}`);
+    }
+  };
+
+  const handleDeleteStorageClassMenuItem = (e: React.MouseEvent, storageClass: any) => {
+    e.stopPropagation();
+    setActiveStorageClass(storageClass);
+    setSelectedStorageClasses(new Set([storageClass.metadata?.name || '']));
+    setShowDeleteDialog(true);
+  };
+
   // Add click handler for StorageClass selection with cmd/ctrl key
   const handleStorageClassClick = (e: React.MouseEvent, storageClass: any) => {
     const scKey = storageClass.metadata?.name || '';
@@ -333,6 +354,7 @@ const StorageClasses: React.FC = () => {
   // Perform actual deletion
   const deleteStorageClasses = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedStorageClasses.size === 0 && activeStorageClass) {
@@ -364,6 +386,8 @@ const StorageClasses: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete StorageClass(es):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete StorageClass(es)');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -468,12 +492,20 @@ const StorageClasses: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteStorageClasses}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -488,30 +520,31 @@ const StorageClasses: React.FC = () => {
     direction: null
   });
 
+  const fetchStorageClasses = async () => {
+    if (!currentContext) {
+      setStorageClasses([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const storageClassesData = await listResources(currentContext.name, 'storageclasses', {
+        apiGroup: 'storage.k8s.io',
+        apiVersion: 'v1'
+      });
+      setStorageClasses(storageClassesData);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch storage classes:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch storage classes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch all storage classes
   useEffect(() => {
-    const fetchStorageClasses = async () => {
-      if (!currentContext) {
-        setStorageClasses([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const storageClassesData = await listResources(currentContext.name, 'storageclasses', {
-          apiGroup: 'storage.k8s.io',
-          apiVersion: 'v1'
-        });
-        setStorageClasses(storageClassesData);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch storage classes:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch storage classes');
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchStorageClasses();
   }, [currentContext]);
@@ -829,16 +862,30 @@ const StorageClasses: React.FC = () => {
                       {calculateAge(storageClass.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => handleViewStorageClass(e, storageClass)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteStorageClassMenuItem(e, storageClass)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -14,6 +14,13 @@ import { ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Copy } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 
@@ -112,7 +119,7 @@ const PersistentVolumes: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const [deleteLoading, setDeleteLoading] = useState(false);
   // --- Start of Multi-select ---
   const [selectedVolumes, setSelectedVolumes] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -137,6 +144,20 @@ const PersistentVolumes: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleViewVolume = (e: React.MouseEvent, volume: V1PersistentVolume) => {
+    e.stopPropagation();
+    if (volume.metadata?.name) {
+      navigate(`/dashboard/explore/persistentvolumes/${volume.metadata.name}`);
+    }
+  };
+
+  const handleDeleteVolumeMenuItem = (e: React.MouseEvent, volume: V1PersistentVolume) => {
+    e.stopPropagation();
+    setActiveVolume(volume);
+    setSelectedVolumes(new Set([volume.metadata?.name || '']));
+    setShowDeleteDialog(true);
+  };
   // Add click handler for PV selection with cmd/ctrl key
   const handleVolumeClick = (e: React.MouseEvent, volume: V1PersistentVolume) => {
     const volumeKey = volume.metadata?.name || '';
@@ -220,6 +241,7 @@ const PersistentVolumes: React.FC = () => {
   // Perform actual deletion
   const deleteVolumes = async () => {
     setShowDeleteDialog(false);
+    setDeleteLoading(true);
 
     try {
       if (selectedVolumes.size === 0 && activeVolume) {
@@ -239,25 +261,21 @@ const PersistentVolumes: React.FC = () => {
       // Clear selection after deletion
       setSelectedVolumes(new Set());
 
-      // Refresh PV list after deletion
-      if (currentContext) {
-        const refreshedVolumes = await getPersistentVolumes(currentContext.name);
-        setVolumes(refreshedVolumes);
-      }
+      // Refresh PV list
+      await fetchVolumes();
 
     } catch (error) {
       console.error('Failed to delete PV(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete PV(s)');
 
       // Refresh the list even if some deletions failed to show current state
-      if (currentContext) {
-        try {
-          const refreshedVolumes = await getPersistentVolumes(currentContext.name);
-          setVolumes(refreshedVolumes);
-        } catch (refreshError) {
-          console.error('Failed to refresh PV list after deletion error:', refreshError);
-        }
+      try {
+        await fetchVolumes();
+      } catch (refreshError) {
+        console.error('Failed to refresh PV list after deletion error:', refreshError);
       }
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -338,12 +356,20 @@ const PersistentVolumes: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteVolumes}
+              disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
             >
-              Delete
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -358,27 +384,28 @@ const PersistentVolumes: React.FC = () => {
     direction: null
   });
 
+  const fetchVolumes = async () => {
+    if (!currentContext) {
+      setVolumes([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const volumesData = await getPersistentVolumes(currentContext.name);
+      setVolumes(volumesData);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch persistent volumes:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch persistent volumes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch all persistent volumes
   useEffect(() => {
-    const fetchVolumes = async () => {
-      if (!currentContext) {
-        setVolumes([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const volumesData = await getPersistentVolumes(currentContext.name);
-        setVolumes(volumesData);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch persistent volumes:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch persistent volumes');
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchVolumes();
   }, [currentContext]);
@@ -778,16 +805,30 @@ const PersistentVolumes: React.FC = () => {
                       {calculateAge(volume.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => handleViewVolume(e, volume)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteVolumeMenuItem(e, volume)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

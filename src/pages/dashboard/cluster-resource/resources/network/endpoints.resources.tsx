@@ -13,6 +13,13 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
@@ -86,19 +93,19 @@ const Endpoints: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for Endpoint selection with cmd/ctrl key
   const handleEndpointClick = (e: React.MouseEvent, endpoint: V1Endpoints) => {
     if (!endpoint.metadata?.namespace || !endpoint.metadata?.name) return;
@@ -176,6 +183,13 @@ const Endpoints: React.FC = () => {
     };
   }, [selectedEndpoints]);
 
+
+  const handleDeleteEndpointMenuItem = (e: React.MouseEvent, endpoint: V1Endpoints) => {
+    e.stopPropagation();
+    setActiveEndpoint(endpoint);
+    setSelectedEndpoints(new Set([`${endpoint.metadata?.namespace}/${endpoint.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
   // Handle view endpoint details
   const handleViewEndpoint = () => {
     setShowContextMenu(false);
@@ -750,9 +764,9 @@ const Endpoints: React.FC = () => {
                   <TableRow
                     key={`${endpoint.metadata?.namespace}-${endpoint.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${endpoint.metadata?.namespace && endpoint.metadata?.name &&
-                        selectedEndpoints.has(`${endpoint.metadata.namespace}/${endpoint.metadata.name}`)
-                        ? 'bg-blue-50 dark:bg-gray-800/30'
-                        : ''
+                      selectedEndpoints.has(`${endpoint.metadata.namespace}/${endpoint.metadata.name}`)
+                      ? 'bg-blue-50 dark:bg-gray-800/30'
+                      : ''
                       }`}
                     onClick={(e) => handleEndpointClick(e, endpoint)}
                     onContextMenu={(e) => handleContextMenu(e, endpoint)}
@@ -781,17 +795,32 @@ const Endpoints: React.FC = () => {
                     <TableCell className="text-center">
                       {calculateAge(endpoint.metadata?.creationTimestamp?.toString())}
                     </TableCell>
+
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={handleViewEndpoint} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteEndpointMenuItem(e, endpoint)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
