@@ -260,7 +260,7 @@ export const ExplorerSuggestionsConstant = [
 
   // Custom Resources
   {
-    id: 'custom-resources',
+    id: 'customresources',
     title: 'View Custom Resources',
     description: 'Check all custom resources',
     icon: <Terminal className="w-4 h-4" />

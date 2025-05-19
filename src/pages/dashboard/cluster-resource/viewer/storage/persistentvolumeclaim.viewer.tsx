@@ -294,7 +294,6 @@ const PersistentVolumeClaimViewer: React.FC = () => {
   // Get PVC status
   const { status, phase } = getPVCStatus();
   const statusColor = getStatusColorClass(phase);
-  console.log(window.location.href)
   return (
     <div className='max-h-[92vh] overflow-y-auto
           scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent

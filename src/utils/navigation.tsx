@@ -16,7 +16,7 @@ export const getResourceViewPath = (result: SearchResult): string => {
       return `/dashboard/explore/jobs/${result.namespace}/${result.resourceName}`;
     case 'cronjobs':
       return `/dashboard/explore/cronjobs/${result.namespace}/${result.resourceName}`;
-    
+
     // Configuration
     case 'configmaps':
       return `/dashboard/explore/configmaps/${result.namespace}/${result.resourceName}`;
@@ -71,9 +71,29 @@ export const getResourceViewPath = (result: SearchResult): string => {
     case 'leases':
       return `/dashboard/explore/leases/${result.namespace}/${result.resourceName}`;
 
-      // TODO for custom resources
+    case 'customresourcedefinitions':
+      return `/dashboard/explore/customresourcedefinitions/${result.resourceName}`;
+    // TODO for custom resources
     // For resources not explicitly handled, use a generic approach
     default:
+      // Check if this is a custom resource by looking for apiGroup and version
+      if (result.group && result.group !== 'core' && result.group !== '') {
+        // For custom resources, we need to construct the path with query parameters
+        const baseUrl = result.namespaced
+          ? `/dashboard/explore/customresources/view/${result.namespace}/${result.resourceName}`
+          : `/dashboard/explore/customresources/view/${result.resourceName}`;
+
+        // Add query parameters for API group, version, and plural
+        const params = new URLSearchParams({
+          apiGroup: result.group,
+          apiVersion: result.version,
+          plural: result.resourceType
+        });
+
+        return `${baseUrl}?${params.toString()}`;
+      }
+
+      // For resources not explicitly handled, use a generic approach
       // For namespaced resources
       if (result.namespaced) {
         return `/dashboard/explore/resources/${result.group}/${result.version}/${result.resourceType}/${result.resourceName}/namespace/${result.namespace}`;

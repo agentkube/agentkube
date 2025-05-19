@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getResource, listResources } from '@/api/internal/resources';
+import { getResource, listResources, deleteResource } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, Edit, Clock, FileJson, Trash, List, Table as TableIcon, Plus } from "lucide-react";
+import { Loader2, Edit, Clock, FileJson, Trash, List, Table as TableIcon, Plus, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateAge } from '@/utils/age';
-import { ErrorComponent, ResourceViewerYamlTab } from '@/components/custom';
+import { ErrorComponent, ResourceViewerYamlTab, DeletionDialog } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 
 // Define interfaces
 interface CustomResourceDefinition {
@@ -184,7 +186,6 @@ const SchemaViewer = ({ schema }: { schema: any }) => {
   );
 };
 
-// Main component
 const CustomResourceDefinitionViewer = () => {
   const { currentContext } = useCluster();
   const navigate = useNavigate();
@@ -199,6 +200,8 @@ const CustomResourceDefinitionViewer = () => {
   const [loadingInstances, setLoadingInstances] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeVersion, setActiveVersion] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchCRD = async () => {
@@ -277,12 +280,36 @@ const CustomResourceDefinitionViewer = () => {
   }, [currentContext, crd, activeVersion]);
 
   const handleDelete = () => {
-    // Implement delete functionality
-    // Show confirmation dialog first
-    if (window.confirm(`Are you sure you want to delete CustomResourceDefinition "${crd?.metadata.name}"?`)) {
-      // Call API to delete the CRD
-      // TODO delete CRD
-      console.log('Delete CRD:', crd);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeletion = async () => {
+    if (!crd || !currentContext) {
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await deleteResource(
+        currentContext.name,
+        'customresourcedefinitions',
+        crd.metadata.name,
+        {
+          apiGroup: 'apiextensions.k8s.io',
+          apiVersion: 'v1'
+        }
+      );
+
+      // Navigate back to the custom resources list
+      navigate('/dashboard/explore/customresources');
+    } catch (err) {
+      console.error('Failed to delete CustomResourceDefinition:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete CustomResourceDefinition');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -328,20 +355,35 @@ const CustomResourceDefinitionViewer = () => {
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
 
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink>
+              <div className='flex items-center gap-2'>
+                <img src={KUBERNETES_LOGO} alt='Kubernetes Logo' className='w-4 h-4' />
+                {currentContext?.name}
+              </div>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={() => navigate('/dashboard/explore/customresources')}>CustomResourceDefinitions</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbLink>{crd.spec.names.kind}</BreadcrumbLink>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+
       {/* Header with breadcrumb */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1 border-none"
-              onClick={() => navigate('/dashboard/explore/customresources')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Custom Resources</span>
-            </Button>
-          </div>
           <h1 className="text-3xl font-bold flex flex-wrap items-center gap-3">
             {crd.spec.names.kind}
             <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
@@ -361,13 +403,24 @@ const CustomResourceDefinitionViewer = () => {
             Edit
           </Button>
           <Button variant="destructive" onClick={handleDelete}>
-            <Trash className="h-4 w-4 mr-2" />
-            Delete
+            <Trash className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <Separator />
+      {crd && (
+        <DeletionDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={confirmDeletion}
+          title="Delete CustomResourceDefinition"
+          description={`Are you sure you want to delete the CustomResourceDefinition "${crd.metadata.name}"? This will permanently remove the resource definition and may affect existing custom resources. This action cannot be undone.`}
+          resourceName={crd.metadata.name}
+          resourceType="CustomResourceDefinition"
+          isLoading={deleteLoading}
+        />
+      )}
 
       {/* CRD Metadata Card */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -516,7 +569,7 @@ const CustomResourceDefinitionViewer = () => {
               <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
             </div>
           ) : instances.length === 0 ? (
-            <Alert className="m-4 text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-transparent">
+            <Alert className=" text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-transparent">
               <AlertDescription>
                 No instances of {crd.spec.names.kind} found
               </AlertDescription>

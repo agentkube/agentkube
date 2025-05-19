@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, Edit, Clock, Tag, List, FileJson, Trash } from "lucide-react";
+import { Loader2, ArrowLeft, Edit, Clock, Tag, List, FileJson, Trash, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { calculateAge } from '@/utils/age';
 import { ErrorComponent, ResourceViewerYamlTab, DeletionDialog } from '@/components/custom';
 import { YamlViewer } from '@/utils/yaml.utils';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+
 // Define interfaces
 interface CustomResource {
   apiVersion: string;
@@ -92,7 +95,7 @@ const CustomResourceViewer = () => {
     setShowDeleteDialog(true);
   };
 
- 
+
   const confirmResourceDeletion = async () => {
     if (!resource || !currentContext) {
       setShowDeleteDialog(false);
@@ -152,38 +155,75 @@ const CustomResourceViewer = () => {
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
 
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink>
+              <div className='flex items-center gap-2'>
+                <img src={KUBERNETES_LOGO} alt='Kubernetes Logo' className='w-4 h-4' />
+                {currentContext?.name}
+              </div>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={() => navigate('/dashboard/explore/customresources')}>CustomResourceDefinition</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbLink>{resource.kind}</BreadcrumbLink>
+          </BreadcrumbItem>
+          {resource.metadata.namespace && (
+            <>
+              <BreadcrumbSeparator>
+                <ChevronRight className="h-4 w-4" />
+              </BreadcrumbSeparator>
+              <BreadcrumbItem>
+                <BreadcrumbLink onClick={() => navigate(`/dashboard/explore/namespaces/${resource.metadata.namespace}`)}>{resource.metadata.namespace}</BreadcrumbLink>
+              </BreadcrumbItem>
+            </>
+          )}
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbLink>{resource.metadata.name}</BreadcrumbLink>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       {/* Header with breadcrumb */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1"
-              onClick={() => navigate('/dashboard/explore/customresources')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Custom Resources</span>
+
+      <div className="mb-6">
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{resource.metadata.name}</h1>
+              <Badge>
+                {resource.kind}
+              </Badge>
+            </div>
+            <div className="text-gray-500 dark:text-gray-400">
+              Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${resource.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{resource.metadata.namespace}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => {
+              setSearchParams(params => {
+                params.set('tab', 'yaml');
+                return params;
+              });
+            }}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button variant="outline" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
+              <Trash className="h-4 w-4" />
             </Button>
           </div>
-          <h1 className="text-3xl font-bold flex flex-wrap items-center gap-3">
-            {resource.kind}: {resource.metadata.name}
-            {resource.metadata.namespace && (
-              <Badge className="ml-2">
-                Namespace: {resource.metadata.namespace}
-              </Badge>
-            )}
-          </h1>
-        </div>
-
-        <div className="flex gap-2">
-          {/* <Button variant="outline" onClick={handleEdit}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button> */}
-          <Button variant="outline" className='hover:bg-red-600 dark:hover:bg-red-700' onClick={handleDelete}>
-            <Trash className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -245,14 +285,14 @@ const CustomResourceViewer = () => {
               {resource.metadata.uid && (
                 <>
                   <div className="text-sm font-medium">UID</div>
-                  <div className="text-sm font-mono text-xs">{resource.metadata.uid}</div>
+                  <div className="font-mono text-xs">{resource.metadata.uid}</div>
                 </>
               )}
 
               {resource.metadata.resourceVersion && (
                 <>
                   <div className="text-sm font-medium">Resource Version</div>
-                  <div className="text-sm font-mono text-xs">{resource.metadata.resourceVersion}</div>
+                  <div className="font-mono text-xs">{resource.metadata.resourceVersion}</div>
                 </>
               )}
 
