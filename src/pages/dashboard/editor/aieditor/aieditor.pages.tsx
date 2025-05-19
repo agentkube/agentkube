@@ -23,6 +23,7 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report';
 import { scanConfig } from '@/api/scanner/security';
 import { ResourceTemplate } from '@/components/custom';
+import { kubeProxyRequest } from '@/api/cluster';
 
 // Define type for resource tab
 interface ResourceTab {
@@ -90,16 +91,16 @@ const AIResourceEditor: React.FC = () => {
       if (!yamlContent.trim()) {
         return result;
       }
-      
+
       // Convert YAML to JSON to extract metadata
       const jsonContent = yamlToJson(yamlContent);
-      
+
       if (jsonContent) {
         // Extract API version and kind
         const apiVersion = jsonContent.apiVersion || '';
         const kind = jsonContent.kind || '';
         const name = jsonContent.metadata?.name || '';
-        
+
         // Parse API version to get group and version
         let group = '', version = '';
         if (apiVersion.includes('/')) {
@@ -108,11 +109,29 @@ const AIResourceEditor: React.FC = () => {
           group = '';  // Core API group
           version = apiVersion;
         }
-        
+
         // Convert kind to plural resource type (lowercase + 's' suffix)
         // This is a simplified approach - actual k8s API can be more complex
-        const resourceType = kind ? (kind.toLowerCase() + 's') : '';
-        
+        let resourceType = '';
+        if (kind) {
+          switch (kind.toLowerCase()) {
+            case 'ingress':
+              resourceType = 'ingresses';
+              break;
+            case 'networkpolicy':
+              resourceType = 'networkpolicies';
+              break;
+            case 'ingressclass':
+              resourceType = 'ingressclasses';
+              break;
+            case 'endpoints':
+              resourceType = 'endpoints';
+              break;
+            default:
+              resourceType = kind.toLowerCase() + 's';
+          }
+        }
+
         // Set the extracted values
         result = {
           resourceType,
@@ -125,7 +144,7 @@ const AIResourceEditor: React.FC = () => {
     } catch (error) {
       console.error('Error extracting resource metadata:', error);
     }
-    
+
     return result;
   };
 
@@ -137,7 +156,7 @@ const AIResourceEditor: React.FC = () => {
   // Use the active tab's content for security scanning
   const handleSecurityScan = async () => {
     const activeTabContent = getActiveTab().content;
-    
+
     if (!activeTabContent) {
       toast({
         title: "Error",
@@ -173,17 +192,17 @@ const AIResourceEditor: React.FC = () => {
       // Extract resource metadata from the YAML
       const metadata = extractResourceMetadata(value);
       const { resourceType, apiGroup, apiVersion, kind, name } = metadata;
-      
+
       // Update tab with new content and metadata
       setResourceTabs(tabs => tabs.map(tab =>
-        tab.id === activeTabId ? { 
-          ...tab, 
+        tab.id === activeTabId ? {
+          ...tab,
           content: value,
           resourceType,
           apiGroup,
           apiVersion,
           // Optionally update tab name if resource name is defined and tab name is default
-          name: name && tab.name.startsWith('resource') ? 
+          name: name && tab.name.startsWith('resource') ?
             `${name}.yaml` : tab.name
         } : tab
       ));
@@ -193,7 +212,7 @@ const AIResourceEditor: React.FC = () => {
   // Create a new tab (with no default resource type)
   const addNewTab = (): void => {
     const newTabId = `tab-${Date.now()}`;
-    
+
     const newTab: ResourceTab = {
       id: newTabId,
       name: `resource${resourceTabs.length + 1}.yaml`,
@@ -202,7 +221,7 @@ const AIResourceEditor: React.FC = () => {
       apiGroup: '',
       apiVersion: ''
     };
-  
+
     setResourceTabs([...resourceTabs, newTab]);
     setActiveTabId(newTabId);
   };
@@ -260,15 +279,15 @@ const AIResourceEditor: React.FC = () => {
     try {
       // Convert YAML to JSON
       const jsonContent = yamlToJson(activeTab.content);
-      
+
       if (!jsonContent) {
         throw new Error("Invalid YAML content");
       }
-      
+
       if (!jsonContent.kind || !jsonContent.apiVersion) {
         throw new Error("Resource must have 'kind' and 'apiVersion' fields");
       }
-      
+
       if (!jsonContent.metadata || !jsonContent.metadata.name) {
         throw new Error("Resource must have 'metadata.name' field");
       }
@@ -277,23 +296,24 @@ const AIResourceEditor: React.FC = () => {
       // This is a simplified check - in a real implementation you would check against a
       // comprehensive list of cluster-scoped resources or query the API server
       const clusterScopedResources = [
-        'namespaces', 
-        'nodes', 
-        'persistentvolumes', 
-        'clusterroles', 
+        'namespaces',
+        'nodes',
+        'persistentvolumes',
+        'clusterroles',
         'clusterrolebindings',
         'customresourcedefinitions',
         'podsecuritypolicies',
-        'storageclasses'
+        'storageclasses',
+        'ingressclasses'
       ];
-      
+
       const isNamespaced = !clusterScopedResources.includes(activeTab.resourceType);
-      
+
       // Use namespace from YAML or fallback to selected namespace
-      const namespace = isNamespaced ? 
+      const namespace = isNamespaced ?
         (jsonContent.metadata.namespace || (selectedNamespaces.length > 0 ? selectedNamespaces[0] : undefined)) :
         undefined;
-      
+
       // If namespace is required but not provided
       if (isNamespaced && !namespace) {
         toast({
@@ -305,17 +325,16 @@ const AIResourceEditor: React.FC = () => {
         return;
       }
 
-      // Create the resource using extracted metadata
-      await createResource(
-        currentContext.name,
-        activeTab.resourceType,
-        jsonContent,
-        {
-          namespace,
-          apiGroup: activeTab.apiGroup,
-          apiVersion: activeTab.apiVersion
-        }
-      );
+      const apiPath = activeTab.apiGroup
+        ? `apis/${activeTab.apiGroup}/${activeTab.apiVersion}`
+        : `api/${activeTab.apiVersion}`;
+
+      const resourcePath = namespace
+        ? `${apiPath}/namespaces/${namespace}/${activeTab.resourceType}`
+        : `${apiPath}/${activeTab.resourceType}`;
+
+      // Use kubeProxyRequest instead of the createResource function
+      await kubeProxyRequest(currentContext.name, resourcePath, 'POST', jsonContent);
 
       toast({
         title: "Success",
@@ -351,28 +370,28 @@ const AIResourceEditor: React.FC = () => {
   // Handle template selection with metadata extraction
   const handleTemplateSelect = async (templateContent: string, templateName: string) => {
     setIsTemplateLoading(true);
-    
+
     try {
       // Extract metadata from the template
       const metadata = extractResourceMetadata(templateContent);
       const { resourceType, apiGroup, apiVersion, kind, name } = metadata;
-      
+
       // Create filename based on template name or resource name
-      const fileName = name ? 
-        `${name}.yaml` : 
+      const fileName = name ?
+        `${name}.yaml` :
         templateName.toLowerCase().replace(/\s+/g, '-') + '.yaml';
-      
+
       // Update the active tab with template content and metadata
       setResourceTabs(tabs => tabs.map(tab =>
-        tab.id === activeTabId 
-          ? { 
-              ...tab, 
-              content: templateContent,
-              name: fileName,
-              resourceType,
-              apiGroup,
-              apiVersion
-            } 
+        tab.id === activeTabId
+          ? {
+            ...tab,
+            content: templateContent,
+            name: fileName,
+            resourceType,
+            apiGroup,
+            apiVersion
+          }
           : tab
       ));
 
@@ -439,17 +458,17 @@ const AIResourceEditor: React.FC = () => {
     // Extract metadata from the updated YAML
     const metadata = extractResourceMetadata(yaml);
     const { resourceType, apiGroup, apiVersion } = metadata;
-    
+
     setResourceTabs(tabs => tabs.map(tab =>
-      tab.id === activeTabId ? { 
-        ...tab, 
+      tab.id === activeTabId ? {
+        ...tab,
         content: yaml,
         resourceType,
         apiGroup,
         apiVersion
       } : tab
     ));
-    
+
     toast({
       title: "YAML Generated",
       description: "Resource configuration has been updated",
@@ -614,8 +633,8 @@ const AIResourceEditor: React.FC = () => {
                 <button
                   onClick={addNewTab}
                   className={`p-2 flex items-center ${editorTheme === 'vs-dark'
-                      ? 'text-gray-400 hover:bg-gray-800'
-                      : 'text-gray-600 hover:bg-gray-100'
+                    ? 'text-gray-400 hover:bg-gray-800'
+                    : 'text-gray-600 hover:bg-gray-100'
                     }`}
                 >
                   <Plus className="h-4 w-4" />
@@ -625,8 +644,8 @@ const AIResourceEditor: React.FC = () => {
               <button
                 onClick={toggleTheme}
                 className={`p-2 ${editorTheme === 'vs-dark'
-                    ? 'text-gray-400 hover:bg-gray-800'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  ? 'text-gray-400 hover:bg-gray-800'
+                  : 'text-gray-600 hover:bg-gray-100'
                   }`}
               >
                 {editorTheme === 'vs-dark' ? (

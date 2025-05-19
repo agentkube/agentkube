@@ -215,7 +215,7 @@ const EndpointViewer: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{endpointData.metadata.name}</h1>
-                <Badge variant="outline">Endpoints</Badge>
+                <Badge className='bg-cyan-300/80 dark:bg-cyan-500/20'>Endpoints</Badge>
               </div>
               <div className="text-gray-500 dark:text-gray-400">
                 Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${endpointData.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{endpointData.metadata.namespace}</span>
