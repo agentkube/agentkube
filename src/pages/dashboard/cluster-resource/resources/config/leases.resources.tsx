@@ -13,6 +13,13 @@ import { calculateAge } from '@/utils/age';
 import { ErrorComponent, NamespaceSelector } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
@@ -69,19 +76,19 @@ const Leases: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for Lease selection with cmd/ctrl key
   const handleLeaseClick = (e: React.MouseEvent, lease: V1Lease) => {
     const leaseKey = `${lease.metadata?.namespace}/${lease.metadata?.name}`;
@@ -162,6 +169,13 @@ const Leases: React.FC = () => {
     if (activeLease && activeLease.metadata?.name && activeLease.metadata?.namespace) {
       navigate(`/dashboard/explore/leases/${activeLease.metadata.namespace}/${activeLease.metadata.name}`);
     }
+  };
+
+  const handleDeleteLeaseMenuItem = (e: React.MouseEvent, lease: V1Lease) => {
+    e.stopPropagation();
+    setActiveLease(lease);
+    setSelectedLeases(new Set([`${lease.metadata?.namespace}/${lease.metadata?.name}`]));
+    setShowDeleteDialog(true);
   };
 
   // Handle delete action
@@ -687,7 +701,7 @@ const Leases: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Leases</h1>
           <div className="w-full md:w-96 mt-2">
@@ -809,16 +823,30 @@ const Leases: React.FC = () => {
                       {calculateAge(lease.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={handleViewLease} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteLeaseMenuItem(e, lease)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

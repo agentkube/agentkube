@@ -13,6 +13,13 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { Trash2, ExternalLink, Key } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
@@ -73,19 +80,19 @@ const ServiceAccounts: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for ServiceAccount selection with cmd/ctrl key
   const handleServiceAccountClick = (e: React.MouseEvent, serviceAccount: V1ServiceAccount) => {
     if (!serviceAccount.metadata?.namespace || !serviceAccount.metadata?.name) return;
@@ -187,6 +194,22 @@ const ServiceAccounts: React.FC = () => {
       console.error('Failed to navigate to token creation:', error);
     }
   };
+
+
+  const handleViewServiceAccountMenuItem = (e: React.MouseEvent, serviceAccount: V1ServiceAccount) => {
+    e.stopPropagation();
+    if (serviceAccount.metadata?.name && serviceAccount.metadata?.namespace) {
+      navigate(`/dashboard/explore/serviceaccounts/${serviceAccount.metadata.namespace}/${serviceAccount.metadata.name}`);
+    }
+  };
+
+  const handleDeleteServiceAccountMenuItem = (e: React.MouseEvent, serviceAccount: V1ServiceAccount) => {
+    e.stopPropagation();
+    setActiveServiceAccount(serviceAccount);
+    setSelectedServiceAccounts(new Set([`${serviceAccount.metadata?.namespace}/${serviceAccount.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
 
   // Handle delete action
   const handleDeleteClick = () => {
@@ -673,7 +696,7 @@ const ServiceAccounts: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Service Accounts</h1>
           <div className="w-full md:w-96 mt-2">
@@ -762,9 +785,9 @@ const ServiceAccounts: React.FC = () => {
                   <TableRow
                     key={`${serviceAccount.metadata?.namespace}-${serviceAccount.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${serviceAccount.metadata?.namespace && serviceAccount.metadata?.name &&
-                        selectedServiceAccounts.has(`${serviceAccount.metadata.namespace}/${serviceAccount.metadata.name}`)
-                        ? 'bg-blue-50 dark:bg-gray-800/30'
-                        : ''
+                      selectedServiceAccounts.has(`${serviceAccount.metadata.namespace}/${serviceAccount.metadata.name}`)
+                      ? 'bg-blue-50 dark:bg-gray-800/30'
+                      : ''
                       }`}
                     onClick={(e) => handleServiceAccountClick(e, serviceAccount)}
                     onContextMenu={(e) => handleContextMenu(e, serviceAccount)}
@@ -792,16 +815,30 @@ const ServiceAccounts: React.FC = () => {
                       {calculateAge(serviceAccount.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => handleViewServiceAccountMenuItem(e, serviceAccount)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteServiceAccountMenuItem(e, serviceAccount)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

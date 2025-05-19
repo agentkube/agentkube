@@ -13,6 +13,13 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
@@ -124,19 +131,19 @@ const VerticalPodAutoscalers: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for VPA selection with cmd/ctrl key
   const handleVpaClick = (e: React.MouseEvent, vpa: V1VerticalPodAutoscaler) => {
     const vpaKey = `${vpa.metadata?.namespace}/${vpa.metadata?.name}`;
@@ -218,6 +225,21 @@ const VerticalPodAutoscalers: React.FC = () => {
       navigate(`/dashboard/explore/verticalpodautoscalers/${activeVpa.metadata.namespace}/${activeVpa.metadata.name}`);
     }
   };
+
+  const handleViewVpaMenuItem = (e: React.MouseEvent, vpa: V1VerticalPodAutoscaler) => {
+    e.stopPropagation();
+    if (vpa.metadata?.name && vpa.metadata?.namespace) {
+      navigate(`/dashboard/explore/verticalpodautoscalers/${vpa.metadata.namespace}/${vpa.metadata.name}`);
+    }
+  };
+
+  const handleDeleteVpaMenuItem = (e: React.MouseEvent, vpa: V1VerticalPodAutoscaler) => {
+    e.stopPropagation();
+    setActiveVpa(vpa);
+    setSelectedVpas(new Set([`${vpa.metadata?.namespace}/${vpa.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
 
   // Handle delete action
   const handleDeleteClick = () => {
@@ -463,9 +485,9 @@ const VerticalPodAutoscalers: React.FC = () => {
     if (!searchQuery.trim()) {
       return vpas;
     }
-  
+
     const lowercaseQuery = searchQuery.toLowerCase();
-  
+
     return vpas.filter(vpa => {
       const name = vpa.metadata?.name?.toLowerCase() || '';
       const namespace = vpa.metadata?.namespace?.toLowerCase() || '';
@@ -474,35 +496,35 @@ const VerticalPodAutoscalers: React.FC = () => {
       const updateMode = vpa.spec?.updatePolicy?.updateMode?.toLowerCase() || '';
       const labels = vpa.metadata?.labels || {};
       const annotations = vpa.metadata?.annotations || {};
-  
+
       // Check if any container policy matches the query
       const policyMatches = (vpa.spec?.resourcePolicy?.containerPolicies || []).some(policy => {
         if (!policy) return false;
         const containerName = policy.containerName?.toLowerCase() || '';
         const mode = policy.mode?.toLowerCase() || '';
-        
+
         return containerName.includes(lowercaseQuery) || mode.includes(lowercaseQuery);
       });
-  
+
       // Check if any recommendation matches the query
       const recommendationMatches = (vpa.status?.recommendation?.containerRecommendations || []).some(rec => {
         if (!rec) return false;
         const containerName = rec.containerName?.toLowerCase() || '';
         return containerName.includes(lowercaseQuery);
       });
-  
+
       // Check if any condition matches the query
       const conditionMatches = (vpa.status?.conditions || []).some(condition => {
         if (!condition) return false;
         const type = condition.type?.toLowerCase() || '';
         const status = condition.status?.toLowerCase() || '';
         const reason = condition.reason?.toLowerCase() || '';
-        
-        return type.includes(lowercaseQuery) || 
-               status.includes(lowercaseQuery) || 
-               reason.includes(lowercaseQuery);
+
+        return type.includes(lowercaseQuery) ||
+          status.includes(lowercaseQuery) ||
+          reason.includes(lowercaseQuery);
       });
-  
+
       // Check if name, namespace, target, or any constraint contains the query
       if (
         name.includes(lowercaseQuery) ||
@@ -516,21 +538,21 @@ const VerticalPodAutoscalers: React.FC = () => {
       ) {
         return true;
       }
-  
+
       // Check if any label contains the query
       const labelMatches = Object.entries(labels).some(
         ([key, value]) =>
           key.toLowerCase().includes(lowercaseQuery) ||
           (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery))
       );
-  
+
       // Check if any annotation contains the query
       const annotationMatches = Object.entries(annotations).some(
         ([key, value]) =>
           key.toLowerCase().includes(lowercaseQuery) ||
           (typeof value === 'string' && value.toLowerCase().includes(lowercaseQuery))
       );
-  
+
       return labelMatches || annotationMatches;
     });
   }, [vpas, searchQuery]);
@@ -540,39 +562,39 @@ const VerticalPodAutoscalers: React.FC = () => {
     if (!sort.field || !sort.direction) {
       return filteredVpas;
     }
-  
+
     return [...filteredVpas].sort((a, b) => {
       const sortMultiplier = sort.direction === 'asc' ? 1 : -1;
-  
+
       switch (sort.field) {
         case 'name':
           return (a.metadata?.name || '').localeCompare(b.metadata?.name || '') * sortMultiplier;
-  
+
         case 'namespace':
           return (a.metadata?.namespace || '').localeCompare(b.metadata?.namespace || '') * sortMultiplier;
-  
+
         case 'target': {
           const targetA = `${a.spec?.targetRef?.kind || ''}/${a.spec?.targetRef?.name || ''}`;
           const targetB = `${b.spec?.targetRef?.kind || ''}/${b.spec?.targetRef?.name || ''}`;
           return targetA.localeCompare(targetB) * sortMultiplier;
         }
-  
+
         case 'mode': {
           const modeA = a.spec?.updatePolicy?.updateMode || 'Auto';
           const modeB = b.spec?.updatePolicy?.updateMode || 'Auto';
           return modeA.localeCompare(modeB) * sortMultiplier;
         }
-  
+
         case 'conditions': {
           // Sort by "Ready" condition status
           const getReadyStatus = (vpa: V1VerticalPodAutoscaler): string => {
             const readyCondition = (vpa.status?.conditions || []).find(c => c?.type === 'Ready');
             return readyCondition?.status || 'Unknown';
           };
-          
+
           const statusA = getReadyStatus(a);
           const statusB = getReadyStatus(b);
-          
+
           // True before False before Unknown
           if (statusA === statusB) return 0;
           if (statusA === 'True') return -1 * sortMultiplier;
@@ -581,13 +603,13 @@ const VerticalPodAutoscalers: React.FC = () => {
           if (statusB === 'False') return 1 * sortMultiplier;
           return 0;
         }
-  
+
         case 'age': {
           const timeA = a.metadata?.creationTimestamp ? new Date(a.metadata.creationTimestamp).getTime() : 0;
           const timeB = b.metadata?.creationTimestamp ? new Date(b.metadata.creationTimestamp).getTime() : 0;
           return (timeA - timeB) * sortMultiplier;
         }
-  
+
         default:
           return 0;
       }
@@ -604,7 +626,7 @@ const VerticalPodAutoscalers: React.FC = () => {
   const formatTargetRef = (vpa: V1VerticalPodAutoscaler): JSX.Element => {
     const kind = vpa.spec?.targetRef?.kind || '';
     const name = vpa.spec?.targetRef?.name || '';
-    
+
     return (
       <div className="flex items-center">
         <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 mr-2">
@@ -616,7 +638,7 @@ const VerticalPodAutoscalers: React.FC = () => {
       </div>
     );
   };
-  
+
 
   // Format update mode
   const formatUpdateMode = (vpa: V1VerticalPodAutoscaler): JSX.Element => {
@@ -793,7 +815,7 @@ const VerticalPodAutoscalers: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Vertical Pod Autoscalers</h1>
           <div className="w-full md:w-96 mt-2">
@@ -915,16 +937,30 @@ const VerticalPodAutoscalers: React.FC = () => {
                       {calculateAge(vpa.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => handleViewVpaMenuItem(e, vpa)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteVpaMenuItem(e, vpa)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

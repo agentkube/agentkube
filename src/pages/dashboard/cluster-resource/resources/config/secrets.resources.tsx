@@ -14,6 +14,13 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
@@ -48,19 +55,19 @@ const Secrets: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for secret selection with cmd/ctrl key
   const handleSecretClick = (e: React.MouseEvent, secret: V1Secret) => {
     const secretKey = `${secret.metadata?.namespace}/${secret.metadata?.name}`;
@@ -141,6 +148,21 @@ const Secrets: React.FC = () => {
     if (activeSecret && activeSecret.metadata?.name && activeSecret.metadata?.namespace) {
       navigate(`/dashboard/explore/secrets/${activeSecret.metadata.namespace}/${activeSecret.metadata.name}`);
     }
+  };
+
+
+  const handleViewSecretMenuItem = (e: React.MouseEvent, secret: V1Secret) => {
+    e.stopPropagation();
+    if (secret.metadata?.name && secret.metadata?.namespace) {
+      navigate(`/dashboard/explore/secrets/${secret.metadata.namespace}/${secret.metadata.name}`);
+    }
+  };
+
+  const handleDeleteSecretMenuItem = (e: React.MouseEvent, secret: V1Secret) => {
+    e.stopPropagation();
+    setActiveSecret(secret);
+    setSelectedSecrets(new Set([`${secret.metadata?.namespace}/${secret.metadata?.name}`]));
+    setShowDeleteDialog(true);
   };
 
   // Handle delete action
@@ -601,7 +623,7 @@ const Secrets: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Secrets</h1>
           <div className="w-full md:w-96 mt-2">
@@ -722,16 +744,30 @@ const Secrets: React.FC = () => {
                       {calculateAge(secret.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => handleViewSecretMenuItem(e, secret)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteSecretMenuItem(e, secret)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

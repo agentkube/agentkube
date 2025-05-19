@@ -13,6 +13,13 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { Trash2, ExternalLink, Copy, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
@@ -76,19 +83,19 @@ const RoleBindings: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for RoleBinding selection with cmd/ctrl key
   const handleRoleBindingClick = (e: React.MouseEvent, binding: V1RoleBinding) => {
     if (!binding.metadata?.namespace || !binding.metadata?.name) return;
@@ -246,6 +253,20 @@ const RoleBindings: React.FC = () => {
       console.error('Failed to clone RoleBinding:', error);
       setError(error instanceof Error ? error.message : 'Failed to clone RoleBinding');
     }
+  };
+
+  const handleViewRoleBindingMenuItem = (e: React.MouseEvent, binding: V1RoleBinding) => {
+    e.stopPropagation();
+    if (binding.metadata?.name && binding.metadata?.namespace) {
+      navigate(`/dashboard/explore/rolebindings/${binding.metadata.namespace}/${binding.metadata.name}`);
+    }
+  };
+
+  const handleDeleteRoleBindingMenuItem = (e: React.MouseEvent, binding: V1RoleBinding) => {
+    e.stopPropagation();
+    setActiveRoleBinding(binding);
+    setSelectedRoleBindings(new Set([`${binding.metadata?.namespace}/${binding.metadata?.name}`]));
+    setShowDeleteDialog(true);
   };
 
   // Handle delete action
@@ -842,9 +863,9 @@ const RoleBindings: React.FC = () => {
                   <TableRow
                     key={`${binding.metadata?.namespace}-${binding.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${binding.metadata?.namespace && binding.metadata?.name &&
-                        selectedRoleBindings.has(`${binding.metadata.namespace}/${binding.metadata.name}`)
-                        ? 'bg-blue-50 dark:bg-gray-800/30'
-                        : ''
+                      selectedRoleBindings.has(`${binding.metadata.namespace}/${binding.metadata.name}`)
+                      ? 'bg-blue-50 dark:bg-gray-800/30'
+                      : ''
                       }`}
                     onClick={(e) => handleRoleBindingClick(e, binding)}
                     onContextMenu={(e) => handleContextMenu(e, binding)}
@@ -872,16 +893,30 @@ const RoleBindings: React.FC = () => {
                       {calculateAge(binding.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => handleViewRoleBindingMenuItem(e, binding)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteRoleBindingMenuItem(e, binding)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

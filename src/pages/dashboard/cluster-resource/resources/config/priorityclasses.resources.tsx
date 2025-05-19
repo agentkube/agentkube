@@ -12,6 +12,13 @@ import { calculateAge } from '@/utils/age';
 import { ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
@@ -62,19 +69,19 @@ const PriorityClasses: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for PriorityClass selection with cmd/ctrl key
   const handlePriorityClassClick = (e: React.MouseEvent, priorityClass: V1PriorityClass) => {
     const priorityClassKey = priorityClass.metadata?.name || '';
@@ -155,6 +162,20 @@ const PriorityClasses: React.FC = () => {
     if (activePriorityClass && activePriorityClass.metadata?.name) {
       navigate(`/dashboard/explore/priorityclasses/${activePriorityClass.metadata.name}`);
     }
+  };
+
+  const handleViewPriorityClassMenuItem = (e: React.MouseEvent, priorityClass: V1PriorityClass) => {
+    e.stopPropagation();
+    if (priorityClass.metadata?.name) {
+      navigate(`/dashboard/explore/priorityclasses/${priorityClass.metadata.name}`);
+    }
+  };
+
+  const handleDeletePriorityClassMenuItem = (e: React.MouseEvent, priorityClass: V1PriorityClass) => {
+    e.stopPropagation();
+    setActivePriorityClass(priorityClass);
+    setSelectedPriorityClasses(new Set([priorityClass.metadata?.name || '']));
+    setShowDeleteDialog(true);
   };
 
   // Handle delete action
@@ -719,16 +740,30 @@ const PriorityClasses: React.FC = () => {
                       {calculateAge(priorityClass.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => handleViewPriorityClassMenuItem(e, priorityClass)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeletePriorityClassMenuItem(e, priorityClass)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

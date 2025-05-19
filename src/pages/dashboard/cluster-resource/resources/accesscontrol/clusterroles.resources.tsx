@@ -11,6 +11,13 @@ import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
@@ -173,18 +180,20 @@ const ClusterRoles: React.FC = () => {
     }
   };
 
-  // Handle create cluster role binding
-  const handleCreateClusterRoleBinding = () => {
-    setShowContextMenu(false);
-
-    if (!activeClusterRole || !activeClusterRole.metadata?.name) {
-      return;
+  // Helper function for dropdown menu actions
+  const handleViewClusterRoleMenuItem = (e: React.MouseEvent, clusterRole: V1ClusterRole) => {
+    e.stopPropagation();
+    if (clusterRole.metadata?.name) {
+      navigate(`/dashboard/explore/clusterroles/${clusterRole.metadata.name}`);
     }
-
-    // Navigate to create cluster role binding page
-    navigate(`/dashboard/explore/clusterroles/${activeClusterRole.metadata.name}/create-binding`);
   };
 
+  const handleDeleteClusterRoleMenuItem = (e: React.MouseEvent, clusterRole: V1ClusterRole) => {
+    e.stopPropagation();
+    setActiveClusterRole(clusterRole);
+    setSelectedClusterRoles(new Set([clusterRole.metadata?.name || '']));
+    setShowDeleteDialog(true);
+  };
 
   // Handle delete action
   const handleDeleteClick = () => {
@@ -843,16 +852,31 @@ const ClusterRoles: React.FC = () => {
                       {calculateAge(clusterRole.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => handleViewClusterRoleMenuItem(e, clusterRole)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className={`text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500 ${isSystemRole(clusterRole) ? 'opacity-50 pointer-events-none' : ''}`}
+                            onClick={(e) => !isSystemRole(clusterRole) ? handleDeleteClusterRoleMenuItem(e, clusterRole) : undefined}
+                            disabled={isSystemRole(clusterRole)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
