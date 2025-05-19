@@ -206,9 +206,11 @@ const CustomResourceViewer = () => {
                 {resource.kind}
               </Badge>
             </div>
-            <div className="text-gray-500 dark:text-gray-400">
-              Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${resource.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{resource.metadata.namespace}</span>
-            </div>
+            {resource.metadata.namespace && (
+              <div className="text-gray-500 dark:text-gray-400">
+                Namespace: <span onClick={() => navigate(`/dashboard/explore/namespaces/${resource.metadata?.namespace}`)} className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">{resource.metadata.namespace}</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => {
