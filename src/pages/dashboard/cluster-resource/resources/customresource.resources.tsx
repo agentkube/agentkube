@@ -5,7 +5,7 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown, Trash, Eye } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown, Trash, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -908,12 +908,13 @@ const CustomResources: React.FC = () => {
               </h2>
 
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="dark:bg-gray-900 dark:text-gray-400 border-gray-400 dark:border-gray-800">
+                <Button>
                   <Filter className="h-4 w-4 mr-1" />
                   Filter
                 </Button>
-                <Button variant="outline" size="sm" className="dark:bg-gray-900 dark:text-gray-400 border-gray-400 dark:border-gray-800"
+                <Button
                   onClick={() => navigate(`/dashboard/editor?kind=${activeCRD}&apiGroup=${activeGroup}`)}>
+                  <Plus />
                   Create
                 </Button>
               </div>
