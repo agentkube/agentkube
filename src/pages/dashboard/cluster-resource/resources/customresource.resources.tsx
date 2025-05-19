@@ -5,7 +5,7 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown, Trash, Eye, Plus } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown, Trash, Eye, Plus, LayoutList, Table2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -814,7 +814,7 @@ const CustomResources: React.FC = () => {
     return <ErrorComponent message={error} />;
   }
 
-  return (
+return (
     <div className="p-6 space-y-6
     max-h-[92vh] overflow-y-auto
       scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
@@ -849,81 +849,145 @@ const CustomResources: React.FC = () => {
 
       {/* Tabs for view mode selection */}
       <div className="flex items-center justify-between">
-        <Tabs defaultValue="grouped" className="w-full max-w-md" onValueChange={(value) => setViewMode(value as ViewMode)}>
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="grouped">Grouped View</TabsTrigger>
-            <TabsTrigger value="list">List View</TabsTrigger>
+        <Tabs defaultValue="grouped" className="w-full" onValueChange={(value) => setViewMode(value as ViewMode)}>
+          <TabsList>
+            <TabsTrigger value="grouped"><LayoutList /></TabsTrigger>
+            <TabsTrigger value="list"><List /></TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="flex items-center gap-2">
           {activeCRD && (
-            <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/50">
+            <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border ">
               {activeCRD}
             </Badge>
           )}
-          <Badge className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+          <Badge className="min-w-20 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
             {crds.length} CRDs
           </Badge>
         </div>
       </div>
 
       {/* Main content area */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* CRD navigator - left side */}
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none lg:col-span-1">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-            <h3 className="text-lg font-semibold">Custom Resource Definitions</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Select a CRD to view its instances</p>
-          </div>
-
-          <div className="overflow-y-auto max-h-[70vh]
-        scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
-        [&::-webkit-scrollbar]:w-1.5 
-        [&::-webkit-scrollbar-track]:bg-transparent 
-        [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-            {viewMode === 'grouped' ? renderCRDTree() : renderCRDList()}
-          </div>
-        </Card>
-
-        {/* Resources list - right side */}
-        <div className="lg:col-span-3 space-y-4">
-          {activeCRD && activeGroup && (
-            <div className="flex items-center justify-between">
-              <h2
-                className="text-2xl font-semibold flex items-center gap-2 hover:cursor-pointer group"
-                onClick={() => {
-                  const crd = crds.find(c => c.spec.group === activeGroup && c.spec.names.kind === activeCRD);
-                  if (crd) {
-                    navigate(`/dashboard/explore/customresourcedefinitions/${crd.metadata.name}`);
-                  }
-                }}
-              >
-                {activeCRD}
-                <span className="text-sm font-normal text-gray-500 dark:text-gray-400 group-hover:text-blue-500 group-hover:underline">
-                  {activeGroup}
-                </span>
-              </h2>
-
-              <div className="flex gap-2">
-                <Button>
-                  <Filter className="h-4 w-4 mr-1" />
-                  Filter
-                </Button>
-                <Button
-                  onClick={() => navigate(`/dashboard/editor?kind=${activeCRD}&apiGroup=${activeGroup}`)}>
-                  <Plus />
-                  Create
-                </Button>
-              </div>
+      {viewMode === 'grouped' ? (
+        // Grouped view - existing grid layout
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* CRD navigator - left side */}
+          <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none lg:col-span-1">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-semibold">Custom Resource Definitions</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Select a CRD to view its instances</p>
             </div>
+
+            <div className="overflow-y-auto max-h-[70vh]
+          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          [&::-webkit-scrollbar]:w-1.5 
+          [&::-webkit-scrollbar-track]:bg-transparent 
+          [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+              {renderCRDTree()}
+            </div>
+          </Card>
+
+          {/* Resources list - right side */}
+          <div className="lg:col-span-3 space-y-4">
+            {activeCRD && activeGroup && (
+              <div className="flex items-center justify-between">
+                <h2
+                  className="text-2xl font-semibold flex items-center gap-2 hover:cursor-pointer group"
+                  onClick={() => {
+                    const crd = crds.find(c => c.spec.group === activeGroup && c.spec.names.kind === activeCRD);
+                    if (crd) {
+                      navigate(`/dashboard/explore/customresourcedefinitions/${crd.metadata.name}`);
+                    }
+                  }}
+                >
+                  {activeCRD}
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400 group-hover:text-blue-500 group-hover:underline">
+                    {activeGroup}
+                  </span>
+                </h2>
+
+                <div className="flex gap-2">
+                  <Button>
+                    <Filter className="h-4 w-4 mr-1" />
+                    Filter
+                  </Button>
+                  <Button
+                    onClick={() => navigate(`/dashboard/editor?kind=${activeCRD}&apiGroup=${activeGroup}`)}>
+                    <Plus />
+                    Create
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {renderCustomResourcesTable()}
+          </div>
+        </div>
+      ) : (
+        // List view - full width
+        <div className="space-y-6">
+          {/* CRD List */}
+          <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-semibold">Custom Resource Definitions</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Click on a CRD to view its instances below</p>
+            </div>
+            <div className="overflow-y-auto max-h-[40vh]
+          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          [&::-webkit-scrollbar]:w-1.5 
+          [&::-webkit-scrollbar-track]:bg-transparent 
+          [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+              {renderCRDList()}
+            </div>
+          </Card>
+
+          {/* Separator */}
+          {activeCRD && activeGroup && (
+            <div className="border-t border-gray-300 dark:border-gray-700 pt-6"></div>
           )}
 
-          {renderCustomResourcesTable()}
+          {/* Resources Table */}
+          {activeCRD && activeGroup && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2
+                  className="text-2xl font-semibold flex items-center gap-2 hover:cursor-pointer group"
+                  onClick={() => {
+                    const crd = crds.find(c => c.spec.group === activeGroup && c.spec.names.kind === activeCRD);
+                    if (crd) {
+                      navigate(`/dashboard/explore/customresourcedefinitions/${crd.metadata.name}`);
+                    }
+                  }}
+                >
+                  {activeCRD}
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400 group-hover:text-blue-500 group-hover:underline">
+                    {activeGroup}
+                  </span>
+                </h2>
+
+                <div className="flex gap-2">
+                  <Button>
+                    <Filter className="h-4 w-4 mr-1" />
+                    Filter
+                  </Button>
+                  <Button
+                    onClick={() => navigate(`/dashboard/editor?kind=${activeCRD}&apiGroup=${activeGroup}`)}>
+                    <Plus />
+                    Create
+                  </Button>
+                </div>
+              </div>
+
+              {renderCustomResourcesTable()}
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -92,7 +92,6 @@ const HelmReleases: React.FC = () => {
             showAllNamespaces
           );
 
-          console.log('Release data:', releaseData);
         } catch (error) {
           console.error('Failed to fetch Helm releases:', error);
           // Provide a more friendly error message
