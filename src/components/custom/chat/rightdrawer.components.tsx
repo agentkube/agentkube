@@ -443,7 +443,7 @@ const RightDrawer: React.FC = () => {
                     onFocus={handleInputFocus}
                     onBlur={handleInputBlur}
                     onSubmit={handleSubmit}
-                    placeholder="Ask anything (⌘L), @ to mention, ↑ to select"
+                    placeholder="Ask anything (⌘L)"
                     disabled={isLoading}
                     className="dark:border-transparent"
                     autoFocus={true}

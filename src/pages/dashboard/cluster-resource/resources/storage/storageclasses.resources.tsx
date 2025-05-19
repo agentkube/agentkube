@@ -419,15 +419,6 @@ const StorageClasses: React.FC = () => {
           Set as Default
         </div>
 
-        <div
-          className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center ${selectedStorageClasses.size > 1 ? 'text-gray-400 dark:text-gray-600 pointer-events-none' : ''
-            }`}
-          onClick={selectedStorageClasses.size <= 1 ? handleCloneStorageClass : undefined}
-          title={selectedStorageClasses.size > 1 ? "Select only one StorageClass to clone" : ""}
-        >
-          <Copy className="h-4 w-4 mr-2" />
-          Clone
-        </div>
 
         <div
           className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center text-red-600 dark:text-red-400"
@@ -701,7 +692,7 @@ const StorageClasses: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Storage Classes</h1>
           <div className="w-full md:w-96 mt-2">

@@ -1,7 +1,13 @@
 import React from "react";
-import { Moon, Settings, Keyboard, File, Monitor, Server } from "lucide-react";
+import { Moon, Settings, Keyboard, File, Monitor, Server, CodeXml } from "lucide-react";
 
 export const SYSTEM_SUGGESTIONS = [
+  {
+    title: 'Editor',
+    description: 'Edit Resources',
+    icon: <CodeXml className="w-5 h-5" />,
+    link: '/dashboard/editor'
+  },
   {
     title: 'Switch Context',
     description: 'Switch Context',

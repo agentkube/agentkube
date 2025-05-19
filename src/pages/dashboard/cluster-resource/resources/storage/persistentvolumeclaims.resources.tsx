@@ -49,19 +49,19 @@ const PersistentVolumeClaims: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Add click handler for PVC selection with cmd/ctrl key
   const handlePvcClick = (e: React.MouseEvent, pvc: V1PersistentVolumeClaim) => {
     const pvcKey = `${pvc.metadata?.namespace}/${pvc.metadata?.name}`;
@@ -237,8 +237,27 @@ const PersistentVolumeClaims: React.FC = () => {
       // Clear selection after deletion
       setSelectedPvcs(new Set());
 
-      // Refresh PVC list
-      // You can call your fetchAllPVCs function here
+      // Refresh PVC list after deletion
+      if (currentContext && selectedNamespaces.length > 0) {
+        // If no namespaces are selected, fetch from all namespaces
+        if (selectedNamespaces.length === 0) {
+          const pvcsData = await getPersistentVolumeClaims(currentContext.name);
+          setPvcs(pvcsData);
+          return;
+        }
+
+        // Fetch PVCs for each selected namespace
+        const pvcPromises = selectedNamespaces.map(namespace =>
+          getPersistentVolumeClaims(currentContext.name, namespace)
+        );
+
+        const results = await Promise.all(pvcPromises);
+
+        // Flatten the array of PVC arrays
+        const allPvcs = results.flat();
+        setPvcs(allPvcs);
+        setError(null);
+      }
 
     } catch (error) {
       console.error('Failed to delete PVC(s):', error);
@@ -285,16 +304,6 @@ const PersistentVolumeClaims: React.FC = () => {
           {selectedPvcs.size > 1
             ? `${selectedPvcs.size} PVCs selected`
             : activePvc?.metadata?.name || 'PVC actions'}
-        </div>
-
-        <div
-          className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center ${(selectedPvcs.size > 1 || !isBound) ? 'text-gray-400 dark:text-gray-600 pointer-events-none' : ''
-            }`}
-          onClick={selectedPvcs.size <= 1 && isBound ? handleClonePvc : undefined}
-          title={selectedPvcs.size > 1 ? "Select only one PVC to clone" : (!isBound ? "PVC must be bound to clone" : "")}
-        >
-          <Copy className="h-4 w-4 mr-2" />
-          Clone
         </div>
 
         <div
@@ -639,7 +648,7 @@ const PersistentVolumeClaims: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Persistent Volume Claims</h1>
           <div className="w-full md:w-96 mt-2">

@@ -16,7 +16,6 @@ import { createPortal } from 'react-dom';
 import { Trash2, Copy } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
-import { OPERATOR_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -211,75 +210,6 @@ const PersistentVolumes: React.FC = () => {
     };
   }, [selectedVolumes]);
 
-  // Handle clone PV
-  const handleClonePv = async () => {
-    setShowContextMenu(false);
-
-    try {
-      if (selectedVolumes.size === 0 && activeVolume) {
-        // Clone single active PV
-        await clonePv(activeVolume);
-      } else if (selectedVolumes.size === 1) {
-        // Clone the selected PV
-        const volumeName = Array.from(selectedVolumes)[0];
-        const volumeToClone = volumes.find(v => v.metadata?.name === volumeName);
-
-        if (volumeToClone) {
-          await clonePv(volumeToClone);
-        }
-      } else {
-        // Alert user that multiple PV cloning is not supported
-        alert("Cloning multiple PVs at once is not supported. Please select a single PV to clone.");
-      }
-
-      // Refresh PV list after cloning
-      if (currentContext) {
-        const refreshedVolumes = await getPersistentVolumes(currentContext.name);
-        setVolumes(refreshedVolumes);
-      }
-
-    } catch (error) {
-      console.error('Failed to clone PV:', error);
-      setError(error instanceof Error ? error.message : 'Failed to clone PV');
-    }
-  };
-
-  // Clone a PV
-  const clonePv = async (volume: V1PersistentVolume) => {
-    if (!currentContext || !volume.metadata?.name) return;
-
-    // Ask for the new PV name
-    const newName = prompt("Enter name for the cloned PV:", `${volume.metadata.name}-clone`);
-    if (!newName) return; // User cancelled
-
-    // Create a new PV based on the existing one
-    const newVolume = {
-      apiVersion: 'v1',
-      kind: 'PersistentVolume',
-      metadata: {
-        name: newName,
-        // Copy labels but add a cloned-from label
-        labels: {
-          ...(volume.metadata.labels || {}),
-          clonedFrom: volume.metadata.name
-        }
-      },
-      spec: {
-        ...volume.spec,
-        // Remove the claimRef to avoid binding to the same PVC
-        claimRef: undefined
-      }
-    };
-
-    // Create the new PV
-    await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/api/v1/persistentvolumes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newVolume),
-    });
-  };
 
   // Handle delete action
   const handleDeleteClick = () => {
@@ -318,6 +248,16 @@ const PersistentVolumes: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete PV(s):', error);
       setError(error instanceof Error ? error.message : 'Failed to delete PV(s)');
+
+      // Refresh the list even if some deletions failed to show current state
+      if (currentContext) {
+        try {
+          const refreshedVolumes = await getPersistentVolumes(currentContext.name);
+          setVolumes(refreshedVolumes);
+        } catch (refreshError) {
+          console.error('Failed to refresh PV list after deletion error:', refreshError);
+        }
+      }
     }
   };
 
@@ -344,7 +284,6 @@ const PersistentVolumes: React.FC = () => {
     // Check if PV is in a state where operations are allowed
     const isBound = activeVolume?.status?.phase === 'Bound';
     const isAvailable = activeVolume?.status?.phase === 'Available';
-    const canClone = isAvailable || !isBound; // Can only clone if Available or not Bound
 
     return createPortal(
       <div
@@ -361,16 +300,6 @@ const PersistentVolumes: React.FC = () => {
           {selectedVolumes.size > 1
             ? `${selectedVolumes.size} PVs selected`
             : activeVolume?.metadata?.name || 'PV actions'}
-        </div>
-
-        <div
-          className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center ${(selectedVolumes.size > 1 || !canClone) ? 'text-gray-400 dark:text-gray-600 pointer-events-none' : ''
-            }`}
-          onClick={selectedVolumes.size <= 1 && canClone ? handleClonePv : undefined}
-          title={selectedVolumes.size > 1 ? "Select only one PV to clone" : (!canClone ? "PV must be Available to clone" : "")}
-        >
-          <Copy className="h-4 w-4 mr-2" />
-          Clone
         </div>
 
         <div
@@ -689,7 +618,7 @@ const PersistentVolumes: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Persistent Volumes</h1>
           <div className="w-full md:w-96 mt-2">

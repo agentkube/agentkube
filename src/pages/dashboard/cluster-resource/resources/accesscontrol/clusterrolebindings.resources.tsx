@@ -361,16 +361,6 @@ const ClusterRoleBindings: React.FC = () => {
               <UserPlus className="h-4 w-4 mr-2" />
               Add Subject
             </div>
-
-            <div
-              className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center ${isSystemClusterRoleBinding ? 'text-gray-400 dark:text-gray-600 pointer-events-none' : ''
-                }`}
-              onClick={!isSystemClusterRoleBinding ? handleCloneBinding : undefined}
-              title={isSystemClusterRoleBinding ? "System ClusterRoleBindings should not be cloned" : ""}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Clone
-            </div>
           </>
         )}
 
