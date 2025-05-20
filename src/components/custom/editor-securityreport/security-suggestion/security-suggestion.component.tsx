@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { securityRemediationStream } from '@/api/remediation';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -117,8 +117,8 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
             onClick={handleClick}
           >
             <div className="flex items-center">
-              <Sparkles className="w-4 h-4 mr-2 text-green-500" />
-              {isLoading ? 'Generating suggestions...' : 'View remediation suggestions'}
+              <Wand2 className="w-4 h-4 mr-2 text-green-500" />
+              {isLoading ? 'Generating suggestions...' : 'View Remediation'}
             </div>
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
           </Button>

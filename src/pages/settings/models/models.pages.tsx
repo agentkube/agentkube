@@ -20,6 +20,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
+import { RemediationConfiguration } from '@/components/custom';
 
 const ModelConfiguration = () => {
   const { models, toggleModel, addModel, removeModel } = useModels();
@@ -38,11 +39,11 @@ const ModelConfiguration = () => {
     const modelToToggle = models.find(model => model.id === modelId);
 
     if (!modelToToggle) return;
-    
+
     if (modelToToggle.premiumOnly && !isPremiumUser) {
       return;
     }
-    
+
     try {
       await toggleModel(modelId, !modelToToggle.enabled);
     } catch (error) {
@@ -61,7 +62,7 @@ const ModelConfiguration = () => {
           enabled: false,
           premium_only: false
         });
-        
+
         setNewModelName('');
         setNewModelProvider('');
         setShowAddInput(false);
@@ -73,7 +74,7 @@ const ModelConfiguration = () => {
 
   // Open delete confirmation dialog
   const openDeleteDialog = (e: React.MouseEvent, modelId: string) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     setModelToDelete(modelId);
     setShowDeleteDialog(true);
   };
@@ -119,12 +120,12 @@ const ModelConfiguration = () => {
                     {/* <AlertCircle className="w-3 h-3 text-amber-500" /> */}
                   </div>
                 </div>
-                
+
                 <span className="text-sm w-full ml-2 text-gray-500/80 dark:text-gray-400/60 flex justify-between items-center">
                   <span>{model.name}</span>
                   <span className="ml-2 text-xs px-1.5 py-0.5 bg-gray-300/30 dark:bg-green-500/10 text-gray-800 dark:text-green-500 rounded-[0.3rem]">Pro Plan</span>
                 </span>
-                
+
                 {model.isCustom && (
                   <div className="ml-auto">
                     <button
@@ -144,7 +145,7 @@ const ModelConfiguration = () => {
         </TooltipProvider>
       );
     }
-    
+
     return (
       <div
         key={model.id}
@@ -156,7 +157,7 @@ const ModelConfiguration = () => {
             {model.enabled && <Check className="w-3 h-3 text-black dark:text-white" />}
           </div>
         </div>
-        
+
         <span className={`text-sm ml-2 ${model.enabled ? 'text-black dark:text-white' : 'text-gray-400'}`}>
           {model.name}
         </span>
@@ -225,6 +226,9 @@ const ModelConfiguration = () => {
           </button>
         )}
       </div>
+
+      {/* Remediation Default Model */}
+      <RemediationConfiguration />
 
       <ModelConfig />
 

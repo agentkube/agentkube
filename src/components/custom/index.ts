@@ -17,6 +17,8 @@ export { default as DeleteContextDialog } from './deletecontextdialog/deletecont
 export { default as ModelDialog } from './modeldialog/modeldialog.component';
 export { default as ProxyConfigDialog } from './proxyconfigdialog/proxyconfigdialog.component';
 export { default as ContextSwitcher } from './contextswitcher/contextswitcher.component';
+export { default as RemediationConfiguration } from './remediationconfig/remediationconfig.component';
+
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
 export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
