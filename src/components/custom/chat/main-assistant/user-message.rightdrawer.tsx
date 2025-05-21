@@ -19,7 +19,7 @@ interface UserMessageProps {
 
 const UserMessage: React.FC<UserMessageProps> = ({ content, contextFiles = [] })  => {
   return (
-    <div className="flex p-4 w-full">
+    <div className="flex items-center p-4 w-full">
       <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden mr-2">
         <User className="w-4 h-4" />
       </div>
@@ -36,7 +36,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ content, contextFiles = [] })
               <h3 className="text-lg font-bold mt-4 mb-2">{children}</h3>
             ),
             p: ({ children }) => (
-              <p className="text-gray-800 dark:text-white mb-4">{children}</p>
+              <p className="text-gray-800 dark:text-white">{children}</p>
             ),
             ul: ({ children }) => (
               <ul className="list-disc list-inside space-y-2 mb-4 ml-4">{children}</ul>
