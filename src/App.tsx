@@ -1,11 +1,5 @@
-
-// import { invoke } from "@tauri-apps/api/tauri";
-
 import { Menu } from "@/components/menu"
-
-// import { TailwindIndicator } from "./components/tailwind-indicator"
 import { ThemeProvider } from "./components/theme-provider"
-import { cn } from "./lib/utils"
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/home.pages';
 import {
