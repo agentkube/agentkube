@@ -1,174 +1,13 @@
 use std::sync::Mutex;
 use std::time::Duration;
-use std::process::Command;
 use tauri::{Manager, RunEvent};
 use tauri_plugin_shell::{process::CommandChild, process::CommandEvent, ShellExt};
-
-// Function to kill processes by name (cross-platform)
-fn kill_process_by_name(process_name: &str) {
-    println!("Attempting to kill any existing '{}' processes...", process_name);
-    
-    #[cfg(target_os = "windows")]
-    {
-        // Windows: use taskkill
-        let output = Command::new("taskkill")
-            .args(&["/F", "/IM", &format!("{}.exe", process_name)])
-            .output();
-        
-        match output {
-            Ok(o) => {
-                if o.status.success() {
-                    println!("Successfully terminated {} processes", process_name);
-                } else {
-                    let err = String::from_utf8_lossy(&o.stderr);
-                    // It's normal to get an error if no processes are found
-                    if !err.contains("not found") {
-                        eprintln!("Error terminating {}: {}", process_name, err);
-                    }
-                }
-            }
-            Err(e) => eprintln!("Failed to execute taskkill: {}", e),
-        }
-    }
-    
-    #[cfg(target_os = "macos")]
-    #[cfg(target_os = "linux")]
-    {
-        // macOS/Linux: use pkill
-        let output = Command::new("pkill")
-            .arg("-f")
-            .arg(process_name)
-            .output();
-        
-        match output {
-            Ok(o) => {
-                // pkill returns 0 if processes were killed, 1 if no matching processes were found
-                if o.status.success() {
-                    println!("Successfully terminated {} processes", process_name);
-                } else if o.status.code() == Some(1) {
-                    println!("No {} processes found to terminate", process_name);
-                } else {
-                    eprintln!("Error terminating {}: {}", process_name, 
-                             String::from_utf8_lossy(&o.stderr));
-                }
-            }
-            Err(e) => eprintln!("Failed to execute pkill: {}", e),
-        }
-    }
-}
-
-// Function to kill process using a specific port
-fn kill_process_by_port(port: u16) {
-    println!("Attempting to kill any process using port {}...", port);
-    
-    #[cfg(target_os = "windows")]
-    {
-        // First find the PID
-        let output = Command::new("netstat")
-            .args(&["-ano", "|", "findstr", &format!(":{}", port)])
-            .output();
-            
-        match output {
-            Ok(o) => {
-                let output_str = String::from_utf8_lossy(&o.stdout);
-                // Parse the output to find PID
-                for line in output_str.lines() {
-                    if line.contains(&format!(":{}", port)) {
-                        // The PID is the last column in the output
-                        if let Some(pid) = line.split_whitespace().last() {
-                            // Kill the process with the PID
-                            let _ = Command::new("taskkill")
-                                .args(&["/F", "/PID", pid])
-                                .output();
-                            println!("Killed process with PID {} on port {}", pid, port);
-                        }
-                    }
-                }
-            }
-            Err(e) => eprintln!("Failed to execute netstat: {}", e),
-        }
-    }
-    
-    #[cfg(target_os = "macos")]
-    {
-        // First find the PID
-        let output = Command::new("lsof")
-            .args(&["-i", &format!("tcp:{}", port)])
-            .output();
-            
-        match output {
-            Ok(o) => {
-                let output_str = String::from_utf8_lossy(&o.stdout);
-                // Parse the output to find PID (second column)
-                for line in output_str.lines().skip(1) { // Skip header
-                    let parts: Vec<&str> = line.split_whitespace().collect();
-                    if parts.len() >= 2 {
-                        let pid = parts[1];
-                        // Kill the process with the PID
-                        let _ = Command::new("kill")
-                            .args(&["-9", pid])
-                            .output();
-                        println!("Killed process with PID {} on port {}", pid, port);
-                    }
-                }
-            }
-            Err(e) => eprintln!("Failed to execute lsof: {}", e),
-        }
-    }
-    
-    #[cfg(target_os = "linux")]
-    {
-        // First find the PID
-        let output = Command::new("lsof")
-            .args(&["-i", &format!(":{}", port)])
-            .output();
-            
-        match output {
-            Ok(o) => {
-                let output_str = String::from_utf8_lossy(&o.stdout);
-                // Parse the output to find PID (second column)
-                for line in output_str.lines().skip(1) { // Skip header
-                    let parts: Vec<&str> = line.split_whitespace().collect();
-                    if parts.len() >= 2 {
-                        let pid = parts[1];
-                        // Kill the process with the PID
-                        let _ = Command::new("kill")
-                            .args(&["-9", pid])
-                            .output();
-                        println!("Killed process with PID {} on port {}", pid, port);
-                    }
-                }
-            }
-            Err(e) => eprintln!("Failed to execute lsof: {}", e),
-        }
-    }
-}
-
-// Cleanup function that kills all relevant processes
-fn cleanup_existing_processes() {
-    println!("Cleaning up any existing processes...");
-    
-    // Kill processes by name
-    kill_process_by_name("operator");
-    kill_process_by_name("orchestrator");
-    
-    // Kill processes by port
-    kill_process_by_port(4688);
-    kill_process_by_port(4689);
-    
-    // Wait a moment to ensure processes have time to terminate
-    std::thread::sleep(Duration::from_millis(1000));
-    println!("Cleanup completed");
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize states to store the child processes
     let operator_state: Mutex<Option<CommandChild>> = Mutex::new(None);
     let orchestrator_state: Mutex<Option<CommandChild>> = Mutex::new(None);
-
-    // First, clean up any existing processes
-    cleanup_existing_processes();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
@@ -231,7 +70,7 @@ pub fn run() {
                                                     println!("Orchestrator output: {}", String::from_utf8_lossy(&line));
                                                 },
                                                 CommandEvent::Stderr(line) => {
-                                                    eprintln!("Orchestrator output: {}", String::from_utf8_lossy(&line));
+                                                    eprintln!("Orchestrator error: {}", String::from_utf8_lossy(&line));
                                                 },
                                                 CommandEvent::Error(err) => {
                                                     eprintln!("Orchestrator process error: {}", err);
