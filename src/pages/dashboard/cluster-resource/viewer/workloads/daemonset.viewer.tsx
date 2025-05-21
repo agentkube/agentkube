@@ -22,7 +22,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import DaemonSetPods from '../components/daemonsetpods.viewer';
-import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceCanvas, ResourceViewerYamlTab } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
 
 // Define interface for daemonset data (extending V1DaemonSet with events)
@@ -373,6 +373,7 @@ const DaemonSetViewer: React.FC = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
+            <TabsTrigger value="canvas">Canvas</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="pods">Pods</TabsTrigger>
           </TabsList>
@@ -712,6 +713,22 @@ const DaemonSetViewer: React.FC = () => {
               namespace={daemonSetData.metadata.namespace || ''}
               currentContext={currentContext}
             />
+          </TabsContent>
+
+          <TabsContent value="canvas" className="space-y-6">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              {daemonSetData && (
+                <ResourceCanvas
+                  resourceDetails={{
+                    namespace: daemonSetData.metadata?.namespace || '',
+                    group: 'apps',
+                    version: 'v1',
+                    resourceType: 'daemonsets',
+                    resourceName: daemonSetData.metadata?.name || '',
+                  }}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6">

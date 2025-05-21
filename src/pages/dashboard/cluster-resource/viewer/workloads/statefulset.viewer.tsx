@@ -23,7 +23,7 @@ import { useSearchParams } from 'react-router-dom';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import StatefulSetPods from '../components/statefulsetpod.viewer';
-import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceCanvas, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for statefulset data (extending V1StatefulSet with events)
 interface StatefulSetData extends V1StatefulSet {
@@ -390,6 +390,7 @@ const StatefulSetViewer: React.FC = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
+            <TabsTrigger value="canvas">Canvas</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="pods">Pods</TabsTrigger>
           </TabsList>
@@ -700,6 +701,22 @@ const StatefulSetViewer: React.FC = () => {
               namespace={statefulSetData.metadata.namespace || ''}
               currentContext={currentContext}
             />
+          </TabsContent>
+
+          <TabsContent value="canvas" className="space-y-6">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              {statefulSetData && (
+                <ResourceCanvas
+                  resourceDetails={{
+                    namespace: statefulSetData.metadata?.namespace || '',
+                    group: 'apps',
+                    version: 'v1',
+                    resourceType: 'statefulsets',
+                    resourceName: statefulSetData.metadata?.name || '',
+                  }}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6">

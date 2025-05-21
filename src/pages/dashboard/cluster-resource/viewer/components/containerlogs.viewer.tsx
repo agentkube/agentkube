@@ -521,11 +521,11 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
 
         {/* Search bar */}
         {searchVisible && (
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-1">
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 ">
             <div className="relative flex-1">
               <Input
                 ref={searchInputRef}
-                className="pl-8 h-8 text-sm"
+                className="pl-8 h-8 text-sm "
                 placeholder="Search logs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -654,8 +654,8 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
         {/* Logs display */}
         <div
           ref={logContainerRef}
-          className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto h-[400px] font-mono text-sm 
-          
+          className="bg-gray-100 dark:bg-gray-500/10 p-4 rounded-lg overflow-auto h-[400px] font-mono text-sm 
+          border border-gray-600/10 dark:border-gray-200/10
           overflow-y-auto
           scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
           [&::-webkit-scrollbar]:w-1.5 
@@ -682,7 +682,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
                 className={`m-0 font-mono flex items-start break-all ${searchMatches.includes(idx) && currentMatchIndex === searchMatches.indexOf(idx) ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
               >
                 {showTimestamps && log.timestamp && (
-                  <span className="text-gray-500 dark:text-gray-400 mr-2 flex-shrink-0">
+                  <span className="text-gray-500 dark:text-green-400 mr-2 flex-shrink-0">
                     [{formatTimestamp(log.timestamp)}]
                   </span>
                 )}

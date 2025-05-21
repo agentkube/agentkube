@@ -652,7 +652,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 300, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-80 bg-gray-100 rounded-xl shadow-xl border-l border-gray-200 text-gray-600 overflow-y-auto max-h-[calc(100vh-4rem)]"
+            className="w-80 bg-gray-100 rounded-xl shadow-xl text-gray-600 overflow-y-auto max-h-[calc(100vh-4rem)]"
           >
             <div className="p-4">
               <div className="flex justify-between items-center mb-6">
@@ -679,7 +679,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Name</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <p className="text-base text-gray-900 break-words">{resource.resourceName}</p>
+                      <p className="text-sm text-gray-900 break-words">{resource.resourceName}</p>
                     </div>
                   </div>
 
@@ -687,7 +687,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                     {resource.namespace && (
                       <>
                         <h3 className="text-sm font-medium text-gray-500">Namespace</h3>
-                        <p className="mt-1 text-base text-gray-900 border border-gray-500 w-fit py-0.5 px-2 bg-gray-50 rounded-[0.5rem]">
+                        <p className="mt-1 text-xs text-gray-900 border border-gray-500 dark:border-gray-500/30 w-fit py-0.5 px-2 bg-gray-50 rounded-[0.2rem]">
                           {resource.namespace}
                         </p>
                       </>

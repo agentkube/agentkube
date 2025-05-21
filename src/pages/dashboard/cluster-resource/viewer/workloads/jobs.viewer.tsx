@@ -23,7 +23,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import JobPods from '../components/jobpods.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
-import { DeletionDialog } from '@/components/custom';
+import { DeletionDialog, ResourceCanvas } from '@/components/custom';
 
 // Define interface for job data (extending V1Job with events)
 interface JobData extends V1Job {
@@ -499,6 +499,7 @@ const JobViewer: React.FC = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
+            <TabsTrigger value="canvas">Canvas</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="pods">Pods</TabsTrigger>
           </TabsList>
@@ -773,6 +774,21 @@ const JobViewer: React.FC = () => {
             />
           </TabsContent>
 
+          <TabsContent value="canvas" className="space-y-6">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              {jobData && (
+                <ResourceCanvas
+                  resourceDetails={{
+                    namespace: jobData.metadata?.namespace || '',
+                    group: 'batch',
+                    version: 'v1',
+                    resourceType: 'jobs',
+                    resourceName: jobData.metadata?.name || '',
+                  }}
+                />
+              )}
+            </div>
+          </TabsContent>
 
           <TabsContent value="events" className="space-y-6">
             <EventsViewer

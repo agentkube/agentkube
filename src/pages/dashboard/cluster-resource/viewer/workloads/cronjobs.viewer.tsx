@@ -23,7 +23,7 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { useSearchParams } from 'react-router-dom';
-import { DeletionDialog } from '@/components/custom';
+import { DeletionDialog, ResourceCanvas } from '@/components/custom';
 
 // Define interface for cronjob data (extending V1CronJob with events)
 interface CronJobData extends V1CronJob {
@@ -501,6 +501,7 @@ const CronJobViewer: React.FC = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="yaml">YAML</TabsTrigger>
+            <TabsTrigger value="canvas">Canvas</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="jobs">Jobs</TabsTrigger>
           </TabsList>
@@ -849,6 +850,22 @@ const CronJobViewer: React.FC = () => {
               namespace={cronJobData.metadata.namespace || ''}
               currentContext={currentContext}
             />
+          </TabsContent>
+
+          <TabsContent value="canvas" className="space-y-6">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              {cronJobData && (
+                <ResourceCanvas
+                  resourceDetails={{
+                    namespace: cronJobData.metadata?.namespace || '',
+                    group: 'batch',
+                    version: 'v1',
+                    resourceType: 'cronjobs',
+                    resourceName: cronJobData.metadata?.name || '',
+                  }}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6">
