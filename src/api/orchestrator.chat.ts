@@ -1,5 +1,5 @@
 import { ORCHESTRATOR_URL } from "@/config";
-
+import { platform } from "@tauri-apps/plugin-os";
 // Type definitions
 export interface ChatRequest {
   message: string;
@@ -98,8 +98,10 @@ export const chatStream = async (
   request: ChatRequest,
   callbacks: ChatStreamCallbacks
 ): Promise<void> => {
+  const osType = platform();
+  const url = osType === 'macos' ? `/orchestrator/api/chat` : `${ORCHESTRATOR_URL}/api/chat`;
   try {
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/chat`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

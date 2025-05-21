@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { jsonToYaml, yamlToJson } from '@/utils/yaml';
 import { updateResource } from '@/api/internal/resources';
 import { ChatMessage } from '@/types/chat';
-import { chatStream } from '@/api/chat';
+// import { chatStream } from '@/api/orchestrator.chat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { scanConfig } from '@/api/scanner/security'; // Add this import
 import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report';
