@@ -3,7 +3,7 @@ import { OPERATOR_URL } from "@/config";
 import { ImageSecurityReport } from "@/types/scanner/image-security-report";
 import { MisconfigurationReport } from "@/types/scanner/misconfiguration-report";
 import { ClusterComplianceReport, ComplianceReportsApiResponse, VulnerabilityReportItem, VulnerabilityReportsApiResponse } from "@/types/scanner/vulnerability-report";
-
+import { SECURITY_SCAN_URL } from "@/config";
 interface ScanConfigRequest {
   manifest: string;
 }
@@ -11,7 +11,7 @@ interface ScanConfigRequest {
 export const scanConfig = async (
   manifest: string
 ): Promise<MisconfigurationReport> => {
-  const response = await fetch("/v2/security/scan/config", {
+  const response = await fetch(`${SECURITY_SCAN_URL}/scan/config`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -32,7 +32,7 @@ export const scanConfig = async (
 export const scanImage = async (
   image: string
 ): Promise<ImageSecurityReport> => {
-  const response = await fetch("/v2/security/scan/image", {
+  const response = await fetch(`${SECURITY_SCAN_URL}/scan/image`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
