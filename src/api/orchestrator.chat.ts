@@ -106,8 +106,7 @@ export const chatStream = async (
         'Accept': 'text/event-stream'
       },
       body: JSON.stringify(request),
-      cache: 'no-store',
-      mode: 'no-cors'
+      cache: 'no-store'
     });
 
     if (!response.ok) {
