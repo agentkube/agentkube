@@ -61,18 +61,7 @@
     "shell:default",
     {
       "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "args": true,
-          "name": "bin/operator/operator",
-          "sidecar": true
-        },
-        {
-          "args": true,
-          "name": "bin/orchestrator/orchestrator",
-          "sidecar": true
-        }
-      ]
+      "allow": []
     },
     "shell:allow-open"
   ]
