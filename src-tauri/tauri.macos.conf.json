@@ -21,19 +21,13 @@
     ]
   },
   "bundle": {
-    "linux": {
-      "appimage": {
-        "bundleMediaFramework": false,
-        "files": {}
+    "macOS": {
+      "dmg": {
+        "background": "images/background.png"
       },
-      "deb": {
-        "files": {}
-      },
-      "rpm": {
-        "epoch": 0,
-        "files": {},
-        "release": "1"
-      }
+      "files": {},
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "10.13"
     }
   }
 }
