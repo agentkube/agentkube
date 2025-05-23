@@ -4,8 +4,16 @@
   "pub_date": "2025-05-22T14:30:00Z",
   "platforms": {
     "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTOHZqMGF3VEZaV0tMSFFwRDVUNS92N3dVWWtacmhHL3B5N0xGUjdZcm5TN21LaTZEVjFEZ01vWEU0cCtCY2xuY0c2d1BodWFKanJHY3ZMSlU2WGhBSEd5YWxvTGhrTVFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjgzMTA3ODk1CWZpbGU6bXlhcHAuQXBwSW1hZ2UuemlwCnRGMEdYYWpLQnJFODE0UzNnUVlUWHljb3hSRmIrbmxKSjE2aVhGOG5NaDlqMHFDMG9DRld1WVNlVTk3SkxQYnJlK2JSN0hzQUc3ZkRYVFVpR0xWVkJBPT0K",
-      "url": "https://github.com/agentkube/agentkube/raw/refs/heads/release/download/v1.0.0/Agentkube.AppImage"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWtSMWhwOGI2RTF0UEVkb1JDelIydGVKdURQZGNBVWNkM1lMQkdpK0FBL3VKWTJ0UjZHSXlZSVFGQjl3MkV0SFE1TEE2a01pTmY2MzdVbm5hZENmRndFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MDI4MTUwCWZpbGU6QWdlbnRrdWJlXzEuMC4yX2FtZDY0LkFwcEltYWdlCmtPUGFsazU0bXpiVUZpbHIvbVROMnlBYWNPNktPMmw1d0Y1YVdwemtJb2swNkdTSzlnbjhyeDBRblNSd0lKRTVGWWZqeWxTamJEdGJrb095TkxYOURnPT0K",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.2/Agentkube_1.0.2_amd64.AppImage"
+    },
+    "linux-x86_64-deb": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWtSMWhwOGI2RTF0UEVkb1JDelIydGVKdURQZGNBVWNkM1lMQkdpK0FBL3VKWTJ0UjZHSXlZSVFGQjl3MkV0SFE1TEE2a01pTmY2MzdVbm5hZENmRndFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MDI4MTUwCWZpbGU6QWdlbnRrdWJlXzEuMC4yX2FtZDY0LkFwcEltYWdlCmtPUGFsazU0bXpiVUZpbHIvbVROMnlBYWNPNktPMmw1d0Y1YVdwemtJb2swNkdTSzlnbjhyeDBRblNSd0lKRTVGWWZqeWxTamJEdGJrb095TkxYOURnPT0K",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.2/Agentkube_1.0.2_amd64.deb"
+    },
+    "linux-x86_64-rpm": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWtSMWhwOGI2RTF0UEVkb1JDelIydGVKdURQZGNBVWNkM1lMQkdpK0FBL3VKWTJ0UjZHSXlZSVFGQjl3MkV0SFE1TEE2a01pTmY2MzdVbm5hZENmRndFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MDI4MTUwCWZpbGU6QWdlbnRrdWJlXzEuMC4yX2FtZDY0LkFwcEltYWdlCmtPUGFsazU0bXpiVUZpbHIvbVROMnlBYWNPNktPMmw1d0Y1YVdwemtJb2swNkdTSzlnbjhyeDBRblNSd0lKRTVGWWZqeWxTamJEdGJrb095TkxYOURnPT0K",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.2/Agentkube-1.0.2-1.x86_64.rpm"
     },
     "linux-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTOHZqMGF3VEZaV0tMdG1ZY2E0Y0hMOExNcDdQNHZiRlc2VUpXTGUrdXVjVzZRMnhhWHNVV1M0Y3JWa09OWkhoQnR4WnQvMnI0cXQ3V3BiMDJFQTB0QWRqWGlFY0dhNEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjgzMTA4MDEwCWZpbGU6bXlhcHAtYWFyY2g2NC5BcHBJbWFnZS56aXAKdVdHbEQxbGdxdlpjK2FCaE5pUXlqcWlRUGhBNGdaelp1U3dYWE9Wd0YrTFRVUEZoM3dxV051Umk3V1E3RmdaZDl4azUwYmJoWUJHeFVWZTRwcDlpREE9PQo=",
