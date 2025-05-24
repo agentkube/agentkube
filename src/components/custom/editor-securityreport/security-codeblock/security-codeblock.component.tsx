@@ -45,13 +45,13 @@ const SecurityCodeBlock: React.FC<SecurityCodeBlockProps> = ({
   };
 
   return (
-    <div className="my-2">
-      <div className="flex justify-between items-center px-3 py-1 text-gray-400 bg-gray-800 rounded-t-[0.4rem] border-b border-gray-700">
+    <div className="my-2 border border-gray-400/40 dark:border-gray-500/20 rounded-lg">
+      <div className="flex justify-between items-center px-3 py-1 text-gray-400 bg-gray-200/80 dark:bg-transparent  rounded-t-[0.4rem]">
         <span className="text-xs font-mono">yaml</span>
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="p-1 hover:bg-gray-700 rounded-[0.3rem] transition-colors"
+            className="p-1 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-[0.3rem] transition-colors"
             aria-label="Copy code"
           >
             {copied ? (
@@ -62,7 +62,7 @@ const SecurityCodeBlock: React.FC<SecurityCodeBlockProps> = ({
           </button>
         </div>
       </div>
-      <div className="bg-gray-900 rounded-b-[0.4rem] overflow-hidden">
+      <div className="bg-gray-200 dark:bg-transparent rounded-b-[0.4rem] overflow-hidden">
         <SyntaxHighlighter
           language={language}
           style={oneDark}
@@ -71,7 +71,7 @@ const SecurityCodeBlock: React.FC<SecurityCodeBlockProps> = ({
           wrapLines={true}
           lineProps={lineProps}
           lineNumberStyle={{
-            minWidth: '2em',
+            minWidth: '1em',
             paddingRight: '1em',
             color: '#606366',
             textAlign: 'right',
