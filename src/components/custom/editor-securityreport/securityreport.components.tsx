@@ -184,6 +184,7 @@ const SecurityReport: React.FC<SecurityReportProps> = ({
                         code={formatCode(misconfig.CauseMetadata.Code.Lines)}
                         language="yaml"
                         highlightedLines={getHighlightedLines(misconfig.CauseMetadata.Code.Lines)}
+                        startLine={misconfig.CauseMetadata.StartLine}
                       />
                     </div>
                   )}

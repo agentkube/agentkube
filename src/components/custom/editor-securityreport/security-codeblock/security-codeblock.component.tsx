@@ -7,6 +7,7 @@ interface SecurityCodeBlockProps {
   code: string;
   language?: string;
   highlightedLines?: number[];
+  startLine?: number;
 }
 
 const SyntaxHighlighter = (Prism as any) as React.FC<SyntaxHighlighterProps>;
@@ -15,6 +16,7 @@ const SecurityCodeBlock: React.FC<SecurityCodeBlockProps> = ({
   code,
   language = 'yaml',
   highlightedLines = [],
+  startLine = 1,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -38,7 +40,8 @@ const SecurityCodeBlock: React.FC<SecurityCodeBlockProps> = ({
   const lineProps = (lineNumber: number) => {
     const style = {
       display: 'block',
-      backgroundColor: highlightedLines.includes(lineNumber) ? 'rgba(255, 229, 100, 0.2)' : 'transparent',
+      // backgroundColor: highlightedLines.includes(lineNumber) ? 'rgba(255, 229, 100, 0.2)' : 'transparent',
+      backgroundColor: 'transparent',
       padding: '0 1rem',
     };
     return { style };
@@ -70,6 +73,7 @@ const SecurityCodeBlock: React.FC<SecurityCodeBlockProps> = ({
           showLineNumbers={true}
           wrapLines={true}
           lineProps={lineProps}
+          startingLineNumber={startLine}
           lineNumberStyle={{
             minWidth: '1em',
             paddingRight: '1em',
