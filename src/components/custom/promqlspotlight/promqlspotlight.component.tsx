@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Database } from 'lucide-react';
+import { Crosshair, Database, Settings, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePromQL } from '@/contexts/usePromQL';
 import { PROMETHEUS } from '@/assets';
@@ -192,33 +192,47 @@ const PromQLSpotlight: React.FC = () => {
           )}
 
           {/* Escape hint */}
-          <div className='bg-gray-200/80 dark:bg-gray-500/10 text-gray-500 dark:text-gray-500 py-1 px-4 text-xs flex justify-end items-center'>
-            {promqlMode ? (
-              <>
-                <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
-                  <span>Enter</span>
-                </div>
-                <span className='mr-4'>execute</span>
-                <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
-                  <span>Backspace</span>
-                </div>
-                <span className='mr-4'>exit PromQL mode</span>
-              </>
-            ) : (
-              <>
-                <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
-                  <span>Tab</span>
-                </div>
-                <span className='mr-4'>PromQL mode</span>
-              </>
-            )}
-            <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
-              <span>Esc</span>
+          <div className='bg-gray-200/80 dark:bg-gray-500/10 text-gray-500 dark:text-gray-500 py-1 px-4 text-xs flex justify-between items-center'>
+            <div className='flex items-center space-x-1'>
+              <button className='flex items-center space-x-2 hover:bg-gray-400/10 py-1 px-2 rounded'>
+                <Database className='h-3 w-3' />
+                <span>Source</span>
+              </button>
+              <button className='flex items-center space-x-2 hover:bg-gray-400/10 py-1 px-2 rounded'>
+                <Crosshair className='h-3 w-3' />
+                <span>Targets</span>
+              </button>
             </div>
-            <span className=''>
-              close
-            </span>
+
+            <div className='flex items-center'>
+              {promqlMode ? (
+                <>
+                  <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                    <span>Enter</span>
+                  </div>
+                  <span className='mr-4'>execute</span>
+                  <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                    <span>Backspace</span>
+                  </div>
+                  <span className='mr-4'>exit PromQL mode</span>
+                </>
+              ) : (
+                <>
+                  <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                    <span>Tab</span>
+                  </div>
+                  <span className='mr-4'>PromQL mode</span>
+                </>
+              )}
+              <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                <span>Esc</span>
+              </div>
+              <span className=''>
+                close
+              </span>
+            </div>
           </div>
+
         </motion.div>
       </AnimatePresence>
     </div>

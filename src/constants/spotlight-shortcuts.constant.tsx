@@ -121,3 +121,11 @@ export const contextShortcuts: kubeContextShortcut = {
   description: 'Switch context',
   color: 'rgba(14, 165, 233, 0.6)', // Sky blue color
 };
+
+export const mcpShortcuts = {
+  shortcut: 'mcp',
+  title: 'MCP',
+  description: 'Browse MCP servers',
+  color: 'rgba(147, 51, 234, 0.6)', // Purple color
+  resourceType: 'mcp'
+};
