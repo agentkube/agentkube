@@ -1,5 +1,5 @@
 import { ORCHESTRATOR_URL } from "@/config";
-import { fetch } from '@tauri-apps/plugin-http';
+// import { fetch } from '@tauri-apps/plugin-http';
 // Type definitions
 export interface ChatRequest {
   message: string;
@@ -145,7 +145,14 @@ async function processChatStream(
     while (true) {
       const { done, value } = await reader.read();
       
-      if (done) break;
+      if (done) {
+        // The stream is done. Always call onComplete here to ensure it's triggered
+        // even if the server never sent a "done" event
+        if (!doneReceived && callbacks.onComplete) {
+          callbacks.onComplete('stream_end');
+        }
+        break;
+      }
       
       // Decode the chunk and add to buffer
       buffer += decoder.decode(value, { stream: true });
@@ -158,12 +165,26 @@ async function processChatStream(
       for (const line of lines) {
         if (!line.trim()) continue;
         
-        // Handle the double "data: data:" format from your API
-        if (line.startsWith('data: data: ')) {
-          const dataString = line.substring(12); // Remove 'data: data: ' prefix
-          
+        // Handle [DONE] signal
+        if (line.trim() === 'data: [DONE]') {
+          if (!doneReceived && callbacks.onComplete) {
+            doneReceived = true;
+            callbacks.onComplete('done');
+          }
+          continue;
+        }
+        
+        if (line.startsWith('data: ')) {
           try {
-            const data = JSON.parse(dataString);
+            // The server returns nested data format, so we need to extract properly
+            let jsonData = line.slice(6);
+            
+            // Handle the case where the server returns "data: data: {...}"
+            if (jsonData.startsWith('data: ')) {
+              jsonData = jsonData.slice(6);
+            }
+            
+            const data = JSON.parse(jsonData);
             
             // Handle text content
             if (data.text && callbacks.onContent) {
@@ -171,7 +192,7 @@ async function processChatStream(
             }
             
             // Handle tool calls
-            if (data.tool_call  && callbacks.onToolCall ) {
+            if (data.tool_call && callbacks.onToolCall) {
               const toolCall: ToolCall = {
                 tool: data.tool_call.tool,
                 command: { command: data.tool_call.command },
@@ -180,7 +201,7 @@ async function processChatStream(
               callbacks.onToolCall(toolCall);
             }
             
-            // // Handle tool outputs - this is the format your backend is sending
+            // Handle tool outputs - this is the format your backend is sending
             if (data.tool_output && callbacks.onToolCall) {
               // Create a proper ToolCall object matching your interface
               const toolCall: ToolCall = {
@@ -196,23 +217,18 @@ async function processChatStream(
               console.log(`Trace ID: ${data.trace_id}`);
             }
             
-            // Handle completion event
-            if (data.done === true && !doneReceived) {
+            // Handle done event
+            if (data.done && !doneReceived) {
               doneReceived = true;
               if (callbacks.onComplete) {
                 callbacks.onComplete('done');
               }
             }
           } catch (error) {
-            console.error('Error parsing event data:', error, dataString);
+            console.error('Error parsing SSE data:', error, line);
           }
         }
       }
-    }
-    
-    // If we haven't received a done event yet, call onComplete
-    if (!doneReceived && callbacks.onComplete) {
-      callbacks.onComplete('stream_end');
     }
   } catch (error) {
     if (callbacks.onError) {
@@ -220,6 +236,8 @@ async function processChatStream(
     } else {
       console.error('Chat stream processing error:', error);
     }
+  } finally {
+    reader.releaseLock();
   }
 }
 /**

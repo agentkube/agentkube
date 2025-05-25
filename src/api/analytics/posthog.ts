@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 const POSTHOG_API_URL = 'https://us.i.posthog.com/i/v0/e/';
-const POSTHOG_API_KEY = 'phc_'; 
+const POSTHOG_API_KEY = 'phc_FvLYCHSQqEtKmXcwFRO8QwR8HeBhjbh4Qdk8w4Hb6tR'; 
 
 // Get or generate a distinct ID for the user
 const getDistinctId = (): string => {
