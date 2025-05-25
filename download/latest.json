@@ -32,8 +32,8 @@
       "url": "https://github.com/agentkube/agentkube/raw/refs/heads/release/download/v1.0.2/agentkube.app.tar.gz"
     },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWpveWdlSkJvTWlXbUFkcHJhdEIwbUhOZTdJMmdGbUhHWEdKYWJuTXY3ZkVBVVJneC9VMWg5dlN1OXExQ0NLa1M3clVNRk40em1yeDJINXY0ZVVOeVFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ2NDMwNTc0CWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKbS9IcHNtQUY0SUh4UmovOGVGa29vOExVdDhaRy9SVEwwQzUwcWsrdHNYNCtPTUdyekV2QXVkTTVoR0d0RktWemdTZnMyUFVpbTFFTnhGajIzMjNFQlE9PQo=",
-      "url": "https://github.com/agentkube/agentkube/raw/refs/heads/release/download/v1.0.2/agentkube-aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXNJdDFCSG5GdXdELzc0MFArUkNxR0IwTENmU3A1SVJWdWh0QzRvbGVZa1RuNXdPN3lSRFd5R2w4Y3pLdm9MRllzOU41SGV4NlNIRlVGYmNnZnJ4d2djPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MTYxMzQyCWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKNlh5N3FMMy9WQjZsWFkvWGN2K2dTelUxZkVlWWEvYkFhaGwrckMvUHhkZVRONEw4Yk8vVDFNZHh3Z004d2IyY2JjVk1UYTlFaUJtd3RtMklTTjZBQWc9PQo=",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.2/Agentkube_1.0.2_aarch64.dmg"
     }
   }
 }
