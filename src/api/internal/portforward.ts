@@ -1,4 +1,5 @@
 import { OPERATOR_URL } from "@/config";
+import { openExternalUrl } from "../external";
 /**
  * Generic API response wrapper
  */
@@ -269,7 +270,7 @@ export async function portForwardService(
  * @param port Local port number
  * @param path Optional path to append to the URL
  */
-export function openPortForwardInBrowser(port: string, path: string = ''): void {
+export async function openPortForwardInBrowser(port: string, path: string = ''): Promise<void> {
   const url = getPortForwardUrl(port, path);
-  window.open(url, '_blank');
+  await openExternalUrl(url);
 }
