@@ -20,12 +20,12 @@
       "url": "https://github.com/agentkube/agentkube/raw/refs/heads/release/download/v1.0.0/Agentkube-aarch64.AppImage"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabW8vNzk1K3hQMUsrU3pjeFlJRTQ4MHZaR0RLcFJVaE1YcFdDTzFKVGtCcWtvT3lFeGtDVDhkM3ZpNkFEbVBYZURGVnV6R1AvVE1NVDJIMmtaa3pqVkFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MTcwMzYwCWZpbGU6QWdlbnRrdWJlXzEuMC4yX3g2NC1zZXR1cC5leGUKU3NGQTIrSjRSQzlJczVtWEppVnhNUzlWSzNqd2NNT2R2SHRIcERDNm1QT3FoUkh0c3lDL3VZLzl6dk4vUjdvZWx3Q2NnenF1RS9aK0grTHdIeGJkRHc9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.2/Agentkube_1.0.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWg1dElCcnVNakNEZ1lEZEhIZ2tWc2h6U1F6YjErVlZLbmJQTEh5Qmw2Nk1ZbFVPYWpDS3JuQWwxNzF4SmRiTnRrMWZRZ1RZVStmMjRzV1hlMDVickFnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MjQ2MDU0CWZpbGU6QWdlbnRrdWJlXzEuMC4zX3g2NC1zZXR1cC5leGUKbUp4bzZuWXZCaStZZWhvTWRCaEVScDhLZFI5eTRwNjV6R2I3TEhOaW1RMEJnaEdna0hrb1RXL0xkQXdwUXZkZXRLK01XR3lrRzUrc3UwQno4eGhHQlE9PQo=",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.3/Agentkube_1.0.3_x64-setup.exe"
     },
     "windows-i686": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXJLNk5KMFhVdkRGNDhaU1lPUi9HcCtiUU5TVmZMMVNleDhFdTlSano2a3hyMDcwVnhxaUQ5Q0x5ajFDTW1Nczh2NDRmNTltQm1zZU1KTTF4SExjWUFnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MTcwNjA5CWZpbGU6QWdlbnRrdWJlXzEuMC4yX3g4Ni1zZXR1cC5leGUKSFZXTzRNM1hkcWlsWnc5K3ZTNzJPTWx5UDRQZzVpalhBN3BEOFpFd3NEV3NyOTQvRnQxaWNHUWN6V1lLSldVWXBWdWJST0lCWkNwNGxvRXQzTlZ0Q3c9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.2/Agentkube_1.0.2_x86-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWtOZWdWWFVLL2d0OXZ6M1pFTmlDK29XMzh5K3VtY1VUa0kxSTBZaTNicU9lYjAwQVprRTB2cWRUdnppdnFqRXp4MmxPMWdZNjhZQWRpTVVMMzJSTGc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MjQ4MjA1CWZpbGU6QWdlbnRrdWJlXzEuMC4zX3g4Ni1zZXR1cC5leGUKWjR4NkZSZmNkVmx3VHk2SURETlZuNmZRczZtVEdnVTBjUW9mMUY1Ukx5ZFN1cXM5TG55OGNIVDVoWWg2UHRMY1VWMG9EbU52ZC9VSWpuTVV5QzRSQWc9PQo=",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.3/Agentkube_1.0.3_x86-setup.exe"
     },
     "darwin-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXNqUjZHckNSc3pkMkhHSFh3elV5L3lENnpLaFduL3liMkJSTWd5SE1pMCtLcTBxd3lQbU9xY0t6VTlkTDB6cnhnTDZ3STNVeldTc29LbTJsenV1dGdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MjQwNjg5CWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKVWpKMjZGM2IzUmZwaXpIZ01HRW1CVitmNkRrS3ZhYzFTYVhYeFVRb2Y3T09hOG1YUXNIWUdmR0N6RDcrMys0ODR6ZTdoK0V0Vkd5WCtpRytIN1RqQlE9PQo=",
