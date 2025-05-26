@@ -26,8 +26,13 @@
         "background": "images/background.png"
       },
       "files": {},
-      "hardenedRuntime": true,
-      "minimumSystemVersion": "10.13"
+      "hardenedRuntime": false,
+      "minimumSystemVersion": "10.13",
+      "signingIdentity": "-",
+      "entitlements": null,
+      "exceptionDomain": null,
+      "frameworks": [],
+      "providerShortName": null
     }
   }
 }

@@ -139,7 +139,7 @@
         "background": "images/background.png"
       },
       "files": {},
-      "hardenedRuntime": true,
+      "hardenedRuntime": false,
       "minimumSystemVersion": "10.13"
     },
     "resources": [],
