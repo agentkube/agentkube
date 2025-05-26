@@ -490,7 +490,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               <span className="text-gray-700 dark:text-gray-300">Base URL</span>
               <Input
                 type="text"
-                placeholder="E.g. https://cursor-oai.openai.azure.com"
+                placeholder="E.g. https://agentkube.openai.azure.com"
                 value={azureBaseURL}
                 onChange={(e) => setAzureBaseURL(e.target.value)}
                 className="bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
