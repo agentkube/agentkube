@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Shuffle } from "lucide-react";
 import { 
   startPortForward, 
   getPortForwardUrl, 
@@ -40,6 +40,26 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
   const [serviceSelector, setServiceSelector] = useState<Record<string, string>>({});
   const [availablePods, setAvailablePods] = useState<Array<{name: string, ready: boolean}>>([]);
   const [selectedPod, setSelectedPod] = useState<string>('');
+
+  // Function to generate a random port excluding specified ports
+  const generateRandomPort = (): number => {
+    const excludedPorts = [4689, 4688, 5422];
+    const minPort = 1024;
+    const maxPort = 65535;
+    
+    let randomPort: number;
+    do {
+      randomPort = Math.floor(Math.random() * (maxPort - minPort + 1)) + minPort;
+    } while (excludedPorts.includes(randomPort));
+    
+    return randomPort;
+  };
+
+  // Function to handle random port generation button click
+  const handleGenerateRandomPort = () => {
+    const randomPort = generateRandomPort();
+    setLocalPort(randomPort.toString());
+  };
 
   // Fetch service information to get selector labels
   useEffect(() => {
@@ -211,7 +231,7 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-200 dark:bg-gray-900/70 backdrop-blur-sm">
+      <DialogContent className="sm:max-w-[425px] bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
         <DialogHeader>
           <DialogTitle>Port Forward to Service</DialogTitle>
           <DialogDescription>
@@ -234,7 +254,7 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                   <SelectTrigger id="service-port" className="col-span-3">
                     <SelectValue placeholder="Select a port to forward" />
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-200 dark:bg-gray-900/70 backdrop-blur-sm'>
+                  <SelectContent className='bg-gray-200 dark:bg-[#0B0D13]/70 backdrop-blur-md'>
                     {ports.map((port) => (
                       <SelectItem key={`${port.port}-${port.name || ''}`} value={port.port.toString()}>
                         {port.port}
@@ -266,7 +286,7 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                       <SelectValue placeholder="Select a pod" />
                     )}
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-200 dark:bg-gray-900/70 backdrop-blur-sm'>
+                  <SelectContent className='bg-gray-200 dark:bg-[#0B0D13]/70 backdrop-blur-md'>
                     {availablePods.map((pod) => (
                       <SelectItem key={pod.name} value={pod.name}>
                         {pod.name} {pod.ready ? '(Ready)' : '(Not Ready)'}
@@ -280,17 +300,30 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                 <Label htmlFor="local-port" className="text-right">
                   Local Port
                 </Label>
-                <Input
-                  id="local-port"
-                  type="number"
-                  min="1024"
-                  max="65535"
-                  placeholder="Random port if empty"
-                  className="col-span-3"
-                  value={localPort}
-                  onChange={(e) => setLocalPort(e.target.value)}
-                  disabled={loading || fetchingPods}
-                />
+                <div className="col-span-3 flex gap-2">
+                  <Input
+                    id="local-port"
+                    type="number"
+                    min="1024"
+                    max="65535"
+                    placeholder="Random port if empty"
+                    className="flex-1"
+                    value={localPort}
+                    onChange={(e) => setLocalPort(e.target.value)}
+                    disabled={loading || fetchingPods}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateRandomPort}
+                    disabled={loading || fetchingPods}
+                    className="px-3 py-4"
+                    title="Generate random port"
+                  >
+                    <Shuffle className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               
             </div>
@@ -308,23 +341,23 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
             </DialogFooter>
           </form>
         ) : (
-          <div className="py-4 space-y-4">
-            <div className="rounded-md bg-gray-50 dark:bg-gray-900 p-4 border border-gray-200 dark:border-gray-800">
+          <div className="py-2 space-y-4">
+            <div className="rounded-md bg-gray-50 dark:bg-gray-500/10 p-4 border border-gray-200 dark:border-gray-800">
               <h4 className="font-medium mb-2">Port Forward Active</h4>
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className="text-gray-500 dark:text-gray-400">Local Port:</div>
-                <div className="col-span-2 font-mono">{portForwardResult.port}</div>
+                <div className="col-span-2">{portForwardResult.port}</div>
                 
                 <div className="text-gray-500 dark:text-gray-400">Remote Port:</div>
-                <div className="col-span-2 font-mono">{portForwardResult.targetPort}</div>
+                <div className="col-span-2 ">{portForwardResult.targetPort}</div>
                 
                 <div className="text-gray-500 dark:text-gray-400">Pod:</div>
-                <div className="col-span-2 font-mono truncate">{portForwardResult.pod}</div>
+                <div className="col-span-2  truncate">{portForwardResult.pod}</div>
                 
                 <div className="text-gray-500 dark:text-gray-400">URL:</div>
-                <div className="col-span-2 font-mono truncate">
+                <a  className="transition-all duration-200 hover:cursor-pointer p-0 col-span-2 truncate underline hover:text-gray-500 dark:hover:text-blue-400" onClick={() => openPortForwardInBrowser(portForwardResult.port?.toString() || '')}>
                   {getPortForwardUrl(portForwardResult.port?.toString() || '')}
-                </div>
+                </a>
                 
                 <div className="text-gray-500 dark:text-gray-400">ID:</div>
                 <div className="col-span-2 font-mono text-xs truncate">{portForwardResult.id}</div>
