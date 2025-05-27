@@ -5,6 +5,7 @@ export interface AgentKubeConfig {
     excludeNamespaces: string[];
     startOnLogin: boolean;
     language: string;
+    kubectlPath: string;
   };
   agentkubeconfig: {
     path: string;

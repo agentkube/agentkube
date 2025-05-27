@@ -17,6 +17,7 @@ const GeneralSettings: React.FC = () => {
   // State for settings
   const [language, setLanguage] = useState<string | undefined>(undefined);
   const [defaultLocation, setDefaultLocation] = useState<string | undefined>(undefined);
+  const [kubectlPath, setKubectlPath] = useState<string | undefined>(undefined);
   const [autoUpdate, setAutoUpdate] = useState<boolean | undefined>(undefined);
   const [usageAnalytics, setUsageAnalytics] = useState<boolean | undefined>(undefined);
   const [startOnLogin, setStartOnLogin] = useState<boolean | undefined>(undefined);
@@ -36,6 +37,7 @@ const GeneralSettings: React.FC = () => {
         // Set state with fetched settings using nullish coalescing
         setLanguage(settings.general?.language ?? 'en');
         setAutoUpdate(settings.general?.autoUpdate);
+        setKubectlPath(settings.general?.kubectlPath ?? '');
         
         // Set usageAnalytics and sync with PostHog
         const analyticsValue = settings.general?.usageAnalytics;
@@ -127,6 +129,7 @@ const GeneralSettings: React.FC = () => {
       if (usageAnalytics !== undefined) generalChanges.usageAnalytics = usageAnalytics;
       if (startOnLogin !== undefined) generalChanges.startOnLogin = startOnLogin;
       if (excludeNamespaces !== undefined) generalChanges.excludeNamespaces = excludeNamespaces;
+      if (kubectlPath !== undefined) generalChanges.kubectlPath = kubectlPath;
       
       if (Object.keys(generalChanges).length > 0) {
         configPatch.general = generalChanges;
@@ -196,7 +199,21 @@ const GeneralSettings: React.FC = () => {
             id="default-location"
             value={defaultLocation || ''}
             onChange={(e) => setDefaultLocation(e.target.value)}
+            placeholder="Enter default config location"
           />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="kubectl-path">Kubectl Path</Label>
+          <Input
+            id="kubectl-path"
+            value={kubectlPath || ''}
+            onChange={(e) => setKubectlPath(e.target.value)}
+            placeholder="Enter kubectl executable path"
+          />
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Path to the kubectl executable (e.g., /usr/local/bin/kubectl or C:\Program Files\Docker\Docker\resources\bin\kubectl)
+          </p>
         </div>
 
         <div className="grid gap-2">
