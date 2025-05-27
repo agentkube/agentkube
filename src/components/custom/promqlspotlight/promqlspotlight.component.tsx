@@ -260,10 +260,10 @@ const PromQLSpotlight: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-60">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 dark:bg-gray-800/20 backdrop-blur-sm" onClick={onClose} />
       <AnimatePresence>
         <motion.div
-          className="relative w-full max-w-4xl bg-gray-100 dark:bg-[#1B1C26]/70 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
+          className="relative w-full max-w-4xl bg-gray-100 dark:bg-[#1B1C26]/90 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{
             scale: tabPressed || enterPressed ? [1, 1.03, 1] : 1,
