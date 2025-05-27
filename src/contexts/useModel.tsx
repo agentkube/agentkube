@@ -14,8 +14,6 @@ interface ModelsContextType {
   updateModelById: (modelId: string, modelData: ModelUpdate) => Promise<Model>;
   removeModel: (modelId: string) => Promise<boolean>;
   toggleModel: (modelId: string, enabled: boolean) => Promise<Model>;
-  retryCount: number;
-  maxRetries: number;
 }
 
 const ModelsContext = createContext<ModelsContextType | undefined>(undefined);
@@ -25,11 +23,9 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [retryCount, setRetryCount] = useState<number>(0);
   const { user } = useAuth();
   const isPremiumUser = user?.isLicensed || false;
-  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const maxRetries = 15;
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Filter models based on enabled status
   const enabledModels = models.filter(model => 
@@ -44,22 +40,15 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const fetchedModels = await getModels();
       setModels(fetchedModels);
       
-      // If models were loaded successfully, reset retry count
-      if (fetchedModels.length > 0) {
-        setRetryCount(0);
+      // Select a default model if none is selected
+      if (!selectedModel && fetchedModels.length > 0) {
+        const defaultModel = fetchedModels.find(model => 
+          model.enabled && (!model.premiumOnly || (model.premiumOnly && isPremiumUser))
+        );
         
-        // Select a default model if none is selected
-        if (!selectedModel) {
-          const defaultModel = fetchedModels.find(model => 
-            model.enabled && (!model.premiumOnly || (model.premiumOnly && isPremiumUser))
-          );
-          
-          if (defaultModel) {
-            setSelectedModel(`${defaultModel.provider}/${defaultModel.id}`);
-          }
+        if (defaultModel) {
+          setSelectedModel(`${defaultModel.provider}/${defaultModel.id}`);
         }
-      } else if (retryCount < maxRetries) {
-        console.log(`No models found. Retry attempt ${retryCount + 1} of ${maxRetries} scheduled in 5 seconds.`);
       }
     } catch (err) {
       console.error('Error fetching models:', err);
@@ -69,31 +58,23 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  // Retry logic for empty models
+  // Polling logic - fetch models every 5 seconds
   useEffect(() => {
+    // Initial fetch
+    refreshModels();
+    
+    // Set up polling
+    pollingTimerRef.current = setInterval(() => {
+      refreshModels();
+    }, 5000);
+
+    // Cleanup function
     return () => {
-      if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current);
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
       }
     };
   }, []);
-
-  //retry logic
-  useEffect(() => {
-    if (models.length === 0 && retryCount < maxRetries && !isLoading) {
-      retryTimerRef.current = setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-        refreshModels();
-      }, 5000); // 5 seconds between retries
-    }
-
-    // Clean up function
-    return () => {
-      if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current);
-      }
-    };
-  }, [models, retryCount, isLoading]);
 
   // Add a new model
   const addModel = async (modelData: ModelCreate): Promise<Model> => {
@@ -147,11 +128,6 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  // Load models on component mount
-  useEffect(() => {
-    refreshModels();
-  }, []);
-
   // Update selected model if current selection becomes unavailable
   useEffect(() => {
     if (selectedModel && models.length > 0) {
@@ -187,9 +163,7 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     addModel,
     updateModelById,
     removeModel,
-    toggleModel,
-    retryCount,
-    maxRetries
+    toggleModel
   };
 
   return (
