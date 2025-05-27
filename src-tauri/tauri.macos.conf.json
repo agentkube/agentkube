@@ -21,15 +21,16 @@
     ]
   },
   "bundle": {
+    "targets": "dmg",
     "macOS": {
       "dmg": {
         "background": "images/background.png"
       },
       "files": {},
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "minimumSystemVersion": "10.13",
-      "signingIdentity": "-",
-      "entitlements": null,
+      "signingIdentity": "Developer ID Application: Siddhant Prateek (NDS2VNZL8U)",
+      "entitlements": "deploy/mac/entitlements.mac.plist",
       "exceptionDomain": null,
       "frameworks": [],
       "providerShortName": null
