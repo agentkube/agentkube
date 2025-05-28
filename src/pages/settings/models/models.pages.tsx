@@ -192,7 +192,7 @@ const ModelConfiguration = () => {
           <div className="flex flex-col space-y-2 mt-2">
             <input
               type="text"
-              className="bg-transparent border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
+              className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
               placeholder="New model name"
               value={newModelName}
               onChange={(e) => setNewModelName(e.target.value)}
@@ -202,13 +202,14 @@ const ModelConfiguration = () => {
             <div className="flex items-center space-x-2">
               <input
                 type="text"
-                className="bg-transparent border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
+                className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
                 placeholder="Provider (e.g. openai, anthropic)"
                 value={newModelProvider}
                 onChange={(e) => setNewModelProvider(e.target.value)}
               />
               <Button
-                className="px-4 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-white py-2 rounded text-sm"
+                // variant="outline"
+                className="px-4 py-2 rounded text-sm"
                 onClick={handleAddModel}
               >
                 <Plus className="w-4 h-4 mr-2" />
