@@ -73,10 +73,10 @@ const Support = () => {
             Need direct assistance? Reach out to our support team via email.
           </p>
           <a
-            onClick={() => openExternalUrl("mailto:info@agentkube.com")}
+            onClick={() => openExternalUrl("mailto:support@agentkube.com")}
             className="flex items-center text-green-400 hover:text-green-300 text-sm cursor-pointer"
           >
-            info@agentkube.com <ExternalLink size={14} className="ml-1" />
+            support@agentkube.com <ExternalLink size={14} className="ml-1" />
           </a>
         </div>
       </div>

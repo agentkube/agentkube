@@ -272,7 +272,8 @@ const GeneralSettings: React.FC = () => {
 
       <div className="flex justify-end">
         <Button
-          className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-900"
+          variant="outline"
+          className="flex items-center gap-2"
           onClick={handleSaveSettings}
           disabled={isSaving}
         >

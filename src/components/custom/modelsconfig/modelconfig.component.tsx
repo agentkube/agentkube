@@ -344,7 +344,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
         <div>
           <h3 className="text-2xl font-medium text-black dark:text-white">OpenAI API Key</h3>
           <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
-            You can put in <a href="#" className="text-blue-500 hover:underline">your OpenAI key</a> to use agentkube at public API costs. Note: this can cost more than pro and won't work for custom model features.
+            You can put in <a onClick={() => openExternalUrl("https://platform.openai.com/settings/organization/api-keys")} className="text-blue-500 hover:underline">your OpenAI key</a> to use agentkube at public API costs. Note: this can cost more than pro and won't work for custom model features.
           </p>
         </div>
         
@@ -355,7 +355,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               placeholder="Enter your OpenAI API Key"
               value={openAIKey}
               onChange={(e) => setOpenAIKey(e.target.value)}
-              className="pr-10 bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
+              className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
             />
             <button 
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -387,7 +387,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               placeholder="https://api.openai.com/v1"
               value={openAIBaseURL}
               onChange={(e) => setOpenAIBaseURL(e.target.value)}
-              className="mt-2 bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
+              className="mt-2 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
             />
           )}
         </div>
@@ -411,7 +411,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               placeholder="Enter your Anthropic API Key"
               value={anthropicKey}
               onChange={(e) => setAnthropicKey(e.target.value)}
-              className="pr-10 bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
+              className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
             />
             <button 
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -447,7 +447,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               placeholder="Enter your Google AI Studio API Key"
               value={googleKey}
               onChange={(e) => setGoogleKey(e.target.value)}
-              className="pr-10 bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
+              className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
             />
             <button 
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -493,7 +493,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
                 placeholder="E.g. https://agentkube.openai.azure.com"
                 value={azureBaseURL}
                 onChange={(e) => setAzureBaseURL(e.target.value)}
-                className="bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
+                className="bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
               />
             </div>
             
@@ -504,7 +504,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
                 placeholder="The deployment name you created in Azure"
                 value={azureDeploymentName}
                 onChange={(e) => setAzureDeploymentName(e.target.value)}
-                className="bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
+                className="bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
               />
             </div>
             
@@ -516,7 +516,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
                   placeholder="Enter your Azure OpenAI API Key"
                   value={azureKey}
                   onChange={(e) => setAzureKey(e.target.value)}
-                  className="pr-10 bg-transparent dark:bg-gray-900/50 border-gray-300 dark:border-gray-800/60"
+                  className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
                 />
                 <button 
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"

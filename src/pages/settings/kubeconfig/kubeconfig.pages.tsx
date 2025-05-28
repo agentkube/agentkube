@@ -168,7 +168,7 @@ const Kubeconfig = () => {
         </p>
 
         {/* Path Display */}
-        <div className="dark:bg-gray-900/50 text-medium rounded border border-gray-400 dark:border-gray-700 py-2 px-4 mb-4">
+        <div className="dark:bg-transparent text-medium rounded border border-gray-400/50 dark:border-gray-700/60 py-2 px-4 mb-4">
           <div className="flex items-start">
             <FileText className="dark:text-gray-400 mr-3 mt-1" size={20} />
             <div>

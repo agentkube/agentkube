@@ -35,6 +35,7 @@ const Shortcuts = () => {
     resources: [
       { macos: '⌘ N', windows: 'Ctrl+N', linux: 'Ctrl+N', description: 'Namespace Selector' },
       { macos: '⌘ F', windows: 'Ctrl+F', linux: 'Ctrl+F', description: 'Focus on Filter' },
+      { macos: '⌘ P', windows: 'Ctrl+P', linux: 'Ctrl+P', description: 'PromQL spotlight' },
     ],
   };
 

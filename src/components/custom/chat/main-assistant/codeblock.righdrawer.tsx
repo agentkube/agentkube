@@ -222,7 +222,7 @@ export const CodeBlock = ({
             language={language || 'text'}
             style={oneDark}
             customStyle={customStyle}
-            showLineNumbers={true}
+            showLineNumbers={language !== 'bash' ? true : false}
             wrapLines={true}
             lineProps={lineProps}
             lineNumberStyle={{
@@ -344,7 +344,7 @@ export const CodeBlock = ({
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-200 dark:bg-gray-900">
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-200 dark:bg-[#0B0D13]">
           <DialogHeader>
             <DialogTitle>Command Output</DialogTitle>
           </DialogHeader>
@@ -357,7 +357,7 @@ export const CodeBlock = ({
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
           ">
-            <div className="px-4 py-2 text-xs text-gray-800 dark:text-gray-400 bg-gray-300 dark:bg-gray-800/50 rounded-t-[0.5rem] w-full overflow-x-auto">
+            <div className="px-4 py-2 text-xs text-gray-800 dark:text-gray-400 bg-gray-300 dark:bg-gray-500/10 rounded-t-[0.5rem] w-full overflow-x-auto">
               {language}
             </div>
             <SyntaxHighlighter

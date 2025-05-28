@@ -7,6 +7,7 @@ import ToolCallAccordion from './tool-call.component';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { openExternalUrl } from '@/api/external';
 import { LinkPreview } from '@/components/ui/link-preview';
+import ToolParameter from './toolparameter.rightdrawer';
 
 interface CodeProps {
   inline?: boolean;
@@ -115,30 +116,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
 
             {/* Display JSON data in an accordion if it exists */}
             {jsonObjects && jsonObjects.length > 0 && (
-              <div className="mb-4 border border-gray-300 dark:border-gray-800/50 rounded-md">
-                <div 
-                  className="flex justify-between items-center p-1 bg-gray-200 dark:bg-transparent cursor-pointer"
-                  onClick={() => setShowJsonData(!showJsonData)}
-                >
-                  <span className="flex items-center font-medium text-xs"><Braces className='h-3 w-3 mx-1' /> Parameters: ({jsonObjects.length})</span>
-                  {showJsonData ? (
-                    <ChevronUp className="dark:text-gray-500 h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="dark:text-gray-500 h-4 w-4" />
-                  )}
-                </div>
-                {showJsonData && (
-                  <div className="p-3 dark:bg-transparent rounded-b-md overflow-auto">
-                    {jsonObjects.map((jsonObj, index) => (
-                      <div key={index} className="mb-2 last:mb-0">
-                        <pre className="bg-gray-300/50 dark:bg-gray-800/50 p-2 rounded-md overflow-x-auto text-xs font-mono text-gray-700 dark:text-gray-300">
-                          {jsonObj}
-                        </pre>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ToolParameter jsonObjects={jsonObjects} />
             )}
 
             {/* Display the regular message content */}

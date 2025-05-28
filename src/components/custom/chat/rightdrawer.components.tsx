@@ -129,6 +129,13 @@ const RightDrawer: React.FC = () => {
     setConversationId(undefined);
   };
 
+  const getRecentChatHistory = (messages: ChatMessage[], maxMessages: number = 5) => {
+    return messages.slice(-maxMessages).map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
@@ -157,9 +164,10 @@ const RightDrawer: React.FC = () => {
       await chatStream(
         {
           message: inputValue,
+          chat_history: getRecentChatHistory(messages),
           model: selectedModel, //Will be replaced with selectedModel
           kubecontext: currentContext?.name,
-          files: formattedFiles.length > 0 ? formattedFiles : undefined
+          files: formattedFiles.length > 0 ? formattedFiles : undefined,
         },
         {
           onStart: (messageId, messageUuid) => {
