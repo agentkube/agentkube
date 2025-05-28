@@ -6,6 +6,7 @@ import SYSTEMMODE from '@/assets/mode-system.png';
 import { getSettings, updateSettingsSection } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme } from 'next-themes';
 
 const Appearance = () => {
@@ -131,7 +132,6 @@ const Appearance = () => {
     }
   };
 
-
   // Handle font change
   const handleFontChange = async (font: string) => {
     try {
@@ -209,6 +209,13 @@ const Appearance = () => {
     { id: 'mood-indigo', name: 'Mood Indigo', color: '#162854' },
   ];
 
+  const fontOptions = [
+    { value: 'DM Sans', label: 'DM Sans (Default)' },
+    { value: 'Roboto', label: 'Roboto' },
+    { value: 'Inter', label: 'Inter' },
+    { value: 'Helvetica Neue', label: 'Helvetica Neue' },
+  ];
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
@@ -231,25 +238,26 @@ const Appearance = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Font Family</label>
-            <div className="relative">
-              <select
-                className="w-full text-sm appearance-none bg-transparent border border-gray-300 dark:border-gray-800 rounded px-4 py-2 pr-8 cursor-pointer"
-                value={fontFamily}
-                onChange={(e) => handleFontChange(e.target.value)}
-              >
-                <option value="DM Sans">DM Sans (Default)</option>
-                {/* <option value="Roboto">Roboto</option>
-                <option value="Inter">Inter</option>
-                <option value="Helvetica Neue">Helvetica Neue</option> */}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                </svg>
-              </div>
-            </div>
+            <Select
+              value={fontFamily}
+              onValueChange={handleFontChange}
+              disabled={isSaving}
+
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select font family" />
+              </SelectTrigger>
+              <SelectContent className='dark:bg-gray-900/90 backdrop-blur-md'>
+                {fontOptions.map((font) => (
+                  <SelectItem key={font.value} value={font.value}>
+                    {font.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Uncomment if you want to include font size selector */}
           {/* <div>
             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Font Size</label>
             <div className="flex items-center space-x-2">
