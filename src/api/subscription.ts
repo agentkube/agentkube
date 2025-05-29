@@ -222,6 +222,47 @@ export const removeLicenseKeyLocal = async (): Promise<{
   return response.json();
 };
 
+
+export const storeInstanceIdLocal = async (instanceId: string): Promise<void> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/instance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ instance_id: instanceId }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to store instance ID');
+    }
+  } catch (error) {
+    console.error('Error storing instance ID:', error);
+    throw error;
+  }
+};
+
+export const getInstanceIdLocal = async (): Promise<string | null> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/instance`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.instance_id || null;
+  } catch (error) {
+    console.error('Error retrieving instance ID:', error);
+    return null;
+  }
+};
+
 /*
 
 Validate Lemonsqueezy license key

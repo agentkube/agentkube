@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Key, CheckCircle2 } from 'lucide-react';
 import { triggerConfetti } from '@/utils/confetti.utils';
-import { validateLicense, activateLicense, storeLicenseKeyLocal } from '@/api/subscription';
+import { validateLicense, activateLicense, storeLicenseKeyLocal, storeInstanceIdLocal } from '@/api/subscription';
 import { useAuth } from '@/contexts/useAuth';
 import { generateInstanceName } from '@/utils/osinfo.utils';
 
@@ -27,34 +27,34 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     if (!licenseKey.trim()) {
       setError('Please enter a license key');
       return;
     }
-    
+
     const formattedKey = licenseKey.replace(/\s/g, '');
     if (!/^[A-Z0-9]{8}(-[A-Z0-9]{4}){3}-[A-Z0-9]{12}$/i.test(formattedKey)) {
       setError('Please enter a valid license key format');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const validationResult = await validateLicense(formattedKey);
-      
+
       if (!validationResult.valid) {
         setError(validationResult.error || 'Invalid license key');
         toast({
-          title: validationResult.license_key?.status === 'expired' ? 
+          title: validationResult.license_key?.status === 'expired' ?
             "License Expired" : "Validation Failed",
           description: validationResult.error || "Invalid license key. Please check and try again.",
           variant: "destructive",
         });
         return;
       }
-      
+
       if (validationResult.license_key.activation_usage >= validationResult.license_key.activation_limit) {
         setError(`License key has reached its activation limit (${validationResult.license_key.activation_limit}). Please purchase a new license.`);
         toast({
@@ -64,13 +64,13 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
         });
         return;
       }
-      
+
       try {
         await storeLicenseKeyLocal(formattedKey);
-        
+
         const instanceName = generateInstanceName();
         const activationResult = await activateLicense(formattedKey, instanceName);
-        
+
         if (!activationResult.activated) {
           setError(activationResult.error || 'Failed to activate license');
           toast({
@@ -80,7 +80,10 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
           });
           return;
         }
-        
+
+        // Store the instance ID locally
+        await storeInstanceIdLocal(activationResult.instance.id);
+
         updateUserLicenseInfo({
           customer_name: activationResult.meta.customer_name,
           customer_email: activationResult.meta.customer_email,
@@ -90,21 +93,21 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
           created_at: activationResult.license_key.created_at,
           status: activationResult.license_key.status
         });
-        
+
         // Set success state
         setSuccess(true);
-        
+
         triggerConfetti();
-        
+
         toast({
           title: "License Key Activated",
           description: `Your ${activationResult.meta.product_name} license has been successfully activated.`,
         });
-        
+
         setTimeout(() => {
           setIsOpen(false);
           if (onSuccess) onSuccess();
-          
+
           setTimeout(() => {
             setLicenseKey('');
             setSuccess(false);
@@ -130,7 +133,7 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleOpenChange = (open: boolean) => {
     if (!isSubmitting) {
       setIsOpen(open);
@@ -148,8 +151,8 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
         >
           <Key className="mr-2 h-4 w-4" />
@@ -160,7 +163,7 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
         <DialogHeader>
           <DialogTitle className="text-2xl font-[Anton] uppercase font-bold">{success ? "License Activated" : "Enter License Key"}</DialogTitle>
         </DialogHeader>
-        
+
         {success ? (
           <div className="py-6 flex flex-col items-center justify-center text-center">
             <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
@@ -186,13 +189,13 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
                 />
                 {error && <p className="text-sm text-red-500">{error}</p>}
               </div>
-              
+
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Enter the license key you received after purchasing AgentKube. 
+                Enter the license key you received after purchasing AgentKube.
                 This will activate your license and unlock all premium features.
               </p>
             </div>
-            
+
             <DialogFooter>
               <Button
                 type="button"
