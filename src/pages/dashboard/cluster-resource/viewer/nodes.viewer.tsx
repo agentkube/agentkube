@@ -106,17 +106,17 @@ const NodeViewer: React.FC = () => {
   const handleOpenShell = async () => {
     try {
       if (!currentContext?.name || !nodeName) return;
-
-      // Simple command to get a shell on the node
-      const command = `kubectl debug node/${nodeName} -it --image=ubuntu`;
-
+  
+      // Use busybox instead of ubuntu - smaller and faster
+      const command = `kubectl debug node/${nodeName} -it --image=busybox`;
+  
       await runExternalShell(currentContext.name, command);
     } catch (err) {
       console.error('Error opening shell:', err);
       setError(err instanceof Error ? err.message : 'Failed to open shell');
     }
   };
-
+  
   // Handle refresh data
   const handleRefresh = () => {
     setLoading(true);
