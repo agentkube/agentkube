@@ -24,6 +24,7 @@ import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report'
 import { scanConfig } from '@/api/scanner/security';
 import { ResourceTemplate } from '@/components/custom';
 import { kubeProxyRequest } from '@/api/cluster';
+import { completionStream, ToolCall } from '@/api/orchestrator.chat';
 
 // Define type for resource tab
 interface ResourceTab {
@@ -41,7 +42,7 @@ const AIResourceEditor: React.FC = () => {
   const [securityReport, setSecurityReport] = useState<MisconfigurationReport | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isTemplateLoading, setIsTemplateLoading] = useState<boolean>(false);
-
+  const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-4o-mini");
   // State for managing multiple resource tabs
   const [resourceTabs, setResourceTabs] = useState<ResourceTab[]>([
     {
@@ -420,36 +421,52 @@ const AIResourceEditor: React.FC = () => {
     };
     setChatHistory(prev => [...prev, userMessage]);
 
-    // Dummy response logic
     try {
       const activeTab = getActiveTab();
-      const dummyResponse = getDummyResponse(question, activeTab.content);
 
-      // Simulate typing effect for streaming
-      let accumulatedResponse = '';
-      const words = dummyResponse.split(' ');
-
-      for (let i = 0; i < words.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 30)); // Simulate network delay
-        accumulatedResponse += (i === 0 ? '' : ' ') + words[i];
-        chatResponseRef.current = accumulatedResponse;
-        setChatResponse(accumulatedResponse);
-      }
-
-      // Add assistant message to chat history
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: dummyResponse
-      };
-
-      setChatHistory(prev => [...prev, assistantMessage]);
-      setIsChatLoading(false);
-      setQuestion('');
-      setChatResponse('');
-
+      await completionStream(
+        {
+          message: question,
+          model: selectedModel,
+          kubecontext: currentContext?.name,
+          files: activeTab.content ? [{
+            resource_name: `${activeTab.resourceType || 'resource'}/${activeTab.name}`,
+            resource_content: activeTab.content
+          }] : undefined
+        },
+        {
+          onStart: (messageId, messageUuid) => {
+            console.log(`Started streaming: ${messageId}`);
+          },
+          onContent: (index, text) => {
+            chatResponseRef.current += text;
+            setChatResponse(chatResponseRef.current);
+          },
+          onToolCall: (toolCall) => {
+            console.log('Tool call:', toolCall);
+          },
+          onComplete: (reason) => {
+            // Add assistant message to chat history
+            const assistantMessage: ChatMessage = {
+              role: 'assistant',
+              content: chatResponseRef.current
+            };
+            setChatHistory(prev => [...prev, assistantMessage]);
+            setIsChatLoading(false);
+            setQuestion('');
+            setChatResponse('');
+            console.log(`Completed streaming: ${reason}`);
+          },
+          onError: (error) => {
+            console.error('Chat error:', error);
+            setChatResponse('Error: Failed to get response');
+            setIsChatLoading(false);
+          }
+        }
+      );
     } catch (error) {
       console.error('Chat error:', error);
-      setChatResponse('Error: Failed to get response');
+      setChatResponse('Error: Failed to start chat');
       setIsChatLoading(false);
     }
   };
@@ -532,26 +549,6 @@ const AIResourceEditor: React.FC = () => {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, []);
-
-  // Helper function to generate dummy responses
-  const getDummyResponse = (query: string, yamlContent: string): string => {
-    const lowercaseQuery = query.toLowerCase();
-
-    if (lowercaseQuery.includes('resource limit') || lowercaseQuery.includes('cpu') || lowercaseQuery.includes('memory')) {
-      return "Based on your YAML, I recommend setting resource limits and requests explicitly for better pod scheduling. For example:\n\n```yaml\nresources:\n  limits:\n    cpu: 500m\n    memory: 512Mi\n  requests:\n    cpu: 200m\n    memory: 256Mi\n```\n\nThis ensures your container gets the resources it needs without consuming too much from the cluster.";
-    }
-
-    if (lowercaseQuery.includes('replica') || lowercaseQuery.includes('scale')) {
-      return "Your current configuration has a fixed number of replicas. For better availability and scaling, consider using a Horizontal Pod Autoscaler (HPA):\n\n```yaml\napiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: your-deployment\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: your-deployment\n  minReplicas: 2\n  maxReplicas: 10\n  metrics:\n  - type: Resource\n    resource:\n      name: cpu\n      target:\n        type: Utilization\n        averageUtilization: 80\n```";
-    }
-
-    if (lowercaseQuery.includes('health') || lowercaseQuery.includes('probe') || lowercaseQuery.includes('readiness')) {
-      return "I notice your configuration might be missing health checks. Consider adding liveness and readiness probes for better reliability:\n\n```yaml\nlivenessProbe:\n  httpGet:\n    path: /health\n    port: 8080\n  initialDelaySeconds: 15\n  periodSeconds: 10\nreadinessProbe:\n  httpGet:\n    path: /ready\n    port: 8080\n  initialDelaySeconds: 5\n  periodSeconds: 10\n```";
-    }
-
-    // Default response
-    return "I've examined your YAML configuration. It looks generally well-structured. Some areas you might want to consider reviewing:\n\n1. Resource limits and requests\n2. Health probes\n3. Security contexts\n4. Update strategy\n\nIs there a specific aspect you'd like me to help you improve?";
-  };
 
   // Default YAML template (empty)
   function defaultYamlTemplate(): string {
@@ -731,6 +728,8 @@ const AIResourceEditor: React.FC = () => {
                         chatResponse={chatResponse}
                         isChatLoading={isChatLoading}
                         chatHistory={chatHistory}
+                        selectedModel={selectedModel}
+                        onModelChange={setSelectedModel}
                         handleChatSubmit={handleChatSubmit}
                       />
                     </TabsContent>

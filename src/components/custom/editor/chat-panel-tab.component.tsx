@@ -8,6 +8,7 @@ import { AutoResizeTextarea, ModelSelector } from '@/components/custom';
 import { ChatMessage } from '@/types/chat';
 import UserMessage from './editorchat/user.message';
 import AssistantMessage from './editorchat/assistant.message';
+import Messages from './editorchat/message.panel';
 
 interface ChatPanelProps {
   // Chat state from parent
@@ -16,6 +17,8 @@ interface ChatPanelProps {
   chatResponse: string;
   isChatLoading: boolean;
   chatHistory: ChatMessage[];
+  selectedModel: string;
+  onModelChange: (model: string) => void;
   
   // Chat handlers from parent
   handleChatSubmit: (e: React.FormEvent | React.KeyboardEvent) => void;
@@ -27,6 +30,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   chatResponse,
   isChatLoading,
   chatHistory,
+  selectedModel,
+  onModelChange,
   handleChatSubmit
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -56,9 +61,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setQuestion(question);
   };
 
-
-  const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-4o-mini");
-
   // Mock for resource context functions
   const handleAddContext = () => {};
   const handleInputFocus = () => {};
@@ -73,80 +75,23 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-        {chatHistory.length === 0 ? (
-          // Placeholder for empty state
-          <div className="text-center px-10 py-8 flex-grow flex flex-col justify-center h-full">
-            <Sparkles className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200">Ask me about your YAML</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Get recommendations and best practices</p>
-
-            <div className="space-y-2">
-              {suggestedQuestions.map((item, index) => (
-                <button
-                  key={index}
-                  className="flex items-center w-full p-2 text-left border border-gray-300 dark:border-gray-800/60 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/20 transition-colors"
-                  onClick={() => handleQuestionClick(item.question)}
-                >
-                  <span className="mr-2">{item.icon}</span>
-                  <span className="text-sm">{item.question}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm flex-grow flex flex-col justify-end">
-            {chatHistory.map((message, index) => (
-              <div key={index} className="flex items-start">
-                {message.role === 'user' && (
-                  <UserMessage content={message.content} /> 
-                )}
-
-                {message.role === 'assistant' && (
-                  <AssistantMessage content={message.content} />
-                )}
-              </div>
-            ))}
-
-            {/* Streaming Animation */}
-            {chatResponse && (
-              <div className="flex items-start mb-4 w-full">
-                <div className="bg-gray-300/50 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center mr-2 text-green-400">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div>
-                    {chatResponse}
-                    {isChatLoading && <span className="ml-1 animate-pulse">▋</span>}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {isChatLoading && !chatResponse && (
-              <div className="flex justify-center">
-                <div className="p-2">
-                  <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1"></span>
-                  <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1" style={{ animationDelay: '0.2s' }}></span>
-                  <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1" style={{ animationDelay: '0.4s' }}></span>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+        <Messages
+          messages={chatHistory}
+          currentResponse={chatResponse}
+          currentToolCalls={[]} // No tool calls in editor chat
+          isLoading={isChatLoading}
+          onQuestionClick={handleQuestionClick}
+          suggestedQuestions={suggestedQuestions}
+        />
       </div>
       
       {/* Chat Input - Using the style from RightDrawer */}
       <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
         <div className="flex justify-between items-center mb-2">
-          {/* Commented out because it likely depends on your project structure
-          <ResourceContext onResourceSelect={handleAddContext} /> */}
           <div></div> {/* Placeholder for ResourceContext */}
-          <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+          <ModelSelector selectedModel={selectedModel} onModelChange={onModelChange} />
         </div>
-
-
+  
         <form onSubmit={handleChatSubmit} className="flex gap-2 items-center">
           <AutoResizeTextarea
             value={question}

@@ -8,9 +8,11 @@ interface ClusterContextType {
   currentContext: KubeContext | null;
   loading: boolean;
   error: string | null;
+  fullWidth: boolean;
   fetchContexts: () => Promise<void>;
   setCurrentContext: (context: KubeContext) => void;
   refreshContexts: () => Promise<void>;
+  setFullWidth: (fullWidth: boolean) => void;
 }
 
 const ClusterContext = createContext<ClusterContextType | undefined>(undefined);
@@ -25,10 +27,22 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
   const [currentContext, setCurrentContext] = useState<KubeContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [fullWidth, setFullWidthState] = useState<boolean>(() => {
+    const stored = localStorage.getItem('full-width');
+    return stored ? JSON.parse(stored) : false;
+  });
+
+
   const { toast } = useToast();
 
   // Store selected context in localStorage
   const storageKey = 'current-kube-context';
+
+  const handleSetFullWidth = (isFullWidth: boolean) => {
+    setFullWidthState(isFullWidth);
+    localStorage.setItem('full-width', JSON.stringify(isFullWidth));
+  };
 
   // Function to fetch all available kube contexts
   const fetchContexts = useCallback(async () => {
@@ -94,9 +108,11 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     currentContext,
     loading,
     error,
+    fullWidth,
     fetchContexts,
     setCurrentContext: handleSetCurrentContext,
     refreshContexts,
+    setFullWidth: handleSetFullWidth,
   };
 
   return (

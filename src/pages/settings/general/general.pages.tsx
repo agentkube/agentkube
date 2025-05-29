@@ -9,11 +9,13 @@ import { getSettings, patchConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { usePostHog } from '@/contexts/useAnalytics'; 
+import { useCluster } from '@/contexts/clusterContext';
 
 const GeneralSettings: React.FC = () => {
   const { toast } = useToast();
   const { analyticsEnabled, setAnalyticsEnabled } = usePostHog();
-
+  const { fullWidth, setFullWidth } = useCluster();
+  
   // State for settings
   const [language, setLanguage] = useState<string | undefined>(undefined);
   const [defaultLocation, setDefaultLocation] = useState<string | undefined>(undefined);
@@ -232,7 +234,20 @@ const GeneralSettings: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
-
+        
+        <div className="flex items-center justify-between">
+  <div className="space-y-0.5">
+    <Label htmlFor="full-width">Full Width</Label>
+    <div className="text-sm text-muted-foreground">
+      Use full width for resource views
+    </div>
+  </div>
+  <Switch
+    id="full-width"
+    checked={fullWidth}
+    onCheckedChange={setFullWidth}
+  />
+</div>
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="auto-update" className="block">Automatic Updates</Label>

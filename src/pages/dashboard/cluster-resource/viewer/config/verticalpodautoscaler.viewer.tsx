@@ -84,7 +84,7 @@ const VerticalPodAutoscalerViewer: React.FC = () => {
   const [events, setEvents] = useState<CoreV1Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { currentContext } = useCluster();
+  const { currentContext, fullWidth } = useCluster();
   const { vpaName, namespace } = useParams<{ vpaName: string; namespace: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -373,7 +373,7 @@ const VerticalPodAutoscalerViewer: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'>
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className={`p-6 ${fullWidth ? 'max-w-full' : 'max-w-7xl'} mx-auto`}>
         {/* Breadcrumb navigation */}
         <Breadcrumb className="mb-6">
           <BreadcrumbList>

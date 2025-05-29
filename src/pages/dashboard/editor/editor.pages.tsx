@@ -11,6 +11,7 @@ import { ChatMessage } from '@/types/chat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { scanConfig } from '@/api/scanner/security'; // Add this import
 import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report';
+import { completionStream, ToolCall } from '@/api/orchestrator.chat';
 
 interface AIEditorProps {
   // The resource data
@@ -64,7 +65,9 @@ const AIEditor: React.FC<AIEditorProps> = ({
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const chatResponseRef = useRef<string>('');
-
+  // Add this state in AIEditor
+  const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-4o-mini");
+  
   // State for layout
   const [editorWidth, setEditorWidth] = useState<string>('100%');
   const isDragging = useRef<boolean>(false);
@@ -191,56 +194,30 @@ const AIEditor: React.FC<AIEditorProps> = ({
     };
     setChatHistory(prev => [...prev, userMessage]);
 
-    // Dummy response logic
     try {
-      const dummyResponse = getDummyResponse(question, yamlContent);
-
-      // Simulate typing effect for streaming
-      let accumulatedResponse = '';
-      const words = dummyResponse.split(' ');
-
-      for (let i = 0; i < words.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 30)); // Simulate network delay
-        accumulatedResponse += (i === 0 ? '' : ' ') + words[i];
-        chatResponseRef.current = accumulatedResponse;
-        setChatResponse(accumulatedResponse);
-      }
-
-      // Add assistant message to chat history
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: dummyResponse
-      };
-
-      setChatHistory(prev => [...prev, assistantMessage]);
-      setIsChatLoading(false);
-      setQuestion('');
-      setChatResponse('');
-
-    } catch (error) {
-      console.error('Chat error:', error);
-      setChatResponse('Error: Failed to get response');
-      setIsChatLoading(false);
-    }
-
-    // Uncomment this section when implementing actual chatStream
-    /*
-    try {
-      await chatStream(
+      await completionStream(
         {
           message: question,
-          query_context: yamlContent
+          model: selectedModel,
+          kubecontext: currentContext?.name,
+          files: [{
+            resource_name: `${resourceType}/${resourceName}`,
+            resource_content: yamlContent
+          }]
         },
         {
-          onToken: (token) => {
-            chatResponseRef.current += token;
+          onStart: (messageId, messageUuid) => {
+            console.log(`Started streaming: ${messageId}`);
+          },
+          onContent: (index, text) => {
+            chatResponseRef.current += text;
             setChatResponse(chatResponseRef.current);
           },
-          onError: (error) => {
-            console.error('Chat error:', error);
-            setChatResponse('Error: Failed to get response');
+          onToolCall: (toolCall) => {
+            // Handle tool calls if needed
+            console.log('Tool call:', toolCall);
           },
-          onComplete: () => {
+          onComplete: (reason) => {
             // Add assistant message to chat history
             const assistantMessage: ChatMessage = {
               role: 'assistant',
@@ -250,6 +227,12 @@ const AIEditor: React.FC<AIEditorProps> = ({
             setIsChatLoading(false);
             setQuestion('');
             setChatResponse('');
+            console.log(`Completed streaming: ${reason}`);
+          },
+          onError: (error) => {
+            console.error('Chat error:', error);
+            setChatResponse('Error: Failed to get response');
+            setIsChatLoading(false);
           }
         }
       );
@@ -258,31 +241,8 @@ const AIEditor: React.FC<AIEditorProps> = ({
       setChatResponse('Error: Failed to start chat');
       setIsChatLoading(false);
     }
-    */
   };
-  // Helper function to generate dummy responses
-  const getDummyResponse = (query: string, yamlContent: string): string => {
-    const lowercaseQuery = query.toLowerCase();
 
-    if (lowercaseQuery.includes('resource limit') || lowercaseQuery.includes('cpu') || lowercaseQuery.includes('memory')) {
-      return "Based on your YAML, I recommend setting resource limits and requests explicitly for better pod scheduling. For example:\n\n```yaml\nresources:\n  limits:\n    cpu: 500m\n    memory: 512Mi\n  requests:\n    cpu: 200m\n    memory: 256Mi\n```\n\nThis ensures your container gets the resources it needs without consuming too much from the cluster.";
-    }
-
-    if (lowercaseQuery.includes('replica') || lowercaseQuery.includes('scale')) {
-      return "Your current configuration has a fixed number of replicas. For better availability and scaling, consider using a Horizontal Pod Autoscaler (HPA):\n\n```yaml\napiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: your-deployment\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: your-deployment\n  minReplicas: 2\n  maxReplicas: 10\n  metrics:\n  - type: Resource\n    resource:\n      name: cpu\n      target:\n        type: Utilization\n        averageUtilization: 80\n```";
-    }
-
-    if (lowercaseQuery.includes('health') || lowercaseQuery.includes('probe') || lowercaseQuery.includes('readiness')) {
-      return "I notice your configuration might be missing health checks. Consider adding liveness and readiness probes for better reliability:\n\n```yaml\nlivenessProbe:\n  httpGet:\n    path: /health\n    port: 8080\n  initialDelaySeconds: 15\n  periodSeconds: 10\nreadinessProbe:\n  httpGet:\n    path: /ready\n    port: 8080\n  initialDelaySeconds: 5\n  periodSeconds: 10\n```";
-    }
-
-    if (lowercaseQuery.includes('security') || lowercaseQuery.includes('context')) {
-      return "To improve security, I recommend adding a security context to your container:\n\n```yaml\nsecurityContext:\n  runAsNonRoot: true\n  runAsUser: 1000\n  readOnlyRootFilesystem: true\n  allowPrivilegeEscalation: false\n  capabilities:\n    drop: [\"ALL\"]\n```\n\nThis runs your container as a non-root user and applies the principle of least privilege.";
-    }
-
-    // Default response
-    return "I've examined your YAML configuration. It looks generally well-structured. Some areas you might want to consider reviewing:\n\n1. Resource limits and requests\n2. Health probes\n3. Security contexts\n4. Update strategy\n\nIs there a specific aspect you'd like me to help you improve?";
-  };
 
   // Improved resizer logic with better hover handling
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -477,6 +437,8 @@ const AIEditor: React.FC<AIEditorProps> = ({
                         chatResponse={chatResponse}
                         isChatLoading={isChatLoading}
                         chatHistory={chatHistory}
+                        selectedModel={selectedModel}
+                        onModelChange={setSelectedModel}
                         handleChatSubmit={handleChatSubmit}
                       />
                     </TabsContent>
