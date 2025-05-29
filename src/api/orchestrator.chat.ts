@@ -240,6 +240,7 @@ async function processChatStream(
     reader.releaseLock();
   }
 }
+
 /**
  * Send a completion request that stores the conversation in the database
  */
@@ -254,14 +255,15 @@ export const completionStream = async (
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream'
       },
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
+      cache: 'no-store'
     });
 
     if (!response.ok) {
       throw new Error(`Completion request failed with status: ${response.status}`);
     }
 
-    await processEventStream(response, callbacks);
+    await processChatStream(response, callbacks);
   } catch (error) {
     if (callbacks.onError) {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
@@ -271,127 +273,6 @@ export const completionStream = async (
   }
 };
 
-// Process event stream and trigger callbacks
-async function processEventStream(
-  response: Response,
-  callbacks: ChatStreamCallbacks
-): Promise<void> {
-  if (!response.body) {
-    throw new Error('Response has no body');
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let completionCalled = false;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-
-    // Process complete events in the buffer
-    const events = buffer.split('data: \n\ndata: ');
-    
-    // Keep the last potentially incomplete event in the buffer
-    if (events.length > 1) {
-      buffer = events.pop() || '';
-      
-      // Process each complete event
-      for (const event of events) {
-        processEventData(event, callbacks, completionCalled);
-      }
-    }
-  }
-
-  // Process any remaining data in the buffer
-  if (buffer) {
-    processEventData(buffer, callbacks, completionCalled);
-  }
-}
-
-// Helper function to process event data from the stream
-function processEventData(
-  eventData: string, 
-  callbacks: ChatStreamCallbacks,
-  completionCalled: boolean
-): void {
-  const lines = eventData.split('\n');
-  let currentEventType = '';
-  let currentEventData = '';
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    if (line.startsWith('data: event: ')) {
-      currentEventType = line.substring(12).trim();
-      // Look for the corresponding data line (should be the next line)
-      if (i + 1 < lines.length && lines[i + 1].startsWith('data: data: ')) {
-        currentEventData = lines[i + 1].substring(11).trim();
-        
-        try {
-          const parsedData = JSON.parse(currentEventData);
-          
-          // Process the event based on its type
-          switch (currentEventType) {
-            case 'message_start':
-              if (callbacks.onStart && parsedData.message) {
-                callbacks.onStart(parsedData.message.id, parsedData.message.uuid);
-              }
-              break;
-            
-            case 'content_block_start':
-              if (callbacks.onContentStart) {
-                callbacks.onContentStart(parsedData.index, parsedData.content_block);
-              }
-              break;
-            
-            case 'content_block_delta':
-              if (callbacks.onContent && parsedData.delta && parsedData.delta.text) {
-                callbacks.onContent(parsedData.index, parsedData.delta.text);
-              }
-              break;
-            
-            case 'tool_call':
-              // Handle tool call events
-              if (callbacks.onToolCall) {
-                const toolCall: ToolCall = {
-                  tool: parsedData.tool,
-                  command: parsedData.command || {},
-                  output: parsedData.output || ''
-                };
-                callbacks.onToolCall(toolCall);
-              }
-              break;
-            
-            case 'message_delta':
-              if (callbacks.onComplete && !completionCalled && parsedData.delta && parsedData.delta.stop_reason) {
-                callbacks.onComplete(parsedData.delta.stop_reason);
-                completionCalled = true;
-              }
-              break;
-            
-            case 'message_stop':
-              if (callbacks.onComplete && !completionCalled) {
-                callbacks.onComplete('message_stop');
-                completionCalled = true;
-              }
-              break;
-              
-            default:
-              console.log(`Unhandled event type: ${currentEventType}`, parsedData);
-          }
-        } catch (error) {
-          console.error('Error parsing event data:', error, currentEventData);
-        }
-        
-        // Skip the data line since we've already processed it
-        i++;
-      }
-    }
-  }
-}
 
 /**
  * Execute a kubectl command directly

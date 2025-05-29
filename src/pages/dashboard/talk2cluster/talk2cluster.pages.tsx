@@ -3,12 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, MessageSquare, Send, RotateCw, Search, Calendar, Clock, Trash, ChevronDown } from "lucide-react";
+import { Loader2, Sparkles, MessageSquare, Send, RotateCw, Search, Calendar, Clock, Trash, ChevronDown, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { AutoResizeTextarea, ModelSelector, ResourceContext } from '@/components/custom';
+import { AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
 import { ChatMessage } from '@/types/chat';
-import UserMessage from './components/user.t2c';
-import AssistantMessage from './components/assistant.t2c';
+import Messages from './components/message.t2c';
 import {
   completionStream,
   listConversations,
@@ -18,6 +17,13 @@ import {
   ToolCall,
   Conversation
 } from '@/api/orchestrator.chat';
+import { EnrichedSearchResult, SearchResult } from '@/types/search';
+import ChatHistorySidebar from './components/chathistory-sidebar.t2c';
+
+interface SuggestedQuestion {
+  question: string;
+  icon: React.ReactNode;
+}
 
 const Talk2Cluster = () => {
   const { conversationId } = useParams();
@@ -29,15 +35,20 @@ const Talk2Cluster = () => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
 
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [currentResponse, setCurrentResponse] = useState<string>('');
+  const [currentToolCalls, setCurrentToolCalls] = useState<ToolCall[]>([]);
   const [initialLoading, setInitialLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [expandedTools, setExpandedTools] = useState<{ [key: number]: boolean }>({});
+  const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
+  const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // References
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -95,11 +106,6 @@ const Talk2Cluster = () => {
     }
   }, [conversationId]);
 
-  // Scroll to bottom whenever messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history]);
-
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -111,6 +117,22 @@ const Talk2Cluster = () => {
     }).format(date);
   };
 
+  const handleAddContext = (resource: SearchResult): void => {
+    // Add context files to be used in chat
+    setContextFiles(prev => [
+      ...prev.filter(r =>
+        !(r.resourceName === resource.resourceName &&
+          r.resourceType === resource.resourceType &&
+          r.namespace === resource.namespace)
+      ),
+      resource
+    ]);
+  };
+
+  const handleResourcePreview = (resource: EnrichedSearchResult) => {
+    setPreviewResource(resource);
+  };
+
   // Clear chat history
   const clearHistory = () => {
     if (conversationId) {
@@ -120,7 +142,12 @@ const Talk2Cluster = () => {
           setHistory([]);
           setMessage('');
           setToolCalls([]);
+          setCurrentResponse('');
+          setCurrentToolCalls([]);
           loadConversations(); // Refresh the conversation list
+          setContextFiles([]);
+          setCurrentResponse('');
+          setCurrentToolCalls([]);
         })
         .catch(err => {
           console.error('Error deleting conversation:', err);
@@ -129,6 +156,11 @@ const Talk2Cluster = () => {
       setHistory([]);
       setMessage('');
       setToolCalls([]);
+      setCurrentResponse('');
+      setCurrentToolCalls([]);
+      setContextFiles([]);
+      setCurrentResponse('');
+      setCurrentToolCalls([]);
     }
   };
 
@@ -143,13 +175,19 @@ const Talk2Cluster = () => {
     let toolCallsList: ToolCall[] = [];
 
     setIsChatLoading(true);
+    setCurrentResponse('');
+    setCurrentToolCalls([]);
 
     completionStream(
       {
         message: userMessage,
         conversation_id: convId,
         model: selectedModel,
-        kubecontext: currentContext?.name
+        kubecontext: currentContext?.name,
+        files: contextFiles.length > 0 ? contextFiles.map(file => ({
+          resource_name: `${file.resourceType}/${file.resourceName}`,
+          resource_content: file.resourceContent || ''
+        })) : undefined,
       },
       {
         onStart: (messageId, messageUuid) => {
@@ -157,10 +195,12 @@ const Talk2Cluster = () => {
         },
         onContent: (index, text) => {
           assistantResponse += text;
+          setCurrentResponse(assistantResponse);
         },
         onToolCall: (toolCall) => {
           toolCallsList.push(toolCall);
           setToolCalls(prev => [...prev, toolCall]);
+          setCurrentToolCalls([...toolCallsList]);
         },
         onComplete: (reason) => {
           if (assistantResponse.trim()) {
@@ -169,11 +209,15 @@ const Talk2Cluster = () => {
               {
                 role: 'assistant',
                 content: assistantResponse,
-                name: 'supervisor'
+                name: 'supervisor',
+                toolCalls: toolCallsList.length > 0 ? toolCallsList : undefined
               }
             ]);
           }
+          setCurrentResponse('');
+          setCurrentToolCalls([]);
           setIsChatLoading(false);
+          setContextFiles([]);
           console.log(`Completed streaming: ${reason}`);
 
           // Refresh conversations after completion
@@ -182,10 +226,25 @@ const Talk2Cluster = () => {
         onError: (error) => {
           console.error('Streaming error:', error);
           setError(error.message);
+          setCurrentResponse('');
+          setCurrentToolCalls([]);
           setIsChatLoading(false);
         }
       }
     );
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    deleteConversation(id)
+      .then(() => {
+        if (conversationId === id) {
+          navigate('/dashboard/talk2cluster');
+        }
+        loadConversations();
+      })
+      .catch(err => {
+        console.error('Error deleting conversation:', err);
+      });
   };
 
   // Handle chat submission
@@ -235,6 +294,11 @@ const Talk2Cluster = () => {
     setHistory([]);
     setToolCalls([]);
     setMessage('');
+    setCurrentResponse('');
+    setCurrentToolCalls([]);
+    setContextFiles([]);
+    setCurrentResponse('');
+    setCurrentToolCalls([]);
   };
 
   // Filter history based on search query
@@ -244,20 +308,29 @@ const Talk2Cluster = () => {
     )
     : history;
 
-  // Filter conversations based on search query
-  const filteredConversations = searchQuery.trim()
-    ? allConversations.filter(conv =>
-      conv.title.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    : allConversations;
 
   // Suggested questions for empty state
-  const suggestedQuestions = [
-    "What are the resource usage patterns in my cluster?",
-    "Are there any security vulnerabilities in my deployments?",
-    "How can I optimize my Vertical Pod Autoscalers?",
-    "Show me best practices for namespace organization",
-    "What's the current status of my pods in the default namespace?"
+  const suggestedQuestions: SuggestedQuestion[] = [
+    {
+      question: "What are the resource usage patterns in my cluster?",
+      icon: <Search className="w-4 h-4" />
+    },
+    {
+      question: "Are there any security vulnerabilities in my deployments?",
+      icon: <Search className="w-4 h-4" />
+    },
+    {
+      question: "How can I optimize my Vertical Pod Autoscalers?",
+      icon: <Search className="w-4 h-4" />
+    },
+    {
+      question: "Show me best practices for namespace organization",
+      icon: <Search className="w-4 h-4" />
+    },
+    {
+      question: "What's the current status of my pods in the default namespace?",
+      icon: <Search className="w-4 h-4" />
+    }
   ];
 
   const handleQuestionClick = (question: string) => {
@@ -296,10 +369,11 @@ const Talk2Cluster = () => {
 
       <div className="flex flex-1 gap-6 overflow-hidden">
         {/* Left side - Chat area */}
-        <div className="w-[68%] flex flex-col">
+        <div className={`flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-[calc(100%-4rem)]' : 'w-[68%]'
+          }`}>
           <Card className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40">
 
-            {/* Chat content area */}
+            {/* Chat content area - REPLACED WITH MESSAGES COMPONENT */}
             <div
               ref={chatContainerRef}
               className="flex-1 overflow-auto pt-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
@@ -309,74 +383,56 @@ const Talk2Cluster = () => {
                 [&::-webkit-scrollbar-thumb]:rounded-full
                 [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50"
             >
-              {history.length === 0 ? (
-                <div className="h-full flex flex-col justify-center items-center">
-                  <Sparkles className="h-16 w-16 text-gray-300 dark:text-gray-700 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Talk to your Kubernetes Cluster
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-center mb-8 max-w-md">
-                    Ask questions about your cluster configuration, get recommendations, or troubleshoot issues.
-                  </p>
-
-                  <div className="grid grid-cols-1 gap-3 w-full max-w-lg">
-                    {suggestedQuestions.map((question, idx) => (
-                      <Button
-                        key={idx}
-                        variant="outline"
-                        className="justify-start text-left h-auto py-3 px-4"
-                        onClick={() => handleQuestionClick(question)}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{question}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {filteredHistory.map((message, index) => (
-                    <div key={index}>
-                      {message.role === 'user' && (
-                        <UserMessage content={message.content} />
-                      )}
-
-                      {message.role === 'assistant' && (
-                        <AssistantMessage content={message.content} />
-                      )}
-                    </div>
-                  ))}
-
-                  {/* Streaming Animation */}
-                  {isChatLoading && (
-                    <div className="flex justify-center py-4">
-                      <div className="flex items-center space-x-2">
-                        <Loader2 className="animate-spin h-5 w-5 text-gray-500" />
-                        <span className="text-sm text-gray-500">Thinking...</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
+              <Messages
+                messages={filteredHistory}
+                currentResponse={currentResponse}
+                currentToolCalls={currentToolCalls}
+                isLoading={isChatLoading}
+                onQuestionClick={handleQuestionClick}
+                suggestedQuestions={suggestedQuestions}
+              />
             </div>
 
             {/* Input area */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-800/80">
               <div className="flex justify-between items-center mb-2">
                 {/* Tool Calls display */}
-                {/* <ResourceContext onResourceSelect={handleAddContext} /> */}
-                <div>
-                  {toolCalls.length > 0 && (
-                    <div className="text-xs text-gray-500">
-                      {toolCalls.length} tool {toolCalls.length === 1 ? 'call' : 'calls'} executed
-                    </div>
-                  )}
-                </div>
-
+                <ResourceContext onResourceSelect={handleAddContext} />
                 <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
               </div>
+
+              {contextFiles.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1 relative">
+                  {contextFiles.map(file => (
+                    <div
+                      key={file.resourceName}
+                      className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
+                    >
+                      <div
+                        className="flex items-center cursor-pointer"
+                        onClick={() => handleResourcePreview(file)}
+                      >
+                        <span className="ml-1">{file.resourceName}</span>
+                      </div>
+                      <X
+                        size={12}
+                        className="ml-1 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
+                        }}
+                      />
+                    </div>
+                  ))}
+
+                  {previewResource && (
+                    <ResourcePreview
+                      resource={previewResource}
+                      onClose={() => setPreviewResource(null)}
+                    />
+                  )}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="flex items-end gap-2">
                 <div className="flex-1">
@@ -413,173 +469,22 @@ const Talk2Cluster = () => {
           </Card>
         </div>
 
-        {/* Right side - History and Tool Calls */}
-        <div className="w-[30%] flex flex-col gap-4">
-          {/* Conversation History */}
-          <Card className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40">
-            {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800/80">
-              <h2 className="font-semibold">Conversations</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={startNewConversation}
-                className="text-xs"
-              >
-                New Chat
-              </Button>
-            </div>
-
-            {/* Search */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800/80">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-
-            {/* Conversations list */}
-            <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
-              [&::-webkit-scrollbar]:w-1.5 
-              [&::-webkit-scrollbar-track]:bg-transparent 
-              [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-              [&::-webkit-scrollbar-thumb]:rounded-full
-              [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-
-              {isLoadingConversations ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                </div>
-              ) : allConversations.length === 0 ? (
-                <div className="h-full flex flex-col justify-center items-center text-gray-500 dark:text-gray-400">
-                  <p className="text-center">Your conversations will appear here</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredConversations.map((conversation) => (
-                    <div
-                      key={conversation.id}
-                      className={`p-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer ${conversationId === conversation.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-800'
-                        }`}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <h3
-                          className="font-medium text-sm truncate pr-2 flex-1"
-                          onClick={() => navigateToConversation(conversation.id)}
-                        >
-                          {conversation.title}
-                        </h3>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 ml-1 text-gray-500 hover:text-red-500"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteConversation(conversation.id)
-                              .then(() => {
-                                if (conversationId === conversation.id) {
-                                  navigate('/dashboard/talk2cluster');
-                                }
-                                loadConversations();
-                              })
-                              .catch(err => {
-                                console.error('Error deleting conversation:', err);
-                              });
-                          }}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div
-                        className="flex items-center text-xs text-gray-500"
-                        onClick={() => navigateToConversation(conversation.id)}
-                      >
-                        <Calendar className="h-3 w-3 mr-1" />
-                        <span>{formatDate(conversation.updated_at)}</span>
-                        <span className="mx-2">•</span>
-                        <MessageSquare className="h-3 w-3 mr-1" />
-                        <span>{conversation.message_count} messages</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800/50 flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearHistory}
-                disabled={!conversationId || history.length === 0}
-              >
-                {conversationId ? "Delete conversation" : "Clear history"}
-              </Button>
-            </div>
-          </Card>
-
-          {/* Tool Calls History */}
-          {toolCalls.length > 0 && (
-            <Card className="h-1/2 flex flex-col overflow-hidden bg-white dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40">
-              <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800/80">
-                <h2 className="font-semibold">Tool Calls</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setToolCalls([])}
-                >
-                  Clear
-                </Button>
-              </div>
-
-              <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
-                [&::-webkit-scrollbar]:w-1.5 
-                [&::-webkit-scrollbar-track]:bg-transparent 
-                [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-                [&::-webkit-scrollbar-thumb]:rounded-full
-                [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-
-                <div className="space-y-4">
-                  {toolCalls.map((tool, idx) => (
-                    <div key={idx} className="p-3 border border-gray-200 dark:border-gray-800 rounded-lg text-sm">
-                      <div
-                        className="font-medium text-blue-600 dark:text-blue-400 flex justify-between items-center cursor-pointer"
-                        onClick={() => {
-                          setExpandedTools(prev => ({
-                            ...prev,
-                            [idx]: !prev[idx]
-                          }));
-                        }}
-                      >
-                        <span>{tool.tool}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${expandedTools[idx] ? 'rotate-180' : ''}`} />
-                      </div>
-
-                      {expandedTools[idx] && (
-                        <>
-                          <div className="mt-2 mb-2 text-gray-700 dark:text-gray-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
-                            {JSON.stringify(tool.command, null, 2)}
-                          </div>
-                          <div className="text-gray-600 dark:text-gray-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
-                            {tool.output}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          )}
+        {/* Right side - History */}
+        <div className={`flex flex-col gap-4 transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-[30%]'
+          }`}>
+          <ChatHistorySidebar
+            allConversations={allConversations}
+            isLoadingConversations={isLoadingConversations}
+            conversationId={conversationId}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onStartNewConversation={startNewConversation}
+            onNavigateToConversation={navigateToConversation}
+            onDeleteConversation={handleDeleteConversation}
+            onClearHistory={clearHistory}
+            formatDate={formatDate}
+            onCollapseChange={setIsSidebarCollapsed}
+          />
         </div>
       </div>
     </div>
