@@ -211,9 +211,9 @@ const Appearance = () => {
 
   const fontOptions = [
     { value: 'DM Sans', label: 'DM Sans (Default)' },
-    { value: 'Roboto', label: 'Roboto' },
-    { value: 'Inter', label: 'Inter' },
-    { value: 'Helvetica Neue', label: 'Helvetica Neue' },
+    // { value: 'Roboto', label: 'Roboto' },
+    // { value: 'Inter', label: 'Inter' },
+    // { value: 'Helvetica Neue', label: 'Helvetica Neue' },
   ];
 
   if (isLoading) {
