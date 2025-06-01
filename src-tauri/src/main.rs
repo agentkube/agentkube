@@ -3,8 +3,9 @@
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
-// use tauri::path::BaseDirectory;
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 
 fn get_orchestrator_binary_path() -> String {
     // Detect the current platform
@@ -70,6 +71,19 @@ fn get_operator_binary_path() -> String {
     }
 }
 
+fn spawn_hidden_process(binary_path: &str) -> Result<std::process::Child, std::io::Error> {
+    let mut cmd = Command::new(binary_path);
+    
+    #[cfg(windows)]
+    {
+        // On Windows, use CREATE_NO_WINDOW flag to hide console windows
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    
+    cmd.spawn()
+}
+
 fn main() {
     // Start the orchestrator binary
     println!("Starting orchestrator...");
@@ -78,9 +92,9 @@ fn main() {
     let orchestrator_path = get_orchestrator_binary_path();
     println!("Using orchestrator binary: {}", orchestrator_path);
     
-    // Spawn orchestrator as a standalone process
+    // Spawn orchestrator as a standalone process (hidden on Windows)
     let mut orchestrator_handle = None;
-    match Command::new(orchestrator_path).spawn() {
+    match spawn_hidden_process(&orchestrator_path) {
         Ok(child) => {
             println!("Orchestrator started with PID: {:?}", child.id());
             orchestrator_handle = Some(child);
@@ -101,9 +115,9 @@ fn main() {
     let operator_path = get_operator_binary_path();
     println!("Using operator binary: {}", operator_path);
     
-    // Spawn operator as a standalone process
+    // Spawn operator as a standalone process (hidden on Windows)
     let mut operator_handle = None;
-    match Command::new(operator_path).spawn() {
+    match spawn_hidden_process(&operator_path) {
         Ok(child) => {
             println!("Operator started with PID: {:?}", child.id());
             operator_handle = Some(child);
