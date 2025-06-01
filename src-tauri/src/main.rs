@@ -1,9 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
+// use tauri::path::BaseDirectory;
+
 
 fn get_orchestrator_binary_path() -> String {
     // Detect the current platform
@@ -13,17 +14,17 @@ fn get_orchestrator_binary_path() -> String {
     // Map the platform to the appropriate binary path
     match (os, arch) {
         // Windows platforms
-        ("windows", "x86_64") => "bin\\orchestrator\\orchestrator-x86_64-pc-windows-msvc.exe".to_string(),
-        ("windows", "x86") => "bin\\orchestrator\\orchestrator-i686-pc-windows-msvc.exe".to_string(),
-        ("windows", "aarch64") => "bin\\orchestrator\\orchestrator-aarch64-pc-windows-msvc.exe".to_string(),
+        ("windows", "x86_64") => "bin\\orchestrator\\agentkube-orchestrator-x86_64-pc-windows-msvc.exe".to_string(),
+        ("windows", "x86") => "bin\\orchestrator\\agentkube-orchestrator-i686-pc-windows-msvc.exe".to_string(),
+        ("windows", "aarch64") => "bin\\orchestrator\\agentkube-orchestrator-aarch64-pc-windows-msvc.exe".to_string(),
         
         // macOS platforms
-        ("macos", "x86_64") => "bin/orchestrator/orchestrator-x86_64-apple-darwin".to_string(),
-        ("macos", "aarch64") => "bin/orchestrator/orchestrator-aarch64-apple-darwin".to_string(),
+        ("macos", "x86_64") => "/Applications/Agentkube.app/Contents/Resources/bin/orchestrator/agentkube-orchestrator-x86_64-apple-darwin".to_string(),
+        ("macos", "aarch64") => "/Applications/Agentkube.app/Contents/Resources/bin/orchestrator/agentkube-orchestrator-aarch64-apple-darwin".to_string(),
         
         // Linux platforms
-        ("linux", "x86_64") => "bin/orchestrator/orchestrator-x86_64-unknown-linux-gnu".to_string(),
-        ("linux", "aarch64") => "bin/orchestrator/orchestrator-aarch64-unknown-linux-gnu".to_string(),
+        ("linux", "x86_64") => "bin/orchestrator/agentkube-orchestrator-x86_64-unknown-linux-gnu".to_string(),
+        ("linux", "aarch64") => "bin/orchestrator/agentkube-orchestrator-aarch64-unknown-linux-gnu".to_string(),
         
         // Fallback
         _ => {
@@ -45,17 +46,17 @@ fn get_operator_binary_path() -> String {
     // Map the platform to the appropriate binary path
     match (os, arch) {
         // Windows platforms
-        ("windows", "x86_64") => "bin\\operator\\operator-x86_64-pc-windows-msvc.exe".to_string(),
-        ("windows", "x86") => "bin\\operator\\operator-i686-pc-windows-msvc.exe".to_string(),
-        ("windows", "aarch64") => "bin\\operator\\operator-aarch64-pc-windows-msvc.exe".to_string(),
+        ("windows", "x86_64") => "bin\\operator\\agentkube-operator-x86_64-pc-windows-msvc.exe".to_string(),
+        ("windows", "x86") => "bin\\operator\\agentkube-operator-i686-pc-windows-msvc.exe".to_string(),
+        ("windows", "aarch64") => "bin\\operator\\agentkube-operator-aarch64-pc-windows-msvc.exe".to_string(),
         
         // macOS platforms
-        ("macos", "x86_64") => "bin/operator/operator-x86_64-apple-darwin".to_string(),
-        ("macos", "aarch64") => "bin/operator/operator-aarch64-apple-darwin".to_string(),
+        ("macos", "x86_64") => "/Applications/Agentkube.app/Contents/Resources/bin/operator/agentkube-operator-x86_64-apple-darwin".to_string(),
+        ("macos", "aarch64") => "/Applications/Agentkube.app/Contents/Resources/bin/operator/agentkube-operator-aarch64-apple-darwin".to_string(),
         
         // Linux platforms
-        ("linux", "x86_64") => "bin/operator/operator-x86_64-unknown-linux-gnu".to_string(),
-        ("linux", "aarch64") => "bin/operator/operator-aarch64-unknown-linux-gnu".to_string(),
+        ("linux", "x86_64") => "bin/operator/agentkube-operator-x86_64-unknown-linux-gnu".to_string(),
+        ("linux", "aarch64") => "bin/operator/agentkube-operator-aarch64-unknown-linux-gnu".to_string(),
         
         // Fallback
         _ => {
@@ -70,7 +71,7 @@ fn get_operator_binary_path() -> String {
 }
 
 fn main() {
-    // Start the orchestrator binary first
+    // Start the orchestrator binary
     println!("Starting orchestrator...");
     
     // Get the appropriate binary path for this platform

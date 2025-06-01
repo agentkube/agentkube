@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Agentkube",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "identifier": "platform.agentkube.app",
   "mainBinaryName": "agentkube",
   "build": {
@@ -142,8 +142,8 @@
       "hardenedRuntime": false,
       "minimumSystemVersion": "10.13"
     },
-    "resources": [],
-    "externalBin": ["bin/operator/operator", "bin/orchestrator/orchestrator"],
+    "resources": ["bin/operator/agentkube-operator-*", "bin/orchestrator/agentkube-orchestrator-*"],
+    "externalBin": [],
     "icon": [
       "icons/16x16.png",
       "icons/32x32.png",
