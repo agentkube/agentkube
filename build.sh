@@ -2,7 +2,7 @@
 set -e
 
 # Variables
-BINARY_NAME="operator"
+BINARY_NAME="agentkube-operator"
 MAIN_PATH="./cmd/server/main.go"
 DIST_DIR="./dist"
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
