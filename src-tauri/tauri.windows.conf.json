@@ -19,5 +19,13 @@
         "titleBarStyle": "Overlay"
       }
     ]
+  },
+  "bundle": {
+    "targets": "all",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
+    }
   }
 }
