@@ -21,7 +21,7 @@
     ]
   },
   "bundle": {
-    "targets": "dmg",
+    "targets": "all",
     "macOS": {
       "dmg": {
         "background": "images/background.png"
