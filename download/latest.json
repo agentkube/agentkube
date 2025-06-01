@@ -1,7 +1,7 @@
 {
-  "version": "v1.0.3",
-  "notes": "- kube-spotlight easy navigation added\n- promql runner bar added\n- internal storage fixes",
-  "pub_date": "2025-05-22T14:30:00Z",
+  "version": "v1.0.4",
+  "notes": "View changelog at https://docs.agentkube.com/changelog",
+  "pub_date": "2025-06-01T14:30:00Z",
   "platforms": {
     "linux-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWtSMWhwOGI2RTF0UEVkb1JDelIydGVKdURQZGNBVWNkM1lMQkdpK0FBL3VKWTJ0UjZHSXlZSVFGQjl3MkV0SFE1TEE2a01pTmY2MzdVbm5hZENmRndFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MDI4MTUwCWZpbGU6QWdlbnRrdWJlXzEuMC4yX2FtZDY0LkFwcEltYWdlCmtPUGFsazU0bXpiVUZpbHIvbVROMnlBYWNPNktPMmw1d0Y1YVdwemtJb2swNkdTSzlnbjhyeDBRblNSd0lKRTVGWWZqeWxTamJEdGJrb095TkxYOURnPT0K",
@@ -28,12 +28,12 @@
       "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.3/Agentkube_1.0.3_x86-setup.exe"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXNqUjZHckNSc3pkMkhHSFh3elV5L3lENnpLaFduL3liMkJSTWd5SE1pMCtLcTBxd3lQbU9xY0t6VTlkTDB6cnhnTDZ3STNVeldTc29LbTJsenV1dGdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MjQwNjg5CWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKVWpKMjZGM2IzUmZwaXpIZ01HRW1CVitmNkRrS3ZhYzFTYVhYeFVRb2Y3T09hOG1YUXNIWUdmR0N6RDcrMys0ODR6ZTdoK0V0Vkd5WCtpRytIN1RqQlE9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.3/Agentkube_1.0.3_x64.dmg"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWkrZm5JakkrWThaU0wyQXhSYUFiWnc0TW9ySzdFU3lZOUh4OXJObW5IQWJEZi9tbXlPZzNGQjlDUUIyMWJJNXN3TmVLWFFOUHIwU2NXQjJxL1FuK3dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4NzcxMzA0CWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKb3JESzZ3NmxFblZORGNKaVFGYmk4V1Y1OTV3SDdMd1JYT2liNWx6OStqK3V3Q0hmNHZIU0wvMkpub3RHbWVzMlBabkpEZGYyVzlJRWlQVVc3ZDhwREE9PQo=",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_x64.dmg"
     },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWdoRXkxME5lbjRBdjZQWkZBQXRjM1NmWTliWm9wWUZSV1VPYUZvcTJCVWpnSXRIbU10aFU3UXM2ZnRQSGd6WUo0bERMOHN6ak5TVmRBRHF3dFNuSUFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4MjM5OTE3CWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKMHlKSndnbjVZN3g1QmE1TTFOU3VLa3dtcktkZFZGL0hwMDR0a3dwdGU0cVo0S25aS29PNXlRMVRJVEJZRVBJUEtBTzhFZDN3a01rUEpra2JScmpwQ3c9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.3/Agentkube_1.0.3_aarch64.dmg"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWdxK0VrcEl1ZU5QUktxTlpYWjRPelU2UlZjRkNGTWxjNnF3TmFRSEpybFFGMVRPMXhORWczTm9meFhxcXZhdmpraGQ1WnY2c3pSdDd1ckRza0pBTGdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4NzcwNTgwCWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKNk9ja1UrL3NXT1FLSmQxajhxdTVyVTNidUNSa1JjdVZSWThoZk04ODNDdFV6bWtzYkk0TitWcVpRbkVxeHRuSVhpUjdpdDNhS2MzK2gxVFNZcEFIQUE9PQo=",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_aarch64.dmg"
     }
   }
 }
