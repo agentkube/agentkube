@@ -2,6 +2,8 @@
  * Terminal API service for managing multiple WebSocket connections
  */
 
+import { OPERATOR_URL } from "@/config";
+
 interface TerminalConnection {
   socket: WebSocket;
   isConnected: boolean;
@@ -37,8 +39,11 @@ class TerminalApiService {
       const protocol = window.location.protocol;
       const httpUrl = `${protocol}//${baseUrlWithoutProtocol}`;
 
+      const OPERATOR_WSS_URL = OPERATOR_URL.replace(/^ws?:\/\//, '');
+
+      console.log("OPERATOR_WSS_URL", OPERATOR_WSS_URL)
       // Create a new session via HTTP request
-      const response = await fetch(httpUrl, {
+      const response = await fetch(OPERATOR_WSS_URL, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

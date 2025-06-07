@@ -7,6 +7,7 @@ import { terminalApi } from '@/api/terminal';
 import { useCluster } from '@/contexts/clusterContext';
 import 'xterm/css/xterm.css';
 import { highlightLsOutput } from '@/utils/terminal';
+import { OPERATOR_URL } from '@/config';
 
 interface TerminalProps {
   isOpen: boolean;
@@ -274,15 +275,14 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // First, get the terminal API endpoint
     const protocol = window.location.protocol;
-    const host = window.location.host;
-    const baseUrl = `${protocol}//${host}`;
+    const host = OPERATOR_URL;
     const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
     
     // Create a session and then connect
     const createSessionAndConnect = async () => {
       try {
         // Get session from API
-        const response = await fetch(`${baseUrl}/terminal`, {
+        const response = await fetch(`${OPERATOR_URL}/terminal`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -296,8 +296,8 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         const session = await response.json();
         
         // Now create the WebSocket URL with the session credentials
-        const wsUrl = `${wsProtocol}//${host}/terminal?id=${encodeURIComponent(session.id)}&shellToken=${encodeURIComponent(session.shellToken)}`;
-        
+        const OPERATOR_WS_URL = host.replace(/^http?:\/\//, '')
+        const wsUrl = `${wsProtocol}//${OPERATOR_WS_URL}/terminal?id=${encodeURIComponent(session.id)}&shellToken=${encodeURIComponent(session.shellToken)}`;
         // Connect to the WebSocket
         const connectionId = await terminalApi.connect(
           wsUrl,
