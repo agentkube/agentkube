@@ -47,16 +47,19 @@ const ReplicationControllerViewer: React.FC = () => {
 
   // Fetch events for the replication controller
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
-
+    if (!currentContext || !namespace || !rcName) return;
+  
     try {
-      // Fetch all events in the namespace
+      // Fetch events specific to this replication controller using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${rcName},involvedObject.kind=ReplicationController`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

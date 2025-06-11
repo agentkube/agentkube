@@ -57,22 +57,24 @@ const ServiceViewer: React.FC = () => {
 
   // Fetch events for the service
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
-
+    if (!currentContext || !namespace || !serviceName) return;
+  
     try {
-      // Fetch all events in the namespace
+      // Fetch events specific to this service using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${serviceName},involvedObject.kind=Service`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
     }
   };
-
   // Fetch service data and events
   useEffect(() => {
     const fetchServiceData = async () => {

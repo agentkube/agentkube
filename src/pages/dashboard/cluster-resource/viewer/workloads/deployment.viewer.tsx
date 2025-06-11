@@ -46,16 +46,19 @@ const DeploymentViewer: React.FC = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   // Fetch events for the deployment
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
-
+    if (!currentContext || !namespace || !deploymentName) return;
+  
     try {
-      // Fetch all events in the namespace
+      // Fetch events specific to this deployment using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${deploymentName},involvedObject.kind=Deployment`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

@@ -521,7 +521,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
 
         {/* Search bar */}
         {searchVisible && (
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 ">
+          <div className="flex items-center gap-2 bg-white dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 ">
             <div className="relative flex-1">
               <Input
                 ref={searchInputRef}

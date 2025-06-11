@@ -46,16 +46,19 @@ const StatefulSetViewer: React.FC = () => {
 
   // Fetch events for the statefulset
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
-
+    if (!currentContext || !namespace || !statefulSetName) return;
+  
     try {
-      // Fetch all events in the namespace
+      // Fetch events specific to this statefulset using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${statefulSetName},involvedObject.kind=StatefulSet`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

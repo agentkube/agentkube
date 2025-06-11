@@ -39,13 +39,19 @@ const EndpointViewer: React.FC = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
+    if (!currentContext || !namespace || !endpointName) return;
+  
     try {
+      // Fetch events specific to this endpoint using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${endpointName},involvedObject.kind=Endpoints`
+        }
       );
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

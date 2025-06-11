@@ -46,16 +46,19 @@ const ReplicaSetViewer: React.FC = () => {
 
   // Fetch events for the replicaset
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
-
+    if (!currentContext || !namespace || !replicaSetName) return;
+  
     try {
-      // Fetch all events in the namespace
+      // Fetch events specific to this replicaset using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${replicaSetName},involvedObject.kind=ReplicaSet`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

@@ -46,16 +46,19 @@ const DaemonSetViewer: React.FC = () => {
 
   // Fetch events for the daemonset
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
-
+    if (!currentContext || !namespace || !daemonSetName) return;
+  
     try {
-      // Fetch all events in the namespace
+      // Fetch events specific to this daemonset using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${daemonSetName},involvedObject.kind=DaemonSet`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

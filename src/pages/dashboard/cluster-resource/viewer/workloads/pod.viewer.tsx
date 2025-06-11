@@ -48,16 +48,19 @@ const PodViewer: React.FC = () => {
 
   // Fetch events for the pod
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
-
+    if (!currentContext || !namespace || !podName) return;
+  
     try {
-      // Fetch all events in the namespace
+      // Fetch events specific to this pod using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${podName},involvedObject.kind=Pod`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -210,8 +213,10 @@ const PodViewer: React.FC = () => {
 
     return (
       <Alert variant={alertType as 'default' | 'destructive' | null} className="mb-6">
-        {icon && <div className="h-4 w-4">{icon}</div>}
-        <AlertTitle>{title}</AlertTitle>
+        <div className="flex item-center space-x-2">
+          {icon && <div className="h-4 w-4">{icon}</div>}
+          <AlertTitle>{title}</AlertTitle>
+        </div>
         <AlertDescription>{description}</AlertDescription>
       </Alert>
     );
@@ -295,13 +300,13 @@ const PodViewer: React.FC = () => {
               <ChevronRight className="h-4 w-4" />
             </BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/workloads/pods">Pods</BreadcrumbLink>
+              <BreadcrumbLink onClick={() => navigate(`/dashboard/explore/pods`)}>Pods</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator>
               <ChevronRight className="h-4 w-4" />
             </BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/workloads/pods/${namespace}`}>{namespace}</BreadcrumbLink>
+              <BreadcrumbLink onClick={() => navigate(`/dashboard/explore/namespaces/${namespace}`)}>{namespace}</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator>
               <ChevronRight className="h-4 w-4" />

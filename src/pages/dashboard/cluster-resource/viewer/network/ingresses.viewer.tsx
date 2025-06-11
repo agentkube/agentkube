@@ -39,13 +39,19 @@ const IngressViewer: React.FC = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchEvents = async () => {
-    if (!currentContext || !namespace) return;
+    if (!currentContext || !namespace || !ingressName) return;
+  
     try {
+      // Fetch events specific to this ingress using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { namespace }
+        { 
+          namespace,
+          fieldSelector: `involvedObject.name=${ingressName},involvedObject.kind=Ingress`
+        }
       );
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

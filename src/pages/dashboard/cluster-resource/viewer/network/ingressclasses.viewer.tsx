@@ -46,15 +46,18 @@ const IngressClassViewer: React.FC = () => {
 
   // Fetch events for the ingressclass
   const fetchEvents = async () => {
-    if (!currentContext) return;
-
+    if (!currentContext || !ingressClassName) return;
+  
     try {
-      // Fetch all events in the cluster (IngressClass is not namespaced)
+      // Fetch events specific to this ingressclass using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
-        'events'
+        'events',
+        { 
+          fieldSelector: `involvedObject.name=${ingressClassName},involvedObject.kind=IngressClass`
+        }
       );
-
+  
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);

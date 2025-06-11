@@ -164,7 +164,7 @@ const PropertiesViewer: React.FC<PropertiesViewerProps> = ({
         break;
       case 'pending':
       case 'waiting':
-        statusColor = "text-yellow-600 dark:text-yellow-400 font-medium";
+        statusColor = "text-yellow-500 dark:text-yellow-500 font-medium";
         break;
       case 'failed':
       case 'error':
