@@ -1,0 +1,102 @@
+// Testing keywords
+            if (content.match(/\b(test|testing|unit test|integration|spec)\b/)) {
+              labels.push('testing');
+            }name: Auto Label Issues
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto Label Issues and PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.issue?.title || context.payload.pull_request?.title || '';
+            const body = context.payload.issue?.body || context.payload.pull_request?.body || '';
+            const content = (title + ' ' + body).toLowerCase();
+            
+            const labels = [];
+            
+            // Bug-related keywords
+            if (content.match(/\b(bug|error|issue|problem|broken|crash|fail|not working|doesn't work)\b/)) {
+              labels.push('bug');
+            }
+            
+            // Enhancement/Feature keywords
+            if (content.match(/\b(feature|enhancement|improve|add|new|request|suggestion)\b/)) {
+              labels.push('enhancement');
+            }
+            
+            // Documentation keywords
+            if (content.match(/\b(documentation|docs|readme|guide|tutorial|help|example)\b/)) {
+              labels.push('documentation');
+            }
+            
+            // Question keywords
+            if (content.match(/\b(question|how to|help|support|unclear)\b/) || title.includes('?')) {
+              labels.push('question');
+            }
+            
+            // Security keywords
+            if (content.match(/\b(security|vulnerability|exploit|cve|unsafe|attack)\b/)) {
+              labels.push('security');
+            }
+            
+            // Performance keywords
+            if (content.match(/\b(performance|slow|optimization|speed|memory|cpu)\b/)) {
+              labels.push('performance');
+            }
+            
+            // Testing keywords
+            if (content.match(/\b(test|testing|unit test|integration|spec)\b/)) {
+              labels.push('testing');
+            }
+            
+            // Priority labels based on keywords
+            if (content.match(/\b(urgent|critical|high priority|asap|immediately)\b/)) {
+              labels.push('priority: high');
+            } else if (content.match(/\b(low priority|nice to have|minor|trivial)\b/)) {
+              labels.push('priority: low');
+            } else {
+              labels.push('priority: medium');
+            }
+            
+            // Technology specific labels for Tauri/Rust backend
+            const techLabels = {
+              'rust': /\b(rust|cargo|rustc|crate)\b/,
+              'tauri': /\b(tauri|webview|desktop|app)\b/,
+              'backend': /\b(backend|api|server|database|db|endpoint)\b/,
+              'build': /\b(build|compilation|compile|cargo build)\b/,
+              'dependencies': /\b(dependencies|deps|crate|cargo\.toml)\b/
+            };
+            
+            for (const [label, regex] of Object.entries(techLabels)) {
+              if (content.match(regex)) {
+                labels.push(label);
+              }
+            }
+            
+            // Apply labels if any were found
+            if (labels.length > 0) {
+              const issueNumber = context.payload.issue?.number || context.payload.pull_request?.number;
+              const isIssue = !!context.payload.issue;
+              
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: labels
+              });
+              
+              console.log(`Applied labels: ${labels.join(', ')} to ${isIssue ? 'issue' : 'PR'} #${issueNumber}`);
+            }
