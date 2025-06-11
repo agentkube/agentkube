@@ -133,7 +133,7 @@ export const LinkPreview = ({
               >
                 <a
                   onClick={() => openExternalUrl(url)}
-                  className="block p-1 bg-white border-2 border-transparent shadow rounded-xl hover:border-neutral-200 dark:hover:border-neutral-800"
+                  className="block p-1 bg-white dark:bg-gray-900 border-2 border-transparent shadow rounded-xl hover:border-neutral-200 dark:hover:border-neutral-800"
                   style={{ fontSize: 0 }}
                 >
                   <img

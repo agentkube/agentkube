@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare } from "lucide-react";
+import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare, Send, ArrowUp } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
@@ -444,7 +444,7 @@ const RightDrawer: React.FC = () => {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="flex gap-2 items-center">
+                <form onSubmit={handleSubmit} className="flex gap-2 items-baseline">
                   <AutoResizeTextarea
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
@@ -458,6 +458,17 @@ const RightDrawer: React.FC = () => {
                     mentionItems={mentionData}
                     onMentionSelect={handleMentionSelect}
                   />
+
+
+                  <div className="flex items-center justify-end">
+                    <Button
+                      type="submit"
+                      disabled={isLoading || !inputValue.trim()}
+                      className="p-3 h-2 w-2 rounded-full dark:bg-gray-800/60"
+                    >
+                      <ArrowUp className='h-2 w-2' />
+                    </Button>
+                  </div>
                 </form>
               </div>
             </div>
