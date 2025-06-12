@@ -9,7 +9,7 @@ import { ToolCall } from '@/api/orchestrator.chat';
 import { openExternalUrl } from '@/api/external';
 import { LinkPreview } from '@/components/ui/link-preview';
 import ToolParameter from './toolparameter.t2c';
-import ResponseFeedback from './response-feedback.t2c';
+import ResponseFeedback from '@/components/custom/responsefeedback/responsefeedback.component';
 
 interface CodeProps {
   inline?: boolean;
