@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.component';
 
 const Kubeconfig = () => {
   // State for kubeconfig settings
@@ -15,6 +16,7 @@ const Kubeconfig = () => {
   const [contextAutoRefresh, setContextAutoRefresh] = useState(true);
   const [contextRefreshInterval, setContextRefreshInterval] = useState(300);
   const [contextRegionExtension, setContextRegionExtension] = useState(true);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   // UI state
   const [fileCount, setFileCount] = useState(1);
@@ -89,12 +91,21 @@ const Kubeconfig = () => {
     }
   };
 
+
   const handleAddFiles = () => {
-    // In a real app, this would open a file picker dialog
-    // For now, we'll just simulate adding a file
-    toast({
-      title: "Feature not implemented",
-      description: "File picker dialog would open here in the actual application.",
+    setIsUploadDialogOpen(true);
+  };
+
+
+  const handleFilesAdded = (paths: string[]) => {
+    // Add the new paths to your externalPaths state
+    const updatedPaths = [...externalPaths, ...paths];
+    setExternalPaths(updatedPaths);
+    setFileCount(prev => prev + paths.length);
+
+    // Save to backend
+    updateSettingsSection('kubeconfig', {
+      externalPaths: updatedPaths
     });
   };
 
@@ -327,81 +338,11 @@ const Kubeconfig = () => {
         )}
       </div>
 
-      {/* Context Extension Section */}
-      {/* <div className="mb-10">
-        <h2 className="text-xl font-medium mb-4">Context Extension</h2>
-        
-        <div className="flex items-start mb-4">
-          <input 
-            type="checkbox" 
-            id="regionExtension" 
-            checked={contextRegionExtension}
-            onChange={() => {
-              setContextRegionExtension(!contextRegionExtension);
-              saveKubeconfigSettings();
-            }}
-            className="mt-1 mr-3"
-          />
-          <div>
-            <label htmlFor="regionExtension" className="font-medium cursor-pointer">Enable Region Extension</label>
-            <p className="text-gray-700 dark:text-gray-400 text-xs mt-1">
-              Automatically detect and group contexts by region.
-            </p>
-          </div>
-        </div>
-        
-        <p className="text-gray-700 dark:text-gray-400 text-xs mb-1">
-          You can group, re-order and customize contexts icons, with more configuration coming soon.
-        </p>
-        <p className="text-gray-700 dark:text-gray-400 text-xs mb-1">
-          - Group contexts with tags and connect to multiple clusters quicker.
-        </p>
-        <p className="text-gray-700 dark:text-gray-400 text-xs mb-4">
-          - Custom icons are useful to identify cluster location or environment.
-        </p>
-        
-        <p className="text-gray-700 dark:text-gray-400 text-xs mb-6">
-          Read our guide on <a href="#" className="text-blue-400 hover:underline">Context Extension</a> to learn more.
-        </p>
-
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <div className="bg-blue-900 rounded-full p-2 mr-3">
-              <div className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center">
-                <span className="text-white text-xs">⚙️</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-white">us-production</div>
-              <div className="text-gray-500 text-sm">eks-us-east</div>
-            </div>
-          </div>
-          
-          <div className="flex items-center">
-            <div className="bg-blue-900 rounded-full p-2 mr-3">
-              <div className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center">
-                <span className="text-white text-xs">⚙️</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-white">eu-production</div>
-              <div className="text-gray-500 text-sm">eks-eu-west</div>
-            </div>
-            
-            <ArrowRight className="mx-6 text-gray-500" size={20} />
-            
-            <div className="flex items-center bg-gray-800 rounded-lg px-4 py-2 border border-gray-700">
-              <div className="flex items-center justify-center w-6 h-6 bg-transparent mr-2">
-                <img src="https://via.placeholder.com/20" alt="US Flag" className="rounded-full" />
-              </div>
-              <div>
-                <div className="text-white">Production</div>
-                <div className="text-gray-500 text-sm">2 contexts</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div> */}
+      <AddKubeConfigDialog
+        open={isUploadDialogOpen}
+        onOpenChange={setIsUploadDialogOpen}
+        onFilesAdded={handleFilesAdded}
+      />
 
       {/* Path Input Dialog */}
       <Dialog open={isPathDialogOpen} onOpenChange={setIsPathDialogOpen}>
