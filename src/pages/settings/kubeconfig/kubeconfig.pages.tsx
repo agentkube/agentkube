@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.component';
 
 const Kubeconfig = () => {
-  // State for kubeconfig settings
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [mergeFiles, setMergeFiles] = useState(false);
   const [kubeConfigPath, setKubeConfigPath] = useState('');
   const [externalPaths, setExternalPaths] = useState<string[]>([]);

@@ -13,6 +13,17 @@ import {
   Plus,
 } from "lucide-react";
 
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+
+interface TauriDragDropEvent {
+  payload: {
+    type: 'over' | 'drop' | 'cancelled';
+    paths?: string[];
+    position?: { x: number; y: number };
+  };
+}
+
 // Add File type import
 declare const File: {
   new (parts: (string | Blob | ArrayBuffer | ArrayBufferView)[], filename: string, options?: FilePropertyBag): File;
@@ -32,7 +43,12 @@ interface FileWithPreview {
 
 type UploadMode = 'files' | 'text';
 
-export default function FileUpload() {
+interface FileUploadProps {
+  onFilesUploaded?: (files: FileWithPreview[]) => void;
+}
+
+
+export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadMode, setUploadMode] = useState<UploadMode>('files');
@@ -95,11 +111,22 @@ export default function FileUpload() {
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.random() * 15;
-      setFiles((prev) =>
-        prev.map((f) =>
+      setFiles((prev) => {
+        const updated = prev.map((f) =>
           f.id === id ? { ...f, progress: Math.min(progress, 100) } : f
-        )
-      );
+        );
+        
+        // Call callback when upload completes
+        if (progress >= 100 && onFilesUploaded) {
+          const completedFile = updated.find(f => f.id === id);
+          if (completedFile) {
+            setTimeout(() => onFilesUploaded(updated), 100);
+          }
+        }
+        
+        return updated;
+      });
+  
       if (progress >= 100) {
         clearInterval(interval);
         if (navigator.vibrate) navigator.vibrate(100);
@@ -206,7 +233,7 @@ export default function FileUpload() {
               />
               <UploadCloud
                 className={clsx(
-                  "w-16 h-16 md:w-20 md:h-20 drop-shadow-sm",
+                  "w-16 h-16 md:w-20 md:h-10 drop-shadow-sm",
                   isDragging
                     ? "text-blue-500"
                     : "text-zinc-700 dark:text-zinc-300 group-hover:text-blue-500 transition-colors duration-300"
@@ -323,15 +350,15 @@ users:
       )}
 
       {/* Uploaded files list */}
-      <div className="mt-8">
+      <div className="mt-4">
         <AnimatePresence>
           {files.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex justify-between items-center mb-3 px-2"
+              className="flex justify-between items-center mb-2 px-2"
             >
-              <h3 className="font-semibold text-lg md:text-xl text-zinc-800 dark:text-zinc-200">
+              <h3 className="font-semibold text-md text-zinc-800 dark:text-zinc-200">
                 Uploaded files ({files.length})
               </h3>
               {files.length > 1 && (
@@ -366,15 +393,15 @@ users:
                 {/* File icon */}
                 <div className="relative flex-shrink-0">
                   <div className={clsx(
-                    "w-16 h-16 md:w-20 md:h-20 rounded-lg border dark:border-zinc-700 shadow-sm flex items-center justify-center",
+                    "w-10 h-10 md:w-16 md:h-16 rounded-lg border dark:border-zinc-700 shadow-sm flex items-center justify-center",
                     file.isFromText 
                       ? "bg-green-50 dark:bg-green-900/20" 
                       : "bg-blue-50 dark:bg-blue-900/20"
                   )}>
                     {file.isFromText ? (
-                      <FileText className="w-8 h-8 text-green-500 dark:text-green-400" />
+                      <FileText className="w-6 h-6 text-green-500 dark:text-green-400" />
                     ) : (
-                      <FileIcon className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+                      <FileIcon className="w-6 h-6 text-blue-500 dark:text-blue-400" />
                     )}
                   </div>
                   {file.progress === 100 && (
@@ -394,12 +421,12 @@ users:
                     {/* Filename */}
                     <div className="flex items-center gap-2 min-w-0">
                       {file.isFromText ? (
-                        <FileText className="w-5 h-5 flex-shrink-0 text-green-500 dark:text-green-400" />
+                        <FileText className="w-4 h-4 flex-shrink-0 text-green-500 dark:text-green-400" />
                       ) : (
-                        <FileIcon className="w-5 h-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
+                        <FileIcon className="w-4 h-4 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                       )}
                       <h4
-                        className="font-medium text-base md:text-lg truncate text-zinc-800 dark:text-zinc-200"
+                        className="font-medium text-sm truncate text-zinc-800 dark:text-zinc-200"
                         title={file.name}
                       >
                         {file.name}

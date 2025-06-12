@@ -131,3 +131,29 @@ export interface KubeContext {
     source: string;
   };
 }
+
+export interface KubeconfigUploadRequest {
+  content: string;
+  sourceName: string;
+  ttl?: number; // TTL in hours
+}
+
+export interface KubeconfigUploadResponse {
+  success: boolean;
+  message: string;
+  contextsAdded?: string[];
+  errors?: string[];
+}
+
+export interface KubeConfigFile {
+	id: string;
+	name: string;
+	size: number;
+	path: string;
+	isValid: boolean;
+	contexts: string[];
+	clusters: string[];
+	validationMessage?: string;
+	file?: File; // Add this line
+	isFromText?: boolean; // Add this line
+}
