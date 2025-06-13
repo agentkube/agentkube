@@ -75,10 +75,11 @@ type SearchResult struct {
 
 // SearchOptions contains parameters for search operations
 type SearchOptions struct {
-	Query        string `json:"query"`
-	Limit        int    `json:"limit,omitempty"`
-	ClusterKey   string `json:"clusterKey"`
-	ResourceType string `json:"resourceType,omitempty"`
+	Query        string   `json:"query"`
+	Limit        int      `json:"limit,omitempty"`
+	ClusterKey   string   `json:"clusterKey"`
+	ResourceType string   `json:"resourceType,omitempty"`
+	Namespaces   []string `json:"namespaces,omitempty"`
 }
 
 // APIResource represents a Kubernetes API resource
@@ -156,9 +157,17 @@ func (c *Controller) Search(ctx context.Context, options SearchOptions) ([]Searc
 	}
 
 	// Get all namespaces
-	namespaces, err := c.listNamespaces(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list namespaces: %v", err)
+	var namespacesToSearch []string
+	if len(options.Namespaces) > 0 {
+		// Use specified namespaces
+		namespacesToSearch = options.Namespaces
+	} else {
+		// Get all namespaces if none specified
+		allNamespaces, err := c.listNamespaces(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list namespaces: %v", err)
+		}
+		namespacesToSearch = allNamespaces
 	}
 
 	// Prepare search
@@ -181,7 +190,7 @@ func (c *Controller) Search(ctx context.Context, options SearchOptions) ([]Searc
 
 			// For namespaced resources, search across all namespaces
 			if resource.Namespaced {
-				for _, namespace := range namespaces {
+				for _, namespace := range namespacesToSearch {
 					resourceResults, err := c.searchNamespacedResource(ctx, namespace, resource, searchTerms)
 					if err != nil {
 						// Log error but continue

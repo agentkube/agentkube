@@ -13,6 +13,7 @@ import (
 func SearchResources(c *gin.Context) {
 	// Get resource type filter from query parameter
 	resourceType := c.Query("type")
+	namespaces := c.QueryArray("namespace") // Support multiple namespaces
 
 	// Parse the search options from the request body
 	var searchOptions search.SearchOptions
@@ -21,6 +22,14 @@ func SearchResources(c *gin.Context) {
 			"error": fmt.Sprintf("invalid search options: %v", err),
 		})
 		return
+	}
+
+	// Set filters if provided in query
+	if resourceType != "" {
+		searchOptions.ResourceType = resourceType
+	}
+	if len(namespaces) > 0 {
+		searchOptions.Namespaces = namespaces
 	}
 
 	// Set resource type filter if provided in query
