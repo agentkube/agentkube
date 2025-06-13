@@ -332,6 +332,7 @@ export async function getApiGroups(clusterName: string): Promise<any> {
  * @param query The search query
  * @param limit Maximum number of results to return
  * @param resourceType Optional resource type to filter the search
+ * @param namespace Optional namespace to filter the search
  * @returns A promise resolving to search results
  */
 export const queryResource = async (
@@ -339,10 +340,23 @@ export const queryResource = async (
   query: string,
   limit: number = 10,
   resourceType?: string,
+  namespace?: string, // Add namespace parameter
 ): Promise<SearchResponse> => {
-  // Construct the URL with resource type if provided
-  const url = resourceType
-    ? `${OPERATOR_URL}/cluster/${contextName}/search?type=${resourceType}`
+  // Build query parameters
+  const queryParams = new URLSearchParams();
+  
+  if (resourceType) {
+    queryParams.append('type', resourceType);
+  }
+  
+  if (namespace) {
+    queryParams.append('namespace', namespace);
+  }
+  
+  // Construct the URL with query parameters
+  const queryString = queryParams.toString();
+  const url = queryString 
+    ? `${OPERATOR_URL}/cluster/${contextName}/search?${queryString}`
     : `${OPERATOR_URL}/cluster/${contextName}/search`;
 
   const response = await fetch(url, {

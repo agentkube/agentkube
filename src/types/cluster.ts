@@ -143,6 +143,7 @@ export interface KubeconfigUploadResponse {
   message: string;
   contextsAdded?: string[];
   errors?: string[];
+  filePath?: string;
 }
 
 export interface KubeConfigFile {

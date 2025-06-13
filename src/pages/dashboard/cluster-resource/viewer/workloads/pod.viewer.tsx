@@ -10,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, Maximize2, LayoutGrid, Flag, Menu, AlertCircle, Clock, ArrowLeft, Terminal, Trash } from "lucide-react";
+import { ChevronRight, Maximize2, LayoutGrid, Flag, Menu, AlertCircle, Clock, ArrowLeft, Terminal, Trash, CheckCheck, BadgeCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -176,7 +176,7 @@ const PodViewer: React.FC = () => {
   const PodStatusAlert = ({ phase }: { phase?: string }) => {
     if (!phase) return null;
 
-    let alertType: "default" | "info" | "warning" | "destructive" | null = null;
+    let alertType: "default" | "info" | "warning" | "destructive" | "success" | null = null;
     let icon = null;
     let title = "";
     let description = "";
@@ -197,25 +197,26 @@ const PodViewer: React.FC = () => {
         description = "At least one container in the pod has terminated with failure.";
         break;
       case 'succeeded':
-        alertType = "info";
+        alertType = "success";
+        icon = <BadgeCheck className="h-4 w-4" />;
         title = "Pod Completed";
         description = "All containers in the pod have terminated successfully and will not be restarted.";
         break;
       case 'unknown':
-        alertType = "warning";
+        alertType = "info";
         icon = <AlertCircle className="h-4 w-4" />;
         title = "Pod Status Unknown";
         description = "The state of the pod could not be determined.";
         break;
     }
-
+  
     if (!alertType) return null;
-
+  
     return (
-      <Alert variant={alertType as 'default' | 'destructive' | null} className="mb-6">
-        <div className="flex item-center space-x-2">
+      <Alert variant={alertType} className="mb-6">
+        <div className="flex items-center space-x-2">
           {icon && <div className="h-4 w-4">{icon}</div>}
-          <AlertTitle>{title}</AlertTitle>
+          <h1 className='font-semibold'>{title}</h1>
         </div>
         <AlertDescription>{description}</AlertDescription>
       </Alert>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Search, ChartColumnBig, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSpotlight } from '@/contexts/useSpotlight';
 import { debounce } from 'lodash';
 import { Separator } from "@/components/ui/separator";
@@ -7,22 +7,21 @@ import { ExecuteCommand } from '@/api/internal/execute';
 import { ExecutionResult, KubeContext } from "@/types/cluster";
 import { motion, AnimatePresence } from 'framer-motion';
 
-import SpotlightSuggestion from '../spotlightsuggestion/spotlightsuggestion.component';
-import ExplorerSuggestion from '../explorersuggestion/explorersuggestion.component';
-// import MonitorSpotlight from '../monitorspotlight/monitorspotlight.component';
-// import CommandSuggestions from '../commandsuggestion/commandsuggestion.component';
 import { ExplorerSuggestionsConstant } from '@/constants/suggestion.contants';
 import { CommandSuggestionsConstants } from '@/constants/command-suggestion.constant';
-import CommandSpotlight from '../commandspotlight/commandspotlight.component';
-import CommandOutputSpotlight from '../commandoutputspotlight/commandoutputspotlight.command';
-import SearchResults from '../searchResult/searchresult.component';
 import { SYSTEM_SUGGESTIONS } from '@/constants/system-suggestion.constant';
 import { kubeShortcuts, kubeResourceShortcuts, contextShortcuts } from '@/constants/spotlight-shortcuts.constant';
 import { getMcpConfig, updateMcpConfig } from '@/api/settings';
-import MCPServerSpotlight from '../mcpspotlight/mcpspotlight.component';
 import { mcpShortcuts } from '@/constants/spotlight-shortcuts.constant';
 import { useCluster } from '@/contexts/clusterContext';
+import SpotlightSuggestion from '../spotlightsuggestion/spotlightsuggestion.component';
+import ExplorerSuggestion from '../explorersuggestion/explorersuggestion.component';
+import CommandSpotlight from '../commandspotlight/commandspotlight.component';
+import CommandOutputSpotlight from '../commandoutputspotlight/commandoutputspotlight.command';
+import SearchResults from '../searchResult/searchresult.component';
+import MCPServerSpotlight from '../mcpspotlight/mcpspotlight.component';
 import ContextSwitcher from '../contextswitcher/contextswitcher.component';
+import { parseSearchQuery } from '@/utils/spotlight.utils';
 
 const Spotlight: React.FC = () => {
   const { isOpen, query, setQuery, onClose } = useSpotlight();
@@ -43,6 +42,7 @@ const Spotlight: React.FC = () => {
   const [contextMode, setContextMode] = useState<boolean>(false);
   const [contextQuery, setContextQuery] = useState<string>('');
   const [filteredContexts, setFilteredContexts] = useState<KubeContext[]>([]);
+  const [searchResultsCount, setSearchResultsCount] = useState<number>(0);
 
   const [mcpMode, setMcpMode] = useState<boolean>(false);
   const [mcpQuery, setMcpQuery] = useState<string>('');
@@ -70,7 +70,6 @@ const Spotlight: React.FC = () => {
     if (mcpShortcuts.shortcut.toLowerCase() === queryLower ||
       "mcp".toLowerCase().includes(queryLower)) {
       setMatchingResource(null);
-      // MCP mode will be handled in keyboard events
     }
 
     // Check if there's a match for the context shortcut
@@ -78,7 +77,6 @@ const Spotlight: React.FC = () => {
       "context".toLowerCase().includes(queryLower) ||
       "contexts".toLowerCase().includes(queryLower)) {
       setMatchingResource(null); // Clear any resource matches
-      // We'll handle context mode separately
     }
   }, [debouncedQuery]);
 
@@ -115,8 +113,10 @@ const Spotlight: React.FC = () => {
   useEffect(() => {
     debouncedSearch(query);
 
+    const { cleanQuery } = parseSearchQuery(query);
+
     // Set showSearchResults when there's a query and it's not in chart mode
-    if (query && !chartSelected && !resourceMode && !contextMode && !mcpMode) {
+    if ((cleanQuery || query.includes('@')) && !chartSelected && !resourceMode && !contextMode && !mcpMode) {
       setShowSearchResults(true);
     } else {
       setShowSearchResults(false);
@@ -167,9 +167,6 @@ const Spotlight: React.FC = () => {
     }
   }, [isOpen]);
 
-  const toggleChart = () => {
-    setChartSelected(!chartSelected);
-  };
 
   const handleCommandExecution = async (command: string) => {
     setCommandOutput(null);
@@ -256,6 +253,7 @@ const Spotlight: React.FC = () => {
           setResourceMode(false);
           setActiveResource(null);
           setResourceQuery('');
+          setActiveResourceIndex(0); // Reset index
         } else if (e.code === 'Backspace' && resourceQuery === '') {
           // If backspace is pressed when the resource query is empty, exit resource search mode
           e.preventDefault();
@@ -263,6 +261,15 @@ const Spotlight: React.FC = () => {
           setActiveResource(null);
           setResourceQuery('');
           setQuery('');
+          setActiveResourceIndex(0); // Reset index
+        } else if (e.code === 'ArrowDown') {
+          e.preventDefault();
+          setActiveResourceIndex(prev =>
+            prev < searchResultsCount - 1 ? prev + 1 : prev
+          );
+        } else if (e.code === 'ArrowUp') {
+          e.preventDefault();
+          setActiveResourceIndex(prev => prev > 0 ? prev - 1 : 0);
         }
       } else {
 
@@ -316,17 +323,17 @@ const Spotlight: React.FC = () => {
           const isMcpMatch = debouncedQuery.toLowerCase() === mcpShortcuts.shortcut.toLowerCase() ||
             "mcp".toLowerCase().includes(debouncedQuery.toLowerCase());
 
-            if ((e.code === 'Tab' || e.code === 'Enter') && isMcpMatch) {
-              e.preventDefault();
-              setMcpMode(true);
-              setMcpQuery('');
-              setActiveResourceIndex(0);
-              setTabPressed(true);
-              setTimeout(() => setTabPressed(false), 300);
-              
-              // Refetch MCP servers when entering MCP mode
-              await refetchMcpServers();
-            }
+          if ((e.code === 'Tab' || e.code === 'Enter') && isMcpMatch) {
+            e.preventDefault();
+            setMcpMode(true);
+            setMcpQuery('');
+            setActiveResourceIndex(0);
+            setTabPressed(true);
+            setTimeout(() => setTabPressed(false), 300);
+
+            // Refetch MCP servers when entering MCP mode
+            await refetchMcpServers();
+          }
         }
       }
     }
@@ -346,7 +353,7 @@ const Spotlight: React.FC = () => {
       console.error('Failed to refetch MCP servers:', error);
     }
   };
-  
+
   const handleMcpServerToggle = async (serverName: string, enabled: boolean) => {
     const updateLocalState = (newEnabled: boolean) => {
       setMcpServers(prev =>
@@ -608,16 +615,6 @@ const Spotlight: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {/* <button
-              onClick={toggleChart}
-              className={`p-2 rounded-[0.3rem] transition-colors duration-200 cursor-pointer ${chartSelected
-                ? 'bg-gray-300/70 dark:bg-gray-600/30 text-gray-600 dark:text-gray-400'
-                : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-200/20'
-              }`}
-            >
-              <ChartColumnBig className="w-4 h-4" />
-            </button> */}
           </div>
 
           {/* Command Output Section */}
@@ -639,6 +636,8 @@ const Spotlight: React.FC = () => {
                   query={query}
                   onResultClick={onClose}
                   limit={3}
+                  activeIndex={0}
+                  onResultsCountChange={() => { }}
                 />
               </div>
             </>
@@ -652,6 +651,9 @@ const Spotlight: React.FC = () => {
                 onResultClick={onClose}
                 limit={5}
                 resourceType={activeResource.resourceType}
+                activeIndex={activeResourceIndex}
+                onResultsCountChange={setSearchResultsCount}
+                isResourceMode={true}
               />
             </>
           )}
@@ -741,20 +743,6 @@ const Spotlight: React.FC = () => {
               </div>
             </>
           )}
-
-          {/* Natural Language Command Suggestions */}
-          {/* {showSuggestions && query && !chartSelected && !resourceMode && !contextMode && (
-            <>
-              <div className="py-1">
-                <div className="">
-                  <CommandSuggestions
-                    query={query}
-                    onCommandSelect={handleCommandExecution}
-                  />
-                </div>
-              </div>
-            </>
-          )} */}
 
           {/* System Suggestions Section */}
           {showSuggestions && filteredSuggestions.length > 0 && !resourceMode && !contextMode && !mcpMode && (

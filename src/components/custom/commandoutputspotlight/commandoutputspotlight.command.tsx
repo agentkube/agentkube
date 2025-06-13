@@ -6,20 +6,34 @@ import { ExecutionResult } from "@/types/cluster";
 import { ExecuteCommand } from '@/api/internal/execute';
 import { useCluster } from '@/contexts/clusterContext';
 import { formatTableOutput } from '@/utils/output-format.utils';
+
 interface CommandOutputSpotlightProps {
   output: ExecutionResult;
   isExecuting: boolean;
+  isDialogOpen?: boolean;
+  setIsDialogOpen?: (open: boolean) => void;
 }
 
 const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
   output,
-  isExecuting: initialIsExecuting
+  isExecuting: initialIsExecuting,
+  isDialogOpen: externalDialogOpen,
+  setIsDialogOpen: setExternalDialogOpen
 }) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [internalDialogOpen, setInternalDialogOpen] = useState(false);
   const [isExecuting, setIsExecuting] = useState(initialIsExecuting);
   const [currentOutput, setCurrentOutput] = useState(output);
   const [isCopied, setIsCopied] = useState(false);
   const { currentContext } = useCluster();
+
+  const isDialogOpen = externalDialogOpen !== undefined ? externalDialogOpen : internalDialogOpen;
+  const setIsDialogOpen = setExternalDialogOpen || setInternalDialogOpen;
+
+  // Helper function to clean kubectl command path
+  const cleanKubectlCommand = (command: string): string => {
+    // Replace any path ending with /kubectl with just kubectl
+    return command.replace(/.*\/kubectl(\s|$)/g, 'kubectl$1');
+  };
 
   const handleCopy = async () => {
     try {
@@ -32,7 +46,10 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
   };
 
   useEffect(() => {
-    setCurrentOutput(output);
+    setCurrentOutput({
+      ...output,
+      command: cleanKubectlCommand(output.command)
+    });
     setIsExecuting(initialIsExecuting);
   }, [output, initialIsExecuting]);
 
@@ -42,16 +59,18 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
     if (!currentContext) return;
 
     try {
-      // const args = currentOutput.command.replace(/^kubectl\s+/, '').split(' ');
       const result = await ExecuteCommand(
         currentOutput.command,
         currentContext.name
       );
-      setCurrentOutput(result);
+      setCurrentOutput({
+        ...result,
+        command: cleanKubectlCommand(result.command)
+      });
     } catch (error) {
       console.error('Failed to execute command:', error);
       setCurrentOutput({
-        command: currentOutput.command,
+        command: cleanKubectlCommand(currentOutput.command),
         output: 'Failed to execute command: ' + (error as Error).message,
         success: false
       });
@@ -59,7 +78,7 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
       setIsExecuting(false);
     }
   };
-
+  
   return (
     <>
       <div className="px-4 py-2">
@@ -102,7 +121,6 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
               </div>
             )}
           </div>
-
         </div>
       </div>
 
@@ -125,15 +143,15 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
               <code className="text-sm font-mono">{currentOutput.command}</code>
             </div>
             <div className="mt-4 bg-gray-100 dark:bg-gray-600/10 rounded-[0.4rem] max-h-[60vh] overflow-auto">
-  <h2 className="bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm rounded-tl-[0.4rem] w-fit py-1 px-4 sticky top-0 z-10">bash</h2>
-  <div className="whitespace-pre p-2 text-sm border-t border-gray-300 dark:border-gray-800 font-mono overflow-x-auto min-w-0">
-    {isExecuting ? (
-      <div className="text-gray-600">Executing command...</div>
-    ) : (
-      formatTableOutput(currentOutput.output)
-    )}
-  </div>
-</div>
+              <h2 className="bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm rounded-tl-[0.4rem] w-fit py-1 px-4 sticky top-0 z-10">bash</h2>
+              <div className="whitespace-pre p-2 text-sm border-t border-gray-300 dark:border-gray-800 font-mono overflow-x-auto min-w-0">
+                {isExecuting ? (
+                  <div className="text-gray-600">Executing command...</div>
+                ) : (
+                  formatTableOutput(currentOutput.output)
+                )}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
