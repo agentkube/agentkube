@@ -158,7 +158,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1 bg-gray-200 dark:bg-gray-900 rounded text-sm text-gray-700 dark:text-gray-300 focus:outline-none"
+                className="w-full pl-8 pr-3 py-1 bg-gray-200 dark:bg-gray-800/50 rounded text-sm text-gray-700 dark:text-gray-300 focus:outline-none"
                 autoFocus
               />
             </div>

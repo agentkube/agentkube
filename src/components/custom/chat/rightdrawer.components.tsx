@@ -11,6 +11,8 @@ import { drawerVariants, backdropVariants } from '@/utils/styles.utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatStream, executeCommand, ToolCall } from '@/api/orchestrator.chat';
 import { useCluster } from '@/contexts/clusterContext';
+import UpgradeToProContainer from './upgradepro.component';
+import { useAuth } from '@/contexts/useAuth';
 
 interface SuggestedQuestion {
   question: string;
@@ -64,10 +66,10 @@ const RightDrawer: React.FC = () => {
   const [drawerMounted, setDrawerMounted] = useState<boolean>(false);
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
-  // TODO context files will also contain resource_name, resource_content
   const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
   const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
-  const { currentContext } = useCluster()
+  const { currentContext } = useCluster();
+  const { user } = useAuth();
 
   // Conversation ID state to maintain session with the orchestrator
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
@@ -139,12 +141,29 @@ const RightDrawer: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
-
+  
+    // Check if user is on free version and block the request
+    if (!user || !user.isLicensed || user.subscription.status !== 'active') {
+      // Add a message indicating they need to upgrade
+      setMessages(prev => [...prev, 
+        {
+          role: 'user',
+          content: inputValue
+        },
+        {
+          role: 'assistant',
+          content: '**Upgrade Required** \n\nThis feature requires a Pro subscription. Please upgrade to continue using the AI assistant.'
+        }
+      ]);
+      setInputValue('');
+      return;
+    }
+  
     const userMessage: ChatMessage = {
       role: 'user',
       content: inputValue
     };
-
+  
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
@@ -153,19 +172,19 @@ const RightDrawer: React.FC = () => {
     responseRef.current = '';
     toolCallsRef.current = [];
     setIsInputFocused(false);
-
+  
     try {
       // Transform contextFiles to the format expected by the API
       const formattedFiles = contextFiles.map(file => ({
         resource_name: `${file.resourceType}/${file.resourceName}`,
         resource_content: file.resourceContent || ''
       }));
-
+  
       await chatStream(
         {
           message: inputValue,
           chat_history: getRecentChatHistory(messages),
-          model: selectedModel, //Will be replaced with selectedModel
+          model: selectedModel,
           kubecontext: currentContext?.name,
           files: formattedFiles.length > 0 ? formattedFiles : undefined,
         },
@@ -190,7 +209,7 @@ const RightDrawer: React.FC = () => {
                 toolCalls: toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
               }
             ]);
-
+  
             setCurrentResponse('');
             setCurrentToolCalls([]);
             setContextFiles([]);
@@ -199,7 +218,7 @@ const RightDrawer: React.FC = () => {
           onError: (error) => {
             console.error('Error in chat stream:', error);
             setIsLoading(false);
-
+  
             setMessages(prev => [
               ...prev,
               {
@@ -210,7 +229,7 @@ const RightDrawer: React.FC = () => {
           }
         }
       );
-
+  
       // Check if the input starts with 'kubectl' to execute as a command
       if (inputValue.trim().startsWith('kubectl')) {
         await handleKubectlCommand(inputValue.trim());
@@ -218,7 +237,7 @@ const RightDrawer: React.FC = () => {
     } catch (error) {
       console.error('Failed to process message:', error);
       setIsLoading(false);
-
+  
       setMessages(prev => [
         ...prev,
         {
@@ -365,6 +384,8 @@ const RightDrawer: React.FC = () => {
                   </Button>
                 </div>
               </div>
+              
+         
 
               <div
                 className={`flex-grow 
@@ -403,6 +424,10 @@ const RightDrawer: React.FC = () => {
                   </div>
                 </motion.div>
               )}
+
+
+              <UpgradeToProContainer />
+
 
               <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
                 <div className="flex justify-between items-center mb-2">
