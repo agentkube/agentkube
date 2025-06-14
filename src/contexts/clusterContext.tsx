@@ -26,7 +26,7 @@ interface ClusterProviderProps {
 export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) => {
   const [refreshInterval, setRefreshIntervalState] = useState<number>(() => {
     const stored = localStorage.getItem('refresh_interval');
-    return stored ? JSON.parse(stored) : 5000;
+    return stored ? JSON.parse(stored) : 10000;
   });
   const [contexts, setContexts] = useState<KubeContext[]>([]);
   const [currentContext, setCurrentContext] = useState<KubeContext | null>(null);
