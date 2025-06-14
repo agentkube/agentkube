@@ -57,7 +57,10 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     fetchNamespaces();
   }, [currentContext]);
 
-  // Handle keyboard shortcuts
+
+
+
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Check for Ctrl+N or Cmd+N
     if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
@@ -66,22 +69,41 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   }, []);
 
-  // Set up keyboard event listeners
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Get sorted list of available namespace names
   const availableNamespaces = namespaces
     .map(ns => ns.metadata?.name)
     .filter(Boolean) as string[];
     
   availableNamespaces.sort((a, b) => a.localeCompare(b));
 
-  // Functions to control the NamespacePicker modal
   const openNamespacePicker = () => setIsNamespacePickerOpen(true);
   const closeNamespacePicker = () => setIsNamespacePickerOpen(false);
+
+  // TODO: refresh namespace every 10s, instead use websocket
+  /*
+  useEffect(() => {
+    if (!currentContext) return;
+    const interval = setInterval(async () => {
+      try {
+        const namespacesData = await getNamespaces(currentContext.name);
+        setNamespaces(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(namespacesData)) {
+            return namespacesData;
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error('Failed to refresh namespaces:', err);
+      }
+    }, 10000);
+  
+    return () => clearInterval(interval);
+  }, [currentContext]);
+  */
 
   return (
     <NamespaceContext.Provider

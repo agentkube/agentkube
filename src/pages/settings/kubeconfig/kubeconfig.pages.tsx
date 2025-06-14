@@ -11,7 +11,7 @@ import { getUploadedContexts, deleteUploadedContext, validateKubeconfigPath, val
 import { useCluster } from '@/contexts/clusterContext';
 
 const Kubeconfig = () => {
-  const { contexts } = useCluster();
+  const { contexts, refreshInterval, setRefreshInterval } = useCluster();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [mergeFiles, setMergeFiles] = useState(false);
   const [kubeConfigPath, setKubeConfigPath] = useState('');
@@ -423,21 +423,24 @@ const Kubeconfig = () => {
         {contextAutoRefresh && (
           <div className="flex items-start mb-4 ml-6">
             <div>
-              <label htmlFor="refreshInterval" className="font-medium block mb-1">Refresh Interval (seconds)</label>
+              <label htmlFor="refreshInterval" className="font-medium block mb-1">Refresh Interval (milliseconds)</label>
               <input
                 type="number"
                 id="refreshInterval"
-                value={contextRefreshInterval}
+                value={refreshInterval}
                 onChange={(e) => {
                   const value = parseInt(e.target.value);
-                  if (value > 0) {
-                    setContextRefreshInterval(value);
+                  if (value >= 1000) {
+                    setRefreshInterval(value);
                   }
                 }}
-                onBlur={() => saveKubeconfigSettings()}
-                className="bg-transparent border border-gray-400 dark:border-gray-700 rounded px-2 py-1 w-24 text-sm"
-                min="30"
+                className="bg-transparent border border-gray-400 dark:border-gray-700 rounded px-2 py-1 w-32 text-sm"
+                min="1000"
+                step="1000"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Current: {refreshInterval / 1000}s
+              </p>
             </div>
           </div>
         )}

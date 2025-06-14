@@ -9,10 +9,12 @@ interface ClusterContextType {
   loading: boolean;
   error: string | null;
   fullWidth: boolean;
+  refreshInterval: number;
   fetchContexts: () => Promise<void>;
   setCurrentContext: (context: KubeContext) => void;
   refreshContexts: () => Promise<void>;
   setFullWidth: (fullWidth: boolean) => void;
+  setRefreshInterval: (interval: number) => void;
 }
 
 const ClusterContext = createContext<ClusterContextType | undefined>(undefined);
@@ -22,7 +24,10 @@ interface ClusterProviderProps {
 }
 
 export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) => {
-  // State management for contexts
+  const [refreshInterval, setRefreshIntervalState] = useState<number>(() => {
+    const stored = localStorage.getItem('refresh_interval');
+    return stored ? JSON.parse(stored) : 5000;
+  });
   const [contexts, setContexts] = useState<KubeContext[]>([]);
   const [currentContext, setCurrentContext] = useState<KubeContext | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +40,11 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
 
 
   const { toast } = useToast();
+
+  const setRefreshInterval = (interval: number) => {
+    setRefreshIntervalState(interval);
+    localStorage.setItem('refresh_interval', JSON.stringify(interval));
+  };
 
   // Store selected context in localStorage
   const storageKey = 'current-kube-context';
@@ -94,6 +104,25 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     fetchContexts();
   }, [fetchContexts]);
 
+  React.useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const fetchedContexts = await getKubeContexts();
+        
+        setContexts(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(fetchedContexts)) {
+            return fetchedContexts;
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error('Failed to refresh contexts:', err);
+      }
+    }, refreshInterval);
+  
+    return () => clearInterval(interval);
+  }, [refreshInterval]);
+
   const handleSetCurrentContext = (context: KubeContext) => {
     setCurrentContext(context);
     localStorage.setItem(storageKey, context.name);
@@ -109,10 +138,12 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     loading,
     error,
     fullWidth,
+    refreshInterval,
     fetchContexts,
     setCurrentContext: handleSetCurrentContext,
     refreshContexts,
     setFullWidth: handleSetFullWidth,
+    setRefreshInterval,
   };
 
   return (
