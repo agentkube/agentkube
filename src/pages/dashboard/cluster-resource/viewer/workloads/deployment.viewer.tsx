@@ -211,9 +211,9 @@ const DeploymentViewer: React.FC = () => {
     }
 
     return (
-      <Alert className="mb-6 bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-yellow-800">
+      <Alert variant={alertType} className="mb-6">
         {icon}
-        <AlertTitle>{title}</AlertTitle>
+        <h1 className='font-semibold'>{title}</h1>
         <AlertDescription>{description}</AlertDescription>
       </Alert>
     );

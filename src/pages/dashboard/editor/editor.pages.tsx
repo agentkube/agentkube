@@ -312,7 +312,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
           flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="border-b">
+      <div className="">
         <div className="mx-auto w-full py-2 flex justify-between items-center">
           {/* Back button or title */}
           <div>
@@ -356,7 +356,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
             className="flex flex-col h-full"
           >
             <div className="flex-1 overflow-auto">
-              <div className={`h-full ${editorTheme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-white'} border rounded-lg overflow-hidden`}>
+              <div className={`h-full ${editorTheme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-white'}  dark:border-gray-900 rounded-xl overflow-hidden`}>
                 <div className={`${editorTheme === 'vs-dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'} border-b px-4 py-2 flex justify-between items-center`}>
                   <span>{resourceName} {hasChanges && '*'}</span>
                   <button
