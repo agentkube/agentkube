@@ -55,6 +55,23 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 				})
 			})
 
+			kubeconfigGroup := v1.Group("/kubeconfig")
+			{
+				// Upload kubeconfig file (multipart form)
+				kubeconfigGroup.POST("/upload-file", handlers.UploadKubeconfigFileHandler(kubeConfigStore))
+				// Upload kubeconfig content (JSON/form)
+				kubeconfigGroup.POST("/upload-content", handlers.UploadKubeconfigContentHandler(kubeConfigStore))
+				// List uploaded contexts
+				kubeconfigGroup.GET("/uploaded-contexts", handlers.ListUploadedContextsHandler(kubeConfigStore))
+				// Delete uploaded context
+				kubeconfigGroup.DELETE("/uploaded-contexts/:name", handlers.DeleteUploadedContextHandler(kubeConfigStore))
+
+				// Validate and add kubeconfig path
+				kubeconfigGroup.POST("/validate-path", handlers.AddKubeconfigPathHandler(kubeConfigStore))
+				// Validate and scan folder for kubeconfigs
+				kubeconfigGroup.POST("/validate-folder", handlers.AddKubeconfigFolderHandler(kubeConfigStore))
+			}
+
 			// Kubernetes contexts endpoint
 			v1.GET("/contexts", HandleGetContexts(kubeConfigStore))
 			// Add an endpoint to get a specific context

@@ -21,7 +21,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-// TODO: Use a different way to avoid name clashes with other clusters.
 const InClusterContextName = "main"
 
 const (
@@ -844,4 +843,8 @@ func makeDNSFriendly(name string) string {
 	name = strings.ReplaceAll(name, " ", "__")
 
 	return name
+}
+
+func LoadContextsFromData(data []byte, source int, skipProxySetup bool) ([]Context, []ContextLoadError, error) {
+	return loadContextsFromData(data, source, skipProxySetup)
 }

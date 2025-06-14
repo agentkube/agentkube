@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
+	"github.com/agentkube/operator/internal/handlers"
 	"github.com/agentkube/operator/internal/routes"
 	"github.com/agentkube/operator/pkg/cache"
 	"github.com/agentkube/operator/pkg/config"
@@ -12,8 +15,13 @@ import (
 	"github.com/agentkube/operator/pkg/logger"
 )
 
+type Settings struct {
+	Kubeconfig struct {
+		ExternalPaths []string `json:"externalPaths"`
+	} `json:"kubeconfig"`
+}
+
 func main() {
-	// Parse config
 	cfg, err := config.Parse(os.Args)
 	if err != nil {
 		log.Fatalf("Failed to parse config: %v", err)
@@ -22,7 +30,7 @@ func main() {
 	// Initialize context store
 	contextStore := kubeconfig.NewContextStore()
 
-	// If a kubeconfig path is provided, load it
+	// Load .agentkube kubeconfig
 	if cfg.KubeConfigPath != "" {
 		logger.Log(logger.LevelInfo, map[string]string{"kubeconfig": cfg.KubeConfigPath}, nil, "Loading kubeconfig")
 
@@ -31,11 +39,36 @@ func main() {
 			logger.Log(logger.LevelError, nil, err, "loading kubeconfig")
 		}
 
-		// Start watching kubeconfig file for changes
 		go kubeconfig.LoadAndWatchFiles(contextStore, cfg.KubeConfigPath, kubeconfig.KubeConfig)
 	}
 
-	// Initialize cache for portforward
+	// Load external paths from settings
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		settingsPath := filepath.Join(homeDir, ".agentkube", "settings.json")
+		if data, err := os.ReadFile(settingsPath); err == nil {
+			var settings Settings
+			if json.Unmarshal(data, &settings) == nil {
+				for _, externalPath := range settings.Kubeconfig.ExternalPaths {
+					logger.Log(logger.LevelInfo, map[string]string{"external_path": externalPath}, nil, "Loading external kubeconfig")
+
+					err := kubeconfig.LoadAndStoreKubeConfigs(contextStore, externalPath, kubeconfig.KubeConfig)
+					if err != nil {
+						logger.Log(logger.LevelError, map[string]string{"external_path": externalPath}, err, "loading external kubeconfig")
+					}
+
+					go kubeconfig.LoadAndWatchFiles(contextStore, externalPath, kubeconfig.KubeConfig)
+				}
+			}
+		}
+	}
+
+	// Load uploaded/dynamic kubeconfigs from persistent storage
+	err = handlers.LoadUploadedKubeconfigs(contextStore)
+	if err != nil {
+		logger.Log(logger.LevelError, nil, err, "loading uploaded kubeconfigs on startup")
+	}
+
 	portforwardCache := cache.New[interface{}]()
 
 	// Setup and start the server
