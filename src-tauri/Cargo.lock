@@ -29,6 +29,7 @@ dependencies = [
  "tauri-plugin-autostart",
  "tauri-plugin-cors-fetch",
  "tauri-plugin-deep-link",
+ "tauri-plugin-fs",
  "tauri-plugin-http",
  "tauri-plugin-log",
  "tauri-plugin-os",

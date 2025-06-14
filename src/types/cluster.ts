@@ -157,4 +157,5 @@ export interface KubeConfigFile {
 	validationMessage?: string;
 	file?: File; // Add this line
 	isFromText?: boolean; // Add this line
+  isDroppedFile?: boolean;
 }

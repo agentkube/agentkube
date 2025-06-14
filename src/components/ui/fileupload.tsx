@@ -245,8 +245,8 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
                   </span>
                 ) : (
                   <>
-                    Drag & drop files here, or{" "}
-                    <span className="text-blue-500 font-medium">browse</span>
+                    {/* Drag & drop , or{" "} */}
+                    <span className="text-blue-500 font-medium">Browse</span> files here
                   </>
                 )}
               </p>

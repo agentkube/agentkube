@@ -11,7 +11,7 @@ fn get_orchestrator_binary_path() -> String {
     // Detect the current platform
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
-    
+
     // Map the platform to the appropriate binary path
     match (os, arch) {
         // Windows platforms
@@ -43,7 +43,7 @@ fn get_operator_binary_path() -> String {
     // Detect the current platform
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
-    
+
     // Map the platform to the appropriate binary path
     match (os, arch) {
         // Windows platforms
@@ -80,18 +80,18 @@ fn spawn_hidden_process(binary_path: &str) -> Result<std::process::Child, std::i
         const CREATE_NO_WINDOW: u32 = 0x08000000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
-    
+
     cmd.spawn()
 }
 
 fn main() {
     // Start the orchestrator binary
     println!("Starting orchestrator...");
-    
+
     // Get the appropriate binary path for this platform
     let orchestrator_path = get_orchestrator_binary_path();
     println!("Using orchestrator binary: {}", orchestrator_path);
-    
+
     // Spawn orchestrator as a standalone process (hidden on Windows)
     let mut orchestrator_handle = None;
     match spawn_hidden_process(&orchestrator_path) {
@@ -103,18 +103,18 @@ fn main() {
             eprintln!("Failed to start orchestrator: {}", e);
         }
     }
-    
+
     // Give the orchestrator some time to initialize
     println!("Waiting for orchestrator to initialize...");
     thread::sleep(Duration::from_millis(10000));
-    
+
     // Start the operator binary next
     println!("Starting operator...");
-    
+
     // Get the appropriate binary path for this platform
     let operator_path = get_operator_binary_path();
     println!("Using operator binary: {}", operator_path);
-    
+
     // Spawn operator as a standalone process (hidden on Windows)
     let mut operator_handle = None;
     match spawn_hidden_process(&operator_path) {
@@ -126,28 +126,28 @@ fn main() {
             eprintln!("Failed to start operator: {}", e);
         }
     }
-    
+
     // Give the operator some time to initialize
     println!("Waiting for operator to initialize...");
     thread::sleep(Duration::from_millis(1000));
-    
+
     // Setup cleanup on application exit
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
         // Call the original hook
         original_hook(panic_info);
-        
+
         // Clean up processes if needed
         println!("Cleaning up external processes...");
     }));
-    
+
     // Then start the Tauri application
     println!("Starting Tauri application...");
     app_lib::run();
-    
+
     // This code will run when Tauri application exits
     println!("Application exiting, cleaning up processes...");
-    
+
     // Clean up operator if it's still running
     if let Some(mut child) = operator_handle {
         println!("Terminating operator process...");
@@ -155,7 +155,7 @@ fn main() {
             eprintln!("Failed to kill operator process: {}", e);
         }
     }
-    
+
     // Clean up orchestrator if it's still running
     if let Some(mut child) = orchestrator_handle {
         println!("Terminating orchestrator process...");
