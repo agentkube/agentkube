@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   HelmRelease,
@@ -23,6 +24,7 @@ import {
   getHelmActionStatus
 } from '@/api/internal/helm';
 import { useCluster } from '@/contexts/clusterContext';
+import { DialogDescription } from '@radix-ui/react-dialog';
 
 // Function to calculate the age of a resource
 const calculateAge = (timestamp: string): string => {
@@ -53,6 +55,10 @@ const HelmReleases: React.FC = () => {
   const [namespaces, setNamespaces] = useState<string[]>([]);
   const [showAllNamespaces, setShowAllNamespaces] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<{ [key: string]: boolean }>({});
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedRelease, setSelectedRelease] = useState<HelmRelease | null>(null);
+  const [releaseHistory, setReleaseHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -70,7 +76,7 @@ const HelmReleases: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Load releases when component mounts or when namespace/cluster changes
   useEffect(() => {
     const fetchReleases = async () => {
@@ -155,22 +161,20 @@ const HelmReleases: React.FC = () => {
     setShowAllNamespaces(!showAllNamespaces);
   };
 
-  // Handle viewing release history
+  // viewing release history
   const handleViewHistory = async (release: HelmRelease) => {
     try {
+      setSelectedRelease(release);
+      setHistoryDialogOpen(true);
+      setHistoryLoading(true);
+
       const history = await getHelmReleaseHistory(
         currentContext!.name,
         release.name,
         release.namespace
       );
 
-      // Here we'd typically show the history in a modal
-      // For now, just log it and show a toast
-      console.log('Release history:', history);
-      toast({
-        title: `${release.name} History`,
-        description: `Revisions: ${history.length}. See console for details.`,
-      });
+      setReleaseHistory(history);
     } catch (err) {
       console.error('Failed to fetch release history:', err);
       toast({
@@ -178,6 +182,8 @@ const HelmReleases: React.FC = () => {
         description: err instanceof Error ? err.message : 'Failed to fetch release history',
         variant: "destructive"
       });
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -401,7 +407,7 @@ const HelmReleases: React.FC = () => {
           <Button
             variant="outline"
             onClick={handleToggleAllNamespaces}
-            className={showAllNamespaces ? "bg-blue-100 dark:bg-blue-900/20" : ""}
+            className={showAllNamespaces ? "bg-blue-100 dark:bg-transparent" : ""}
           >
             All Namespaces
           </Button>
@@ -436,8 +442,68 @@ const HelmReleases: React.FC = () => {
         </Alert>
       )}
 
+      <Dialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        modal={true}
+      >
+        <DialogContent
+          className="sm:max-w-3xl"
+          onEscapeKeyDown={() => setHistoryDialogOpen(false)}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              Release History: {selectedRelease?.name}
+            </DialogTitle>
+            <DialogDescription>
+              View the revision history for this Helm release
+            </DialogDescription>
+          </DialogHeader>
+
+          {historyLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <div className="max-h-96 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Revision</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Chart</TableHead>
+                    <TableHead>App Version</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {releaseHistory.map((revision, index) => (
+                    <TableRow key={revision.revision || index}>
+                      <TableCell className="font-medium">{revision.version}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded text-xs ${getStatusColorClass(revision.status)}`}>
+                          {revision?.info?.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{revision.chart?.metadata?.name || 'Unknown'}</TableCell>
+                      <TableCell>{revision.chart?.metadata?.appVersion || ''}</TableCell>
+                      <TableCell>{calculateAge(revision.updated)}</TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {revision.info?.description || ''}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {!error && filteredReleases.length > 0 && (
         <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+
           <div className="rounded-md border">
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
@@ -482,10 +548,10 @@ const HelmReleases: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {release.revision}
+                      {release.version}
                     </TableCell>
                     <TableCell className="text-center">
-                      {release.chart.metadata.appVersion || '-'}
+                      {release.chart.metadata.appVersion || ''}
                     </TableCell>
                     <TableCell className="text-center">
                       {calculateAge(release.info.last_deployed)}
@@ -505,7 +571,7 @@ const HelmReleases: React.FC = () => {
                             )}
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-gray-100 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+                        <DropdownMenuContent align="end" className="bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleViewHistory(release)}>
@@ -534,6 +600,8 @@ const HelmReleases: React.FC = () => {
           </div>
         </Card>
       )}
+
+
     </div>
   );
 };

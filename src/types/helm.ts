@@ -16,7 +16,7 @@ export interface ArtifactHubChart {
   version: string;
   app_version: string;
   stars: number;
-  ts: number; // timestamp in seconds
+  ts: number;
   security_report_summary?: {
     low: number;
     high: number;
@@ -26,4 +26,9 @@ export interface ArtifactHubChart {
   };
   license?: string;
   production_organizations_count?: number;
+}
+
+export interface ChartVersion {
+  version: string;
+  publishedAt: string;
 }

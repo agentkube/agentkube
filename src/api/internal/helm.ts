@@ -24,7 +24,7 @@ export interface HelmChart {
 export interface HelmRelease {
   name: string;
   namespace: string;
-  revision: number;
+  version: number;
   updated: string;
   status: string;
   info: {
