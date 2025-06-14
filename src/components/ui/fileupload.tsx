@@ -13,17 +13,6 @@ import {
   Plus,
 } from "lucide-react";
 
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import type { UnlistenFn } from '@tauri-apps/api/event';
-
-interface TauriDragDropEvent {
-  payload: {
-    type: 'over' | 'drop' | 'cancelled';
-    paths?: string[];
-    position?: { x: number; y: number };
-  };
-}
-
 // Add File type import
 declare const File: {
   new (parts: (string | Blob | ArrayBuffer | ArrayBufferView)[], filename: string, options?: FilePropertyBag): File;

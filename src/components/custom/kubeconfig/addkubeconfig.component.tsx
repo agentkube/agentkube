@@ -170,6 +170,7 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 	
 		try {
 			const results = [];
+			const uploadedPaths = []; // Add this line
 	
 			for (const file of validFiles) {
 				if (file.file) {
@@ -182,6 +183,10 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 							ttl: 0 // No expiry for now
 						});
 						results.push(result);
+						// Add the file path if upload was successful
+						if (result.success && result.filePath) { // Add this block
+							uploadedPaths.push(result.filePath);
+						}
 					} else {
 						// Handle file upload
 						const result = await uploadKubeconfigFile(
@@ -189,7 +194,22 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 							file.name.replace(/\.(yaml|yml|json)$/, ''),
 							0 // No expiry for now
 						);
+
+						if(result.success === false) {
+							toast({
+								title: "Error uploading files",
+								description: result.message,
+								variant: "destructive",
+							});
+							return
+						}
+
+
 						results.push(result);
+						// Add the file path if upload was successful
+						if (result.success && result.filePath) { // Add this block
+							uploadedPaths.push(result.filePath);
+						}
 					}
 				}
 			}
@@ -202,8 +222,8 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 				description: `Successfully added ${totalContexts} context(s) from ${successfulUploads.length} file(s).`,
 			});
 	
-			// Trigger refresh of contexts
-			onFilesAdded([]);
+			// Trigger refresh of contexts with uploaded file paths
+			onFilesAdded(uploadedPaths); // Change this line
 	
 			// Reset and close dialog
 			setProcessedFiles([]);

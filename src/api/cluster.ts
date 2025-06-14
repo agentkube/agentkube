@@ -47,9 +47,9 @@ export const uploadKubeconfigFile = async (file: File, sourceName?: string, ttl?
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to upload kubeconfig file');
-  }
+  // if (!response.ok) {
+  //   throw new Error('Failed to upload kubeconfig file');
+  // }
 
   return response.json();
 };
@@ -92,6 +92,42 @@ export const deleteUploadedContext = async (contextName: string): Promise<{ succ
 
   if (!response.ok) {
     throw new Error('Failed to delete uploaded context');
+  }
+
+  return response.json();
+};
+
+
+export const validateKubeconfigPath = async (path: string) => {
+  const response = await fetch(`${OPERATOR_URL}/kubeconfig/validate-path`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to validate path');
+  }
+
+  return response.json();
+};
+
+// Validate kubeconfig folder
+export const validateKubeconfigFolder = async (folderPath: string) => {
+  const response = await fetch(`${OPERATOR_URL}/kubeconfig/validate-folder`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ folderPath }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to validate folder');
   }
 
   return response.json();

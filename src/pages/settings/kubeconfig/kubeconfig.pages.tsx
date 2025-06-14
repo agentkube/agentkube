@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { File, FolderPlus, FileText, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSettings, patchConfig, updateSettingsSection } from '@/api/settings';
@@ -7,8 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.component';
+import { getUploadedContexts, deleteUploadedContext, validateKubeconfigPath, validateKubeconfigFolder, uploadKubeconfigContent } from '@/api/cluster';
+import { useCluster } from '@/contexts/clusterContext';
 
 const Kubeconfig = () => {
+  const { contexts } = useCluster();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [mergeFiles, setMergeFiles] = useState(false);
   const [kubeConfigPath, setKubeConfigPath] = useState('');
@@ -27,6 +30,7 @@ const Kubeconfig = () => {
   const [newPath, setNewPath] = useState('');
 
   const { toast } = useToast();
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch settings on component mount
   useEffect(() => {
@@ -44,7 +48,7 @@ const Kubeconfig = () => {
 
         // Mock data for now - in a real app you might get this from an API
         setFileCount(1 + (settings.kubeconfig.externalPaths?.length || 0));
-        setContextCount(3); // This would come from another API call in a real app
+        setContextCount(contexts.length);
       } catch (error) {
         console.error('Failed to load kubeconfig settings:', error);
         toast({
@@ -58,7 +62,7 @@ const Kubeconfig = () => {
     };
 
     fetchSettings();
-  }, [toast]);
+  }, [toast, contexts.length]);
 
   // Save kubeconfig settings
   const saveKubeconfigSettings = async () => {
@@ -91,13 +95,78 @@ const Kubeconfig = () => {
     }
   };
 
-
   const handleAddFiles = () => {
     setIsUploadDialogOpen(true);
   };
 
+  const handleRemovePath = async (index: number, path: string) => {
+    const updatedPaths = externalPaths.filter((_, i) => i !== index);
+
+    // First update state locally
+    setExternalPaths(updatedPaths);
+    setFileCount(prev => prev - 1);
+
+    try {
+      // Update settings to remove from externalPaths
+      await updateSettingsSection('kubeconfig', {
+        externalPaths: updatedPaths
+      });
+
+      // If this path was from an uploaded kubeconfig, also delete the contexts
+      // Check if the path contains uploaded configs and delete them
+      const uploadedContexts = await getUploadedContexts();
+      const contextsToDelete = uploadedContexts.contexts.filter(ctx =>
+        ctx.name && path.includes(ctx.name.split('-')[0]) // Match source name
+      );
+
+      // Delete each context associated with this path
+      for (const context of contextsToDelete) {
+        try {
+          await deleteUploadedContext(context.name);
+        } catch (error) {
+          console.error(`Failed to delete context ${context.name}:`, error);
+        }
+      }
+
+      toast({
+        title: "Path removed",
+        description: "External path and associated contexts have been removed successfully.",
+      });
+    } catch (error) {
+      console.error('Failed to remove path:', error);
+      // Restore previous state if API call fails
+      setExternalPaths(externalPaths);
+      setFileCount(prev => prev + 1);
+      toast({
+        title: "Error removing path",
+        description: "Could not remove the external path. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      const fetchSettings = async () => {
+        try {
+          const settings = await getSettings();
+          setExternalPaths(settings.kubeconfig.externalPaths || []);
+          setFileCount(1 + (settings.kubeconfig.externalPaths?.length || 0));
+        } catch (error) {
+          console.error('Failed to refresh settings:', error);
+        }
+      };
+      fetchSettings();
+    }
+  }, [refreshTrigger]);
 
   const handleFilesAdded = (paths: string[]) => {
+    if (paths.length === 0) {
+      // Just trigger a refresh of contexts from the backend
+      setRefreshTrigger(prev => prev + 1);
+      return;
+    }
+
     // Add the new paths to your externalPaths state
     const updatedPaths = [...externalPaths, ...paths];
     setExternalPaths(updatedPaths);
@@ -109,12 +178,65 @@ const Kubeconfig = () => {
     });
   };
 
-  const handleAddFolder = () => {
-    // In a real app, this would open a folder picker dialog
+  const handleFolderSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const kubeconfigFiles = Array.from(files).filter(file =>
+      file.name.includes('config') ||
+      file.name.endsWith('.yaml') ||
+      file.name.endsWith('.yml') ||
+      file.name.endsWith('.json') ||
+      file.name.endsWith('.kubeconfig')
+    );
+
+    if (kubeconfigFiles.length === 0) {
+      toast({
+        title: "No kubeconfig files found",
+        description: "No valid kubeconfig files found in the selected folder.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const file of kubeconfigFiles) {
+      try {
+        const content = await file.text();
+        const sourceName = file.name.replace(/\.(yaml|yml|json)$/, '');
+
+        await uploadKubeconfigContent({
+          content,
+          sourceName,
+          ttl: 0 // No expiry
+        });
+
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+        errorCount++;
+      }
+    }
+
+    // Reset the input
+    if (folderInputRef.current) {
+      folderInputRef.current.value = '';
+    }
+
+    // Refresh contexts
+    setRefreshTrigger(prev => prev + 1);
+
     toast({
-      title: "Feature not implemented",
-      description: "Folder picker dialog would open here in the actual application.",
+      title: successCount > 0 ? "Folder processed" : "Upload failed",
+      description: `${successCount} files uploaded successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}.`,
+      variant: successCount > 0 ? "default" : "destructive",
     });
+  };
+
+  const handleAddFolder = () => {
+    folderInputRef.current?.click();
   };
 
   const handleEnterPath = () => {
@@ -127,33 +249,34 @@ const Kubeconfig = () => {
   };
 
   const handleAddExternalPath = async () => {
-    if (newPath.trim()) {
-      const updatedPaths = [...externalPaths, newPath.trim()];
-      setExternalPaths(updatedPaths);
-      setNewPath('');
-      setIsPathDialogOpen(false);
+    if (!newPath.trim()) return;
 
-      // Update file count
-      setFileCount(prev => prev + 1);
+    try {
+      // Validate the path first
+      const result = await validateKubeconfigPath(newPath.trim());
 
-      // Save the external paths
-      try {
+      if (result.success) {
+        const updatedPaths = [...externalPaths, result.path];
+        setExternalPaths(updatedPaths);
+        setNewPath('');
+        setIsPathDialogOpen(false);
+        setFileCount(prev => prev + 1);
+
         await updateSettingsSection('kubeconfig', {
           externalPaths: updatedPaths
         });
 
         toast({
           title: "Path added",
-          description: "External path has been added successfully.",
-        });
-      } catch (error) {
-        console.error('Failed to save external path:', error);
-        toast({
-          title: "Error saving path",
-          description: "Could not save the external path. Please try again.",
-          variant: "destructive",
+          description: `Valid kubeconfig with ${result.contextCount} contexts added successfully.`,
         });
       }
+    } catch (error) {
+      toast({
+        title: "Invalid path",
+        description: error instanceof Error ? error.message : "Could not validate kubeconfig path.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -168,6 +291,7 @@ const Kubeconfig = () => {
 
   return (
     <div className="px-4 dark:text-white">
+
       {/* Kubeconfig Sources Section */}
       <div className="mb-10">
         <h2 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Kubeconfig Sources</h2>
@@ -198,44 +322,16 @@ const Kubeconfig = () => {
             {externalPaths.map((path, index) => (
               <div
                 key={index}
-                className="dark:bg-gray-900/50 text-medium rounded border border-gray-400 dark:border-gray-700 py-2 px-4 mb-2"
+                className="dark:bg-transparent text-medium rounded border border-gray-400 dark:border-gray-800 py-2 px-4 mb-2"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start">
                     <FileText className="dark:text-gray-400 mr-3 mt-1" size={20} />
-                    <div className="dark:text-white">{path}</div>
+                    <div className="dark:text-gray-400">{path}</div>
                   </div>
                   <button
                     className="text-red-500 hover:text-red-700"
-                    onClick={async () => {
-                      const updatedPaths = externalPaths.filter((_, i) => i !== index);
-
-                      // First update state locally
-                      setExternalPaths(updatedPaths);
-                      setFileCount(prev => prev - 1);
-
-                      // Then update ONLY this specific setting
-                      try {
-                        await updateSettingsSection('kubeconfig', {
-                          externalPaths: updatedPaths
-                        });
-
-                        toast({
-                          title: "Path removed",
-                          description: "External path has been removed successfully.",
-                        });
-                      } catch (error) {
-                        console.error('Failed to remove path:', error);
-                        // Restore previous state if API call fails
-                        setExternalPaths(externalPaths);
-                        setFileCount(prev => prev + 1);
-                        toast({
-                          title: "Error removing path",
-                          description: "Could not remove the external path. Please try again.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
+                    onClick={() => handleRemovePath(index, path)}
                   >
                     Remove
                   </button>
@@ -254,13 +350,22 @@ const Kubeconfig = () => {
             <File size={16} className="mr-2" />
             Add Files
           </Button>
-          <Button
+          {/* <Button
             variant="outline"
             onClick={handleAddFolder}
           >
             <FolderPlus size={16} className="mr-2" />
             Add Folder
           </Button>
+          <input
+            ref={folderInputRef}
+            type=""
+            multiple
+            onChange={handleFolderSelect}
+            className="hidden"
+            accept=".yaml,.yml,.json,.kubeconfig"
+            {...({ webkitdirectory: true } as any)}
+          /> */}
           <Button
             variant="outline"
             onClick={handleEnterPath}
