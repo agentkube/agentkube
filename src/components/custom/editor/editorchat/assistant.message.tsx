@@ -3,7 +3,7 @@ import { Sparkles, Copy, ThumbsUp, ThumbsDown, Check, ChevronDown, ChevronUp, Br
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './codeblock.component';
-import ToolCallAccordion from './tool-call.component';
+import ToolCallAccordion from '@/components/ui/toolcall';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { openExternalUrl } from '@/api/external';
 import { LinkPreview } from '@/components/ui/link-preview';
@@ -29,43 +29,16 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [showJsonData, setShowJsonData] = useState(false);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const dislikeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Extract JSON objects and actual content
-  const extractJsonObjects = (text: string) => {
-    try {
-      const jsonObjects: string[] = [];
-      let remainingText = text;
-      
-      // Regular expression to match a JSON object
-      const jsonObjectRegex = /^\{.*?\}/s;
-      
-      let match = remainingText.match(jsonObjectRegex);
-      while (match && match[0]) {
-        jsonObjects.push(match[0]);
-        remainingText = remainingText.substring(match[0].length);
-        match = remainingText.match(jsonObjectRegex);
-      }
-      
-      return {
-        jsonObjects: jsonObjects.length > 0 ? jsonObjects : null,
-        remainingContent: remainingText
-      };
-    } catch (e) {
-      return { jsonObjects: null, remainingContent: text };
-    }
-  };
-  
-  const { jsonObjects, remainingContent } = extractJsonObjects(content);
-
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(remainingContent).then(() => {
+    navigator.clipboard.writeText(content).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
+  
 
   // Handle feedback
   const handleLike = () => {
@@ -112,11 +85,6 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                   <ToolCallAccordion key={index} toolCall={toolCall} />
                 ))}
               </div>
-            )}
-
-            {/* Display JSON data in an accordion if it exists */}
-            {jsonObjects && jsonObjects.length > 0 && (
-              <ToolParameter jsonObjects={jsonObjects} />
             )}
 
             {/* Display the regular message content */}
@@ -213,7 +181,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                 )
               }}
             >
-              {remainingContent}
+              {content}
             </ReactMarkdown>
 
             {/* Feedback icons at bottom right */}

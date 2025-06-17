@@ -14,6 +14,7 @@
   "dependencies": {
     "@aptabase/tauri": "github:aptabase/tauri-plugin-aptabase",
     "@hookform/resolvers": "^3.1.1",
+    "@icons-pack/react-simple-icons": "^13.1.0",
     "@kubernetes/client-node": "^1.1.0",
     "@material-tailwind/react": "^2.1.10",
     "@monaco-editor/react": "^4.7.0",
@@ -46,6 +47,7 @@
     "@radix-ui/react-toggle": "^1.0.3",
     "@radix-ui/react-toggle-group": "^1.0.4",
     "@radix-ui/react-tooltip": "^1.0.6",
+    "@shikijs/transformers": "^3.6.0",
     "@supabase/supabase-js": "^2.49.1",
     "@tauri-apps/api": "^2.0.0-alpha.5",
     "@tauri-apps/plugin-app": "2.0.0-alpha.0",
@@ -87,6 +89,7 @@
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.7.2",
     "remark-gfm": "^4.0.1",
+    "shiki": "^3.6.0",
     "tailwind-scrollbar": "^3.0.4",
     "tailwindcss-animate": "^1.0.6",
     "uuid": "^11.1.0",

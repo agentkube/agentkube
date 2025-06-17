@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from 'react';
-import { Activity, TrendingUp } from "lucide-react"
+import { useEffect, useState } from 'react';
+import { Activity, TrendingDown, TrendingUp } from "lucide-react"
 import {
   CartesianGrid,
   Dot,
@@ -21,7 +21,8 @@ import {
   Label,
   PolarRadiusAxis,
   RadialBar,
-  RadialBarChart
+  RadialBarChart,
+  ResponsiveContainer
 } from "recharts"
 
 import {
@@ -87,8 +88,8 @@ export function ChartLineDotsColors() {
         onExport={() => console.log('Export chart')}
         onViewDetails={() => console.log('View details')}
       />
-      <CardContent className="max-w-[500px] mx-auto">
-        <ChartContainer config={cpuUsageConfig}>
+      <CardContent className="w-full">
+        <ChartContainer config={cpuUsageConfig} className="h-[200px] w-full">
           <LineChart
             accessibilityLayer
             data={themedCpuUsageData}
@@ -175,8 +176,8 @@ export function ChartBarStacked() {
         onExport={() => console.log('Export chart')}
         onViewDetails={() => console.log('View details')}
       />
-      <CardContent className="max-w-[500px] mx-auto">
-        <ChartContainer config={memoryUsageConfig}>
+      <CardContent className="w-full">
+        <ChartContainer config={memoryUsageConfig} className='h-[200px] w-full'>
           <BarChart accessibilityLayer data={memoryUsageData}>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -247,8 +248,8 @@ export function ChartBarLabelCustom() {
         onExport={() => console.log('Export chart')}
         onViewDetails={() => console.log('View details')}
       />
-      <CardContent className="max-w-[500px]">
-        <ChartContainer config={podStatusConfig}>
+      <CardContent className="w-full">
+        <ChartContainer config={podStatusConfig} className="h-[200px] w-full">
           <BarChart
             accessibilityLayer
             data={podStatusData}
@@ -323,7 +324,7 @@ export function ChartNetworkTrafficStep() {
   } satisfies ChartConfig
 
   return (
-    <Card className="min-w-[400px]">
+    <Card className="w-full">
       <ChartHeader
         title="Network Traffic - Ingress"
         description="Monthly ingress traffic across all services"
@@ -331,36 +332,38 @@ export function ChartNetworkTrafficStep() {
         onExport={() => console.log('Export chart')}
         onViewDetails={() => console.log('View details')}
       />
-      <CardContent className="max-w-[500px] mx-auto">
-        <ChartContainer config={networkTrafficConfig}>
-          <AreaChart
-            accessibilityLayer
-            data={networkTrafficData}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Area
-              dataKey="ingress"
-              type="step"
-              fill={themeColors[currentTheme][0]}
-              fillOpacity={0.4}
-              stroke={themeColors[currentTheme][0]}
-            />
-          </AreaChart>
+      <CardContent className="w-full">
+        <ChartContainer config={networkTrafficConfig} className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              accessibilityLayer
+              data={networkTrafficData}
+              margin={{
+                left: 12,
+                right: 12,
+              }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value) => value.slice(0, 3)}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <Area
+                dataKey="ingress"
+                type="step"
+                fill={themeColors[currentTheme][0]}
+                fillOpacity={0.4}
+                stroke={themeColors[currentTheme][0]}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
       <CardFooter>
@@ -415,6 +418,7 @@ export function ChartServiceHealthRadar() {
       <CardContent className="max-w-[500px] mx-auto pb-0">
         <ChartContainer
           config={serviceHealthConfig}
+          // h-[200px] w-full
           className="mx-auto aspect-square max-h-[250px]"
         >
           <RadarChart data={serviceHealthData}>
@@ -471,7 +475,7 @@ export function ChartStorageUtilizationRadial() {
   } satisfies ChartConfig
 
   const totalStorage = storageUtilizationData[0].persistent + storageUtilizationData[0].ephemeral
-  
+
   return (
     <Card className="flex flex-col min-w-[400px]">
       <ChartHeader
@@ -547,6 +551,169 @@ export function ChartStorageUtilizationRadial() {
           Persistent volumes and ephemeral storage across cluster
         </div>
       </CardFooter>
+    </Card>
+  )
+}
+
+
+// Chart 7: Crypto Portfolio Performance
+const cryptoPortfolioData = [
+  { date: "2024-01", value: 145000 },
+  { date: "2024-02", value: 152000 },
+  { date: "2024-03", value: 148000 },
+  { date: "2024-04", value: 165000 },
+  { date: "2024-05", value: 172000 },
+  { date: "2024-06", value: 185267 },
+]
+
+export function ChartCryptoPortfolio() {
+  const [currentTheme, setCurrentTheme] = useState<ThemeType>('blue');
+  const [cryptoData, setCryptoData] = useState(cryptoPortfolioData);
+
+  // Optional: Replace with real API data
+  useEffect(() => {
+    // You can uncomment and modify this to use real crypto data
+    const endTimestamp = Date.now();
+    const startTimestamp = endTimestamp - 6 * 30 * 24 * 60 * 60 * 1000;
+    
+    fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from=${startTimestamp / 1000}&to=${endTimestamp / 1000}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const prices = data.prices.map((price: any) => ({
+          date: new Date(price[0]).toISOString().slice(0, 7), // YYYY-MM format
+          value: price[1]
+        }));
+        setCryptoData(prices);
+      })
+      .catch((error) => console.error(error));
+  }, []);
+
+  const cryptoPortfolioConfig = {
+    value: {
+      label: "Portfolio Value",
+      color: themeColors[currentTheme][0],
+    },
+  } satisfies ChartConfig
+
+  const currentValue = cryptoData[cryptoData.length - 1]?.value || 185267;
+  const previousValue = cryptoData[cryptoData.length - 2]?.value || 172000;
+  const percentChange = ((currentValue - previousValue) / previousValue * 100).toFixed(1);
+  const isPositive = Number(percentChange) > 0;
+
+  return (
+    <Card className="w-full">
+      <ChartHeader
+        title="Monthly Cost Trend"
+        description="Visualize your portfolio activities data"
+        onThemeChange={(theme) => setCurrentTheme(theme as ThemeType)}
+        onExport={() => console.log('Export chart')}
+        onViewDetails={() => console.log('View details')}
+      />
+      <CardContent className="w-full">
+        <div className="mb-6 space-y-2">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-bold">
+              {currentValue.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}
+            </span>
+            <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ${
+              isPositive 
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+            }`}>
+              {isPositive ? (
+                <TrendingUp className="h-3.5 w-3.5" />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5" />
+              )}
+              {Math.abs(Number(percentChange))}%
+            </div>
+          </div>
+        </div>
+        
+        <ChartContainer config={cryptoPortfolioConfig} className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={cryptoData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+              <CartesianGrid 
+                vertical={false} 
+                stroke="hsl(var(--border))" 
+                strokeDasharray="3 3" 
+                opacity={0.3}
+              />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                fontSize={11}
+                className="fill-muted-foreground"
+                tickFormatter={(value) => {
+                  // Format date to show month abbreviation
+                  const date = new Date(value + '-01');
+                  return date.toLocaleDateString('en-US', { month: 'short' });
+                }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                fontSize={11}
+                className="fill-muted-foreground"
+                width={60}
+                tickFormatter={(value) => {
+                  return `$${(value / 1000).toFixed(0)}k`;
+                }}
+              />
+              <ChartTooltip
+                cursor={{ 
+                  stroke: themeColors[currentTheme][0], 
+                  strokeWidth: 1,
+                  strokeDasharray: '4 4'
+                }}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="rounded-lg border dark:bg-gray-900/20 backdrop-blur p-3 shadow-lg">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          {new Date(label + '-01').toLocaleDateString('en-US', { 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })}
+                        </p>
+                        <p className="text-sm font-bold">
+                          {payload[0].value?.toLocaleString('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={themeColors[currentTheme][0]}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{
+                  r: 4,
+                  fill: themeColors[currentTheme][0],
+                  stroke: 'hsl(var(--background))',
+                  strokeWidth: 2,
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </CardContent>
     </Card>
   )
 }

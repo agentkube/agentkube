@@ -76,8 +76,12 @@ export interface ConversationUpdateRequest {
 // Tool call interface
 export interface ToolCall {
   tool: string;
-  command?: Record<string, any>;
-  output?: string;
+  name: string;
+  arguments: string;
+  output?: {
+    command: string;
+    output: string;
+  };
 }
 
 // Stream callback types
@@ -195,22 +199,25 @@ async function processChatStream(
             if (data.tool_call && callbacks.onToolCall) {
               const toolCall: ToolCall = {
                 tool: data.tool_call.tool,
-                command: { command: data.tool_call.command },
-                output: data.tool_call.output
+                name: data.tool_call.name,
+                arguments: data.tool_call.arguments
               };
               callbacks.onToolCall(toolCall);
+              lastToolName = data.tool_call.name; // Store for output association
             }
             
-            // Handle tool outputs - this is the format your backend is sending
-            if (data.tool_output && callbacks.onToolCall) {
-              // Create a proper ToolCall object matching your interface
-              const toolCall: ToolCall = {
-                tool: lastToolName,
-                command: { command: data.tool_output.command },
-                output: data.tool_output.output
-              };
-              callbacks.onToolCall(toolCall);
-            }
+            
+            // Handle tool outputs - this is the format your backend is sending 
+            //TODO cause: showing tool call twice 
+            // if (data.tool_output && callbacks.onToolCall) {
+            //   const toolCall: ToolCall = {
+            //     tool: lastToolName,
+            //     name: lastToolName,
+            //     arguments: "",
+            //     output: data.tool_output.output
+            //   };
+            //   callbacks.onToolCall(toolCall);
+            // }
             
             // Handle trace ID
             if (data.trace_id) {

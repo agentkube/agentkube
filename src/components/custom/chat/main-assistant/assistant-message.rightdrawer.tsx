@@ -3,13 +3,13 @@ import { Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './codeblock.righdrawer';
-import ToolCallAccordion from './tool-call.component';
+import ToolCallAccordion from '@/components/ui/toolcall';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { openExternalUrl } from '@/api/external';
 import { LinkPreview } from '@/components/ui/link-preview';
 import ToolParameter from './toolparameter.rightdrawer';
 import ResponseFeedback from '../../responsefeedback/responsefeedback.component';
-import { ChartLineDotsColors, ChartBarStacked, ChartBarLabelCustom } from '@/components/custom/promgraphcontainer/graphs.component';
+import { ChartLineDotsColors, ChartBarStacked, ChartBarLabelCustom, ChartNetworkTrafficStep, ChartCryptoPortfolio } from '@/components/custom/promgraphcontainer/graphs.component';
 
 interface CodeProps {
   inline?: boolean;
@@ -27,33 +27,6 @@ interface AssistantMessageProps {
 }
 
 const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls = [] }) => {
-  // Extract JSON objects and actual content
-  const extractJsonObjects = (text: string) => {
-    try {
-      const jsonObjects: string[] = [];
-      let remainingText = text;
-      
-      // Regular expression to match a JSON object
-      const jsonObjectRegex = /^\{.*?\}/s;
-      
-      let match = remainingText.match(jsonObjectRegex);
-      while (match && match[0]) {
-        jsonObjects.push(match[0]);
-        remainingText = remainingText.substring(match[0].length);
-        match = remainingText.match(jsonObjectRegex);
-      }
-      
-      return {
-        jsonObjects: jsonObjects.length > 0 ? jsonObjects : null,
-        remainingContent: remainingText
-      };
-    } catch (e) {
-      return { jsonObjects: null, remainingContent: text };
-    }
-  };
-  
-  const { jsonObjects, remainingContent } = extractJsonObjects(content);
-
   return (
     <div className="w-full relative">
       <div className="bg-gray-300/30 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
@@ -71,10 +44,6 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
               </div>
             )}
 
-            {/* Display JSON data in an accordion if it exists */}
-            {jsonObjects && jsonObjects.length > 0 && (
-              <ToolParameter jsonObjects={jsonObjects} />
-            )}
 
             {/* Display the regular message content */}
             <ReactMarkdown
@@ -170,7 +139,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                 )
               }}
             >
-              {remainingContent}
+              {content}
             </ReactMarkdown>
 
             {/* Always render a sample chart */}
@@ -179,9 +148,13 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                Math.random() > 0.5 ? <ChartBarStacked /> : 
                <ChartBarLabelCustom />}
             </div> */}
-
+            <ChartNetworkTrafficStep />
+            <ChartLineDotsColors />
+            <ChartBarStacked />
+            <ChartBarLabelCustom />
+            <ChartCryptoPortfolio />
             {/* Use the new ResponseFeedback component */}
-            <ResponseFeedback content={remainingContent} />
+            <ResponseFeedback content={content} />
           </div>
         </div>
       </div>

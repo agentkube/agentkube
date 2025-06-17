@@ -89,11 +89,11 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
   useEffect(() => {
     const fetchResourceGraph = async () => {
       if (!currentContext || !resourceDetails) return;
-
+  
       try {
         setIsLoading(true);
         setError(null);
-
+  
         const graphData: K8sGraphData = await getResourceCanvas(
           currentContext.name,
           resourceDetails.namespace || "",
@@ -102,17 +102,15 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
           resourceDetails.resourceType,
           resourceDetails.resourceName
         );
-
+  
         const positionedNodes = calculateNodePositions(graphData);
         setNodes(positionedNodes);
-
+  
         const formattedEdges: Edge[] = graphData.edges.map(edge => ({
           id: edge.id,
           source: edge.source,
           target: edge.target,
-          // type: 'bezier',
           type: 'default',
-          // label: edge.label,
           animated: edge.label === 'manages',
           style: getEdgeStyle(edge.label),
           labelStyle: { fill: getEdgeStyle(edge.label).stroke, fontWeight: 500 },
@@ -120,7 +118,7 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
           labelBgPadding: [8, 4],
           labelBgBorderRadius: 4,
         }));
-
+  
         setEdges(formattedEdges);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load resource graph');
@@ -129,9 +127,18 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
         setIsLoading(false);
       }
     };
-
+  
     fetchResourceGraph();
-  }, [currentContext, resourceDetails, setNodes, setEdges]);
+  }, [
+    currentContext?.name, // Only trigger on context NAME change, not object reference
+    resourceDetails?.namespace,
+    resourceDetails?.group,
+    resourceDetails?.version,
+    resourceDetails?.resourceType,
+    resourceDetails?.resourceName,
+    setNodes,
+    setEdges
+  ]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-full">Loading resource graph...</div>;

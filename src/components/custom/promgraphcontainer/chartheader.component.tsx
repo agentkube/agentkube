@@ -50,7 +50,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = ({
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40 dark:bg-[#0B0D13]/40 dark:border-gray-800/40">
+        <DropdownMenuContent align="end" className="w-40 dark:bg-[#0B0D13]/40 dark:border-gray-800/40 backdrop-blur-md">
           <div className='py-1'>
             <p className='text-sm dark:text-gray-200 flex items-center space-x-1'><PaintBucket className='h-4 w-4' /> <span>Theme</span></p>
             <div className='flex item-center gap-1'>
