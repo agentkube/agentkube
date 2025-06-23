@@ -1,4 +1,4 @@
-import { Rss, Sparkles, Terminal, Download, ExternalLink, Lightbulb } from 'lucide-react';
+import { Rss, Sparkles, Terminal, Download, ExternalLink, Lightbulb, ScanSearch, Bell, BellDot } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import TerminalContainer from '../terminal/terminalcontainer.component';
 import { openExternalUrl } from '@/api/external';
@@ -23,6 +23,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getVersion } from '@tauri-apps/api/app';
 import TipsModal from '../tips/tips.component';
 import { ModalProvider } from '@/components/ui/animatedmodal';
+import NotificationDropdown from '../notificationdropdown/notificationdropdown.component';
+import { useBackgroundTask } from '@/contexts/useBackgroundTask';
+import BackgroundTaskDialog from '../backgroundtaskdialog/backgroundtaskdialog.component';
 
 // Define types for Update object
 interface UpdateInfo {
@@ -75,7 +78,7 @@ const Footer: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<string>("v1.0.0")
-
+  const { isOpen: isBackgroundTaskOpen, onClose: closeBackgroundTask, setIsOpen } = useBackgroundTask();
 
 
   useEffect(() => {
@@ -188,36 +191,38 @@ const Footer: React.FC = () => {
 
 
   return (
-    <footer className="mt-4 flex-none text-xs border-t border-gray-100/10 pr-2">
+    <footer className="absolute w-full bottom-0 text-xs border-t dark:border-gray-300/10 pr-2">
       <div className="flex justify-between items-center">
-        <div>
+        <div className='flex items-center '>
           <TerminalContainer />
+          <div
+            className='backdrop-blur-md cursor-pointer py-1 px-2 text-xs dark:text-gray-300 hover:bg-gray-800/50 flex items-center'
+            onClick={() => setIsOpen(true)}
+          >
+            <ScanSearch className='h-3' /> <span>Background Task</span>
+          </div>
         </div>
         <div className="flex">
-          <div className="text-gray-600 px-2 py-1 hover:bg-gray-200/10 hover:dark:bg-gray-200/10">
+          <button className="text-gray-600 backdrop-blur-md px-2 py-1 hover:bg-gray-200/10 hover:dark:bg-gray-200/10">
             v{currentVersion}
-          </div>
-          <div
+          </button>
+
+          <button
             onClick={() => openExternalUrl("https://docs.agentkube.com/changelog")}
-            className="text-blue-600 hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10"
+            className="text-blue-600 backdrop-blur-md hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10"
           >
             changelog
-          </div>
+          </button>
 
           <ModalProvider>
             <TipsModal />
           </ModalProvider>
-          {/* <div
-            className="text-blue-600 hover:text-blue-500 cursor-pointer group px-2 py-1 hover:bg-gray-100/10"
-          >
-            <Lightbulb className="h-3 w-3 text-gray-400" />
-          </div> */}
 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  className="text-gray-500 py-0.5 px-2 group hover:bg-gray-100/10 hover:text-gray-300 transition-all cursor-pointer"
+                  className="text-gray-500 py-1.5 px-2 group backdrop-blur-md hover:bg-gray-100/10 hover:text-gray-300 transition-all cursor-pointer"
                   onClick={updateAvailable ? openUpdateDialog : checkForUpdates}
                 >
                   {updateAvailable ? (
@@ -243,8 +248,17 @@ const Footer: React.FC = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          <NotificationDropdown className="py-1.5" />
         </div>
       </div>
+
+      <BackgroundTaskDialog
+        isOpen={isBackgroundTaskOpen}
+        onClose={closeBackgroundTask}
+        resourceName=""
+        resourceType=""
+      />
 
       {/* Update Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
