@@ -163,7 +163,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
               />
             </div>
           </div>
-          <div className="max-h-60 overflow-y-auto py-1 
+          <div className="max-h-40 overflow-y-auto py-1 
             scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 

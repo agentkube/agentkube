@@ -145,7 +145,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
                 placeholder="Search resources by name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-3 py-2 bg-gray-200 dark:bg-gray-800/40 rounded text-sm text-gray-700 dark:text-gray-300 focus:outline-none"
+                className="w-full pl-3 pr-3 py-2 bg-gray-200 dark:bg-gray-800/40 rounded text-xs text-gray-700 dark:text-gray-300 focus:outline-none"
                 autoFocus
               />
             </div>
@@ -155,7 +155,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
             <div className="text-xs text-gray-500 uppercase font-medium">Available</div>
           </div>
           
-          <div className="max-h-60 overflow-y-auto py-1
+          <div className="max-h-40 overflow-y-auto py-1
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
@@ -192,7 +192,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
               >
                 <div className="flex items-center">
                   <img src={KUBERNETES_LOGO} alt="Kubernetes Logo" className="w-4 h-4" />
-                  <span className="ml-2">{result.resourceType}/{result.resourceName}</span>
+                  <span className="ml-2 text-xs">{result.resourceType}/{result.resourceName}</span>
                 </div>
                 <div className="text-gray-500 text-xs">
                   {result.namespace ? result.namespace : "cluster-scoped"}
