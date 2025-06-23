@@ -203,7 +203,7 @@ const HelmCharts: React.FC = () => {
             />
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                <TableRow className="border-b border-gray-300 dark:border-gray-800/80">
                   <TableHead>Name</TableHead>
                   <TableHead>Repository</TableHead>
                   <TableHead>Description</TableHead>
@@ -217,7 +217,7 @@ const HelmCharts: React.FC = () => {
                 {filteredCharts.map((chart) => (
                   <TableRow
                     key={chart.package_id}
-                    className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
+                    className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
                     onClick={() => handleChartDetails(chart)}
                   >
                     <TableCell className="font-medium">

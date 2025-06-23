@@ -121,7 +121,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
         )}
         <button
           onClick={toggleCollapse}
-          className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-500"
+          className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (

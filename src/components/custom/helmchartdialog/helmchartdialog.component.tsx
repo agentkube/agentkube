@@ -587,7 +587,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
             <Button
               onClick={handleInstall}
               disabled={installing || !releaseName || (!namespace && !createNamespace) || (createNamespace && !customNamespace) || !currentContext || installStatus === 'success'}
-              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
+              className=" flex items-center"
             >
               {installing ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -599,7 +599,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
           ) : (
             <Button
               onClick={() => setActiveTab('install')}
-              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
+              className="flex items-center"
               variant="outline"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -609,7 +609,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
           
           <Button
             onClick={() => openExternalUrl(`https://artifacthub.io/packages/helm/${chart.repository.name}/${chart.name}`)}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
+            className="flex items-center"
             variant="outline"
           >
             <ExternalLink className="h-4 w-4 mr-2" />
