@@ -21,7 +21,8 @@ import {
   ArrowRight,
   DollarSign,
   Copy,
-  Check
+  Check,
+  Plus
 } from "lucide-react";
 import {
   Card,
@@ -156,8 +157,8 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 py-2">
-            <Badge variant="outline" className="text-sm p-2 h-5 font-mono flex items-center gap-1">
+          <div className="flex items-center justify-between gap-2 py-2">
+            <div className="text-xs p-1  border border-gray-600/10 dark:border-gray-500/30 rounded-md font-mono flex items-center gap-1">
               {model.id}
               <button
                 onClick={(e) => {
@@ -166,15 +167,19 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="ml-1 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-sm transition-colors"
+                className="ml-1 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
               >
                 {copied ? (
-                  <Check className="h-3 w-3 text-green-500" />
+                  <Check className="h-4 w-4 text-green-500" />
                 ) : (
-                  <Copy className="h-3 w-3 text-gray-500" />
+                  <Copy className="h-4 w-4 text-gray-500" />
                 )}
               </button>
-            </Badge>
+            </div>
+
+            <button className='flex border border-gray-500/20 dark:border-gray-500/30 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-400/10 transition-all rounded-md items-center text-xs '>
+              <Plus className='h-4 w-4'/> <span>Add Model</span>
+            </button>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             <Calendar className="h-4 w-4" />

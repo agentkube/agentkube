@@ -28,7 +28,7 @@ const TerminalContainer: React.FC = () => {
   return (
     <>
       <button 
-        className="py-1 flex items-center px-4 bg-gray-200 dark:text-gray-200 dark:bg-gray-600/20 hover:bg-gray-800/50 space-x-1"
+        className="py-1 backdrop-blur-md flex items-center px-4 bg-gray-200 dark:text-gray-200 dark:bg-gray-600/20 hover:bg-gray-800/50 space-x-1"
         onClick={toggleTerminal}
       >
         <Terminal className='h-3 w-3' /> 

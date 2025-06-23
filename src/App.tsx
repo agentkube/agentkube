@@ -6,9 +6,10 @@ import {
   Appearance, BestPractices, Dashboard, GeneralSettings, Kubeconfig, Settings,
   Shortcuts, Support, VulnerabilityReport, MonitoringOverview, CostOverview, Overview, AIEditor,
   AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account, LLMComparison, ModelCompare,
-  Updates
+  Updates,
+  DrillDown
 } from '@/pages';
-import { Footer, NamespacePickerContainer, PromQLSpotlight, Spotlight } from '@/components/custom';
+import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
 import { ClusterProvider } from '@/contexts/clusterContext';
 import {
@@ -80,6 +81,7 @@ import {
 } from './pages/dashboard/cluster-resource';
 import { NamespaceProvider } from './contexts/useNamespace';
 import { Toaster } from "./components/ui/toaster";
+import { Toaster as SoonerToaster } from "./components/ui/sooner";
 import { AuthProvider } from "./contexts/useAuth";
 import { ModelsProvider } from "./contexts/useModel";
 import { PostHogProvider } from "./contexts/useAnalytics";
@@ -103,12 +105,16 @@ function App() {
                       <Spotlight />
                       <NamespacePickerContainer />
                       <PromQLSpotlight />
+                      <BackgroundTask />
                       <Routes>
                         <Route path="/" element={<HomePage />} />
 
                         <Route path="/dashboard" element={<Dashboard />}>
                           <Route index element={<Overview />} />
-                          <Route path="monitoring" element={<MonitoringOverview />} />
+                          <Route path="monitoring">
+                            <Route index element={<MonitoringOverview />} />
+                            <Route path="drilldown" element={<DrillDown />} />
+                          </Route>
                           <Route path="cost" element={<CostOverview />} />
                           <Route path="llm-comparison" element={<LLMComparison />} />
                           <Route path="llm-comparison/compare" element={<ModelCompare />} />
@@ -257,6 +263,7 @@ function App() {
                       </Routes>
                     </div>
                     <Toaster />
+                    <SoonerToaster position="bottom-right" />
                     <Footer />
                   </div>
                   {/* <TailwindIndicator /> */}

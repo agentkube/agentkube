@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -87,29 +87,24 @@ const HomePage: React.FC = () => {
 
   const [availableClusters, setAvailableClusters] = useState<ClusterItem[]>([]);
 
-  // Convert Kubernetes contexts to ClusterItem format for the UI
+  const availableClustersData = useMemo(() => {
+    if (contexts.length === 0) return [];
+    
+    const clusterItems: ClusterItem[] = contexts.map((ctx) => ({
+      id: ctx.name,
+      name: ctx.name,
+      description: `${ctx.kubeContext.cluster}`,
+      type: determineClusterType(ctx.kubeContext.user)
+    }));
+  
+    const pinnedIds = pinnedClusters.map(c => c.id);
+    return clusterItems.filter(item => !pinnedIds.includes(item.id));
+  }, [contexts, pinnedClusters]);
+
+
   useEffect(() => {
-    if (contexts.length > 0) {
-      // Convert KubeContext to ClusterItem
-      const clusterItems: ClusterItem[] = contexts.map((ctx) => ({
-        id: ctx.name, // Using name as ID since it should be unique
-        name: ctx.name,
-        description: `${ctx.kubeContext.cluster}`,
-        type: determineClusterType(ctx.kubeContext.user)
-      }));
-
-      // Filter out any clusters that are already pinned
-      const pinnedIds = pinnedClusters.map(c => c.id);
-      const availableItems = clusterItems.filter(item => !pinnedIds.includes(item.id));
-
-      setAvailableClusters(availableItems);
-
-      // Set selected cluster from current context if one exists
-      if (currentContext && !selectedClusterId) {
-        setSelectedClusterId(currentContext.name);
-      }
-    }
-  }, [contexts, pinnedClusters, currentContext, selectedClusterId]);
+    setAvailableClusters(availableClustersData);
+  }, [availableClustersData]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {

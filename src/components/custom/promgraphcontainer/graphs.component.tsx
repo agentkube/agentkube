@@ -42,6 +42,18 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import ChartHeader from "./chartheader.component";
+import { cn } from "@/lib/utils";
+
+interface ChartProps {
+  title?: string; //TODO not optional
+  description?: string; //TODO not optional
+  className?: string;
+  /*
+  data
+  tooltip
+  */
+
+}
 
 type ThemeType = 'blue' | 'orange' | 'green' | 'yellow' | 'gray' | 'neutral';
 
@@ -55,6 +67,7 @@ const themeColors: Record<ThemeType, string[]> = {
   neutral: ['#525252', '#737373', '#a3a3a3', '#d4d4d4', '#e5e5e5']
 };
 
+
 // Chart 1: CPU Usage by Node
 const cpuUsageData = [
   { node: "node-1", usage: 75 },
@@ -64,7 +77,7 @@ const cpuUsageData = [
   { node: "node-5", usage: 45 },
 ]
 
-export function ChartLineDotsColors() {
+export function ChartLineDotsColors({ className }: ChartProps = {}) {
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('orange');
 
   const themedCpuUsageData = cpuUsageData.map((item, index) => ({
@@ -80,7 +93,7 @@ export function ChartLineDotsColors() {
   } satisfies ChartConfig
 
   return (
-    <Card className="min-w-[400px]">
+    <Card className={cn("w-full", className)}>
       <ChartHeader
         title="CPU Usage by Node"
         description="Real-time Kubernetes cluster metrics"
@@ -131,14 +144,14 @@ export function ChartLineDotsColors() {
           </LineChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
+      {/* <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="flex gap-2 leading-none font-medium">
           Average CPU usage: 65% <TrendingUp className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground leading-none">
           Monitoring 5 Kubernetes nodes in the cluster
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   )
 }
@@ -153,7 +166,7 @@ const memoryUsageData = [
   { namespace: "prometheus", used: 4.1, available: 1.9 },
 ]
 
-export function ChartBarStacked() {
+export function ChartBarStacked({ className }: ChartProps = {}) {
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('orange');
 
   const memoryUsageConfig = {
@@ -168,7 +181,7 @@ export function ChartBarStacked() {
   } satisfies ChartConfig
 
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full", className)}>
       <ChartHeader
         title="Memory Usage by Namespace"
         description="Current memory allocation across K8s namespaces"
@@ -204,14 +217,14 @@ export function ChartBarStacked() {
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
+      {/* <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="flex gap-2 leading-none font-medium">
           Total memory usage: 13.5GB <TrendingUp className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground leading-none">
           Prometheus monitoring across 6 active namespaces
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   )
 }
@@ -226,7 +239,7 @@ const podStatusData = [
   { status: "CrashLoopBackOff", count: 3 },
 ]
 
-export function ChartBarLabelCustom() {
+export function ChartBarLabelCustom({ className }: ChartProps = {}) {
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('orange');
 
   const podStatusConfig = {
@@ -290,14 +303,14 @@ export function ChartBarLabelCustom() {
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
+      {/* <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="flex gap-2 leading-none font-medium">
           197 total pods running <TrendingUp className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground leading-none">
           Kubernetes cluster health monitored by Prometheus
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   )
 }
@@ -312,7 +325,7 @@ const networkTrafficData = [
   { month: "June", ingress: 2140 },
 ]
 
-export function ChartNetworkTrafficStep() {
+export function ChartNetworkTrafficStep({ className }: ChartProps = {}) {
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('blue');
 
   const networkTrafficConfig = {
@@ -324,7 +337,7 @@ export function ChartNetworkTrafficStep() {
   } satisfies ChartConfig
 
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full", className)}>
       <ChartHeader
         title="Network Traffic - Ingress"
         description="Monthly ingress traffic across all services"
@@ -366,7 +379,7 @@ export function ChartNetworkTrafficStep() {
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
-      <CardFooter>
+      {/* <CardFooter>
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 leading-none font-medium">
@@ -377,7 +390,7 @@ export function ChartNetworkTrafficStep() {
             </div>
           </div>
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   )
 }
@@ -392,7 +405,7 @@ const serviceHealthData = [
   { metric: "Memory Usage", frontend: 87, backend: 89 },
 ]
 
-export function ChartServiceHealthRadar() {
+export function ChartServiceHealthRadar({ className }: ChartProps = {}) {
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('yellow');
 
   const serviceHealthConfig = {
@@ -407,7 +420,7 @@ export function ChartServiceHealthRadar() {
   } satisfies ChartConfig
 
   return (
-    <Card className="min-w-[400px]">
+    <Card className={cn("w-full", className)}>
       <ChartHeader
         title="Service Health Metrics"
         description="Performance comparison across service types"
@@ -445,14 +458,14 @@ export function ChartServiceHealthRadar() {
           </RadarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
+      {/* <CardFooter className="flex-col gap-2 text-sm">
         <div className="flex items-center gap-2 leading-none font-medium">
           Overall health improved by 3.1% <TrendingUp className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground flex items-center gap-2 leading-none">
           Real-time service monitoring via Prometheus
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   )
 }
@@ -460,7 +473,7 @@ export function ChartServiceHealthRadar() {
 // Chart 6: Storage Utilization (Radial Stacked)
 const storageUtilizationData = [{ month: "current", persistent: 750, ephemeral: 280 }]
 
-export function ChartStorageUtilizationRadial() {
+export function ChartStorageUtilizationRadial({ className }: ChartProps = {}) {
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('green');
 
   const storageUtilizationConfig = {
@@ -477,7 +490,7 @@ export function ChartStorageUtilizationRadial() {
   const totalStorage = storageUtilizationData[0].persistent + storageUtilizationData[0].ephemeral
 
   return (
-    <Card className="flex flex-col min-w-[400px]">
+    <Card className={cn("flex flex-col w-full", className)}>
       <ChartHeader
         title="Storage Utilization"
         description="Current cluster storage breakdown"
@@ -543,14 +556,14 @@ export function ChartStorageUtilizationRadial() {
           </RadialBarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
+      {/* <CardFooter className="flex-col gap-2 text-sm">
         <div className="flex items-center gap-2 leading-none font-medium">
           Storage efficiency up by 12.3% <TrendingUp className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground leading-none">
           Persistent volumes and ephemeral storage across cluster
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   )
 }
@@ -566,7 +579,7 @@ const cryptoPortfolioData = [
   { date: "2024-06", value: 185267 },
 ]
 
-export function ChartCryptoPortfolio() {
+export function ChartCryptoPortfolio({ className }: ChartProps = {}) {
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('blue');
   const [cryptoData, setCryptoData] = useState(cryptoPortfolioData);
 
@@ -575,7 +588,7 @@ export function ChartCryptoPortfolio() {
     // You can uncomment and modify this to use real crypto data
     const endTimestamp = Date.now();
     const startTimestamp = endTimestamp - 6 * 30 * 24 * 60 * 60 * 1000;
-    
+
     fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from=${startTimestamp / 1000}&to=${endTimestamp / 1000}`)
       .then((response) => response.json())
       .then((data) => {
@@ -601,7 +614,7 @@ export function ChartCryptoPortfolio() {
   const isPositive = Number(percentChange) > 0;
 
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full", className)}>
       <ChartHeader
         title="Monthly Cost Trend"
         description="Visualize your portfolio activities data"
@@ -620,11 +633,10 @@ export function ChartCryptoPortfolio() {
                 maximumFractionDigits: 0,
               })}
             </span>
-            <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ${
-              isPositive 
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+            <div className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ${isPositive
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                 : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-            }`}>
+              }`}>
               {isPositive ? (
                 <TrendingUp className="h-3.5 w-3.5" />
               ) : (
@@ -634,14 +646,14 @@ export function ChartCryptoPortfolio() {
             </div>
           </div>
         </div>
-        
+
         <ChartContainer config={cryptoPortfolioConfig} className="h-[200px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={cryptoData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-              <CartesianGrid 
-                vertical={false} 
-                stroke="hsl(var(--border))" 
-                strokeDasharray="3 3" 
+              <CartesianGrid
+                vertical={false}
+                stroke="hsl(var(--border))"
+                strokeDasharray="3 3"
                 opacity={0.3}
               />
               <XAxis
@@ -668,8 +680,8 @@ export function ChartCryptoPortfolio() {
                 }}
               />
               <ChartTooltip
-                cursor={{ 
-                  stroke: themeColors[currentTheme][0], 
+                cursor={{
+                  stroke: themeColors[currentTheme][0],
                   strokeWidth: 1,
                   strokeDasharray: '4 4'
                 }}
@@ -678,9 +690,9 @@ export function ChartCryptoPortfolio() {
                     return (
                       <div className="rounded-lg border dark:bg-gray-900/20 backdrop-blur p-3 shadow-lg">
                         <p className="text-xs font-medium text-muted-foreground mb-1">
-                          {new Date(label + '-01').toLocaleDateString('en-US', { 
-                            month: 'long', 
-                            year: 'numeric' 
+                          {new Date(label + '-01').toLocaleDateString('en-US', {
+                            month: 'long',
+                            year: 'numeric'
                           })}
                         </p>
                         <p className="text-sm font-bold">

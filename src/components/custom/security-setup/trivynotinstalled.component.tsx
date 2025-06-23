@@ -40,7 +40,7 @@ const TrivyNotInstalled: React.FC<TrivyNotInstalledProps> = ({ title, subtitle, 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-5xl dark:text-gray-500/40 font-bold">{title}</h1>
+        <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">{title}</h1>
       </div>
 
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">

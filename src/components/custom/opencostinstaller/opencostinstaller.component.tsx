@@ -145,9 +145,9 @@ customPricing:
 
   return (
     <>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="p-6 mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Cost Overview</h1>
+          <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Cost Overview</h1>
           <Button
             variant="outline"
             size="icon"

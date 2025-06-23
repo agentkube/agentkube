@@ -1,5 +1,5 @@
 import React from 'react';
-import { AreaChart, Download, Eye, LineChart, MoreVertical, PaintBucket } from "lucide-react";
+import { AreaChart, Download, Eye, LineChart, MoreVertical, PaintBucket, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -51,7 +51,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40 dark:bg-[#0B0D13]/40 dark:border-gray-800/40 backdrop-blur-md">
-          <div className='py-1'>
+          <div className='py-1 px-2'>
             <p className='text-sm dark:text-gray-200 flex items-center space-x-1'><PaintBucket className='h-4 w-4' /> <span>Theme</span></p>
             <div className='flex item-center gap-1'>
               {themes.map((theme) => (
