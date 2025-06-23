@@ -46,7 +46,6 @@ const Kubeconfig = () => {
         setContextRefreshInterval(settings.kubeconfig.contextRefreshInterval);
         setContextRegionExtension(settings.kubeconfig.contextRegionExtension);
 
-        // Mock data for now - in a real app you might get this from an API
         setFileCount(1 + (settings.kubeconfig.externalPaths?.length || 0));
         setContextCount(contexts.length);
       } catch (error) {
