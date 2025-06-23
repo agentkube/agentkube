@@ -1,6 +1,7 @@
 // FeatureSection.tsx
 import React from 'react';
-import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank } from 'lucide-react';
+import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank, Drill, Compass, ShieldEllipsis, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { SiOpenai } from '@icons-pack/react-simple-icons';
 import FeatureMenuItem from '../featuremenuitem/featuremenuitem.component';
 import { FeatureItem } from '@/types/sidebar';
 import { OPENAI_PROVIDER } from '@/assets/providers';
@@ -45,7 +46,21 @@ const advancedFeatures: FeatureItem[] = [
     id: 'monitoring',
     icon: <ChartLine className="w-4 h-4" />,
     label: 'Monitoring',
-    path: '/dashboard/monitoring'
+    path: '/dashboard/monitoring',
+    children: [
+      {
+        id: 'monitoring-overview',
+        icon: <Compass className="w-4 h-4" />,
+        label: 'Overview',
+        path: '/dashboard/monitoring'
+      },
+      {
+        id: 'drilldown',
+        icon: <Drill className="w-4 h-4 rotate-[25deg]" />,
+        label: 'Drilldown',
+        path: '/dashboard/monitoring/drilldown'
+      },
+    ]
   },
   {
     id: 'security',
@@ -55,13 +70,13 @@ const advancedFeatures: FeatureItem[] = [
     children: [
       {
         id: 'best-practices',
-        icon: <div className="w-2 h-2 rounded-full bg-green-500 ml-1 mr-2" />,
+        icon: <ShieldCheck className="w-4 h-4" />,
         label: 'Best Practices',
         path: '/dashboard/security/best-practices'
       },
       {
         id: 'vulnerability-reports',
-        icon: <div className="w-2 h-2 rounded-full bg-yellow-500 ml-1 mr-2" />,
+        icon: <ShieldAlert className="w-4 h-4" />,
         label: 'Vulnerability Reports',
         path: '/dashboard/security/vulnerability-report'
       },
@@ -87,7 +102,7 @@ const advancedFeatures: FeatureItem[] = [
       },
       {
         id: 'llm-comparison',
-        icon: <img src={OPENAI_PROVIDER} alt="OpenAI" className="w-4 h-4" />,
+        icon: <SiOpenai className="w-4 h-4" />,
         label: 'LLM Comparison',
         path: '/dashboard/llm-comparison'
       },
