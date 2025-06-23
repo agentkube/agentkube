@@ -109,7 +109,7 @@ const CostOverview: React.FC = () => {
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Cost Overview</h1>
+            <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Cost Overview</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">View and analyze your cluster costs</p>
             {openCostStatus?.status.version && (
               <p className="text-xs text-gray-500 dark:text-gray-400">

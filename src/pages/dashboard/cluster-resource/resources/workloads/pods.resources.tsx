@@ -6,7 +6,7 @@ import { V1Pod } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Sparkles, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +22,10 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogHeader, AlertDialogCancel, AlertDialogFooter, AlertDialogDescription, AlertDialogTitle, AlertDialogContent, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { OPERATOR_URL } from '@/config';
+import { toast } from '@/hooks/use-toast';
+import { toast as sooner } from "sonner"
+import BackgroundTaskDialog from '@/components/custom/backgroundtaskdialog/backgroundtaskdialog.component';
+import { useBackgroundTask } from '@/contexts/useBackgroundTask';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -120,6 +124,9 @@ const Pods: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showBackgroundTaskDialog, setShowBackgroundTaskDialog] = useState(false);
+  const [backgroundTaskPod, setBackgroundTaskPod] = useState<V1Pod | null>(null);
+  const { isOpen: isBackgroundTaskOpen, resourceName, resourceType, onClose: closeBackgroundTask, openWithResource } = useBackgroundTask();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -137,6 +144,13 @@ const Pods: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+
+  const handleInvestigatePod = (pod: V1Pod) => {
+    // setBackgroundTaskPod(pod);
+    // setShowBackgroundTaskDialog(true);
+    openWithResource(pod.metadata?.name || '', 'Pod');
+  };
 
   const handlePodClick = (e: React.MouseEvent, pod: V1Pod) => {
     const podKey = `${pod.metadata?.namespace}/${pod.metadata?.name}`;
@@ -1068,6 +1082,14 @@ const Pods: React.FC = () => {
         return renderResourceTooltip(podKey, resourceType);
       })()}
 
+      <BackgroundTaskDialog
+        isOpen={isBackgroundTaskOpen}
+        onClose={closeBackgroundTask}
+        resourceName={resourceName}
+        resourceType={resourceType}
+      />
+
+
       {/* Pods table */}
       {sortedPods.length > 0 && (
         <Card className="text-gray-800 dark:text-gray-300 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
@@ -1251,7 +1273,28 @@ const Pods: React.FC = () => {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              toast({ title: "Ask AI", description: "Feature yet to be implemented" })
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask Agent
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleInvestigatePod(pod);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <WandSparkles className="mr-2 h-4 w-4" />
+                              Investigate
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Restart
+                            </DropdownMenuItem>
 
                             <DropdownMenuItem onClick={(e) => handleViewPod(e, pod)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Eye className="mr-2 h-4 w-4" />
