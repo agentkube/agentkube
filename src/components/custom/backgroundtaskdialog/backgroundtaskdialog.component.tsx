@@ -1,0 +1,259 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { X, ArrowUp, BotMessageSquare, Search, ScanSearch, Loader, Plus, Lightbulb } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from 'framer-motion';
+import { AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
+import { EnrichedSearchResult } from '@/types/search';
+import { toast as sooner } from "sonner";
+import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+
+interface BackgroundTaskDialogProps {
+	isOpen: boolean;
+	onClose: () => void;
+	resourceName?: string;
+	resourceType?: string;
+}
+
+const mentionData = [
+	{ id: 1, name: '', description: '' },
+];
+
+const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
+	isOpen,
+	onClose,
+	resourceName,
+	resourceType
+}) => {
+	const [inputValue, setInputValue] = useState<string>('');
+	const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
+	const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
+	const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
+	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		if (isOpen && inputRef.current) {
+			inputRef.current.focus();
+		}
+	}, [isOpen]);
+
+	useEffect(() => {
+		const handleEscape = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				onClose();
+			}
+		};
+
+		if (isOpen) {
+			document.addEventListener('keydown', handleEscape);
+		}
+
+		return () => {
+			document.removeEventListener('keydown', handleEscape);
+		};
+	}, [isOpen, onClose]);
+
+	const createBackgroundTask = async (message: string) => {
+		setIsLoading(true);
+
+		// Mock function to simulate background task creation
+		setTimeout(() => {
+			sooner("Running Investigation", {
+				description: `Investigating ${resourceName || 'resource'}`,
+				action: {
+					label: "View",
+					onClick: () => console.log("View investigation"),
+				},
+				cancel: {
+					label: "Cancel",
+					onClick: () => console.log("Cancel investigation"),
+				}
+			});
+
+			setIsLoading(false);
+			setInputValue('');
+			setContextFiles([]);
+			onClose();
+		}, 1000);
+	};
+
+	const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
+		e.preventDefault();
+		if (!inputValue.trim() || isLoading) return;
+
+		await createBackgroundTask(inputValue.trim());
+	};
+
+	const handleResourcePreview = (resource: EnrichedSearchResult) => {
+		setPreviewResource(resource);
+	};
+
+	const handleAddContext = (resource: any): void => {
+		setContextFiles(prev => [
+			...prev.filter(r =>
+				!(r.resourceName === resource.resourceName &&
+					r.resourceType === resource.resourceType &&
+					r.namespace === resource.namespace)
+			),
+			resource
+		]);
+	};
+
+	const handleInputFocus = (): void => {
+		setIsInputFocused(true);
+	};
+
+	const handleInputBlur = (): void => {
+		// Keep it visible once shown
+	};
+
+	const handleMentionSelect = (item: any) => {
+		console.log('Mentioned:', item.name);
+	};
+
+	if (!isOpen) return null;
+
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center">
+			<div className="absolute inset-0 dark:bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
+			<AnimatePresence>
+				<motion.div
+					className="relative w-full max-w-2xl bg-gray-100 dark:bg-[#1B1C26]/80 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
+					initial={{ scale: 0.95, opacity: 0 }}
+					animate={{ scale: 1, opacity: 1 }}
+					exit={{ scale: 0.95, opacity: 0 }}
+					transition={{ duration: 0.2 }}
+				>
+					{/* Background Task Header */}
+					<div className="flex items-center justify-between  px-2 border-b dark:border-gray-700/30">
+						<div className='flex items-center space-x-2 text-xs '>
+							<div className='flex items-center text-gray-800 dark:text-gray-300 space-x-1'>
+								<ScanSearch className='h-4' />
+								<h3 className="text-xs font-mediums">
+									Background Task
+								</h3>
+							</div>
+
+							{resourceName && (
+								<>
+									<span className="text-gray-500 dark:text-gray-400/80">
+										{resourceType}/{resourceName}
+									</span>
+								</>
+							)}
+						</div>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={onClose}
+							className="p-1 dark:text-gray-400"
+						>
+							<X className="h-4 w-4" />
+						</Button>
+					</div>
+
+					{/* Main Container */}
+					<div className="px-3 py-2">
+						{/* Context Files */}
+						{contextFiles.length > 0 && (
+							<div className="mb-4 flex flex-wrap gap-2 relative">
+								{contextFiles.map(file => (
+									<div
+										key={file.resourceName}
+										className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-1"
+									>
+										<div
+											className="flex items-center cursor-pointer"
+											onClick={() => handleResourcePreview(file)}
+										>
+											<img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+											<span className="ml-1">{file.resourceName}</span>
+										</div>
+										<X
+											size={12}
+											className="ml-1 cursor-pointer"
+											onClick={(e) => {
+												e.stopPropagation();
+												setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
+											}}
+										/>
+									</div>
+								))}
+
+								{previewResource && (
+									<ResourcePreview
+										resource={previewResource}
+										onClose={() => setPreviewResource(null)}
+									/>
+								)}
+							</div>
+						)}
+
+						{/* Input Form */}
+						<form
+							onSubmit={handleSubmit}
+							className="flex gap-3 items-end">
+							<div className="flex-1 h-52">
+								<AutoResizeTextarea
+									ref={inputRef}
+									value={inputValue}
+									onChange={(e) => setInputValue(e.target.value)}
+									onFocus={handleInputFocus}
+									onBlur={handleInputBlur}
+									onSubmit={handleSubmit}
+									placeholder="What would you like to investigate? (e.g., 'Check pod health and recent issues')"
+									disabled={isLoading}
+									className="dark:border-transparent h-64"
+									autoFocus={true}
+									mentionItems={mentionData}
+									onMentionSelect={handleMentionSelect}
+								/>
+							</div>
+						</form>
+						<div className='flex items-center text-xs p-2 dark:text-blue-400 dark:bg-blue-500/10 my-2 rounded-lg'>
+							<Lightbulb size={14} className="mr-1" />
+							<p> Describe what you'd like to investigate about this resource. The analysis will run in the background.</p>
+						</div>
+						<div className="flex justify-between items-center relative">
+							<div className='flex items-center'>
+								<ResourceContext onResourceSelect={handleAddContext} />
+								<button
+									className="flex items-center text-gray-400 hover:text-gray-300 transition-colors rounded px-2 py-1"
+								>
+									<Plus size={14} className="mr-1" />
+									<span className="text-xs">Add Logs</span>
+								</button>
+								<button
+									className="flex items-center text-gray-400 hover:text-gray-300 transition-colors rounded px-2 py-1"
+								>
+									<Plus size={14} className="mr-1" />
+									<span className="text-xs">Add Metrics</span>
+								</button>
+							</div>
+
+							<div className='space-x-3 flex items-center'>
+								<ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+								<Button
+									type="submit"
+									onClick={handleSubmit}
+									disabled={isLoading || !inputValue.trim()}
+									className="p-3 h-6 w-6 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+								>
+									{isLoading ? (
+										<Loader className="animate-spin rounded-full h-4 w-4" />
+									) : (
+										<ArrowUp className='h-4 w-4' />
+									)}
+								</Button>
+							</div>
+						</div>
+					</div>
+				</motion.div>
+
+			</AnimatePresence>
+		</div>
+	);
+};
+
+export default BackgroundTaskDialog;
