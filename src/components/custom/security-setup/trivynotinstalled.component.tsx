@@ -46,7 +46,7 @@ const TrivyNotInstalled: React.FC<TrivyNotInstalledProps> = ({ title, subtitle, 
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
         <CardContent className="p-8">
           <div className="text-center py-12">
-            <AlertCircle className="h-16 w-16 mx-auto text-blue-600 mb-4" />
+            <AlertCircle className="h-16 w-16 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Trivy Operator Not Detected
             </h3>
@@ -64,7 +64,6 @@ const TrivyNotInstalled: React.FC<TrivyNotInstalledProps> = ({ title, subtitle, 
               <Button
                 onClick={handleInstallTrivy}
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {loading ? 'Installing...' : 'Install Trivy Operator'}
               </Button>

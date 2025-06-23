@@ -149,7 +149,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md shadow-lg dark:bg-[#0B0D13]/60 backdrop-blur-md border border-gray-800/50 z-50">
+        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md shadow-lg dark:bg-[#0B0D13]/60 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 z-50">
           <div className="p-2">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -179,7 +179,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
               </div>
             )}
           </div>
-          <div className="border-t border-gray-800/50 py-1 px-3">
+          <div className="border-t border-gray-400/30 dark:border-gray-800/50 py-1 px-3">
             <div className="text-xs text-gray-500 flex justify-between items-center">
               <span>⌘/ toggle, ⌘\ open</span>
               {!isLicensed && (
