@@ -194,6 +194,8 @@ const NodeViewer: React.FC = () => {
     // Calculate usage percentages
     // In a real app, you'd get the actual used values from metrics API
     // Here we're just simulating usage percentages
+    
+    // TODO Remove these mock values
     const usage = {
       cpuPercent: 30,  // Mock values - would come from metrics in real app
       memoryPercent: 45,
