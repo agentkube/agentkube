@@ -331,6 +331,13 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
         placeholder={placeholderStr}
         rows={1}
         className={`flex-grow border text-sm border-gray-400 min-h-9 p-2 rounded-[0.4rem] 
+                  overflow-y-auto
+                  scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+                  [&::-webkit-scrollbar]:w-1.5 
+                  [&::-webkit-scrollbar-track]:bg-transparent 
+                  [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+                  [&::-webkit-scrollbar-thumb]:rounded-full
+                  [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
                   dark:border-gray-800/50 bg-transparent dark:text-gray-200 
                   focus:outline-none focus:ring-0 focus:border-gray-400 dark:focus:border-transparent
                   resize-none ${className || ''}`}
