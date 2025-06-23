@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Terminal, Wrench } from 'lucide-react';
+import { ChevronDown, ChevronUp, Terminal, Wrench, Copy, Check } from 'lucide-react';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -14,6 +14,7 @@ interface ToolCallAccordionProps {
 
 const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const { theme } = useTheme();
 
   // Custom styles for syntax highlighter
@@ -29,6 +30,22 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
     return <Wrench className="h-3 w-3" />;
   };
 
+  const handleCopyOutput = async () => {
+    if (!toolCall.output) return;
+    
+    const textToCopy = typeof toolCall.output === 'string'
+      ? toolCall.output
+      : toolCall.output.output || JSON.stringify(toolCall.output, null, 2);
+    
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
   if (!toolCall.tool) {
     return <></>;
   }
@@ -37,13 +54,24 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
     <div className="border border-gray-400/20 dark:border-gray-800/50 rounded-md mb-3 overflow-hidden">
       {/* Accordion header */}
       <div
-        className="flex items-center justify-between px-2 py-1 bg-gray-200 dark:bg-transparent cursor-pointer"
+        className={`flex items-center justify-between px-2 py-1 cursor-pointer ${
+          toolCall.isPending 
+            ? 'bg-yellow-100 dark:bg-yellow-900/20' 
+            : 'bg-gray-200 dark:bg-transparent'
+        }`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center space-x-1">
           {getToolIcon(toolCall.tool)}
-          <span className="text-sm">
-            {toolCall.tool}
+          <span className="text-sm space-x-1 flex items-center">
+            <span>
+              {toolCall.tool}
+            </span>
+            {!toolCall.isPending && (
+              <span className="text-xs px-1.5 py-0.5 rounded-md bg-green-500/40 dark:bg-green-400/10 text-green-800 dark:text-green-400">
+                Completed
+              </span>
+            )}
           </span>
         </div>
         <div>
@@ -84,11 +112,24 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
           )}
 
           {/* Output section */}
-          {toolCall.output && (
+          {toolCall.output && !toolCall.isPending && (
             <div className="p-2 pt-0 space-y-1">
-              <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
-                Output
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                  Output
+                </h4>
+                <button
+                  onClick={handleCopyOutput}
+                  className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors"
+                  title="Copy output"
+                >
+                  {isCopied ? (
+                    <Check className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <Copy className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                  )}
+                </button>
+              </div>
               <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
                 <SyntaxHighlighter
                   language="bash"
