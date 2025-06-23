@@ -489,7 +489,7 @@ const RightDrawer: React.FC = () => {
                     <Button
                       type="submit"
                       disabled={isLoading || !inputValue.trim()}
-                      className="p-3 h-2 w-2 rounded-full dark:bg-gray-800/60"
+                      className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
                     >
                       <ArrowUp className='h-2 w-2' />
                     </Button>

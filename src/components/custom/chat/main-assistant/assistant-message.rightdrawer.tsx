@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Copy, CheckCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './codeblock.righdrawer';
@@ -62,10 +62,10 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                   <p className="text-gray-700 dark:text-gray-300 mb-4">{children}</p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="list-disc list-inside space-y-2 mb-4 ml-4">{children}</ul>
+                  <ul className="list-disc list-outside space-y-2 mb-4 ml-4">{children}</ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="list-decimal list-inside space-y-2 mb-4 ml-4">{children}</ol>
+                  <ol className="list-decimal list-outside space-y-2 mb-4 ml-4 pl-6">{children}</ol>
                 ),
                 li: ({ children }) => (
                   <li className="text-gray-700 dark:text-gray-300">{children}</li>
@@ -90,9 +90,48 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                 th: ({ children }) => (
                   <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border border-gray-300 dark:border-gray-800">{children}</th>
                 ),
-                td: ({ children }) => (
-                  <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300  border border-gray-300 dark:border-gray-800">{children}</td>
-                ),
+                td: ({ children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { style?: React.CSSProperties & { '--rmd-table-cell-index'?: number } }) => {
+                  const [showCopy, setShowCopy] = useState(false);
+                  const [copied, setCopied] = useState(false);
+                  
+                  // Check if this is the first cell in the row
+                  const isFirstColumn = props.style?.['--rmd-table-cell-index'] === 0 || 
+                                       (!props.style && React.Children.toArray(children).length > 0);
+                  
+                  const handleCopy = async () => {
+                    const text = typeof children === 'string' ? children : 
+                                React.Children.toArray(children).join('');
+                    await navigator.clipboard.writeText(text);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                  };
+                
+                  return (
+                    <td 
+                      className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-800 relative group"
+                      onMouseEnter={() => isFirstColumn && setShowCopy(true)}
+                      onMouseLeave={() => setShowCopy(false)}
+                    >
+                      {children}
+                      {isFirstColumn && (showCopy || copied) && (
+                        <button
+                          onClick={handleCopy}
+                          className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 ${
+                            copied 
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' 
+                              : 'bg-gray-100 dark:bg-transparent hover:bg-gray-200 dark:hover:bg-transparent'
+                          }`}
+                        >
+                          {copied ? (
+                            <CheckCheck className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  );
+                },
 
                 a: ({ href, children }) => (
                   <LinkPreview
