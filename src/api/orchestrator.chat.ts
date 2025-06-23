@@ -82,6 +82,7 @@ export interface ToolCall {
     command: string;
     output: string;
   };
+  isPending?: boolean;
 }
 
 // Stream callback types
@@ -142,34 +143,29 @@ async function processChatStream(
   const decoder = new TextDecoder();
   let buffer = '';
   let doneReceived = false;
-  // Keep track of the last tool call to associate with outputs
-  let lastToolName = "";
+  
+  // Keep track of pending tool calls to match with outputs
+  const pendingToolCalls = new Map<string, ToolCall>();
 
   try {
     while (true) {
       const { done, value } = await reader.read();
       
       if (done) {
-        // The stream is done. Always call onComplete here to ensure it's triggered
-        // even if the server never sent a "done" event
         if (!doneReceived && callbacks.onComplete) {
           callbacks.onComplete('stream_end');
         }
         break;
       }
       
-      // Decode the chunk and add to buffer
       buffer += decoder.decode(value, { stream: true });
       
-      // Process complete lines
       const lines = buffer.split('\n');
-      // Keep the last potentially incomplete line
       buffer = lines.pop() || '';
       
       for (const line of lines) {
         if (!line.trim()) continue;
         
-        // Handle [DONE] signal
         if (line.trim() === 'data: [DONE]') {
           if (!doneReceived && callbacks.onComplete) {
             doneReceived = true;
@@ -180,10 +176,8 @@ async function processChatStream(
         
         if (line.startsWith('data: ')) {
           try {
-            // The server returns nested data format, so we need to extract properly
             let jsonData = line.slice(6);
             
-            // Handle the case where the server returns "data: data: {...}"
             if (jsonData.startsWith('data: ')) {
               jsonData = jsonData.slice(6);
             }
@@ -195,33 +189,68 @@ async function processChatStream(
               callbacks.onContent(0, data.text);
             }
             
-            // Handle tool calls
-            if (data.tool_call && callbacks.onToolCall) {
+            // Handle tool calls - ONLY STORE, DON'T RENDER YET
+            if (data.tool_call) {
               const toolCall: ToolCall = {
                 tool: data.tool_call.tool,
                 name: data.tool_call.name,
                 arguments: data.tool_call.arguments
               };
-              callbacks.onToolCall(toolCall);
-              lastToolName = data.tool_call.name; // Store for output association
+              
+              // Store pending tool call if it has a call_id
+              if (data.tool_call.call_id) {
+                pendingToolCalls.set(data.tool_call.call_id, toolCall);
+              }
+              
+              // DON'T CALL callbacks.onToolCall here - wait for output
             }
             
-            
-            // Handle tool outputs - this is the format your backend is sending 
-            //TODO cause: showing tool call twice 
-            // if (data.tool_output && callbacks.onToolCall) {
-            //   const toolCall: ToolCall = {
-            //     tool: lastToolName,
-            //     name: lastToolName,
-            //     arguments: "",
-            //     output: data.tool_output.output
-            //   };
-            //   callbacks.onToolCall(toolCall);
-            // }
+            // Handle tool outputs - ONLY RENDER WHEN OUTPUT ARRIVES
+            if (data.tool_output && data.tool_output.call_id && callbacks.onToolCall) {
+              const pendingCall = pendingToolCalls.get(data.tool_output.call_id);
+              if (pendingCall) {
+                // Handle the output format correctly
+                let outputString = "";
+                let commandString = "";
+                
+                if (typeof data.tool_output.output === 'object' && data.tool_output.output !== null) {
+                  commandString = data.tool_output.output.command || pendingCall.arguments;
+                  outputString = data.tool_output.output.output || "";
+                } else {
+                  outputString = String(data.tool_output.output);
+                  commandString = pendingCall.arguments;
+                }
+                
+                // Create a complete tool call with output and render it
+                const completeToolCall: ToolCall = {
+                  ...pendingCall,
+                  output: {
+                    command: commandString,
+                    output: outputString
+                  }
+                };
+                
+                // NOW call the callback with the complete tool call
+                callbacks.onToolCall(completeToolCall);
+                
+                // Remove from pending calls
+                pendingToolCalls.delete(data.tool_output.call_id);
+              } else {
+                console.warn(`No pending tool call found for call_id: ${data.tool_output.call_id}`);
+              }
+            }
             
             // Handle trace ID
             if (data.trace_id) {
               console.log(`Trace ID: ${data.trace_id}`);
+            }
+            
+            // Handle errors
+            if (data.error) {
+              console.error('Stream error:', data.error);
+              if (callbacks.onError) {
+                callbacks.onError(new Error(data.error));
+              }
             }
             
             // Handle done event
@@ -245,9 +274,14 @@ async function processChatStream(
     }
   } finally {
     reader.releaseLock();
+    
+    // Clean up any remaining pending tool calls
+    if (pendingToolCalls.size > 0) {
+      console.warn(`${pendingToolCalls.size} tool calls never received outputs`);
+      pendingToolCalls.clear();
+    }
   }
 }
-
 /**
  * Send a completion request that stores the conversation in the database
  */
