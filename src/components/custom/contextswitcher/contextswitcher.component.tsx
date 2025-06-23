@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Check } from 'lucide-react';
 import { KubeContext } from '@/types/cluster';
 import { useTheme } from 'next-themes';
@@ -7,8 +7,7 @@ import {
   AWS_PROVIDER_DARK, 
   AZURE_PROVIDER, 
   DOCKER_PROVIDER, 
-  GCP_PROVIDER, 
-  KIND_PROVIDER, 
+  GCP_PROVIDER,  
   MINIKUBE_PROVIDER 
 } from '@/assets/providers';
 import KUBERNETES_LOGO from '@/assets/kubernetes-blue.png';
@@ -40,8 +39,11 @@ const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
   activeIndex
 }) => {
   const { theme } = useTheme();
-  const filteredContexts = contexts.filter(ctx =>
-    ctx.name.toLowerCase().includes(query.toLowerCase())
+  const filteredContexts = useMemo(() => 
+    contexts.filter(ctx =>
+      ctx.name.toLowerCase().includes(query.toLowerCase())
+    ),
+    [contexts, query]
   );
 
   // Component for cluster icon
