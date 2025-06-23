@@ -110,10 +110,16 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
         const fetchedContexts = await getKubeContexts();
         
         setContexts(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(fetchedContexts)) {
-            return fetchedContexts;
-          }
-          return prev;
+          // Deep comparison to avoid unnecessary updates
+          const hasChanged = prev.length !== fetchedContexts.length || 
+            prev.some((ctx, index) => 
+              !fetchedContexts[index] || 
+              ctx.name !== fetchedContexts[index].name ||
+              ctx.kubeContext !== fetchedContexts[index].kubeContext ||
+              ctx.server !== fetchedContexts[index].server
+            );
+          
+          return hasChanged ? fetchedContexts : prev;
         });
       } catch (err) {
         console.error('Failed to refresh contexts:', err);
