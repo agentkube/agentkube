@@ -56,9 +56,9 @@ const DrillDown = () => {
             </div>
             
             {/* Row 3 - Bottom Chart */}
-            <div className="col-span-1">
+            {/* <div className="col-span-1">
               <ChartCryptoPortfolio />
-            </div>
+            </div> */}
             
           </div>
         </div>

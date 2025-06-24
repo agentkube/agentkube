@@ -15,7 +15,6 @@ import {
 	TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 // Mock notification data - replace with your actual data source
 const mockNotifications = [

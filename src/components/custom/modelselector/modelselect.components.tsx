@@ -8,6 +8,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DeepSeek, Anthropic, OpenAI, XAI } from '@lobehub/icons';
+
+
+const getProviderIcon = (provider: string) => {
+  const iconMap: Record<string, JSX.Element>  = {
+    'openai': <OpenAI size={14} />,
+    'anthropic': <Anthropic size={14} />,
+    'xai': <XAI size={14} />,
+    'deepseek': <DeepSeek size={14} />,
+    // Add more providers as needed
+    'google': <DeepSeek size={14} />, // placeholder until you have Google icon
+    'cohere': <DeepSeek size={14} />, // placeholder until you have Cohere icon
+    'meta': <DeepSeek size={14} />, // placeholder until you have Meta icon
+  };
+
+  return iconMap[provider.toLowerCase()] || <DeepSeek size={12} />; // fallback icon
+};
 
 interface ModelSelectorProps {
   selectedModel: string;
@@ -97,7 +114,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
               >
                 <div className="flex items-center">
                   <Lock size={12} className="mr-1.5 text-gray-500" />
-                  <span>{model.name}</span>
+                  <span>{model.name}/</span>
                 </div>
                 <span className="flex items-center ml-2 text-xxs px-1.5 py-0.5 bg-gray-300/30 dark:bg-green-500/10 text-gray-800 dark:text-green-500 rounded-[0.3rem]">
                   <Sparkles size={12} className="mr-1 w-3 h-3" />
@@ -124,11 +141,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
           }`}
         onClick={() => selectModel(model.id, model.provider, model.premiumOnly)}
       >
-        <div className="flex items-center">
+        <div className="flex items-center space-x-1.5">
+          {getProviderIcon(model.provider)}
           <span>{model.name}</span>
         </div>
         {isSelected && <Check size={16} className="text-gray-300" />}
-
         {isPremium && !isSelected && !isLicensed &&
           <span className="ml-2 text-xxs px-1.5 py-0.5 bg-gray-300/30 dark:bg-green-500/10 text-gray-800 dark:text-green-500 rounded-[0.3rem]">
             Pro

@@ -211,7 +211,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 								/>
 							</div>
 						</form>
-						<div className='flex items-center text-xs p-2 dark:text-blue-400 dark:bg-blue-500/10 my-2 rounded-lg'>
+						<div className='flex items-center text-xs p-2 text-blue-800 dark:text-blue-400 bg-blue-400/20 dark:bg-blue-500/10 my-2 rounded-lg'>
 							<Lightbulb size={14} className="mr-1" />
 							<p> Describe what you'd like to investigate about this resource. The analysis will run in the background.</p>
 						</div>
