@@ -34,7 +34,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
           <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
             <Sparkles className="h-4 w-4" />
           </div>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto py-1">
             {/* Display tool calls if available */}
             {toolCalls.length > 0 && (
               <div className="mb-4">
@@ -187,11 +187,14 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                Math.random() > 0.5 ? <ChartBarStacked /> : 
                <ChartBarLabelCustom />}
             </div> */}
+            {/* 
             <ChartNetworkTrafficStep />
             <ChartLineDotsColors />
             <ChartBarStacked />
             <ChartBarLabelCustom />
             <ChartCryptoPortfolio />
+            */}
+
             {/* Use the new ResponseFeedback component */}
             <ResponseFeedback content={content} />
           </div>

@@ -201,15 +201,17 @@ const RightDrawer: React.FC = () => {
             setCurrentToolCalls([...toolCallsRef.current]);
           },
           onComplete: (reason) => {
-            setMessages(prev => [
-              ...prev,
-              {
-                role: 'assistant',
-                content: responseRef.current,
-                toolCalls: toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
-              }
-            ]);
-  
+            if (responseRef.current.trim() || toolCallsRef.current.length > 0) {
+              setMessages(prev => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: responseRef.current,
+                  toolCalls: toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+                }
+              ]);
+            }
+          
             setCurrentResponse('');
             setCurrentToolCalls([]);
             setContextFiles([]);
@@ -218,14 +220,20 @@ const RightDrawer: React.FC = () => {
           onError: (error) => {
             console.error('Error in chat stream:', error);
             setIsLoading(false);
-  
+          
             setMessages(prev => [
               ...prev,
               {
                 role: 'assistant',
-                content: `${'Something went wrong during the chat.'}`
+                content: `Something went wrong during the chat.`
               }
             ]);
+            
+            responseRef.current = '';
+            toolCallsRef.current = [];
+            setCurrentResponse('');
+            setCurrentToolCalls([]);
+            setContextFiles([]);
           }
         }
       );
