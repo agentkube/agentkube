@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DeepSeek, XAI, Gemini, MetaAI, OpenAI, Anthropic } from '@/assets/icons';
+
 const getProviderIcon = (provider: string) => {
   const iconMap: Record<string, JSX.Element>  = {
     'openai': <OpenAI size={14} />,

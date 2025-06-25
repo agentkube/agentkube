@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -21,6 +21,20 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
 import { RemediationConfiguration } from '@/components/custom';
+import { DeepSeek, XAI, Gemini, MetaAI, OpenAI, Anthropic } from '@/assets/icons';
+
+const getProviderIcon = (provider: string) => {
+  const iconMap: Record<string, JSX.Element> = {
+    'openai': <OpenAI size={14} />,
+    'anthropic': <Anthropic size={14} />,
+    'xai': <XAI size={14} />,
+    'deepseek': <DeepSeek size={14} />,
+    'google': <Gemini size={14} />,
+    'meta': <MetaAI size={14} />,
+  };
+
+  return iconMap[provider.toLowerCase()] || <Brain size={12} />; // fallback icon
+};
 
 const ModelConfiguration = () => {
   const { models, toggleModel, addModel, removeModel } = useModels();
@@ -152,15 +166,18 @@ const ModelConfiguration = () => {
         className="flex items-center py-2 px-3 cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/50 rounded-sm group"
         onClick={() => toggleModelEnabled(model.id)}
       >
-        <div className="w-6 flex items-center justify-center">
+        <div className="w-6 flex items-center">
           <div className={`w-4 h-4 border ${model.enabled ? 'bg-gray-300 dark:bg-gray-700 border-gray-700' : 'border-gray-600/50 bg-transparent'} rounded-sm flex items-center justify-center`}>
             {model.enabled && <Check className="w-3 h-3 text-black dark:text-white" />}
           </div>
         </div>
 
-        <span className={`text-sm ml-2 ${model.enabled ? 'text-black dark:text-white' : 'text-gray-400'}`}>
-          {model.name}
-        </span>
+        <div className='flex items-center'>
+          {getProviderIcon(model.provider)}
+          <span className={`text-sm ml-1 ${model.enabled ? 'text-black dark:text-white' : 'text-gray-400'}`}>
+            {model.name}
+          </span>
+        </div>
 
         {model.isCustom && (
           <div className="ml-auto">

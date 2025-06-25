@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useModels } from '@/contexts/useModel';
 import { ORCHESTRATOR_URL } from '@/config';
 import { patchConfig } from '@/api/settings';
-
+import { OpenRouter } from '@/assets/icons';
 const RemediationDefaultModel = () => {
   const { models } = useModels();
   const [currentModel, setCurrentModel] = useState('');
@@ -140,18 +140,18 @@ const RemediationDefaultModel = () => {
                   filteredModels.map((model) => (
                     <DropdownMenuItem
                       key={model.id}
-                      className={`flex items-center justify-between cursor-pointer px-3 text-sm rounded-sm ${
+                      className={`flex items-center w-80 justify-between cursor-pointer px-3 text-sm rounded-sm ${
                         model.id === currentModel 
                           ? 'bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-white' 
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900/10'
                       }`}
                       onClick={() => handleModelChange(model.provider, model.id)}
-                      disabled={model.premiumOnly && !model.enabled}
                     >
                       <span>{model.provider}/{model.name}</span>
                       {model.id === currentModel && (
                         <Check className="h-4 w-4 text-gray-900 dark:text-white" />
                       )}
+                      <OpenRouter className='dark:text-gray-400' size={10} />
                     </DropdownMenuItem>
                   ))
                 ) : (
