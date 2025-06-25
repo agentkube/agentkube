@@ -38,7 +38,7 @@ import {
   Boxes,
   Plug
 } from 'lucide-react';
-
+import { SiHelm } from '@icons-pack/react-simple-icons';
 export const sidebarItems = [
   {
     id: 'nodes',
@@ -114,7 +114,7 @@ export const sidebarItems = [
   {
     id: 'helm',
     label: 'Helm',
-    icon: <Ship className="w-4 h-4" />,
+    icon: <SiHelm className="w-4 h-4" />,
     children: [
       { id: 'charts', label: 'Charts', icon: <List className="w-4 h-4" /> },
       { id: 'releases', label: 'Releases', icon: <Box className="w-4 h-4" /> },
