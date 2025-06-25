@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, ChevronUp, Search, Lock, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Search, Lock, Sparkles, Brain } from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
 import {
@@ -8,22 +8,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { DeepSeek, Anthropic, OpenAI, XAI } from '@lobehub/icons';
-
-
+import { DeepSeek, XAI, Gemini, MetaAI, OpenAI, Anthropic } from '@/assets/icons';
 const getProviderIcon = (provider: string) => {
   const iconMap: Record<string, JSX.Element>  = {
     'openai': <OpenAI size={14} />,
     'anthropic': <Anthropic size={14} />,
     'xai': <XAI size={14} />,
     'deepseek': <DeepSeek size={14} />,
-    // Add more providers as needed
-    'google': <DeepSeek size={14} />, // placeholder until you have Google icon
-    'cohere': <DeepSeek size={14} />, // placeholder until you have Cohere icon
-    'meta': <DeepSeek size={14} />, // placeholder until you have Meta icon
+    'google': <Gemini size={14} />, 
+    'meta': <MetaAI size={14} />,
   };
 
-  return iconMap[provider.toLowerCase()] || <DeepSeek size={12} />; // fallback icon
+  return iconMap[provider.toLowerCase()] || <Brain size={12} />; // fallback icon
 };
 
 interface ModelSelectorProps {
