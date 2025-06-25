@@ -1,10 +1,8 @@
 // FeatureSection.tsx
 import React from 'react';
-import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank, Drill, Compass, ShieldEllipsis, ShieldCheck, ShieldAlert } from 'lucide-react';
-import { SiOpenai } from '@icons-pack/react-simple-icons';
+import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank, Drill, Compass, ShieldEllipsis, ShieldCheck, ShieldAlert, Brain } from 'lucide-react';
 import FeatureMenuItem from '../featuremenuitem/featuremenuitem.component';
 import { FeatureItem } from '@/types/sidebar';
-import { OPENAI_PROVIDER } from '@/assets/providers';
 
 interface FeatureSectionProps {
   isCollapsed: boolean;
@@ -102,7 +100,7 @@ const advancedFeatures: FeatureItem[] = [
       },
       {
         id: 'llm-comparison',
-        icon: <SiOpenai className="w-4 h-4" />,
+        icon: <Brain className="w-4 h-4" />,
         label: 'LLM Comparison',
         path: '/dashboard/llm-comparison'
       },

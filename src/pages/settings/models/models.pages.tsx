@@ -21,20 +21,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
 import { RemediationConfiguration } from '@/components/custom';
-import { DeepSeek, XAI, Gemini, MetaAI, OpenAI, Anthropic } from '@/assets/icons';
+import { getProviderIcon } from '@/utils/providerIconMap';
 
-const getProviderIcon = (provider: string) => {
-  const iconMap: Record<string, JSX.Element> = {
-    'openai': <OpenAI size={14} />,
-    'anthropic': <Anthropic size={14} />,
-    'xai': <XAI size={14} />,
-    'deepseek': <DeepSeek size={14} />,
-    'google': <Gemini size={14} />,
-    'meta': <MetaAI size={14} />,
-  };
-
-  return iconMap[provider.toLowerCase()] || <Brain size={12} />; // fallback icon
-};
 
 const ModelConfiguration = () => {
   const { models, toggleModel, addModel, removeModel } = useModels();
