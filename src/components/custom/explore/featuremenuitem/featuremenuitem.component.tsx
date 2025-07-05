@@ -122,11 +122,11 @@ const FeatureMenuItem: React.FC<FeatureMenuItemProps> = ({
   return (
     <div className='px-2'>
       <button
-        className={`w-full flex items-center gap-2 hover:bg-gray-300/20 rounded-[0.3rem] py-2
-          ${feature.label === "Runbooks" || feature.label === "Investigations" ? 'text-gray-600' : ''}
+        className={`w-full flex items-center gap-2 hover:bg-gray-300/20 dark:hover:bg-gray-600/20 rounded-[0.3rem] py-1.5
+      
           ${isSelected || childSelected ? 'bg-gray-400/20 dark:bg-gray-800/50' : ''}`}
         onClick={handleClick}
-        disabled={ feature.label === "Runbooks" || feature.label === "Investigations" ? true : false}
+        // disabled={ feature.label === "Runbooks" || feature.label === "Investigations" ? true : false}
       >
         {hasChildren && (
           <span className="mr-1">
@@ -141,9 +141,8 @@ const FeatureMenuItem: React.FC<FeatureMenuItemProps> = ({
         {feature.icon}
         <span 
           className={`text-sm font-medium text-gray-800 dark:text-gray-300 
-          ${feature.label === "Runbooks" || feature.label === "Investigations" ? 'text-gray-600 dark:text-gray-600' : ''}`}>
-          {feature.label} {feature.label === "Runbooks" || feature.label === "Investigations" ? 
-          <span className="text-gray-600 dark:text-gray-600 text-xs border border-gray-600 dark:border-gray-600 rounded-[0.2rem] px-1 py-0.5">coming soon</span> : ''}
+          `}>
+          {feature.label}
         </span>
       </button>
       
@@ -153,7 +152,7 @@ const FeatureMenuItem: React.FC<FeatureMenuItemProps> = ({
           {feature.children?.map((child) => (
             <button
               key={child.id}
-              className={`w-full flex items-center gap-2 hover:bg-gray-300/20 rounded-[0.3rem] py-1 px-4
+              className={`w-full flex items-center gap-2 hover:bg-gray-300/20 dark:hover:bg-gray-600/20 rounded-[0.3rem] py-1 px-8
                 ${child.path === selectedFeaturePath ? 'bg-gray-400/20 dark:bg-gray-800/50' : ''}`}
               onClick={() => onFeatureClick(child)}
             >

@@ -458,7 +458,7 @@ const Spotlight: React.FC = () => {
   ).slice(0, 3);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-60">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-40">
       <div className="absolute inset-0 dark:bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
       <AnimatePresence>
         <motion.div

@@ -57,27 +57,38 @@ const Appearance = () => {
 
   // Apply color mode to document
   const applyColorMode = (mode: string) => {
+    // Remove all theme classes
+    document.body.classList.remove('dark', 'light', 'notion-light', 'notion-dark', 'dark-emerald', 'dark-violet');
+
     if (mode === 'dark') {
       setTheme('dark');
       setIsDark(true);
       document.body.classList.add('dark');
-      document.body.classList.remove('light');
     } else if (mode === 'light') {
       setTheme('light');
       setIsDark(false);
       document.body.classList.add('light');
-      document.body.classList.remove('dark');
+    } else if (mode === 'notion-light') {
+      setTheme('light');
+      setIsDark(false);
+      document.body.classList.add('notion-light');
+    } else if (mode === 'notion-dark') {
+      setTheme('dark');
+      setIsDark(true);
+      document.body.classList.add('notion-dark');
+    } else if (mode === 'dark-emerald') {
+      setTheme('dark');
+      setIsDark(true);
+      document.body.classList.add('dark-emerald');
+    } else if (mode === 'dark-violet') {
+      setTheme('dark');
+      setIsDark(true);
+      document.body.classList.add('dark-violet');
     } else if (mode === 'system') {
       setTheme('system');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDark(prefersDark);
-      if (prefersDark) {
-        document.body.classList.add('dark');
-        document.body.classList.remove('light');
-      } else {
-        document.body.classList.add('light');
-        document.body.classList.remove('dark');
-      }
+      document.body.classList.add(prefersDark ? 'dark' : 'light');
     }
   };
 
@@ -286,8 +297,8 @@ const Appearance = () => {
           <button
             disabled={isSaving}
             className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'light'
-                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-                : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+              ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
+              : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             onClick={() => handleColorModeChange('light')}
           >
@@ -306,8 +317,8 @@ const Appearance = () => {
           <button
             disabled={isSaving}
             className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'dark'
-                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-                : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+              ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
+              : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             onClick={() => handleColorModeChange('dark')}
           >
@@ -326,8 +337,8 @@ const Appearance = () => {
           <button
             disabled={isSaving}
             className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'system'
-                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-                : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+              ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
+              : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             onClick={() => handleColorModeChange('system')}
           >
@@ -346,38 +357,44 @@ const Appearance = () => {
       </div>
 
       {/* Theme variants - will be enabled in a future version */}
-      <div className="mb-8 opacity-50 pointer-events-none">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-medium">Theme Variants</h2>
-          <span className="text-xs bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">Coming Soon</span>
-        </div>
-        <p className="text-gray-700 dark:text-gray-400 text-sm mb-4">
-          Choose a color variation for your selected mode.
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {themes.map((theme) => (
-            <button
-              key={theme.id}
-              disabled
-              className={`flex items-center p-3 rounded border ${selectedTheme === theme.id
-                  ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-                  : 'border-gray-300 dark:border-gray-700'
-                }`}
-            >
-              <div
-                className="w-6 h-6 rounded-full mr-2"
-                style={{ backgroundColor: theme.color }}
-              ></div>
-              <span className="text-sm">{theme.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+    {/* Theme variants */}
+<div className="mb-8">
+  <div className="flex justify-between items-center mb-2">
+    <h2 className="text-lg font-medium">Theme Variants</h2>
+  </div>
+  <p className="text-gray-700 dark:text-gray-400 text-sm mb-4">
+    Choose a color variation for your selected mode.
+  </p>
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {[
+      { id: 'notion-light', name: 'Notion Light', color: '#ffffff' },
+      { id: 'notion-dark', name: 'Notion Dark', color: '#191919' },
+      { id: 'dark-emerald', name: 'Dark Emerald', color: '#064e3b' },
+      { id: 'dark-violet', name: 'Dark Violet', color: '#4c1d95' },
+    ].map((theme) => (
+      <button
+        key={theme.id}
+        disabled={isSaving}
+        className={`flex items-center p-3 rounded border ${colorMode === theme.id
+          ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
+          : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+        onClick={() => handleColorModeChange(theme.id)}
+      >
+        <div
+          className="w-6 h-6 rounded-full mr-2"
+          style={{ backgroundColor: theme.color }}
+        ></div>
+        <span className="text-sm">{theme.name}</span>
+      </button>
+    ))}
+  </div>
+</div>
 
       {/* Save button for all settings */}
       <div className="flex justify-end">
         <Button
-          className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+          className="flex items-center gap-2"
           disabled={isSaving}
           onClick={async () => {
             try {

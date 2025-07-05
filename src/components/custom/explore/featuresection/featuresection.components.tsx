@@ -16,12 +16,12 @@ interface FeatureSectionProps {
 
 // Define advanced features
 const advancedFeatures: FeatureItem[] = [
-  {
-    id: 'runbooks',
-    icon: <Book className="w-4 h-4" />,
-    label: 'Runbooks',
-    path: '/dashboard/runbooks'
-  },
+  // {
+  //   id: 'runbooks',
+  //   icon: <Book className="w-4 h-4" />,
+  //   label: 'Runbooks',
+  //   path: '/dashboard/runbooks'
+  // },
   {
     id: 'investigations',
     icon: <TextSearch className="w-4 h-4" />,

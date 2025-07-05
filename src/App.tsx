@@ -7,7 +7,9 @@ import {
   Shortcuts, Support, VulnerabilityReport, MonitoringOverview, CostOverview, Overview, AIEditor,
   AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account, LLMComparison, ModelCompare,
   Updates,
-  DrillDown
+  DrillDown,
+  Runbooks,
+  Investigation
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -115,6 +117,8 @@ function App() {
                             <Route index element={<MonitoringOverview />} />
                             <Route path="drilldown" element={<DrillDown />} />
                           </Route>
+                          <Route path="runbooks" element={<Runbooks />} />
+                          <Route path="investigations" element={<Investigation />} />
                           <Route path="cost" element={<CostOverview />} />
                           <Route path="llm-comparison" element={<LLMComparison />} />
                           <Route path="llm-comparison/compare" element={<ModelCompare />} />

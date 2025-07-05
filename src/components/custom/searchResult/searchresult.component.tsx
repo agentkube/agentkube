@@ -72,11 +72,12 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       }
     };
 
-    const timeout = setTimeout(() => {
-      fetchResults();
-    }, 300);
+    // const timeout = setTimeout(() => {
+    // }, 300);
+    fetchResults();
 
-    return () => clearTimeout(timeout);
+
+    // return () => clearTimeout(timeout);
   }, [query, limit, resourceType, onResultsCountChange]);
 
   // Handle keyboard events only in resource mode

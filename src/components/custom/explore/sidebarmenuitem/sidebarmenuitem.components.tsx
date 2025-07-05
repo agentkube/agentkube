@@ -123,7 +123,7 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
   return (
     <div>
       <button
-        className={`w-full flex items-center py-2 px-4 hover:bg-gray-400/20  rounded-[5px] transition-colors 
+        className={`w-full flex items-center py-1.5 px-4 hover:bg-gray-400/20 dark:hover:bg-gray-600/20 rounded-[5px] transition-colors 
           ${isSelected ? 'bg-gray-400/20  dark:bg-gray-800/50' : ''}`}
         onClick={handleClick}
         style={{ paddingLeft }}
