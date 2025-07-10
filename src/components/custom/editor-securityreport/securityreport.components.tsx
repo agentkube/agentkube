@@ -109,7 +109,7 @@ const SecurityReport: React.FC<SecurityReportProps> = ({
 
   return (
     <div className="p-4 h-full overflow-auto
-      scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+      
       [&::-webkit-scrollbar]:w-1.5 
       [&::-webkit-scrollbar-track]:bg-transparent 
       [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

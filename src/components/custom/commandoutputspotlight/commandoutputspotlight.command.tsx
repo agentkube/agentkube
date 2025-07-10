@@ -107,7 +107,7 @@ const CommandOutputSpotlight: React.FC<CommandOutputSpotlightProps> = ({
             </div>
           </div>
           <div className="p-2 max-h-60 overflow-y-auto py-1 
-            scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+            
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/60 

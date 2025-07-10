@@ -437,7 +437,7 @@ const Updates: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-h-[92vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+    <div className="p-6 space-y-6 max-h-[92vh] overflow-y-auto ">
       <div>
         <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-700/50">Updates</h1>
         <p className="text-gray-500 dark:text-gray-400">Manage application updates</p>

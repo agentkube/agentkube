@@ -69,7 +69,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div className="h-full w-full flex flex-col">
       <div className="flex-grow overflow-auto w-full
-            scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+            
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

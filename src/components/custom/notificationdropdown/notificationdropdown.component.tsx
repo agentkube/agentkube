@@ -174,7 +174,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 						<p className="text-sm">No notifications</p>
 					</div>
 				) : (
-					<div className="max-h-80 overflow-y-auto  scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+					<div className="max-h-80 overflow-y-auto  
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

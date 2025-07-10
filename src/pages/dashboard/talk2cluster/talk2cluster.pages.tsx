@@ -376,7 +376,7 @@ const Talk2Cluster = () => {
             {/* Chat content area - REPLACED WITH MESSAGES COMPONENT */}
             <div
               ref={chatContainerRef}
-              className="flex-1 overflow-auto pt-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+              className="flex-1 overflow-auto pt-4 
                 [&::-webkit-scrollbar]:w-1.5 
                 [&::-webkit-scrollbar-track]:bg-transparent 
                 [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

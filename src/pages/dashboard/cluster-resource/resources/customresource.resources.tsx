@@ -817,7 +817,7 @@ const CustomResources: React.FC = () => {
 return (
     <div className="p-6 space-y-6
     max-h-[92vh] overflow-y-auto
-      scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+      
       [&::-webkit-scrollbar]:w-1.5 
       [&::-webkit-scrollbar-track]:bg-transparent 
       [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
@@ -880,7 +880,7 @@ return (
             </div>
 
             <div className="overflow-y-auto max-h-[70vh]
-          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
@@ -936,7 +936,7 @@ return (
               <p className="text-sm text-gray-500 dark:text-gray-400">Click on a CRD to view its instances below</p>
             </div>
             <div className="overflow-y-auto max-h-[40vh]
-          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

@@ -138,7 +138,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gray-50 dark:bg-[#0B0D13]/30 backdrop-blur-md
-        scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+        
         [&::-webkit-scrollbar]:w-1.5 
         [&::-webkit-scrollbar-track]:bg-transparent 
         [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

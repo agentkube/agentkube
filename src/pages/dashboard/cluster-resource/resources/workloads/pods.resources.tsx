@@ -6,7 +6,7 @@ import { V1Pod } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Sparkles, WandSparkles } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Sparkles, WandSparkles, TextSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -1029,7 +1029,7 @@ const Pods: React.FC = () => {
   return (
     <div className="p-6 space-y-6
         max-h-[92vh] overflow-y-auto
-          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
@@ -1279,13 +1279,13 @@ const Pods: React.FC = () => {
                               toast({ title: "Ask AI", description: "Feature yet to be implemented" })
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Sparkles className="mr-2 h-4 w-4" />
-                              Ask Agent
+                              Ask AI
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               handleInvestigatePod(pod);
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <WandSparkles className="mr-2 h-4 w-4" />
+                              <TextSearch className="mr-2 h-4 w-4" />
                               Investigate
                             </DropdownMenuItem>
 

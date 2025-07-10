@@ -115,11 +115,11 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	if (!isOpen) return null;
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center">
-			<div className="absolute inset-0 dark:bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
+		<div className="fixed inset-0 z-50 pt-40 flex justify-center">
+			<div className="absolute inset-0 dark:bg-gray-900/20 backdrop-blur-sm" onClick={onClose} />
 			<AnimatePresence>
 				<motion.div
-					className="relative w-full max-w-2xl bg-gray-100 dark:bg-[#1B1C26]/80 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
+					className="relative w-full max-w-2xl bg-gray-100  h-fit dark:bg-[#1B1C26]/80 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
 					initial={{ scale: 0.95, opacity: 0 }}
 					animate={{ scale: 1, opacity: 1 }}
 					exit={{ scale: 0.95, opacity: 0 }}

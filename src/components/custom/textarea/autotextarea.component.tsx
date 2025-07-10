@@ -275,7 +275,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
           }}
           className="text-xs bg-white dark:bg-[#0B0D13]/60 backdrop-blur-md dark:border-gray-700
             overflow-y-auto py-1 
-            scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+            
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
@@ -332,7 +332,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
         rows={1}
         className={`flex-grow border text-sm border-gray-400 min-h-9 p-2 rounded-[0.4rem] 
                   overflow-y-auto
-                  scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+                  
                   [&::-webkit-scrollbar]:w-1.5 
                   [&::-webkit-scrollbar-track]:bg-transparent 
                   [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

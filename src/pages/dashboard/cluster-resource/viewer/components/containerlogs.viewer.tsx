@@ -657,7 +657,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
           className="bg-gray-100 dark:bg-gray-500/10 p-4 rounded-lg overflow-auto h-[400px] font-mono text-sm 
           border border-gray-600/10 dark:border-gray-200/10
           overflow-y-auto
-          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

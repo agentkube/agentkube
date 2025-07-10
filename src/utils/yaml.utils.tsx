@@ -124,7 +124,7 @@ export const YamlViewer = ({ data }: { data: any }) => {
         
         {/* YAML Content */}
         <div className="max-h-[70vh] overflow-y-auto
-          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

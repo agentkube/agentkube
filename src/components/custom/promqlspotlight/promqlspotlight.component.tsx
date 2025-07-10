@@ -390,7 +390,7 @@ const PromQLSpotlight: React.FC = () => {
 
             {/* Query results (only show when visualize is not selected) */}
             {promqlMode && queryResult && !isVisualizeSelected && (
-              <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700/30 max-h-64 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+              <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700/30 max-h-64 overflow-y-auto py-1 ">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Query Results ({queryResult.data?.result?.length || 0} series)

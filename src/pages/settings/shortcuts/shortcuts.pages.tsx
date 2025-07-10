@@ -79,8 +79,8 @@ const Shortcuts = () => {
   const renderShortcutList = (category: Shortcut[]) => {
     return category.map((shortcut, index) => (
       <div className="flex" key={index}>
-        <div className="w-24 text-gray-500">
-          <span className="text-sm">{shortcut[currentPlatform]}</span>
+        <div className="w-24 text-gray-500 dark:text-gray-500">
+          <span className="text-sm bg-gray-400/20  dark:bg-gray-700/50 rounded-sm px-1">{shortcut[currentPlatform]}</span>
         </div>
         <div>{shortcut.description}</div>
       </div>

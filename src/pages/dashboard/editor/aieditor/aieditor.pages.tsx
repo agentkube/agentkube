@@ -557,7 +557,7 @@ const AIResourceEditor: React.FC = () => {
 
   return (
     <div className="h-full w-full relative
-          scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+          
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
