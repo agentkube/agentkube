@@ -22,7 +22,7 @@ export { default as ChartsView } from './dashboard/helm/view/charts-view.pages';
 export { default as Talk2cluster } from './dashboard/talk2cluster/talk2cluster.pages';
 export { default as Runbooks } from './dashboard/runbooks/runbooks.pages';
 export { default as Investigation } from './dashboard/investigations/investigation.pages';
-
+export { default as ClusterReport } from './dashboard/cluster-report/cluster-report.pages';
 
 // Security
 export { default as VulnerabilityReport } from './dashboard/security/vulnerability-report.pages';

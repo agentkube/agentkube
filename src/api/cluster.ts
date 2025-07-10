@@ -1,5 +1,6 @@
 import { KubeContext, KubeconfigUploadResponse, KubeconfigUploadRequest } from '@/types/cluster';
 import { OPERATOR_URL } from '@/config';
+import { ClusterReport } from '@/types/cluster-report';
 
 
 export const getKubeContexts = async (): Promise<KubeContext[]> => {
@@ -128,6 +129,22 @@ export const validateKubeconfigFolder = async (folderPath: string) => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to validate folder');
+  }
+
+  return response.json();
+};
+
+export const getClusterReport = async (clusterName: string): Promise<ClusterReport> => {
+  const response = await fetch(`${OPERATOR_URL}/cluster/${clusterName}/report`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to get cluster report: ${errorText}`);
   }
 
   return response.json();

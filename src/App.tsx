@@ -9,7 +9,8 @@ import {
   Updates,
   DrillDown,
   Runbooks,
-  Investigation
+  Investigation,
+  ClusterReport
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -117,6 +118,7 @@ function App() {
                             <Route index element={<MonitoringOverview />} />
                             <Route path="drilldown" element={<DrillDown />} />
                           </Route>
+                          <Route path="cluster-report" element={<ClusterReport />} />
                           <Route path="runbooks" element={<Runbooks />} />
                           <Route path="investigations" element={<Investigation />} />
                           <Route path="cost" element={<CostOverview />} />
