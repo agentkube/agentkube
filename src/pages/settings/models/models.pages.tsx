@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle, Brain } from 'lucide-react';
+import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle, Brain, ChevronDown, ChevronRight, Key, ArrowUpRight, Rocket, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -10,6 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ModelConfig } from '@/components/custom';
 import {
   Tooltip,
@@ -22,7 +28,41 @@ import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
 import { RemediationConfiguration } from '@/components/custom';
 import { getProviderIcon } from '@/utils/providerIconMap';
+import { openExternalUrl } from '@/api/external';
 
+// MAX Mode Banner Component
+const UpgradePro = () => {
+  return (
+    <div className="bg-gray-100/100 dark:bg-gray-800/40 rounded-lg px-4 py-2 mb-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
+            <Sparkles className='h-5 text-blue-500' />
+            <span className="text-gray-800 dark:text-white font-medium">Upgrade to Pro</span>
+          </div>
+        </div>
+        <Button
+          onClick={() => openExternalUrl("https://agentkube.com/pricing")} 
+          size="sm"
+        >
+          <Rocket />
+          Upgrade
+        </Button>
+      </div>
+      <div className="mt-1">
+        <p className="text-gray-600 dark:text-gray-300 text-sm">
+          Access premium models and bring your own API keys with Pro.
+        </p>
+        <p onClick={() => openExternalUrl("https://agentkube.com/pricing")}  className="flex items-center text-blue-400 text-sm mt-1 hover:text-blue-300 cursor-pointer">
+          <span>
+            Billed at API pricing 
+          </span>
+          <ArrowUpRight className='h-5' />
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const ModelConfiguration = () => {
   const { models, toggleModel, addModel, removeModel } = useModels();
@@ -155,14 +195,14 @@ const ModelConfiguration = () => {
         onClick={() => toggleModelEnabled(model.id)}
       >
         <div className="w-6 flex items-center">
-          <div className={`w-4 h-4 border ${model.enabled ? 'bg-gray-300 dark:bg-gray-700 border-gray-700' : 'border-gray-600/50 bg-transparent'} rounded-sm flex items-center justify-center`}>
+          <div className={`w-4 h-4 border ${model.enabled ? 'bg-gray-300 dark:bg-gray-700 border-gray-300 dark:border-gray-700' : 'border-gray-600/50 bg-transparent'} rounded-sm flex items-center justify-center`}>
             {model.enabled && <Check className="w-3 h-3 text-black dark:text-white" />}
           </div>
         </div>
 
-        <div className='flex items-center'>
+        <div className={`flex items-center ${model.enabled ? 'text-black dark:text-white' : 'text-gray-500'}`}>
           {getProviderIcon(model.provider)}
-          <span className={`text-sm ml-1 ${model.enabled ? 'text-black dark:text-white' : 'text-gray-400'}`}>
+          <span className={`text-sm ml-1 `}>
             {model.name}
           </span>
         </div>
@@ -189,6 +229,9 @@ const ModelConfiguration = () => {
           Add new models to agentkube. Often used to configure the latest OpenAI models or OpenRouter models.
         </p>
       </div>
+
+      {/* MAX Mode Banner */}
+      <UpgradePro />
 
       <div className="space-y-1">
         {models.map(model => renderModelItem(model))}
@@ -236,7 +279,20 @@ const ModelConfiguration = () => {
       {/* Remediation Default Model */}
       <RemediationConfiguration />
 
-      <ModelConfig />
+      {/* Model Config wrapped in Accordion */}
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="model-config" className="border-gray-300 dark:border-gray-800/60">
+          <AccordionTrigger className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:no-underline">
+            <div className="flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              <span>API Keys</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-4">
+            <ModelConfig />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
