@@ -16,11 +16,11 @@ interface AutoResizeTextareaProps {
   disabled?: boolean;
   className?: string;
   autoFocus?: boolean;
-  mentionItems?: MentionItem[]; // List of items that can be mentioned
-  onMentionSelect?: (item: MentionItem) => void; // Callback when a mention is selected
-  width?: string | number; // Explicit width prop
-  animatedSuggestions?: string[]; // Array of animated suggestions
-  [key: string]: any; // For other props
+  mentionItems?: MentionItem[]; 
+  onMentionSelect?: (item: MentionItem) => void; 
+  width?: string | number; 
+  animatedSuggestions?: string[]; 
+  [key: string]: any;
 }
 
 const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({ 
@@ -35,7 +35,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   mentionItems = [],
   onMentionSelect,
   width = "100%", // Default to 100%
-  animatedSuggestions = [], // New prop for animated suggestions
+  animatedSuggestions = [], 
   ...props
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -50,23 +50,16 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // State for animated suggestions
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   
-  // Check if we should use animated suggestions
   const useAnimatedSuggestions = animatedSuggestions.length > 0;
   
   // Auto-resize function
   const autoResize = () => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    
-    // Reset height to auto to get the correct scrollHeight
     textarea.style.height = 'auto';
-    
-    // Set the height based on content with a maximum
     const maxHeight = 200;
     if (textarea.scrollHeight > maxHeight) {
       textarea.style.height = `${maxHeight}px`;
@@ -82,9 +75,9 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
     autoResize();
   }, [value]);
 
-  // Animated suggestions effect
+  // suggestions effect
   useEffect(() => {
-    if (useAnimatedSuggestions && !value) { // Only animate when textarea is empty
+    if (useAnimatedSuggestions && !value) {
       const interval = setInterval(() => {
         setIsAnimating(true);
         
@@ -104,8 +97,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
     const position = e.target.selectionStart || 0;
     
     setCursorPosition(position);
-    
-    // Check for mention triggers
+  
     const textBeforeCursor = newValue.substring(0, position);
     const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
     
@@ -116,14 +108,12 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
     } else {
       setShowMentionDropdown(false);
     }
-    
-    // Call the original onChange handler
+  
     onChange(e);
   };
   
   // Handle keydown events for dropdown navigation
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Handle dropdown navigation
     if (showMentionDropdown) {
       const filteredItems = getFilteredMentionItems();
       
@@ -170,7 +160,6 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
     const textBeforeCursor = value.substring(0, cursorPosition);
     const textAfterCursor = value.substring(cursorPosition);
     
-    // Find the position of the @ character before cursor
     const lastAtPos = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtPos !== -1) {
@@ -179,7 +168,6 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
         `@${item.name} ` + 
         textAfterCursor;
       
-      // Create a synthetic event to trigger the onChange callback
       const syntheticEvent = {
         target: { value: newText }
       } as ChangeEvent<HTMLTextAreaElement>;
@@ -345,7 +333,6 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
         </div>
       )}
 
-      {/* Textarea container with animated or static placeholder */}
       <div style={{ position: 'relative', width: '100%' }}>
         <textarea
           ref={textareaRef}
