@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronUp, X, Sparkles, Trash2, Cloud, ArrowUp, Check, Search, Settings, Zap, FileArchive, Paperclip, AlignVerticalJustifyEnd } from "lucide-react";
 import { AutoResizeTextarea } from '@/components/custom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +16,7 @@ import {
 } from "@/types/provision/chat";
 import { Messages } from './assistant/messages.provisiondrawer';
 import { Ansible, Github, OpenTofu, Pulumi, Terraform, Terragrunt } from '@/assets/icons';
+import Kubernetes  from '@/assets/kubernetes.svg';
 
 const defaultParameters: TaskCalls = {
   clusterName: 'my-eks-cluster',
@@ -40,6 +47,56 @@ const backdropVariants = {
   exit: { opacity: 0, transition: { duration: 0.3 } }
 };
 
+// Safe icon wrapper
+const SafeIcon = ({ IconComponent, size = 20, fallbackText }: { 
+  IconComponent: any; 
+  size?: number; 
+  fallbackText: string 
+}) => {
+  try {
+    // Check if it's a string (image URL) or React component
+    if (typeof IconComponent === 'string') {
+      return (
+        <img 
+          src={IconComponent} 
+          alt={fallbackText}
+          width={size} 
+          height={size}
+          className="object-contain"
+        />
+      );
+    }
+    
+    // Try to render as React component
+    return <IconComponent size={size} />;
+  } catch (error) {
+    console.warn(`Icon error for ${fallbackText}:`, error);
+    // Fallback to a simple colored div with text
+    return (
+      <div 
+        className="flex items-center justify-center text-white text-xs font-bold rounded"
+        style={{ 
+          width: size, 
+          height: size, 
+          backgroundColor: '#6366f1' 
+        }}
+      >
+        {fallbackText.slice(0, 2).toUpperCase()}
+      </div>
+    );
+  }
+};
+
+// IaC tools configuration
+const iacTools = [
+  { name: 'Ansible', icon: Ansible, description: 'Configuration management', fallback: 'AN' },
+  { name: 'Terraform', icon: Terraform, description: 'Infrastructure provisioning', fallback: 'TF' },
+  { name: 'Pulumi', icon: Pulumi, description: 'Modern infrastructure as code', fallback: 'PU' },
+  { name: 'OpenTofu', icon: OpenTofu, description: 'Open-source Terraform fork', fallback: 'OT' },
+  { name: 'Terragrunt', icon: Terragrunt, description: 'Terraform wrapper', fallback: 'TG' },
+  { name: 'Kubernetes', icon: Kubernetes, description: 'Local kubernetes cluster', fallback: 'TG' },
+
+];
 
 interface ProvisionDrawerProps {
   isOpen: boolean;
@@ -57,6 +114,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const [currentThinkingStep, setCurrentThinkingStep] = useState<number>(0);
+  const [selectedIaCTool, setSelectedIaCTool] = useState(iacTools[0]); // Default to Ansible
 
   // Use a ref to accumulate streaming response
   const responseRef = useRef('');
@@ -309,6 +367,11 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
     }
   };
 
+  const handleIaCToolSelect = (tool: typeof iacTools[0]): void => {
+    setSelectedIaCTool(tool);
+    console.log('Selected IaC tool:', tool.name);
+  };
+
   // Early return only after mounted check to avoid hydration issues
   if (!drawerMounted || !isOpen) return null;
 
@@ -412,7 +475,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
               )}
 
               <div className="border-t dark:border-gray-700/40 px-2 py-4 mt-auto">
-                <form onSubmit={handleSubmit} className=" gap-2 items-baseline rounded-lg px-1">
+                <div className=" gap-2 items-baseline rounded-lg px-1">
                   <AutoResizeTextarea
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
@@ -433,10 +496,42 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
 
                   <div className="flex items-center justify-end">
                     <div className='flex mr-2'>
-                    <Button size="icon" variant="ghost">
-                        <Ansible size={20} />
-                        {/* <img src={Terragrunt} className='h-6' alt="" /> */}
-                      </Button>
+                      {/* IaC Tool Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="relative">
+                            <SafeIcon 
+                              IconComponent={selectedIaCTool.icon} 
+                              size={20} 
+                              fallbackText={selectedIaCTool.fallback} 
+                            />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64 dark:bg-[#0B0D13]">
+                          {iacTools.map((tool) => (
+                            <DropdownMenuItem
+                              key={tool.name}
+                              onClick={() => handleIaCToolSelect(tool)}
+                              className="flex items-center gap-3 px-2 cursor-pointer"
+                            >
+                              <SafeIcon 
+                                IconComponent={tool.icon} 
+                                size={20} 
+                                fallbackText={tool.fallback} 
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-xs">
+                                  {tool.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {tool.description}
+                                </div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
                       <Button size="icon" variant="ghost">
                         <Paperclip size={16} />
                       </Button>
@@ -452,7 +547,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                       <ArrowUp className='h-2 w-2' />
                     </Button>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
           </motion.div>
