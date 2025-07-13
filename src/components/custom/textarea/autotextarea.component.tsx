@@ -19,6 +19,7 @@ interface AutoResizeTextareaProps {
   mentionItems?: MentionItem[]; // List of items that can be mentioned
   onMentionSelect?: (item: MentionItem) => void; // Callback when a mention is selected
   width?: string | number; // Explicit width prop
+  animatedSuggestions?: string[]; // Array of animated suggestions
   [key: string]: any; // For other props
 }
 
@@ -34,6 +35,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   mentionItems = [],
   onMentionSelect,
   width = "100%", // Default to 100%
+  animatedSuggestions = [], // New prop for animated suggestions
   ...props
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -48,6 +50,13 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // State for animated suggestions
+  const [currentSuggestion, setCurrentSuggestion] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Check if we should use animated suggestions
+  const useAnimatedSuggestions = animatedSuggestions.length > 0;
   
   // Auto-resize function
   const autoResize = () => {
@@ -72,6 +81,22 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   useEffect(() => {
     autoResize();
   }, [value]);
+
+  // Animated suggestions effect
+  useEffect(() => {
+    if (useAnimatedSuggestions && !value) { // Only animate when textarea is empty
+      const interval = setInterval(() => {
+        setIsAnimating(true);
+        
+        setTimeout(() => {
+          setCurrentSuggestion((prev) => (prev + 1) % animatedSuggestions.length);
+          setIsAnimating(false);
+        }, 300);
+      }, 2500);
+
+      return () => clearInterval(interval);
+    }
+  }, [animatedSuggestions.length, value, useAnimatedSuggestions]);
   
   // Handle input change and detect mentions
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -320,41 +345,62 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
         </div>
       )}
 
-      {/* Regular textarea */}
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleChange}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholderStr}
-        rows={1}
-        className={`flex-grow border text-sm border-gray-400 min-h-9 p-2 rounded-[0.4rem] 
-                  overflow-y-auto
-                  
-                  [&::-webkit-scrollbar]:w-1.5 
-                  [&::-webkit-scrollbar-track]:bg-transparent 
-                  [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-                  [&::-webkit-scrollbar-thumb]:rounded-full
-                  [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
-                  dark:border-gray-800/50 bg-transparent dark:text-gray-200 
-                  focus:outline-none focus:ring-0 focus:border-gray-400 dark:focus:border-transparent
-                  resize-none ${className || ''}`}
-        style={{ 
-          width: '100%',
-          height: 'auto',
-          maxHeight: '200px',
-          boxSizing: 'border-box',
-          border: '0px solid transparent',
-          padding: '0.5rem',
-          fontSize: '0.875rem',
-          lineHeight: '1.25rem',
-          minHeight: '2.25rem'
-        }}
-        disabled={disabled}
-        {...props}
-      />
+      {/* Textarea container with animated or static placeholder */}
+      <div style={{ position: 'relative', width: '100%' }}>
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={handleChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onKeyDown={handleKeyDown}
+          placeholder={useAnimatedSuggestions ? "" : placeholderStr} // Use static placeholder if no animated suggestions
+          rows={1}
+          className={`flex-grow border text-sm border-gray-400 min-h-9 p-2 rounded-[0.4rem] 
+                    overflow-y-auto
+                    
+                    [&::-webkit-scrollbar]:w-1.5 
+                    [&::-webkit-scrollbar-track]:bg-transparent 
+                    [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+                    [&::-webkit-scrollbar-thumb]:rounded-full
+                    [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+                    dark:border-gray-800/50 bg-transparent dark:text-gray-200 
+                    focus:outline-none focus:ring-0 focus:border-gray-400 dark:focus:border-transparent
+                    resize-none ${className || ''}`}
+          style={{ 
+            width: '100%',
+            height: 'auto',
+            maxHeight: '200px',
+            boxSizing: 'border-box',
+            border: '0px solid transparent',
+            padding: '0.5rem',
+            fontSize: '0.875rem',
+            lineHeight: '1.25rem',
+            minHeight: '2.25rem',
+            color: value ? 'inherit' : (useAnimatedSuggestions ? 'transparent' : 'inherit')
+          }}
+          disabled={disabled}
+          {...props}
+        />
+        
+        {/* Animated placeholder */}
+        {useAnimatedSuggestions && !value && (
+          <div 
+            className="absolute inset-0 p-2 pointer-events-none flex items-start"
+            style={{ paddingTop: '0.5rem' }}
+          >
+            <span 
+              className={`text-sm text-gray-400 dark:text-gray-500 transition-all duration-300 ${
+                isAnimating 
+                  ? 'opacity-0 transform translate-y-1' 
+                  : 'opacity-100 transform translate-y-0'
+              }`}
+            >
+              {animatedSuggestions[currentSuggestion]}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Highlighted mentions display */}
       {renderHighlightedMentions()}

@@ -418,7 +418,14 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                     onChange={(e) => setInputValue(e.target.value)}
                     onFocus={handleInputFocus}
                     onSubmit={handleSubmit}
-                    placeholder="Describe your infrastructure needs..."
+                    animatedSuggestions={[
+                      "Set up a local Kind cluster",
+                      "Create a k3s cluster for edge computing",
+                      "Deploy a local minikube environment",
+                      "Create an EKS cluster for production workloads",
+                      "Set up an AKS cluster with monitoring enabled",
+                      "Deploy a GKE cluster with auto-scaling"
+                    ]}
                     disabled={isLoading}
                     className="dark:border-transparent"
                     autoFocus={true}
