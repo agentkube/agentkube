@@ -13,7 +13,7 @@ import LOGO from '@/assets/logo.png';
 import KUBERNETES_LOGO from '@/assets/kubernetes-blue.png';
 import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
-import { DeleteContextDialog } from '@/components/custom';
+import { DeleteContextDialog, ProvisionDrawer } from '@/components/custom';
 import { useTheme } from 'next-themes';
 import { toast } from '@/hooks/use-toast';
 
@@ -57,6 +57,8 @@ const HomePage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contextToDelete, setContextToDelete] = useState<string | null>(null);
   const { theme } = useTheme();
+  const [isProvisionDrawerOpen, setIsProvisionDrawerOpen] = useState(false);
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     // Load view mode from localStorage
     const savedViewMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
@@ -89,14 +91,14 @@ const HomePage: React.FC = () => {
 
   const availableClustersData = useMemo(() => {
     if (contexts.length === 0) return [];
-    
+
     const clusterItems: ClusterItem[] = contexts.map((ctx) => ({
       id: ctx.name,
       name: ctx.name,
       description: `${ctx.kubeContext.cluster}`,
       type: determineClusterType(ctx.kubeContext.user)
     }));
-  
+
     const pinnedIds = pinnedClusters.map(c => c.id);
     return clusterItems.filter(item => !pinnedIds.includes(item.id));
   }, [contexts, pinnedClusters]);
@@ -434,13 +436,7 @@ const HomePage: React.FC = () => {
                 </Button>
                 <Button
                   className="mt-4 bg-blue-600 hover:bg-blue-700 flex items-center gap-2 text-black dark:text-black bg-[#54C895] dark:bg-[#54C895] dark:hover:bg-[#0E9F6E]"
-                  onClick={() => {
-                    toast({
-                      title: "Feature not implemented",
-                      description: "The Provision feature is part of our roadmap and will be available soon."
-                    })
-                  }}
-                  // disabled={true}
+                  onClick={() => setIsProvisionDrawerOpen(true)}
                 >
                   <AlignVerticalJustifyEnd size={16} />
                   Provision
@@ -545,6 +541,10 @@ const HomePage: React.FC = () => {
             setDeleteDialogOpen(false);
             setContextToDelete(null);
           }}
+        />
+        <ProvisionDrawer
+          isOpen={isProvisionDrawerOpen}
+          onClose={() => setIsProvisionDrawerOpen(false)}
         />
         {/* Context Menu */}
         <ContextMenu />

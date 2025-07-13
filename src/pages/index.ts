@@ -9,6 +9,7 @@ export { default as ModelConfiguration } from './settings/models/models.pages';
 export { default as MCPServerConfig } from './settings/mcp/mcp.pages';
 export { default as Account } from './settings/account/account.pages';
 export { default as Updates } from './settings/updates/updates.pages';
+export { default as Indexing } from './settings/indexing/indexing.pages'
 
 // Dashboard
 export { default as Dashboard } from './dashboard/dashboard.pages';

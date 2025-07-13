@@ -19,6 +19,8 @@ export { default as ProxyConfigDialog } from './proxyconfigdialog/proxyconfigdia
 export { default as ContextSwitcher } from './contextswitcher/contextswitcher.component';
 export { default as RemediationConfiguration } from './remediationconfig/remediationconfig.component';
 export { default as ClusterReportCard } from './clusterreport/clusterreportcard.component';
+export { default as IssuesSection } from './clusterreport/issues-section.component';
+export { default as ProvisionDrawer } from './provisioningdrawer/provisioningdrawer.component';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
 export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
