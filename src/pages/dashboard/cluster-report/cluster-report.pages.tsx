@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
-import { getClusterReport,  } from '@/api/cluster';
-import { ClusterReport as ClusterReportType, PopeyeSection } from '@/types/cluster-report'
+import { getClusterReport, } from '@/api/cluster';
+import { ClusterReport as ClusterReportType } from '@/types/cluster-report'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, AlertTriangle, XCircle, Info, Shield, Bug, AlertCircle, TrendingUp, Award, Search, Eye, MoreVertical, RotateCcw } from "lucide-react";
+import { Loader2, CheckCircle, AlertTriangle, XCircle, Info, AlertCircle, TrendingUp, Award, Search, Eye, MoreVertical, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
+import { IssuesSection } from '@/components/custom';
 
 interface StatCardProps {
   count: number;
@@ -126,17 +127,17 @@ const ClusterReport: React.FC = () => {
 
   const filteredSections = useMemo(() => {
     if (!report?.popeye.sections) return [];
-    
+
     if (!searchQuery.trim()) {
       return report.popeye.sections;
     }
 
     const lowercaseQuery = searchQuery.toLowerCase();
-    
+
     return report.popeye.sections.filter(section => {
       const linterName = section.linter.toLowerCase();
       const gvr = section.gvr.toLowerCase();
-      
+
       // Check if linter name or GVR contains the query
       if (linterName.includes(lowercaseQuery) || gvr.includes(lowercaseQuery)) {
         return true;
@@ -146,8 +147,8 @@ const ClusterReport: React.FC = () => {
       const hasMatchingIssue = Object.entries(section.issues || {}).some(([resource, issues]) => {
         const resourceName = resource.toLowerCase();
         if (resourceName.includes(lowercaseQuery)) return true;
-        
-        return issues.some(issue => 
+
+        return issues.some(issue =>
           issue.message.toLowerCase().includes(lowercaseQuery) ||
           issue.group.toLowerCase().includes(lowercaseQuery)
         );
@@ -159,7 +160,7 @@ const ClusterReport: React.FC = () => {
 
   const totalStats = useMemo(() => {
     if (!report?.popeye.sections) return { ok: 0, info: 0, warning: 0, error: 0 };
-    
+
     return report.popeye.sections.reduce((acc, section) => ({
       ok: acc.ok + (section.tally?.ok || 0),
       info: acc.info + (section.tally?.info || 0),
@@ -180,12 +181,12 @@ const ClusterReport: React.FC = () => {
 
   const navigateToResource = (resourceName: string, gvr: string, namespace?: string) => {
 
-    const resourceType = gvr.split('/').pop(); 
+    const resourceType = gvr.split('/').pop();
 
     const parts = resourceName.split('/');
     const actualResourceName = parts.length > 1 ? parts[1] : parts[0];
     const resourceNamespace = namespace || (parts.length > 1 ? parts[0] : 'default');
-    
+
     navigate(`/dashboard/explore/${resourceType}/${resourceNamespace}/${actualResourceName}`);
   };
 
@@ -222,7 +223,7 @@ const ClusterReport: React.FC = () => {
       [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
       [&::-webkit-scrollbar-thumb]:rounded-full
       [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      
+
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -265,12 +266,11 @@ const ClusterReport: React.FC = () => {
               <div className="mt-4">
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all duration-300 ${
-                      report.popeye.score >= 90 ? 'bg-green-500' :
-                      report.popeye.score >= 75 ? 'bg-blue-500' :
-                      report.popeye.score >= 60 ? 'bg-yellow-500' :
-                      report.popeye.score >= 40 ? 'bg-orange-500' : 'bg-red-500'
-                    }`}
+                    className={`h-3 rounded-full transition-all duration-300 ${report.popeye.score >= 90 ? 'bg-green-500' :
+                        report.popeye.score >= 75 ? 'bg-blue-500' :
+                          report.popeye.score >= 60 ? 'bg-yellow-500' :
+                            report.popeye.score >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                      }`}
                     style={{ width: `${report.popeye.score}%` }}
                   />
                 </div>
@@ -473,7 +473,7 @@ const ClusterReport: React.FC = () => {
                     <div className="space-y-3">
                       {Object.entries(section.issues || {}).map(([resource, issues], resourceIndex) => (
                         <div key={resourceIndex} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                          <div 
+                          <div
                             className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
                             onClick={() => navigateToResource(resource, section.gvr)}
                           >
@@ -505,60 +505,10 @@ const ClusterReport: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="issues" className="space-y-6">
-            <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-              <div className="rounded-md border">
-                <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-                  <TableHeader>
-                    <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                      <TableHead>Resource</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Severity</TableHead>
-                      <TableHead>Message</TableHead>
-                      <TableHead>Group</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSections.flatMap((section) =>
-                      Object.entries(section.issues || {}).flatMap(([resource, issues]) =>
-                        issues.map((issue, issueIndex) => (
-                          <TableRow
-                            key={`${section.linter}-${resource}-${issueIndex}`}
-                            className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80"
-                          >
-                            <TableCell className="font-medium">
-                              <div 
-                                className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
-                                onClick={() => navigateToResource(resource, section.gvr)}
-                              >
-                                {resource}
-                              </div>
-                            </TableCell>
-
-                            <TableCell>
-                              <div className="capitalize">{section.linter.replace(/([A-Z])/g, ' $1').trim()}</div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {getSeverityIcon(issue.level)}
-                                {getSeverityBadge(issue.level)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="max-w-md text-sm">{issue.message}</div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {issue.group === '__root__' ? 'Root' : issue.group}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
+            <IssuesSection
+              filteredSections={filteredSections}
+              navigateToResource={navigateToResource}
+            />
           </TabsContent>
         </Tabs>
       </div>
