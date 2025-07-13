@@ -467,8 +467,6 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       
       <div className="border-t border-gray-200 dark:border-gray-800/70 my-6"></div>
       
-      <div className="border-t border-gray-200 dark:border-gray-800/70 my-6"></div>
-      
       {/* Azure API Key Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">

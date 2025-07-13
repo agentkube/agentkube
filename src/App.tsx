@@ -10,7 +10,8 @@ import {
   DrillDown,
   Runbooks,
   Investigation,
-  ClusterReport
+  ClusterReport,
+  Indexing
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -264,6 +265,7 @@ function App() {
                           <Route path="mcp" element={<MCPServerConfig />} />
                           <Route path="account" element={<Account />} />
                           <Route path="updates" element={<Updates />} />
+                          <Route path="indexing" element={<Indexing />} />
                           <Route index element={<GeneralSettings />} />
                         </Route>
                       </Routes>
