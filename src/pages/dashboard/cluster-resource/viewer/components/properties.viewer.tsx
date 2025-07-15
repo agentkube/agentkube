@@ -71,7 +71,7 @@ const PropertiesViewer: React.FC<PropertiesViewerProps> = ({
             <Badge 
               key={key} 
               variant="outline" 
-              className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+              className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-800"
             >
               <span className="font-medium">{key}</span>: {value}
             </Badge>
@@ -118,7 +118,7 @@ const PropertiesViewer: React.FC<PropertiesViewerProps> = ({
           {annotationsToShow.map(([key, value]) => (
             <div 
               key={key} 
-              className="text-xs bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded border border-gray-300 dark:border-gray-800"
+              className="text-xs bg-gray-100 dark:bg-gray-800/30 w-fit px-2 py-1 rounded border border-gray-300 dark:border-gray-800"
             >
               <span className="font-medium">{key}:</span> {value.length > 100 ? `${value.substring(0, 100)}...` : value}
             </div>

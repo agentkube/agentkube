@@ -449,7 +449,7 @@ const Pods: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]/90 backdrop-blur-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Pod Deletion</AlertDialogTitle>
             <AlertDialogDescription>
