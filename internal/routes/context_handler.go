@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"sort"
+
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/gin-gonic/gin"
 )
@@ -24,6 +26,12 @@ func HandleGetContexts(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc 
 		}
 
 		simplifiedContexts := make([]SimplifiedContext, 0, len(contexts))
+
+		// Sort contexts by name for consistent ordering
+		sort.Slice(contexts, func(i, j int) bool {
+			return contexts[i].Name < contexts[j].Name
+		})
+
 		for _, ctx := range contexts {
 			var authType string
 			if ctx.AuthInfo != nil && ctx.AuthInfo.AuthProvider != nil {
@@ -47,13 +55,11 @@ func HandleGetContexts(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc 
 				namespace = ctx.KubeContext.Namespace
 			}
 
-			// Create kubeContext info
 			kubeContextInfo := map[string]string{
 				"cluster": ctx.KubeContext.Cluster,
 				"user":    ctx.KubeContext.AuthInfo,
 			}
 
-			// Create simplified context
 			simplifiedCtx := SimplifiedContext{
 				Name:        ctx.Name,
 				Server:      ctx.Cluster.Server,
