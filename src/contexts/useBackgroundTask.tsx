@@ -1,36 +1,42 @@
 import { useState, useEffect } from 'react';
 
+// Global flag to ensure only one listener is active
+let listenerActive = false;
+
 export const useBackgroundTask = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [resourceName, setResourceName] = useState<string>('');
   const [resourceType, setResourceType] = useState<string>('');
 
   useEffect(() => {
+    // Only attach listener if none exists
+    if (listenerActive) return;
+    
+    listenerActive = true;
+    
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Cmd (Meta) + E or Ctrl + E
       if ((event.metaKey || event.ctrlKey) && (event.key === 'e' || event.key === 'E')) {
         event.preventDefault();
-        // Toggle the background task dialog instead of just opening it
+        event.stopPropagation();
         setIsOpen(prevState => !prevState);
-        
-        // If we're closing it, also reset the resource info
-        if (isOpen) {
-          setResourceName('');
-          setResourceType('');
-        }
       }
-
-      // Close on escape
+  
       if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
         setIsOpen(false);
         setResourceName('');
         setResourceType('');
       }
     };
-
+  
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]); // Add isOpen to dependency array
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      listenerActive = false;
+    };
+  }, []);
 
   const onClose = () => {
     setIsOpen(false);
