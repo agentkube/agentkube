@@ -120,7 +120,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
       onClick={() => navigate('/')}
     >
       {currentContext ? (
-        <ClusterIcon type={determineClusterType(currentContext.name)} size="h-8 w-8" />
+        <ClusterIcon type={determineClusterType(currentContext.kubeContext?.cluster)} size="h-8 w-8" />
       ) : (
         <img src={KUBERNETES_LOGO} className="h-8 w-8" alt="Kubernetes logo" />
       )}
@@ -129,7 +129,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
         <div className="text-sm font-medium">
           <h3 className="text-gray-800 dark:text-gray-300">{currentContext.name.length > 30 ? currentContext.name.slice(0, 30) + '...' : currentContext.name}</h3>
           <p className="text-xs text-gray-800 dark:text-gray-500">
-            {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 40) : determineClusterType(currentContext.name)}
+            {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 30) : determineClusterType(currentContext.name)}
           </p>
         </div>
       )}
@@ -146,7 +146,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
           <div>
             <p className="font-medium">{currentContext.name}</p>
             <p className="text-xs text-gray-600 dark:text-gray-300">
-              {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 30) : determineClusterType(currentContext.name)}
+              {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 20) : determineClusterType(currentContext.name)}
             </p>
           </div>
           <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>

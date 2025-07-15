@@ -6,8 +6,8 @@ export const useProvision = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Cmd (Meta) + B or Ctrl + B
-      if ((event.metaKey || event.ctrlKey) && (event.key === 'B' || event.key === 'b')) {
+      // Check for Cmd (Meta) + G or Ctrl + G
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'G' || event.key === 'g')) {
         event.preventDefault();
         setIsOpen(prevState => !prevState);
       }

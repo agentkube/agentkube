@@ -15,7 +15,6 @@ import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
 import { DeleteContextDialog, ProvisionDrawer } from '@/components/custom';
 import { useTheme } from 'next-themes';
-import { toast } from '@/hooks/use-toast';
 
 // Interface for our cluster UI data
 interface ClusterItem {
