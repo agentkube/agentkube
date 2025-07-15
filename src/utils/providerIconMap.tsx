@@ -1,5 +1,5 @@
 import { Brain } from "lucide-react";
-import { DeepSeek, XAI, Gemini, MetaAI, OpenAI, Anthropic } from '@/assets/icons';
+import { DeepSeek, XAI, Gemini, MetaAI, OpenAI, Anthropic, MoonshotAi } from '@/assets/icons';
 
 export const getProviderIcon = (provider: string) => {
   const iconMap: Record<string, JSX.Element>  = {
@@ -7,7 +7,8 @@ export const getProviderIcon = (provider: string) => {
     'anthropic': <Anthropic size={14} />,
     'xai': <XAI size={14} />,
     'deepseek': <DeepSeek size={14} />,
-    'google': <Gemini size={14} />, 
+    'google': <Gemini size={14} />,
+    'moonshotai': <MoonshotAi size={14} />,
     'meta': <MetaAI size={14} />,
   };
 

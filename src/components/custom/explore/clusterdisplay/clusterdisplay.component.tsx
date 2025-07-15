@@ -2,7 +2,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import KUBERNETES_BLUE_LOGO from '@/assets/kubernetes-blue.png';
 import { NavigateFunction } from 'react-router-dom';
+import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
+import { useTheme } from 'next-themes';
 
 interface ClusterDropdownPosition {
   visible: boolean;
@@ -18,6 +21,9 @@ interface ClusterDisplayProps {
   navigate: NavigateFunction;
 }
 
+// Interface for cluster types
+type ClusterType = 'kind' | 'docker' | 'aws' | 'local' | 'gcp' | 'azure' | 'civo' | 'linode' | 'digitalocean' | 'oracle' | 'minikube';
+
 const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
   isCollapsed,
   currentContext,
@@ -26,6 +32,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
   navigate
 }) => {
   const clusterDisplayRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
   
   // State for cluster context menu dropdown
   const [clusterDropdown, setClusterDropdown] = useState<ClusterDropdownPosition>({
@@ -69,12 +76,40 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
     };
   }, [clusterDropdown.visible]);
 
-  // Determine cluster type for display
-  const getClusterType = (name: string) => {
-    if (name.includes('kind')) return 'kind-cluster';
-    if (name.includes('docker')) return 'docker-desktop';
-    if (name.includes('aws')) return 'aws-cluster';
-    return 'kubernetes-cluster';
+  // Determine cluster type for display - matching HomePage logic
+  const determineClusterType = (name: string): ClusterType => {
+    if (name.includes('kind')) return 'kind';
+    if (name.includes('minikube')) return 'minikube';
+    if (name.includes('gke')) return 'gcp';
+    if (name.includes('aks')) return 'azure';
+    if (name.includes('docker')) return 'docker';
+    if (name.includes('aws') || name.includes('eks')) return 'aws';
+    return 'local';
+  };
+
+  // Cluster Icon Component - matching HomePage logic
+  const ClusterIcon: React.FC<{ type: ClusterType; size?: string }> = ({ type, size = "h-5 w-5" }) => {
+    switch (type) {
+      case 'kind':
+        return <img className={size} src={KUBERNETES_BLUE_LOGO} alt="Kubernetes logo" />;
+      case 'docker':
+        return <img className={size} src={DOCKER_PROVIDER} alt="Docker logo" />;
+      case 'minikube':
+        return <img className={size} src={MINIKUBE_PROVIDER} alt="Minikube logo" />;
+      case 'aws':
+        return <img className={size} src={theme === 'dark' ? AWS_PROVIDER_DARK : AWS_PROVIDER} alt="AWS logo" />;
+      case 'gcp':
+        return <img className={size} src={GCP_PROVIDER} alt="GCP logo" />;
+      case 'azure':
+        return <img className={size} src={AZURE_PROVIDER} alt="Azure logo" />;
+      default:
+        return <img className={size} src={KUBERNETES_BLUE_LOGO} alt="Kubernetes logo" />;
+    }
+  };
+
+  // Helper function to truncate long cluster names
+  const truncateClusterName = (name: string, maxLength: number = 35) => {
+    return name.length > maxLength ? name.slice(0, maxLength) + '...' : name;
   };
 
   return (
@@ -84,12 +119,18 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
       onContextMenu={handleClusterRightClick}
       onClick={() => navigate('/')}
     >
-      <img src={KUBERNETES_LOGO} className="h-8 w-8" alt="Kubernetes logo" />
+      {currentContext ? (
+        <ClusterIcon type={determineClusterType(currentContext.name)} size="h-8 w-8" />
+      ) : (
+        <img src={KUBERNETES_LOGO} className="h-8 w-8" alt="Kubernetes logo" />
+      )}
 
       {!isCollapsed && currentContext && (
         <div className="text-sm font-medium">
           <h3 className="text-gray-800 dark:text-gray-300">{currentContext.name.length > 30 ? currentContext.name.slice(0, 30) + '...' : currentContext.name}</h3>
-          <p className="text-xs text-gray-800 dark:text-gray-500">{getClusterType(currentContext.name)}</p>
+          <p className="text-xs text-gray-800 dark:text-gray-500">
+            {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 40) : determineClusterType(currentContext.name)}
+          </p>
         </div>
       )}
 
@@ -104,7 +145,9 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
         <div className="absolute left-full ml-2 z-10 bg-gray-200 dark:bg-gray-900 dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
           <div>
             <p className="font-medium">{currentContext.name}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-300">{getClusterType(currentContext.name)}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300">
+              {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 30) : determineClusterType(currentContext.name)}
+            </p>
           </div>
           <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
         </div>
@@ -113,13 +156,23 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
       {/* Cluster Selection Dropdown */}
       {clusterDropdown.visible && contexts.length > 0 && (
         <div 
-          className="absolute left-20 top-full mt-1 z-50 bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-md border border-gray-200 dark:border-gray-800 w-64 max-h-80 overflow-y-auto"
+          className="absolute 
+          left-20 top-full mt-1 z-50 bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-md border border-gray-200 dark:border-gray-800
+           w-64
+          "
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-2 text-sm font-medium text-gray-800 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800">
+          <div className="px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800">
             Select Cluster
           </div>
-          <div className="py-1">
+          <div className="
+           max-h-80 overflow-y-auto
+          [&::-webkit-scrollbar]:w-1.5 
+          [&::-webkit-scrollbar-track]:bg-transparent 
+          [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+          ">
             {contexts.map((ctx) => (
               <div
                 key={ctx.name}
@@ -128,10 +181,12 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
                 }`}
                 onClick={() => handleClusterSelect(ctx.name)}
               >
-                <img src={KUBERNETES_LOGO} className="h-5 w-5" alt="Kubernetes logo" />
+                <ClusterIcon type={determineClusterType(ctx.kubeContext?.cluster)} />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-300">{ctx.name}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-500">{getClusterType(ctx.name)}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-500 truncate max-w-40">
+                    {ctx.kubeContext?.cluster}
+                  </p>
                 </div>
                 {currentContext?.name === ctx.name && (
                   <Check className="w-4 h-4 text-green-500" />
