@@ -4,6 +4,7 @@ import * as HoverCard from '@radix-ui/react-hover-card';
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'framer-motion';
 import { encode } from 'qss';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // Utils function to replace the cn utility
 const cn = (...classes: (string | undefined)[]) => {
@@ -99,60 +100,68 @@ export const LinkPreview = ({
         <HoverCard.Trigger
           onMouseMove={handleMouseMove}
           className={cn("text-black dark:text-white", className)}
-          // href={url}
           asChild
         >
           <a>{children}</a>
         </HoverCard.Trigger>
 
-        <HoverCard.Content
-          className="[transform-origin:var(--radix-hover-card-content-transform-origin)]"
-          side="top"
-          align="center"
-          sideOffset={10}
-        >
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.6 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                  transition: {
-                    type: "spring",
-                    stiffness: 260,
-                    damping: 20,
-                  },
-                }}
-                exit={{ opacity: 0, y: 20, scale: 0.6 }}
-                className="shadow-xl rounded-xl"
-                style={{
-                  x: translateX,
-                }}
-              >
-                <a
-                  onClick={() => openExternalUrl(url)}
-                  className="block p-1 bg-white dark:bg-gray-900 border-2 border-transparent shadow rounded-xl hover:border-neutral-200 dark:hover:border-neutral-800"
-                  style={{ fontSize: 0 }}
+        {/* Render the content in a portal to escape container bounds */}
+        {typeof document !== 'undefined' && createPortal(
+          <HoverCard.Content
+            className="[transform-origin:var(--radix-hover-card-content-transform-origin)] z-[9999]"
+            side="top"
+            align="center"
+            sideOffset={10}
+            collisionPadding={20}
+            avoidCollisions={true}
+            sticky="partial"
+            // Force the content to stay within viewport bounds
+            onEscapeKeyDown={() => setOpen(false)}
+          >
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.6 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    transition: {
+                      type: "spring",
+                      stiffness: 260,
+                      damping: 20,
+                    },
+                  }}
+                  exit={{ opacity: 0, y: 20, scale: 0.6 }}
+                  className="shadow-xl rounded-xl max-w-xs"
+                  style={{
+                    x: translateX,
+                  }}
                 >
-                  <img
-                    src={isStatic ? imageSrc : src}
-                    width={width}
-                    height={height}
-                    loading="eager"
-                    className="rounded-lg"
-                    alt="preview image"
-                    style={{ 
-                      maxWidth: '100%',
-                      height: 'auto'
-                    }}
-                  />
-                </a>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </HoverCard.Content>
+                  <a
+                    onClick={() => openExternalUrl(url)}
+                    className="block p-1 bg-white dark:bg-gray-800/50 backdrop-blur-sm border-2 border-transparent shadow rounded-lg hover:border-neutral-200 dark:hover:border-neutral-800"
+                    style={{ fontSize: 0 }}
+                  >
+                    <img
+                      src={isStatic ? imageSrc : src}
+                      width={width}
+                      height={height}
+                      loading="eager"
+                      className="rounded-lg"
+                      alt="preview image"
+                      style={{ 
+                        maxWidth: '100%',
+                        height: 'auto'
+                      }}
+                    />
+                  </a>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </HoverCard.Content>,
+          document.body
+        )}
       </HoverCard.Root>
     </>
   );

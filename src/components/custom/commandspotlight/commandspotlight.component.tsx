@@ -18,7 +18,7 @@ const CommandSpotlight: React.FC<CommandSpotlightProps> = ({
       onClick={onClick}
     >
       <div className="flex items-center">
-        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-300/60 dark:bg-gray-900">
+        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-300/60 dark:bg-gray-500/10">
           {icon}
         </div>
         <div className="ml-3">

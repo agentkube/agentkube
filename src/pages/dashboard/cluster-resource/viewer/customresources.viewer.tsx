@@ -398,7 +398,7 @@ const CustomResourceViewer = () => {
                   <YamlViewer data={resource.spec} />
                 </>
               ) : (
-                <Alert className="text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-900">
+                <Alert className="text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-transparent">
                   <AlertDescription>This resource does not have a spec field</AlertDescription>
                 </Alert>
               )}
@@ -410,7 +410,7 @@ const CustomResourceViewer = () => {
                   <YamlViewer data={resource.status} />
                 </>
               ) : (
-                <Alert className="text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-900">
+                <Alert className="text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-transparent">
                   <AlertDescription>This resource does not have a status field</AlertDescription>
                 </Alert>
               )}

@@ -79,7 +79,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
                   </div>
                 ),
                 thead: ({ children }) => (
-                  <thead className="bg-gray-200 dark:bg-gray-900">{children}</thead>
+                  <thead className="bg-gray-200 dark:bg-gray-800/30">{children}</thead>
                 ),
                 tbody: ({ children }) => (
                   <tbody className="divide-y divide-gray-300 dark:divide-gray-800 rounded-xl">{children}</tbody>

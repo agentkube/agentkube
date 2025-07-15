@@ -35,6 +35,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { toast } from '@/hooks/use-toast';
+import { useModels } from '@/contexts/useModel';
 
 // Define types for model data
 interface ModelArchitecture {
@@ -87,6 +89,9 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [copied, setCopied] = useState(false);
+  const [isAddingModel, setIsAddingModel] = useState(false);
+  const { addModel } = useModels();
+
   if (!model) return null;
 
   // Format date from timestamp
@@ -135,9 +140,59 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
   // Helper to check if model is multimodal
   const isMultimodal = model.architecture.input_modalities.includes("image");
 
+  // Extract provider from model ID (assumes format like "provider/model-name")
+  const getProviderFromId = (modelId: string) => {
+    const parts = modelId.split('/');
+    return parts.length > 1 ? parts[0] : 'custom';
+  };
+
+  // Extract model name from model ID (assumes format like "provider/model-name")
+  const getModelNameFromId = (modelId: string) => {
+    const parts = modelId.split('/');
+    return parts.length > 1 ? parts[1] : modelId;
+  };
+
+  // Handle adding model to user's configuration
+  const handleAddModel = async () => {
+    if (isAddingModel) return;
+    
+    setIsAddingModel(true);
+    
+    try {
+      const modelName = getModelNameFromId(model.id);
+      
+      await addModel({
+        id: modelName,
+        name: modelName,
+        provider: getProviderFromId(model.id),
+        enabled: true,
+        premium_only: false
+      });
+
+      toast({
+        title: "Model Added",
+        description: `${modelName} has been added to your model configuration.`,
+        duration: 3000,
+      });
+
+      // Optionally close the dialog after successful addition
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error adding model:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add model. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsAddingModel(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gray-50 dark:bg-[#0B0D13]/30 backdrop-blur-md
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gray-50 dark:bg-[#0B0D13]/60 backdrop-blur-lg
         
         [&::-webkit-scrollbar]:w-1.5 
         [&::-webkit-scrollbar-track]:bg-transparent 
@@ -177,8 +232,15 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
               </button>
             </div>
 
-            <button className='flex border border-gray-500/20 dark:border-gray-500/30 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-400/10 transition-all rounded-md items-center text-xs '>
-              <Plus className='h-4 w-4'/> <span>Add Model</span>
+            <button 
+              onClick={handleAddModel}
+              disabled={isAddingModel}
+              className={`flex border border-gray-500/20 dark:border-gray-500/30 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-400/10 transition-all rounded-md items-center text-xs ${
+                isAddingModel ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <Plus className='h-4 w-4'/> 
+              <span>{isAddingModel ? 'Adding...' : 'Add Model'}</span>
             </button>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -195,7 +257,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="prose dark:prose-invert max-w-none prose-sm">
+            <div className="text-sm prose dark:prose-invert max-w-none prose-sm dark:text-gray-400">
               <p>{model.description}</p>
             </div>
 

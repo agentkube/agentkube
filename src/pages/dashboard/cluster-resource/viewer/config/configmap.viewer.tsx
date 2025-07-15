@@ -466,7 +466,7 @@ const ConfigMapViewer: React.FC = () => {
 
             {/* Data Preview for first few entries */}
             {dataEntryCount > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800/60 bg-white dark:bg-gray-900/20 p-4 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Data Preview</h2>
                   <Button
@@ -480,7 +480,7 @@ const ConfigMapViewer: React.FC = () => {
                 <div className="space-y-4">
                   {Object.entries(configMapData.data || {}).slice(0, 3).map(([key, value], index) => (
                     <div key={index} className="border border-gray-200 dark:border-gray-800 rounded-lg">
-                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-t-lg">
+                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/40 px-4 py-2 rounded-t-lg">
                         <div className="flex items-center gap-2">
                           {getDataFormatIcon(value)}
                           <h3 className="font-medium">{key}</h3>
@@ -489,7 +489,13 @@ const ConfigMapViewer: React.FC = () => {
                           {value?.length || 0} bytes
                         </Badge>
                       </div>
-                      <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-b-lg max-h-40 overflow-auto">
+                      <div className="bg-gray-100 dark:bg-transparent p-4 rounded-b-lg max-h-40 overflow-auto
+                        [&::-webkit-scrollbar]:w-1.5 
+                        [&::-webkit-scrollbar-track]:bg-transparent 
+                        [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+                      ">
                         <pre className="text-xs font-mono">{isJson(value) ? formatJsonData(value) : value}</pre>
                       </div>
                     </div>
@@ -513,7 +519,7 @@ const ConfigMapViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-6" id="data-tab">
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800/50 bg-white dark:bg-gray-900/20 p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium">ConfigMap Data</h2>
                 <Button variant="outline" size="sm">
@@ -534,7 +540,7 @@ const ConfigMapViewer: React.FC = () => {
                       <h3 className="text-md font-medium">Text Data</h3>
                       {Object.entries(configMapData.data || {}).map(([key, value], index) => (
                         <div key={index} className="border border-gray-200 dark:border-gray-800 rounded-lg">
-                          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-t-lg">
+                          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/40 px-4 py-2 rounded-t-lg">
                             <div className="flex items-center gap-2">
                               {getDataFormatIcon(value)}
                               <h3 className="font-medium">{key}</h3>
@@ -548,7 +554,7 @@ const ConfigMapViewer: React.FC = () => {
                               </Button>
                             </div>
                           </div>
-                          <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-b-lg max-h-96 overflow-auto">
+                          <div className="bg-gray-100 dark:bg-transparent p-4 rounded-b-lg max-h-96 overflow-auto">
                             <pre className="text-xs font-mono">{isJson(value) ? formatJsonData(value) : value}</pre>
                           </div>
                         </div>
