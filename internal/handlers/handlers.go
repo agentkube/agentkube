@@ -14,6 +14,7 @@ import (
 	"github.com/agentkube/operator/internal/stateless"
 	"github.com/agentkube/operator/pkg/command"
 	"github.com/agentkube/operator/pkg/config"
+	"github.com/agentkube/operator/pkg/extensions"
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/logger"
 	"github.com/gin-gonic/gin"
@@ -808,4 +809,45 @@ func scanFolderForKubeconfigs(folderPath string) ([]string, int, []string) {
 	}
 
 	return validFiles, totalContexts, errors
+}
+
+func ClusterReportHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		clusterName := c.Param("clusterName")
+		if clusterName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Missing cluster name",
+			})
+			return
+		}
+
+		// Initialize Popeye installer
+		popeyeInstaller := extensions.NewPopeyeInstaller(kubeConfigStore)
+
+		// Check installation status first
+		status := popeyeInstaller.CheckInstallation()
+		if !status.Installed {
+			logger.Log(logger.LevelInfo, nil, nil, "Popeye not installed, attempting installation...")
+			if err := popeyeInstaller.InstallPopeye(); err != nil {
+				logger.Log(logger.LevelError, nil, err, "failed to install Popeye")
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to install Popeye: " + err.Error(),
+				})
+				return
+			}
+		}
+
+		// Generate cluster report
+		report, err := popeyeInstaller.GenerateClusterReport(clusterName)
+		if err != nil {
+			logger.Log(logger.LevelError, map[string]string{"cluster": clusterName}, err, "failed to generate cluster report")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to generate cluster report: " + err.Error(),
+			})
+			return
+		}
+
+		// Return the report
+		c.JSON(http.StatusOK, report)
+	}
 }
