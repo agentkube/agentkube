@@ -6,8 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, ChevronUp, X, Sparkles, Trash2, Cloud, ArrowUp, Check, Search, Settings, Zap, FileArchive, Paperclip, AlignVerticalJustifyEnd } from "lucide-react";
-import { AutoResizeTextarea } from '@/components/custom';
+import { ChevronDown, ChevronUp, X, Sparkles, Trash2, Cloud, ArrowUp, Check, Search, Settings, Zap, FileArchive, Paperclip, AlignVerticalJustifyEnd, Folder, Lightbulb, Infinity } from "lucide-react";
+import { AutoResizeTextarea, ModelSelector } from '@/components/custom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChatMessage,
@@ -16,7 +16,9 @@ import {
 } from "@/types/provision/chat";
 import { Messages } from './assistant/messages.provisiondrawer';
 import { Ansible, Github, OpenTofu, Pulumi, Terraform, Terragrunt } from '@/assets/icons';
-import Kubernetes  from '@/assets/kubernetes.svg';
+import Kubernetes from '@/assets/kubernetes.svg';
+import { openExternalUrl } from '@/api/external';
+import { cn } from '@/lib/utils';
 
 const defaultParameters: TaskCalls = {
   clusterName: 'my-eks-cluster',
@@ -48,40 +50,50 @@ const backdropVariants = {
 };
 
 // Safe icon wrapper
-const SafeIcon = ({ IconComponent, size = 20, fallbackText }: { 
-  IconComponent: any; 
-  size?: number; 
-  fallbackText: string 
+const SafeIcon = ({ IconComponent, size = 20, fallbackText, showText = false, className = "" }: {
+  IconComponent: any;
+  size?: number;
+  fallbackText: string;
+  showText?: boolean;
+  className?: string;
 }) => {
   try {
-    // Check if it's a string (image URL) or React component
     if (typeof IconComponent === 'string') {
       return (
-        <img 
-          src={IconComponent} 
-          alt={fallbackText}
-          width={size} 
-          height={size}
-          className="object-contain"
-        />
+        <div className="flex items-center gap-1">
+          <img
+            src={IconComponent}
+            alt={fallbackText}
+            width={size}
+            height={size}
+            className="object-contain"
+          />
+          {showText && <span className="text-xs">{fallbackText}</span>}
+        </div>
       );
     }
-    
-    // Try to render as React component
-    return <IconComponent size={size} />;
+
+    return (
+      <div className={cn("flex items-center gap-1", (showText && className))}>
+        <IconComponent size={size} />
+        {showText && <span className="text-xs">{fallbackText}</span>}
+      </div>
+    );
   } catch (error) {
     console.warn(`Icon error for ${fallbackText}:`, error);
-    // Fallback to a simple colored div with text
     return (
-      <div 
-        className="flex items-center justify-center text-white text-xs font-bold rounded"
-        style={{ 
-          width: size, 
-          height: size, 
-          backgroundColor: '#6366f1' 
-        }}
-      >
-        {fallbackText.slice(0, 2).toUpperCase()}
+      <div className="flex items-center gap-1">
+        <div
+          className="flex items-center justify-center text-white text-xs font-bold rounded"
+          style={{
+            width: size,
+            height: size,
+            backgroundColor: '#6366f1'
+          }}
+        >
+          {fallbackText.slice(0, 2).toUpperCase()}
+        </div>
+        {showText && <span className="text-xs">{fallbackText}</span>}
       </div>
     );
   }
@@ -89,6 +101,7 @@ const SafeIcon = ({ IconComponent, size = 20, fallbackText }: {
 
 // IaC tools configuration
 const iacTools = [
+  { name: 'Auto', icon: Infinity, description: 'Let Agentkube decide the best tool', fallback: 'AU' },
   { name: 'Ansible', icon: Ansible, description: 'Configuration management', fallback: 'AN' },
   { name: 'Terraform', icon: Terraform, description: 'Infrastructure provisioning', fallback: 'TF' },
   { name: 'Pulumi', icon: Pulumi, description: 'Modern infrastructure as code', fallback: 'PU' },
@@ -114,7 +127,21 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const [currentThinkingStep, setCurrentThinkingStep] = useState<number>(0);
-  const [selectedIaCTool, setSelectedIaCTool] = useState(iacTools[0]); // Default to Ansible
+  const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
+  const [selectedIaCTool, setSelectedIaCTool] = useState(() => {
+    try {
+      const cached = localStorage.getItem('selectedIaCTool');
+      if (cached) {
+        const parsedTool = JSON.parse(cached);
+        const foundTool = iacTools.find(tool => tool.name === parsedTool.name);
+        if (foundTool) return foundTool;
+      }
+    } catch (error) {
+      console.warn('Error loading cached IaC tool:', error);
+    }
+
+    return iacTools[0];
+  });
 
   // Use a ref to accumulate streaming response
   const responseRef = useRef('');
@@ -132,11 +159,11 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
         handleClose();
       }
     };
-
+  
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
     }
-
+  
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
@@ -369,7 +396,11 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
 
   const handleIaCToolSelect = (tool: typeof iacTools[0]): void => {
     setSelectedIaCTool(tool);
-    console.log('Selected IaC tool:', tool.name);
+    try {
+      localStorage.setItem('selectedIaCTool', JSON.stringify(tool));
+    } catch (error) {
+      console.warn('Error saving IaC tool to localStorage:', error);
+    }
   };
 
   // Early return only after mounted check to avoid hydration issues
@@ -381,7 +412,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
         <>
           {/* Backdrop with animation */}
           <motion.div
-            className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40"
+            className="fixed inset-0 bg-black/20 dark:bg-gray-900/40 z-40"
             initial="hidden"
             animate="visible"
             exit="exit"
@@ -391,7 +422,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
 
           {/* Drawer with smooth animation */}
           <motion.div
-            className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13] shadow-lg z-40"
+            className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg shadow-lg z-40"
             initial="hidden"
             animate="visible"
             exit="exit"
@@ -495,29 +526,34 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                   />
 
                   <div className="flex items-center justify-end">
-                    <div className='flex mr-2'>
-                      {/* IaC Tool Dropdown */}
+                    <div className='flex items-center mr-2 space-x-0.5'>
+                      {/* Add Model Selector */}
+                      <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+
+                      {/* IaC Tool */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="relative">
-                            <SafeIcon 
-                              IconComponent={selectedIaCTool.icon} 
-                              size={20} 
-                              fallbackText={selectedIaCTool.fallback} 
+                          <Button size={selectedIaCTool.name === 'Auto' ? "sm" : "icon"} variant="ghost" className="relative">
+                            <SafeIcon
+                              IconComponent={selectedIaCTool.icon}
+                              size={20}
+                              fallbackText={selectedIaCTool.name}
+                              showText={selectedIaCTool.name === 'Auto'}
+                              className="dark:text-gray-400"
                             />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64 dark:bg-[#0B0D13]">
+                        <DropdownMenuContent align="end" className="w-64 dark:bg-[#0B0D13]/60 backdrop-blur-md">
                           {iacTools.map((tool) => (
                             <DropdownMenuItem
                               key={tool.name}
                               onClick={() => handleIaCToolSelect(tool)}
-                              className="flex items-center gap-3 px-2 cursor-pointer"
+                              className="flex items-center gap-3 px-3 cursor-pointer"
                             >
-                              <SafeIcon 
-                                IconComponent={tool.icon} 
-                                size={20} 
-                                fallbackText={tool.fallback} 
+                              <SafeIcon
+                                IconComponent={tool.icon}
+                                size={20}
+                                fallbackText={tool.fallback}
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-xs">
@@ -533,14 +569,75 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                       </DropdownMenu>
 
                       <Button size="icon" variant="ghost">
+                        <Folder size={16} />
+                      </Button>
+
+                      <Button size="icon" variant="ghost">
                         <Paperclip size={16} />
                       </Button>
-                      <Button size="icon" variant="ghost">
-                        <Github size={16} />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost">
+                            <Github size={16} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-80 dark:bg-[#0B0D13]/60 backdrop-blur-md p-4">
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                                Attach GitHub Repository
+                              </h3>
+                              <p className="text-xs text-gray-600 dark:text-gray-300">
+                                Start a chat with your GitHub repository
+                              </p>
+                            </div>
+
+                            <div>
+                              <h4 className="text-xs font-medium text-gray-900 dark:text-white mb-2">
+                                Permissions needed:
+                              </h4>
+                              <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                                <li className="flex items-center gap-2">
+                                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                  Read private repositories
+                                </li>
+                                <li className="flex items-center gap-2">
+                                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                  Create pull requests
+                                </li>
+                              </ul>
+                            </div>
+
+                            <div>
+                              <a
+                                href="#"
+                                className="text-blue-600 dark:text-blue-400 text-xs hover:underline inline-flex items-center gap-1"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  openExternalUrl("https://docs.agentkube.com/github")
+                                }}
+                              >
+                                Learn more in the GitHub integration docs
+                                <span className="text-xs">↗</span>
+                              </a>
+                            </div>
+
+                            <Button
+                              className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 flex items-center justify-center gap-2 text-xs py-2"
+                              onClick={() => {
+                                console.log('GitHub login clicked');
+                              }}
+                            >
+                              <Github size={14} />
+                              Login to GitHub
+                            </Button>
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <Button
                       type="submit"
+                      onClick={handleSubmit}
                       disabled={isLoading || !inputValue.trim()}
                       className="p-3 h-1 w-1 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
                     >

@@ -4,7 +4,6 @@ import { Check } from 'lucide-react';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { NavigateFunction } from 'react-router-dom';
 
-// Add this new interface for cluster dropdown position
 interface ClusterDropdownPosition {
   visible: boolean;
   x: number;
@@ -13,8 +12,8 @@ interface ClusterDropdownPosition {
 
 interface ClusterDisplayProps {
   isCollapsed: boolean;
-  currentContext: any; // Type from your cluster context
-  contexts: any[]; // Type from your cluster context
+  currentContext: any;
+  contexts: any[]; 
   setCurrentContext: (context: any) => void;
   navigate: NavigateFunction;
 }

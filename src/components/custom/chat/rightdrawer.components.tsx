@@ -338,7 +338,7 @@ const RightDrawer: React.FC = () => {
         <>
           {/* Backdrop with animation */}
           <motion.div
-            className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40"
+            className="fixed inset-0 bg-black/20 dark:bg-gray-900/40 z-40"
             initial="hidden"
             animate="visible"
             exit="exit"
@@ -348,7 +348,7 @@ const RightDrawer: React.FC = () => {
 
           {/* Drawer with smooth animation */}
           <motion.div
-            className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13] shadow-lg z-40"
+            className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg  shadow-lg z-40"
             initial="hidden"
             animate="visible"
             exit="exit"

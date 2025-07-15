@@ -16,35 +16,35 @@ interface AutoResizeTextareaProps {
   disabled?: boolean;
   className?: string;
   autoFocus?: boolean;
-  mentionItems?: MentionItem[]; 
-  onMentionSelect?: (item: MentionItem) => void; 
-  width?: string | number; 
-  animatedSuggestions?: string[]; 
+  mentionItems?: MentionItem[];
+  onMentionSelect?: (item: MentionItem) => void;
+  width?: string | number;
+  animatedSuggestions?: string[];
   [key: string]: any;
 }
 
-const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({ 
-  value, 
-  onChange, 
-  onFocus, 
-  onBlur, 
+const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
   onSubmit,
-  placeholder = "", 
+  placeholder = "",
   disabled,
   className,
   mentionItems = [],
   onMentionSelect,
   width = "100%", // Default to 100%
-  animatedSuggestions = [], 
+  animatedSuggestions = [],
   ...props
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  
+
   // Convert placeholder to string to prevent [object Object] display
   const placeholderStr = typeof placeholder === 'string' ? placeholder : String(placeholder || "");
-  
+
   // State for mention dropdown
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -52,9 +52,9 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  
+
   const useAnimatedSuggestions = animatedSuggestions.length > 0;
-  
+
   // Auto-resize function
   const autoResize = () => {
     const textarea = textareaRef.current;
@@ -69,7 +69,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       textarea.style.overflowY = 'hidden';
     }
   };
-  
+
   // Resize on value change
   useEffect(() => {
     autoResize();
@@ -80,7 +80,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
     if (useAnimatedSuggestions && !value) {
       const interval = setInterval(() => {
         setIsAnimating(true);
-        
+
         setTimeout(() => {
           setCurrentSuggestion((prev) => (prev + 1) % animatedSuggestions.length);
           setIsAnimating(false);
@@ -90,17 +90,17 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       return () => clearInterval(interval);
     }
   }, [animatedSuggestions.length, value, useAnimatedSuggestions]);
-  
+
   // Handle input change and detect mentions
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     const position = e.target.selectionStart || 0;
-    
+
     setCursorPosition(position);
-  
+
     const textBeforeCursor = newValue.substring(0, position);
     const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
-    
+
     if (mentionMatch) {
       setShowMentionDropdown(true);
       setSelectedIndex(0);
@@ -108,26 +108,26 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
     } else {
       setShowMentionDropdown(false);
     }
-  
+
     onChange(e);
   };
-  
+
   // Handle keydown events for dropdown navigation
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showMentionDropdown) {
       const filteredItems = getFilteredMentionItems();
-      
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
           setSelectedIndex(prev => (prev < filteredItems.length - 1 ? prev + 1 : prev));
           break;
-        
+
         case 'ArrowUp':
           e.preventDefault();
           setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
           break;
-        
+
         case 'Enter':
         case 'Tab':
           if (filteredItems.length > 0) {
@@ -135,17 +135,17 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
             insertMention(filteredItems[selectedIndex]);
           }
           break;
-        
+
         case 'Escape':
           e.preventDefault();
           setShowMentionDropdown(false);
           break;
-          
+
         default:
           break;
       }
     }
-    
+
     // Handle Enter for submission (original behavior)
     if (e.key === 'Enter' && !e.shiftKey && !showMentionDropdown) {
       e.preventDefault();
@@ -154,27 +154,27 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       }
     }
   };
-  
+
   // Insert mention at cursor position
   const insertMention = (item: MentionItem) => {
     const textBeforeCursor = value.substring(0, cursorPosition);
     const textAfterCursor = value.substring(cursorPosition);
-    
+
     const lastAtPos = textBeforeCursor.lastIndexOf('@');
-    
+
     if (lastAtPos !== -1) {
-      const newText = 
-        textBeforeCursor.substring(0, lastAtPos) + 
-        `@${item.name} ` + 
+      const newText =
+        textBeforeCursor.substring(0, lastAtPos) +
+        `@${item.name} ` +
         textAfterCursor;
-      
+
       const syntheticEvent = {
         target: { value: newText }
       } as ChangeEvent<HTMLTextAreaElement>;
-      
+
       onChange(syntheticEvent);
       setShowMentionDropdown(false);
-      
+
       // Set focus back to textarea and place cursor after the inserted mention
       setTimeout(() => {
         if (textareaRef.current) {
@@ -183,29 +183,29 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
           textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
         }
       }, 0);
-      
+
       // Trigger the onMentionSelect callback if provided
       if (onMentionSelect) {
         onMentionSelect(item);
       }
     }
   };
-  
+
   // Get filtered mention items based on search term
   const getFilteredMentionItems = () => {
     if (!searchTerm) return mentionItems;
-    
-    return mentionItems.filter(item => 
+
+    return mentionItems.filter(item =>
       item.name.toLowerCase().includes(searchTerm)
     );
   };
-  
+
   // Find all mentions in the text
-  const findMentions = (text: string): Array<{start: number, end: number, name: string}> => {
+  const findMentions = (text: string): Array<{ start: number, end: number, name: string }> => {
     const mentions = [];
     const regex = /@(\w+)/g;
     let match;
-    
+
     while ((match = regex.exec(text)) !== null) {
       mentions.push({
         start: match.index,
@@ -213,16 +213,16 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
         name: match[0]
       });
     }
-    
+
     return mentions;
   };
-  
+
   // Render highlighted mentions
   const renderHighlightedMentions = () => {
     if (!value || findMentions(value).length === 0) {
       return null;
     }
-    
+
     return (
       <div className="mt-2 text-xs text-gray-800 dark:text-gray-400">
         Mentions: {findMentions(value).map((mention, index) => (
@@ -236,43 +236,43 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       </div>
     );
   };
-  
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        containerRef.current && 
+        containerRef.current &&
         !containerRef.current.contains(event.target as Node)
       ) {
         setShowMentionDropdown(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  
+
   // Focus the textarea initially if needed
   useEffect(() => {
     if (props.autoFocus) {
       textareaRef.current?.focus();
     }
   }, [props.autoFocus]);
-  
+
   return (
-    <div 
+    <div
       ref={containerRef}
-      style={{ 
-        width: width, 
-        position: 'relative', 
+      style={{
+        width: width,
+        position: 'relative',
         boxSizing: 'border-box'
       }}
     >
       {/* Mention dropdown - positioned above the textarea */}
       {showMentionDropdown && (
-        <div 
+        <div
           ref={dropdownRef}
           style={{
             position: 'absolute',
@@ -296,24 +296,24 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
           "
         >
-          <div 
+          <div
             style={{
               padding: '0.5rem',
             }}
             className="font-bold dark:bg-gray-900 dark:border-gray-600 dark:text-gray-600"
           >
-            Functions 
+            Functions
           </div>
           {getFilteredMentionItems().length > 0 ? (
             getFilteredMentionItems().map((item, index) => (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 style={{
                   padding: '0.5rem',
                   cursor: 'pointer',
                 }}
-                className={`backdrop-blur-sm ${selectedIndex === index 
-                  ? 'dark:bg-gray-800/30' 
+                className={`backdrop-blur-sm ${selectedIndex === index
+                  ? 'dark:bg-gray-800/30'
                   : 'hover:bg-gray-400 dark:hover:bg-blue-800/20'}`
                 }
                 onClick={() => insertMention(item)}
@@ -344,17 +344,16 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
           placeholder={useAnimatedSuggestions ? "" : placeholderStr} // Use static placeholder if no animated suggestions
           rows={1}
           className={`flex-grow border text-sm border-gray-400 min-h-9 p-2 rounded-[0.4rem] 
-                    overflow-y-auto
-                    
-                    [&::-webkit-scrollbar]:w-1.5 
-                    [&::-webkit-scrollbar-track]:bg-transparent 
-                    [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-                    [&::-webkit-scrollbar-thumb]:rounded-full
-                    [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
-                    dark:border-gray-800/50 bg-transparent dark:text-gray-200 
-                    focus:outline-none focus:ring-0 focus:border-gray-400 dark:focus:border-transparent
-                    resize-none ${className || ''}`}
-          style={{ 
+            overflow-y-auto
+            [&::-webkit-scrollbar]:w-1.5 
+            [&::-webkit-scrollbar-track]:bg-transparent 
+            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+            dark:border-gray-800/50 bg-transparent dark:text-gray-200 
+            focus:outline-none focus:ring-0 focus:border-gray-400 dark:focus:border-transparent
+            resize-none ${useAnimatedSuggestions && !value ? 'text-transparent' : ''} ${className || ''}`}
+          style={{
             width: '100%',
             height: 'auto',
             maxHeight: '200px',
@@ -364,24 +363,27 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
             fontSize: '0.875rem',
             lineHeight: '1.25rem',
             minHeight: '2.25rem',
-            color: value ? 'inherit' : (useAnimatedSuggestions ? 'transparent' : 'inherit')
+            color: value ? 'inherit' : (useAnimatedSuggestions ? 'inherit' : 'inherit'),
+            caretColor: 'inherit'
           }}
           disabled={disabled}
           {...props}
         />
-        
+
         {/* Animated placeholder */}
         {useAnimatedSuggestions && !value && (
-          <div 
+          <div
             className="absolute inset-0 p-2 pointer-events-none flex items-start"
-            style={{ paddingTop: '0.5rem' }}
+            style={{
+              paddingTop: '0.5rem',
+              zIndex: 1
+            }}
           >
-            <span 
-              className={`text-sm text-gray-400 dark:text-gray-500 transition-all duration-300 ${
-                isAnimating 
-                  ? 'opacity-0 transform translate-y-1' 
+            <span
+              className={`text-sm text-gray-400 dark:text-gray-500 transition-all duration-300 ${isAnimating
+                  ? 'opacity-0 transform translate-y-1'
                   : 'opacity-100 transform translate-y-0'
-              }`}
+                }`}
             >
               {animatedSuggestions[currentSuggestion]}
             </span>

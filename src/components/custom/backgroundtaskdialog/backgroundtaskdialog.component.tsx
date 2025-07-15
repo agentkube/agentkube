@@ -119,7 +119,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 			<div className="absolute inset-0 dark:bg-gray-900/20 backdrop-blur-sm" onClick={onClose} />
 			<AnimatePresence>
 				<motion.div
-					className="relative w-full max-w-2xl bg-gray-100  h-fit dark:bg-[#1B1C26]/80 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
+					className="relative w-full max-w-2xl bg-gray-100  h-fit dark:bg-[#1B1C26]/50 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
 					initial={{ scale: 0.95, opacity: 0 }}
 					animate={{ scale: 1, opacity: 1 }}
 					exit={{ scale: 0.95, opacity: 0 }}
@@ -202,7 +202,12 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 									onFocus={handleInputFocus}
 									onBlur={handleInputBlur}
 									onSubmit={handleSubmit}
-									placeholder="What would you like to investigate? (e.g., 'Check pod health and recent issues')"
+									// placeholder="What would you like to investigate? (e.g., '')"
+									animatedSuggestions={[
+										"What would you like to investigate?",
+										"Check pod health and recent issues",
+										"Run Stress testing on my deployment in kube-system namespace"
+									]}
 									disabled={isLoading}
 									className="dark:border-transparent h-64"
 									autoFocus={true}
