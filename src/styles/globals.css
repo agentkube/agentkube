@@ -34,6 +34,8 @@
   }
   :root {
     --background: white;  
+    /* --background: url("../assets/background/wall2-light.jpg"); */
+    /* background-repeat: no-repeat; */
     /* --background: linear-gradient(to bottom right, #232531, #000000); */
     /* Changed to match gray-200 */
     --foreground: 224 71.4% 4.1%;
@@ -63,7 +65,9 @@
     --drawer-gradient: none;
   }
   .dark {
-    --background: linear-gradient(to bottom right, #232531, #000000);
+    /* --background: linear-gradient(to bottom right, #232531, #000000); */
+    --background: url("../assets/background/wall3.jpg");
+    background-repeat: no-repeat;
     --drawer-gradient: linear-gradient(to bottom right, #232531, #000000);
     --foreground: 210 20% 98%;
     --card: 224 71.4% 4.1%;

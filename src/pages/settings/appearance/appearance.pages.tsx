@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme } from 'next-themes';
+import { Wallpaper } from '@/components/custom';
 
 const Appearance = () => {
   // State for appearance settings
@@ -357,39 +358,41 @@ const Appearance = () => {
       </div>
 
       {/* Theme variants - will be enabled in a future version */}
-    {/* Theme variants */}
-<div className="mb-8">
-  <div className="flex justify-between items-center mb-2">
-    <h2 className="text-lg font-medium">Theme Variants</h2>
-  </div>
-  <p className="text-gray-700 dark:text-gray-400 text-sm mb-4">
-    Choose a color variation for your selected mode.
-  </p>
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {[
-      { id: 'notion-light', name: 'Notion Light', color: '#ffffff' },
-      { id: 'notion-dark', name: 'Notion Dark', color: '#191919' },
-      { id: 'dark-emerald', name: 'Dark Emerald', color: '#064e3b' },
-      { id: 'dark-violet', name: 'Dark Violet', color: '#4c1d95' },
-    ].map((theme) => (
-      <button
-        key={theme.id}
-        disabled={isSaving}
-        className={`flex items-center p-3 rounded border ${colorMode === theme.id
-          ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-          : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
-          }`}
-        onClick={() => handleColorModeChange(theme.id)}
-      >
-        <div
-          className="w-6 h-6 rounded-full mr-2"
-          style={{ backgroundColor: theme.color }}
-        ></div>
-        <span className="text-sm">{theme.name}</span>
-      </button>
-    ))}
-  </div>
-</div>
+      {/* Theme variants */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-lg font-medium">Theme Variants</h2>
+        </div>
+        <p className="text-gray-700 dark:text-gray-400 text-sm mb-4">
+          Choose a color variation for your selected mode.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { id: 'notion-light', name: 'Notion Light', color: '#ffffff' },
+            { id: 'notion-dark', name: 'Notion Dark', color: '#191919' },
+            { id: 'dark-emerald', name: 'Dark Emerald', color: '#064e3b' },
+            { id: 'dark-violet', name: 'Dark Violet', color: '#4c1d95' },
+          ].map((theme) => (
+            <button
+              key={theme.id}
+              disabled={isSaving}
+              className={`flex items-center p-3 rounded border ${colorMode === theme.id
+                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
+                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              onClick={() => handleColorModeChange(theme.id)}
+            >
+              <div
+                className="w-6 h-6 rounded-full mr-2"
+                style={{ backgroundColor: theme.color }}
+              ></div>
+              <span className="text-sm">{theme.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Wallpaper />
 
       {/* Save button for all settings */}
       <div className="flex justify-end">

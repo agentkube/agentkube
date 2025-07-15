@@ -13,7 +13,7 @@ import {
   ClusterReport,
   Indexing
 } from '@/pages';
-import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Spotlight } from '@/components/custom';
+import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Provisioner, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
 import { ClusterProvider } from '@/contexts/clusterContext';
 import {
@@ -91,9 +91,6 @@ import { ModelsProvider } from "./contexts/useModel";
 import { PostHogProvider } from "./contexts/useAnalytics";
 
 function App() {
-
-  // load theme from settings.json 
-
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <AuthProvider>
@@ -110,6 +107,7 @@ function App() {
                       <NamespacePickerContainer />
                       <PromQLSpotlight />
                       <BackgroundTask />
+                      <Provisioner />
                       <Routes>
                         <Route path="/" element={<HomePage />} />
 
