@@ -1049,8 +1049,8 @@ const Events: React.FC = () => {
                     <TableCell>
                       {formatInvolvedObject(event)}
                     </TableCell>
-                    <TableCell className="max-w-md truncate">
-                      <div className="truncate" title={event.message}>
+                    <TableCell className="max-w-md ">
+                      <div className="truncate hover:truncate-none hover:overflow-visible hover:whitespace-normal transition-all" title={event.message}>
                         {event.message}
                       </div>
                     </TableCell>
