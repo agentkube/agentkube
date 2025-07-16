@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { KubeContext } from '@/types/cluster';
 import { getKubeContexts } from '@/api/cluster';
 import { useToast } from '@/hooks/use-toast';
@@ -99,35 +99,11 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     await fetchContexts();
   }, [fetchContexts]);
 
-  // Fetch contexts on mount
-  React.useEffect(() => {
+  // fetch contexts
+  useEffect(() => {
     fetchContexts();
   }, [fetchContexts]);
 
-  React.useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const fetchedContexts = await getKubeContexts();
-        
-        setContexts(prev => {
-          // Deep comparison to avoid unnecessary updates
-          const hasChanged = prev.length !== fetchedContexts.length || 
-            prev.some((ctx, index) => 
-              !fetchedContexts[index] || 
-              ctx.name !== fetchedContexts[index].name ||
-              ctx.kubeContext !== fetchedContexts[index].kubeContext ||
-              ctx.server !== fetchedContexts[index].server
-            );
-          
-          return hasChanged ? fetchedContexts : prev;
-        });
-      } catch (err) {
-        console.error('Failed to refresh contexts:', err);
-      }
-    }, refreshInterval);
-  
-    return () => clearInterval(interval);
-  }, [refreshInterval]);
 
   const handleSetCurrentContext = (context: KubeContext) => {
     setCurrentContext(context);

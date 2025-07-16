@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ const STORAGE_KEYS = {
   VIEW_MODE: 'view-mode'
 };
 
-// Helper function to determine cluster type from context name
+// Helper function to determine cluster type from context name - memoized
 const determineClusterType = (name: string): ClusterItem['type'] => {
   if (name.includes('kind')) return 'kind';
   if (name.includes('minikube')) return 'minikube';
@@ -49,10 +49,121 @@ const determineClusterType = (name: string): ClusterItem['type'] => {
   return 'local';
 };
 
+// Memoized ClusterIcon component
+const ClusterIcon = memo<{ type: ClusterItem['type']; theme?: string }>(({ type, theme }) => {
+  const iconProps = { className: 'h-10 w-10' };
+  
+  switch (type) {
+    case 'kind':
+      return <img {...iconProps} src={KUBERNETES_LOGO} alt="Kubernetes logo" />;
+    case 'docker':
+      return <img {...iconProps} src={DOCKER_PROVIDER} alt="Docker logo" />;
+    case 'minikube':
+      return <img {...iconProps} src={MINIKUBE_PROVIDER} alt="Minikube logo" />;
+    case 'aws':
+      return <img {...iconProps} src={theme === 'dark' ? AWS_PROVIDER_DARK : AWS_PROVIDER} alt="AWS logo" />;
+    case 'gcp':
+      return <img {...iconProps} src={GCP_PROVIDER} alt="GCP logo" />;
+    case 'azure':
+      return <img {...iconProps} src={AZURE_PROVIDER} alt="Azure logo" />;
+    default:
+      return <img {...iconProps} src={KUBERNETES_LOGO} alt="Kubernetes logo" />;
+  }
+});
+
+ClusterIcon.displayName = 'ClusterIcon';
+
+// Memoized ClusterCard component
+const ClusterCard = memo<{
+  cluster: ClusterItem;
+  isPinned?: boolean;
+  isSelected: boolean;
+  onContextMenu: (e: React.MouseEvent, clusterId: string, isPinned: boolean) => void;
+  onClusterClick: (clusterId: string) => void;
+  onConnect: (clusterId: string) => void;
+  theme?: string;
+}>(({ cluster, isPinned = false, isSelected, onContextMenu, onClusterClick, onConnect, theme }) => {
+  // Handle double-click to immediately connect
+  const handleDoubleClick = useCallback(() => {
+    onConnect(cluster.id);
+  }, [onConnect, cluster.id]);
+
+  const handleClick = useCallback(() => {
+    onClusterClick(cluster.id);
+  }, [onClusterClick, cluster.id]);
+
+  const handleRightClick = useCallback((e: React.MouseEvent) => {
+    onContextMenu(e, cluster.id, isPinned);
+  }, [onContextMenu, cluster.id, isPinned]);
+
+  // Determine if we need to truncate the text
+  const isTruncatedName = cluster.name.length > 35;
+  const isTruncatedDescription = cluster.description.length > 35;
+
+  const displayName = isTruncatedName ? cluster.name.slice(0, 35) + '...' : cluster.name;
+  const displayDescription = isTruncatedDescription ? cluster.description.slice(0, 35) + '...' : cluster.description;
+
+  return (
+    <div
+      className={`rounded-lg p-4 flex items-center gap-4 cursor-pointer transition-colors
+        ${isSelected
+          ? 'bg-gray-200 dark:bg-gray-800/20 border-r-2 border-blue-500'
+          : 'hover:bg-gray-200 dark:hover:bg-gray-800/50 border-2 border-transparent'}`}
+      onContextMenu={handleRightClick}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+    >
+      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white">
+        <ClusterIcon type={cluster.type} theme={theme} />
+      </div>
+      <div className="flex-1">
+        <h3
+          className={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'dark:text-white'}`}
+        >
+          {displayName}
+        </h3>
+
+        {isTruncatedDescription ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="dark:text-gray-400 text-sm">
+                  {displayDescription}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent className="bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md border border-gray-300 dark:border-gray-800/60 p-3 rounded-md shadow-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <ClusterIcon type={cluster.type} theme={theme} />
+                </div>
+                <div className="text-gray-700 dark:text-gray-300">
+                  <div className="mb-1">
+                    <span className="font-semibold">Name: </span>
+                    <span>{cluster.name}</span>
+                  </div>
+                  <div className="mb-1">
+                    <span className="font-semibold">Context: </span>
+                    <span>{cluster.description}</span>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <p className="dark:text-gray-400 text-sm">
+            {displayDescription}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+});
+
+ClusterCard.displayName = 'ClusterCard';
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [isReloading, setIsReloading] = useState(false);
-  const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext } = useCluster();
+  const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval } = useCluster();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contextToDelete, setContextToDelete] = useState<string | null>(null);
   const { theme } = useTheme();
@@ -86,26 +197,48 @@ const HomePage: React.FC = () => {
       : [];
   });
 
-  const [availableClusters, setAvailableClusters] = useState<ClusterItem[]>([]);
-
-  const availableClustersData = useMemo(() => {
-    if (contexts.length === 0) return [];
-
-    const clusterItems: ClusterItem[] = contexts.map((ctx) => ({
+  // Memoize cluster items creation to prevent unnecessary recalculations
+  const clusterItems = useMemo(() => {
+    return contexts.map((ctx) => ({
       id: ctx.name,
       name: ctx.name,
       description: `${ctx.kubeContext.cluster}`,
       type: determineClusterType(ctx.kubeContext.user)
     }));
+  }, [contexts]);
 
-    const pinnedIds = pinnedClusters.map(c => c.id);
-    return clusterItems.filter(item => !pinnedIds.includes(item.id));
-  }, [contexts, pinnedClusters]);
+  // Memoize pinned cluster IDs
+  const pinnedClusterIds = useMemo(() => {
+    return new Set(pinnedClusters.map(c => c.id));
+  }, [pinnedClusters]);
 
+  // Memoize available clusters
+  const availableClusters = useMemo(() => {
+    return clusterItems.filter(item => !pinnedClusterIds.has(item.id));
+  }, [clusterItems, pinnedClusterIds]);
 
-  useEffect(() => {
-    setAvailableClusters(availableClustersData);
-  }, [availableClustersData]);
+  // Memoize filtered clusters
+  const filteredClusters = useMemo(() => {
+    if (!searchQuery) return availableClusters;
+    
+    const query = searchQuery.toLowerCase();
+    return availableClusters.filter(cluster =>
+      cluster.name.toLowerCase().includes(query) ||
+      cluster.description.toLowerCase().includes(query)
+    );
+  }, [availableClusters, searchQuery]);
+
+  // Memoize all clusters
+  const allClusters = useMemo(() => {
+    return [...pinnedClusters, ...availableClusters];
+  }, [pinnedClusters, availableClusters]);
+
+  // Memoize selected cluster
+  const selectedCluster = useMemo(() => {
+    return allClusters.find(cluster => cluster.id === selectedClusterId);
+  }, [allClusters, selectedClusterId]);
+
+  const hasSelectedCluster = selectedClusterId !== null;
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
@@ -130,7 +263,21 @@ const HomePage: React.FC = () => {
     };
   }, [contextMenu.visible]);
 
-  const handleConnect = (clusterId: string) => {
+  // Memoized refresh interval effect
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        await refreshContexts();
+      } catch (err) {
+        console.error('Failed to refresh contexts:', err);
+      }
+    }, refreshInterval);
+  
+    return () => clearInterval(interval);
+  }, [refreshInterval, refreshContexts]);
+
+  // Memoized callback functions
+  const handleConnect = useCallback((clusterId: string) => {
     // Find the KubeContext that corresponds to this clusterId (which is the context name)
     const contextToConnect = contexts.find(ctx => ctx.name === clusterId);
 
@@ -141,19 +288,19 @@ const HomePage: React.FC = () => {
       // Navigate to dashboard
       navigate(`/dashboard?cluster=${clusterId}`);
     }
-  };
+  }, [contexts, setCurrentContext, navigate]);
 
-  const handleReload = async () => {
+  const handleReload = useCallback(async () => {
     setIsReloading(true);
     await refreshContexts();
     setIsReloading(false);
-  };
+  }, [refreshContexts]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-  };
+  }, []);
 
-  const handleContextMenu = (e: React.MouseEvent, clusterId: string, isPinned: boolean) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, clusterId: string, isPinned: boolean) => {
     e.preventDefault();
     // Set context menu position and visibility
     setContextMenu({
@@ -163,46 +310,38 @@ const HomePage: React.FC = () => {
       clusterId,
       isPinned
     });
-  };
+  }, []);
 
   // New function to handle cluster selection
-  const handleClusterClick = (clusterId: string) => {
+  const handleClusterClick = useCallback((clusterId: string) => {
     setSelectedClusterId(clusterId);
-  };
+  }, []);
 
   // Handle pin action
-  const handlePin = () => {
+  const handlePin = useCallback(() => {
     if (contextMenu.clusterId) {
       const clusterToPin = availableClusters.find(c => c.id === contextMenu.clusterId);
       if (clusterToPin) {
         // Add to pinned clusters
         setPinnedClusters(prev => [...prev, clusterToPin]);
-        // Remove from available clusters
-        setAvailableClusters(prev => prev.filter(c => c.id !== contextMenu.clusterId));
       }
       // Close context menu
       setContextMenu(prev => ({ ...prev, visible: false }));
     }
-  };
+  }, [contextMenu.clusterId, availableClusters]);
 
   // Handle unpin action
-  const handleUnpin = () => {
+  const handleUnpin = useCallback(() => {
     if (contextMenu.clusterId) {
-      const clusterToUnpin = pinnedClusters.find(c => c.id === contextMenu.clusterId);
-      if (clusterToUnpin) {
-        // Add to available clusters
-        setAvailableClusters(prev => [...prev, clusterToUnpin]);
-        // Remove from pinned clusters
-        setPinnedClusters(prev => prev.filter(c => c.id !== contextMenu.clusterId));
-      }
+      // Remove from pinned clusters
+      setPinnedClusters(prev => prev.filter(c => c.id !== contextMenu.clusterId));
       // Close context menu
       setContextMenu(prev => ({ ...prev, visible: false }));
     }
-  };
+  }, [contextMenu.clusterId]);
 
   // Handle delete context action
-  const handleDeleteContext = () => {
-
+  const handleDeleteContext = useCallback(() => {
     // TODO make api request to delete contex
     // TODO a dialog check if the set context is current context kubeconfig, ask to change the context and then remove
     if (contextMenu.clusterId) {
@@ -210,9 +349,9 @@ const HomePage: React.FC = () => {
       setDeleteDialogOpen(true);
       setContextMenu(prev => ({ ...prev, visible: false }));
     }
-  };
+  }, [contextMenu.clusterId]);
 
-  const confirmDeleteContext = () => {
+  const confirmDeleteContext = useCallback(() => {
     if (contextToDelete) {
       // If deleting the selected cluster, clear selection
       if (contextToDelete === selectedClusterId) {
@@ -225,112 +364,33 @@ const HomePage: React.FC = () => {
       if (isPinned) {
         // Remove from pinned clusters
         setPinnedClusters(prev => prev.filter(c => c.id !== contextToDelete));
-      } else {
-        // Remove from available clusters
-        setAvailableClusters(prev => prev.filter(c => c.id !== contextToDelete));
       }
 
       // Close the dialog
       setDeleteDialogOpen(false);
       setContextToDelete(null);
     }
-  };
+  }, [contextToDelete, selectedClusterId, pinnedClusters]);
 
-  // Filter clusters based on search query
-  const filteredClusters = availableClusters.filter(cluster =>
-    cluster.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cluster.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const ClusterIcon: React.FC<{ type: ClusterItem['type'] }> = ({ type }) => {
-    switch (type) {
-      case 'kind':
-        return <img className='h-10 w-10' src={KUBERNETES_LOGO} alt="Kubernetes logo" />;
-      case 'docker':
-        return <img className='h-10 w-10' src={DOCKER_PROVIDER} alt="Docker logo" />;
-      case 'minikube':
-        return <img className='h-10 w-10' src={MINIKUBE_PROVIDER} alt="Minikube logo" />;
-      case 'aws':
-        return <img className='h-10 w-10' src={theme === 'dark' ? AWS_PROVIDER_DARK : AWS_PROVIDER} alt="AWS logo" />;
-      case 'gcp':
-        return <img className='h-10 w-10' src={GCP_PROVIDER} alt="GCP logo" />;
-      case 'azure':
-        return <img className='h-10 w-10' src={AZURE_PROVIDER} alt="Azure logo" />;
-      default:
-        return <img className='h-10 w-10' src={KUBERNETES_LOGO} alt="Kubernetes logo" />;
+  const handleMainConnect = useCallback(() => {
+    if (selectedClusterId) {
+      handleConnect(selectedClusterId);
+    } else {
+      // If no cluster is selected, use the first available one
+      const defaultClusterId = pinnedClusters[0]?.id || availableClusters[0]?.id;
+      if (defaultClusterId) handleConnect(defaultClusterId);
     }
-  };
+  }, [selectedClusterId, handleConnect, pinnedClusters, availableClusters]);
 
-  // Component for cluster card
-  const ClusterCard: React.FC<{ cluster: ClusterItem; isPinned?: boolean }> = ({ cluster, isPinned = false }) => {
-    const isSelected = selectedClusterId === cluster.id;
+  const handleContextMenuConnect = useCallback(() => {
+    if (contextMenu.clusterId) {
+      handleConnect(contextMenu.clusterId);
+      setContextMenu(prev => ({ ...prev, visible: false }));
+    }
+  }, [contextMenu.clusterId, handleConnect]);
 
-    // Handle double-click to immediately connect
-    const handleDoubleClick = () => {
-      handleConnect(cluster.id);
-    };
-
-    // Determine if we need to truncate the text
-    const isTruncatedName = cluster.name.length > 35;
-    const isTruncatedDescription = cluster.description.length > 35;
-
-    return (
-      <div
-        className={`rounded-lg p-4 flex items-center gap-4 cursor-pointer transition-colors
-          ${isSelected
-            ? 'bg-gray-200 dark:bg-gray-800/20 border-r-2 border-blue-500'
-            : 'hover:bg-gray-200 dark:hover:bg-gray-800/50 border-2 border-transparent'}`}
-        onContextMenu={(e) => handleContextMenu(e, cluster.id, isPinned)}
-        onClick={() => handleClusterClick(cluster.id)}
-        onDoubleClick={handleDoubleClick}
-      >
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white">
-          <ClusterIcon type={cluster.type} />
-        </div>
-        <div className="flex-1">
-          <h3
-            className={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'dark:text-white'}`}
-          >
-            {isTruncatedName ? cluster.name.slice(0, 35) + '...' : cluster.name}
-          </h3>
-
-          {isTruncatedDescription ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <p className="dark:text-gray-400 text-sm">
-                    {cluster.description.slice(0, 35) + '...'}
-                  </p>
-                </TooltipTrigger>
-                <TooltipContent className="bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md border border-gray-300 dark:border-gray-800/60 p-3 rounded-md shadow-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ClusterIcon type={cluster.type} />
-                  </div>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    <div className="mb-1">
-                      <span className="font-semibold">Name: </span>
-                      <span>{cluster.name}</span>
-                    </div>
-                    <div className="mb-1">
-                      <span className="font-semibold">Context: </span>
-                      <span>{cluster.description}</span>
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <p className="dark:text-gray-400 text-sm">
-              {cluster.description}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Context Menu Component
-  const ContextMenu: React.FC = () => {
+  // Context Menu Component - memoized
+  const ContextMenu = memo(() => {
     if (!contextMenu.visible) return null;
 
     return (
@@ -362,12 +422,7 @@ const HomePage: React.FC = () => {
 
         <div
           className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer rounded-sm"
-          onClick={() => {
-            if (contextMenu.clusterId) {
-              handleConnect(contextMenu.clusterId);
-              setContextMenu(prev => ({ ...prev, visible: false }));
-            }
-          }}
+          onClick={handleContextMenuConnect}
         >
           <Link size={16} />
           <span>Connect</span>
@@ -382,16 +437,9 @@ const HomePage: React.FC = () => {
         </div>
       </div>
     );
-  };
+  });
 
-  // Get all available clusters (pinned + available)
-  const allClusters = [...pinnedClusters, ...availableClusters];
-
-  // Check if a cluster is selected
-  const hasSelectedCluster = selectedClusterId !== null;
-
-  // Get the selected cluster (either from pinned or available)
-  const selectedCluster = allClusters.find(cluster => cluster.id === selectedClusterId);
+  ContextMenu.displayName = 'ContextMenu';
 
   return (
     <div className="p-6">
@@ -419,15 +467,7 @@ const HomePage: React.FC = () => {
                   ${hasSelectedCluster
                       ? 'bg-blue-700 dark:bg-blue-800 hover:bg-blue-700 text-white'
                       : 'bg-gray-300 hover:bg-gray-300 text-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-600'}`}
-                  onClick={() => {
-                    if (selectedClusterId) {
-                      handleConnect(selectedClusterId);
-                    } else {
-                      // If no cluster is selected, use the first available one
-                      const defaultClusterId = pinnedClusters[0]?.id || availableClusters[0]?.id;
-                      if (defaultClusterId) handleConnect(defaultClusterId);
-                    }
-                  }}
+                  onClick={handleMainConnect}
                   disabled={isContextsLoading || (!pinnedClusters.length && !availableClusters.length)}
                 >
                   Connect
@@ -454,7 +494,16 @@ const HomePage: React.FC = () => {
             <div className="space-y-2">
               {pinnedClusters.length > 0 ? (
                 pinnedClusters.map(cluster => (
-                  <ClusterCard key={cluster.id} cluster={cluster} isPinned={true} />
+                  <ClusterCard 
+                    key={cluster.id} 
+                    cluster={cluster} 
+                    isPinned={true}
+                    isSelected={selectedClusterId === cluster.id}
+                    onContextMenu={handleContextMenu}
+                    onClusterClick={handleClusterClick}
+                    onConnect={handleConnect}
+                    theme={theme}
+                  />
                 ))
               ) : (
                 <p className="text-gray-500 dark:text-gray-400">No pinned clusters yet. Right-click on a cluster to pin it.</p>
@@ -520,7 +569,15 @@ const HomePage: React.FC = () => {
           <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-2'}`}>
             {filteredClusters.length > 0 ? (
               filteredClusters.map(cluster => (
-                <ClusterCard key={cluster.id} cluster={cluster} />
+                <ClusterCard 
+                  key={cluster.id} 
+                  cluster={cluster}
+                  isSelected={selectedClusterId === cluster.id}
+                  onContextMenu={handleContextMenu}
+                  onClusterClick={handleClusterClick}
+                  onConnect={handleConnect}
+                  theme={theme}
+                />
               ))
             ) : (
               <div className="col-span-full py-8 text-center">
