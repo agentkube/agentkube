@@ -9,7 +9,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Server, Cpu, Database, HardDrive, Network, Tag, Terminal } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Server, Cpu, Database, HardDrive, Network, Tag, Terminal, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,6 +19,7 @@ import { Progress } from "@/components/ui/progress";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { runExternalShell } from '@/api/external';
 import { useSearchParams } from 'react-router-dom';
+import { OPERATOR_URL } from '@/config';
 
 // Custom component imports
 import PropertiesViewer from './components/properties.viewer';
@@ -31,11 +32,27 @@ interface NodeData extends V1Node {
   events?: CoreV1Event[];
 }
 
+// Interface for node metrics
+interface NodeMetrics {
+  name: string;
+  cpuUsage: string;
+  cpuUsagePercentage: number;
+  cpuConsumed: number;
+  memoryUsage: string;
+  memoryUsageKi: number;
+  memoryUsagePercentage: number;
+  memoryConsumed: number;
+  timestamp: string;
+}
+
 const NodeViewer: React.FC = () => {
   const [nodeData, setNodeData] = useState<NodeData | null>(null);
   const [events, setEvents] = useState<CoreV1Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<NodeMetrics | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
   const { currentContext, fullWidth } = useCluster();
   const { nodeName } = useParams<{ nodeName: string }>();
   const navigate = useNavigate();
@@ -43,6 +60,86 @@ const NodeViewer: React.FC = () => {
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
 
+  // Parse CPU string (handles 'm' suffix for millicores and 'n' suffix for nanocores)
+  const parseCpuValue = (cpuStr: string): number => {
+    if (cpuStr.endsWith('m')) {
+      return parseFloat(cpuStr.slice(0, -1)) / 1000;
+    } else if (cpuStr.endsWith('n')) {
+      return parseFloat(cpuStr.slice(0, -1)) / 1000000000;
+    }
+    return parseFloat(cpuStr);
+  };
+
+  // Fetch node metrics from metrics server
+  const fetchNodeMetrics = async () => {
+    if (!currentContext || !nodeName) return;
+
+    try {
+      setMetricsLoading(true);
+      setMetricsError(null);
+
+      const response = await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes/${nodeName}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Metrics server not installed or node metrics not available');
+        }
+        throw new Error(`Failed to get metrics: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data && data.usage) {
+        const cpuUsage = data.usage.cpu || '0';
+        const memoryUsage = data.usage.memory || '0Ki';
+        const memoryUsageKi = parseInt(memoryUsage.replace('Ki', ''));
+
+        // Calculate percentages if nodeData is available
+        let cpuUsagePercentage = 0;
+        let cpuConsumed = 0;
+        let memoryUsagePercentage = 0;
+        let memoryConsumed = 0;
+
+        if (nodeData?.status?.capacity) {
+          const capacity = nodeData.status.capacity;
+          const cpuCapacity = parseInt(capacity.cpu || '0');
+          const memoryCapacityKi = parseInt((capacity.memory || '0Ki').replace('Ki', ''));
+
+          if (cpuCapacity > 0) {
+            cpuConsumed = parseCpuValue(cpuUsage);
+            cpuUsagePercentage = (cpuConsumed / cpuCapacity) * 100;
+          }
+
+          if (memoryCapacityKi > 0) {
+            memoryUsagePercentage = (memoryUsageKi / memoryCapacityKi) * 100;
+            memoryConsumed = memoryUsageKi;
+          }
+        }
+
+        setMetrics({
+          name: nodeName,
+          cpuUsage,
+          cpuUsagePercentage,
+          cpuConsumed,
+          memoryUsage,
+          memoryUsageKi,
+          memoryUsagePercentage,
+          memoryConsumed,
+          timestamp: data.timestamp || ''
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching node metrics:', err);
+      setMetricsError(err instanceof Error ? err.message : 'Failed to fetch metrics');
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
 
   // Fetch events for the node
   const fetchEvents = async () => {
@@ -102,6 +199,23 @@ const NodeViewer: React.FC = () => {
     fetchNodeData();
   }, [currentContext, nodeName]);
 
+  // Fetch metrics after node data is loaded
+  useEffect(() => {
+    if (nodeData) {
+      fetchNodeMetrics();
+    }
+  }, [nodeData]);
+
+  // Set up metrics refresh interval
+  useEffect(() => {
+    if (!nodeData) return;
+
+    const intervalId = setInterval(() => {
+      fetchNodeMetrics();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [nodeData, currentContext, nodeName]);
 
   const handleOpenShell = async () => {
     try {
@@ -128,7 +242,8 @@ const NodeViewer: React.FC = () => {
           'nodes',
           nodeName
         ),
-        fetchEvents()
+        fetchEvents(),
+        fetchNodeMetrics()
       ]).then(([data]) => {
         setNodeData(data);
         setLoading(false);
@@ -182,8 +297,7 @@ const NodeViewer: React.FC = () => {
         },
         usage: {
           cpuPercent: 0,
-          memoryPercent: 0,
-          podsPercent: 0
+          memoryPercent: 0
         }
       };
     }
@@ -191,15 +305,10 @@ const NodeViewer: React.FC = () => {
     const capacity = nodeData.status.capacity || {};
     const allocatable = nodeData.status.allocatable || {};
 
-    // Calculate usage percentages
-    // In a real app, you'd get the actual used values from metrics API
-    // Here we're just simulating usage percentages
-    
-    // TODO Remove these mock values
+    // Use actual metrics if available, otherwise show 0
     const usage = {
-      cpuPercent: 30,  // Mock values - would come from metrics in real app
-      memoryPercent: 45,
-      podsPercent: 20
+      cpuPercent: metrics?.cpuUsagePercentage || 0,
+      memoryPercent: metrics?.memoryUsagePercentage || 0
     };
 
     return {
@@ -320,6 +429,23 @@ const NodeViewer: React.FC = () => {
     );
   };
 
+  // Metrics alert component
+  const MetricsAlert = () => {
+    if (!metricsError) return null;
+
+    return (
+      <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800">
+        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+        <AlertTitle>Metrics Unavailable</AlertTitle>
+        <AlertDescription>
+          {metricsError.includes('not installed') 
+            ? 'Metrics server is not installed. Resource usage data is not available.'
+            : `Unable to fetch metrics: ${metricsError}`}
+        </AlertDescription>
+      </Alert>
+    );
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -429,6 +555,11 @@ const NodeViewer: React.FC = () => {
                 >
                   {status}
                 </Badge>
+                {metricsLoading && (
+                  <Badge variant="outline" className="animate-pulse">
+                    Fetching metrics...
+                  </Badge>
+                )}
               </div>
               <div className="text-gray-500 dark:text-gray-400">
                 {nodeInfo.osImage} | {nodeInfo.kernelVersion} | Kubernetes {nodeInfo.kubeletVersion}
@@ -452,6 +583,9 @@ const NodeViewer: React.FC = () => {
 
         {/* Status alert if needed */}
         <NodeStatusAlert />
+        
+        {/* Metrics alert if needed */}
+        <MetricsAlert />
 
         {/* Main content tabs */}
         <Tabs 
@@ -495,7 +629,11 @@ const NodeViewer: React.FC = () => {
                   {formatCPU(resources.allocatable.cpu)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Allocatable resources
+                  {metrics ? (
+                    `${metrics.cpuConsumed.toFixed(2)} cores used (${metrics.cpuUsagePercentage.toFixed(1)}%)`
+                  ) : (
+                    metricsError ? 'Metrics unavailable' : 'Loading metrics...'
+                  )}
                 </div>
               </div>
 
@@ -508,7 +646,11 @@ const NodeViewer: React.FC = () => {
                   {formatMemory(resources.allocatable.memory)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Allocatable resources
+                  {metrics ? (
+                    `${formatMemory(metrics.memoryUsage)} used (${metrics.memoryUsagePercentage.toFixed(1)}%)`
+                  ) : (
+                    metricsError ? 'Metrics unavailable' : 'Loading metrics...'
+                  )}
                 </div>
               </div>
 
@@ -529,43 +671,57 @@ const NodeViewer: React.FC = () => {
             {/* Resource Usage */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Resource Usage</h2>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">CPU</span>
-                    <span className="text-sm text-gray-500">{resources.usage.cpuPercent}%</span>
-                  </div>
-                  <Progress value={resources.usage.cpuPercent} className="h-3" />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>0</span>
-                    <span>{formatCPU(resources.allocatable.cpu)}</span>
-                  </div>
+              {metricsError ? (
+                <div className="text-center py-8">
+                  <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">Resource usage metrics are not available</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                    {metricsError.includes('not installed') 
+                      ? 'Install the Kubernetes metrics server to view resource usage'
+                      : metricsError}
+                  </p>
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">CPU</span>
+                      <span className="text-sm text-gray-500">
+                        {metrics ? `${metrics.cpuUsagePercentage.toFixed(1)}%` : 'Loading...'}
+                      </span>
+                    </div>
+                    <Progress value={resources.usage.cpuPercent} className="h-3" />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0</span>
+                      <span>{formatCPU(resources.allocatable.cpu)}</span>
+                    </div>
+                    {metrics && (
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Using {metrics.cpuConsumed.toFixed(2)} cores
+                      </div>
+                    )}
+                  </div>
 
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">Memory</span>
-                    <span className="text-sm text-gray-500">{resources.usage.memoryPercent}%</span>
-                  </div>
-                  <Progress value={resources.usage.memoryPercent} className="h-3" />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>0</span>
-                    <span>{formatMemory(resources.allocatable.memory)}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">Pods</span>
-                    <span className="text-sm text-gray-500">{resources.usage.podsPercent}%</span>
-                  </div>
-                  <Progress value={resources.usage.podsPercent} className="h-3" />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>0</span>
-                    <span>{resources.allocatable.pods || 'N/A'}</span>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Memory</span>
+                      <span className="text-sm text-gray-500">
+                        {metrics ? `${metrics.memoryUsagePercentage.toFixed(1)}%` : 'Loading...'}
+                      </span>
+                    </div>
+                    <Progress value={resources.usage.memoryPercent} className="h-3" />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0</span>
+                      <span>{formatMemory(resources.allocatable.memory)}</span>
+                    </div>
+                    {metrics && (
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Using {formatMemory(metrics.memoryUsage)}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Node Properties */}
@@ -716,6 +872,32 @@ const NodeViewer: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Metrics Information */}
+            {metrics && (
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
+                <h2 className="text-lg font-medium mb-4">Current Metrics</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/30">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">CPU Usage</div>
+                    <div className="text-lg font-semibold">{metrics.cpuConsumed.toFixed(3)} cores</div>
+                    <div className="text-xs text-gray-500">{metrics.cpuUsagePercentage.toFixed(2)}% of capacity</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/30">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Memory Usage</div>
+                    <div className="text-lg font-semibold">{formatMemory(metrics.memoryUsage)}</div>
+                    <div className="text-xs text-gray-500">{metrics.memoryUsagePercentage.toFixed(2)}% of capacity</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/30">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Last Updated</div>
+                    <div className="text-lg font-semibold">
+                      {metrics.timestamp ? new Date(metrics.timestamp).toLocaleTimeString() : 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-500">Metrics timestamp</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Node Events */}
             <EventsViewer
