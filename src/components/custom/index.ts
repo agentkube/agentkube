@@ -25,6 +25,7 @@ export { default as ProvisionDrawer } from './provisioningdrawer/provisioningdra
 export { default as Wallpaper } from './wallpaper/wallpaper.component';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
+export { default as UninstallChartDialog } from './helmchartdialog/uninstallchartdialog.component';
 export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
 export { default as ReactivateLicenseKey } from './licensekey/reactivatelicensekey.component';
 

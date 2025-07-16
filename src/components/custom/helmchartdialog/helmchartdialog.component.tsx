@@ -243,7 +243,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-5xl bg-gray-100 dark:bg-[#0B0D13] border-gray-200 dark:border-gray-900/10 backdrop-blur-sm">
+      <DialogContent className="sm:max-w-5xl bg-gray-100 dark:bg-[#0B0D13]/50 border-gray-200 dark:border-gray-900/10 backdrop-blur-lg">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
             {chart.logo_image_id ? (

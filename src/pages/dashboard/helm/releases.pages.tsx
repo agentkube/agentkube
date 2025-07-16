@@ -25,6 +25,8 @@ import {
 } from '@/api/internal/helm';
 import { useCluster } from '@/contexts/clusterContext';
 import { DialogDescription } from '@radix-ui/react-dialog';
+import { UninstallChartDialog } from '@/components/custom';
+import { useNavigate } from 'react-router-dom';
 
 // Function to calculate the age of a resource
 const calculateAge = (timestamp: string): string => {
@@ -59,6 +61,11 @@ const HelmReleases: React.FC = () => {
   const [selectedRelease, setSelectedRelease] = useState<HelmRelease | null>(null);
   const [releaseHistory, setReleaseHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  
+  // Uninstall dialog state
+  const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false);
+  const [releaseToUninstall, setReleaseToUninstall] = useState<HelmRelease | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -197,29 +204,33 @@ const HelmReleases: React.FC = () => {
     });
   };
 
-  // Handle uninstall release
-  const handleUninstallRelease = async (release: HelmRelease) => {
-    if (!confirm(`Are you sure you want to uninstall '${release.name}' from namespace '${release.namespace}'?`)) {
-      return;
-    }
+  // Handle uninstall release - opens dialog
+  const handleUninstallRelease = (release: HelmRelease) => {
+    setReleaseToUninstall(release);
+    setUninstallDialogOpen(true);
+  };
+
+  // Confirm uninstall - actual uninstall logic
+  const confirmUninstallRelease = async () => {
+    if (!releaseToUninstall) return;
 
     try {
       // Mark this release as having an action in progress
-      setActionInProgress(prev => ({ ...prev, [`${release.namespace}/${release.name}`]: true }));
+      setActionInProgress(prev => ({ ...prev, [`${releaseToUninstall.namespace}/${releaseToUninstall.name}`]: true }));
 
       await uninstallHelmRelease(
         currentContext!.name,
-        release.name,
-        release.namespace
+        releaseToUninstall.name,
+        releaseToUninstall.namespace
       );
 
       toast({
         title: "Uninstall started",
-        description: `Uninstalling ${release.name} from ${release.namespace}...`,
+        description: `Uninstalling ${releaseToUninstall.name} from ${releaseToUninstall.namespace}...`,
       });
 
       // Start polling for status updates
-      pollActionStatus(release, 'uninstall');
+      pollActionStatus(releaseToUninstall, 'uninstall');
     } catch (err) {
       console.error('Failed to uninstall release:', err);
       toast({
@@ -229,7 +240,7 @@ const HelmReleases: React.FC = () => {
       });
 
       // Clear action in progress
-      setActionInProgress(prev => ({ ...prev, [`${release.namespace}/${release.name}`]: false }));
+      setActionInProgress(prev => ({ ...prev, [`${releaseToUninstall.namespace}/${releaseToUninstall.name}`]: false }));
     }
   };
 
@@ -253,13 +264,23 @@ const HelmReleases: React.FC = () => {
           description: `${action.charAt(0).toUpperCase() + action.slice(1)} completed for ${release.name}`,
         });
 
-        // Refresh releases list
-        const updatedReleases = await listHelmReleases(
-          currentContext!.name,
-          namespace || undefined,
-          showAllNamespaces
-        );
-        setReleases(updatedReleases);
+        // Refresh releases list with current view settings
+        try {
+          const updatedReleases = await listHelmReleases(
+            currentContext!.name,
+            showAllNamespaces ? undefined : namespace || undefined,
+            showAllNamespaces
+          );
+          setReleases(updatedReleases);
+        } catch (refreshError) {
+          console.error('Failed to refresh releases after action:', refreshError);
+          // If refresh fails, just remove the specific release for uninstall actions
+          if (action === 'uninstall') {
+            setReleases(prev => prev.filter(r => 
+              !(r.name === release.name && r.namespace === release.namespace)
+            ));
+          }
+        }
 
         // Clear action in progress
         setActionInProgress(prev => ({ ...prev, [key]: false }));
@@ -294,11 +315,11 @@ const HelmReleases: React.FC = () => {
   // Handle creating a new release
   const handleNewRelease = () => {
     // Navigate to the new release form
-    // This would typically open a modal or redirect to a create page
-    toast({
-      title: "Not yet implemented",
-      description: "Installing new Helm charts will be available soon!",
-    });
+    // toast({
+    //   title: "Not yet implemented",
+    //   description: "Installing new Helm charts will be available soon!",
+    // });
+    navigate("/dashboard/explore/charts")
   };
 
   // Handle refresh
@@ -442,6 +463,7 @@ const HelmReleases: React.FC = () => {
         </Alert>
       )}
 
+      {/* History Dialog */}
       <Dialog
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
@@ -500,6 +522,15 @@ const HelmReleases: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Uninstall Dialog */}
+      <UninstallChartDialog
+        open={uninstallDialogOpen}
+        onOpenChange={setUninstallDialogOpen}
+        release={releaseToUninstall}
+        onConfirm={confirmUninstallRelease}
+        isLoading={releaseToUninstall ? isActionInProgress(releaseToUninstall) : false}
+      />
 
       {!error && filteredReleases.length > 0 && (
         <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
@@ -571,7 +602,7 @@ const HelmReleases: React.FC = () => {
                             )}
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+                        <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleViewHistory(release)}>

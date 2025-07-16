@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Search, ExternalLink, Package, Star } from "lucide-react";
+import { Loader2, Search, ExternalLink, Package, Star, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -20,16 +20,19 @@ interface ArtifactHubResponse {
 }
 
 const HelmCharts: React.FC = () => {
-  const navigate = useNavigate();
   const [charts, setCharts] = useState<ArtifactHubChart[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(true);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedChart, setSelectedChart] = useState<ArtifactHubChart | null>(null);
 
+  const itemsPerPage = 20;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,6 +62,7 @@ const HelmCharts: React.FC = () => {
   const debouncedSearch = useCallback(
     debounce((query: string) => {
       setDebouncedQuery(query);
+      setCurrentPage(1); // Reset to first page when search changes
     }, 500), // 500ms debounce delay
     []
   );
@@ -69,16 +73,17 @@ const HelmCharts: React.FC = () => {
       try {
         setLoading(true);
 
+        const offset = (currentPage - 1) * itemsPerPage;
+
         // Create the search URL with the query parameter
         const searchUrl = new URL('https://artifacthub.io/api/v1/packages/search');
-        searchUrl.searchParams.append('offset', '0');
-        searchUrl.searchParams.append('limit', '20');
+        searchUrl.searchParams.append('offset', offset.toString());
+        searchUrl.searchParams.append('limit', itemsPerPage.toString());
         searchUrl.searchParams.append('facets', 'true');
         searchUrl.searchParams.append('kind', '0');
-        searchUrl.searchParams.append('ts_query_web', debouncedQuery); // Use debounced query
+        searchUrl.searchParams.append('ts_query_web', debouncedQuery);
         searchUrl.searchParams.append('sort', 'relevance');
         searchUrl.searchParams.append('deprecated', 'false');
-        // searchUrl.searchParams.append('verified_publisher', 'true');
 
         const response = await fetch(searchUrl.toString(), {
           headers: {
@@ -91,7 +96,12 @@ const HelmCharts: React.FC = () => {
         }
 
         const data: ArtifactHubResponse = await response.json();
-        setCharts(data.packages);
+        setCharts(data.packages || []);
+        setTotalResults(data.metadata?.total || 0);
+        
+        // Check if there's a next page based on the number of results returned
+        setHasNextPage(data.packages && data.packages.length === itemsPerPage);
+        
         setError(null);
       } catch (err) {
         console.error('Failed to fetch Helm charts:', err);
@@ -102,7 +112,7 @@ const HelmCharts: React.FC = () => {
     };
 
     fetchHelmCharts();
-  }, [debouncedQuery]); // Use debouncedQuery instead of searchQuery
+  }, [debouncedQuery, currentPage]);
 
   // Filter charts based on search query
   const filteredCharts = useMemo(() => {
@@ -114,6 +124,19 @@ const HelmCharts: React.FC = () => {
   const handleChartDetails = (chart: ArtifactHubChart) => {
     setSelectedChart(chart);
     setIsDialogOpen(true);
+  };
+
+  // Pagination handlers
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (hasNextPage) {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
   // Format relative time from timestamp
@@ -135,6 +158,10 @@ const HelmCharts: React.FC = () => {
       return 'Unknown';
     }
   };
+
+  // Calculate pagination info
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(startIndex + filteredCharts.length - 1, totalResults);
 
   return (
     <div className="p-6 space-y-6
@@ -163,7 +190,14 @@ const HelmCharts: React.FC = () => {
         </div>
 
         <div className="w-full md:w-96">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Discover and install Helm charts from Artifact Hub</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Discover and install Helm charts from Artifact Hub
+            {totalResults > 0 && (
+              <span className="block mt-1">
+                Showing {startIndex}-{endIndex} of {totalResults} results
+              </span>
+            )}
+          </p>
         </div>
       </div>
 
@@ -203,12 +237,12 @@ const HelmCharts: React.FC = () => {
             />
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
-                <TableRow className="border-b border-gray-300 dark:border-gray-800/80">
+                <TableRow className="border-b border-gray-300 dark:border-gray-800/80 text-xs">
                   <TableHead>Name</TableHead>
                   <TableHead>Repository</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-center">Version</TableHead>
-                  <TableHead className="text-center">App Version</TableHead>
+                  <TableHead className="text-center w-[100px]">App Version</TableHead>
                   <TableHead className="text-center">Age</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -221,7 +255,7 @@ const HelmCharts: React.FC = () => {
                     onClick={() => handleChartDetails(chart)}
                   >
                     <TableCell className="font-medium">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 text-xs">
                         {chart.logo_image_id ? (
                           <img
                             src={`https://artifacthub.io/image/${chart.logo_image_id}`}
@@ -231,7 +265,7 @@ const HelmCharts: React.FC = () => {
                         ) : (
                           <Package className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                         )}
-                        <div className="hover:text-blue-500 hover:underline">
+                        <div className="hover:text-blue-500 hover:underline max-w-md truncate">
                           {chart.display_name || chart.name}
                         </div>
                         {chart.repository.verified_publisher && (
@@ -242,26 +276,26 @@ const HelmCharts: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
+                      <div className="text-xs">
                         {chart.repository.display_name || chart.repository.name}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 max-w-md truncate">
+                    <TableCell> 
+                      <div className="text-xs text-gray-600 dark:text-gray-400 max-w-xs truncate">
                         {chart.description}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="text-sm">
+                      <div className="text-xs">
                         {chart.version}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="text-sm">
+                      <div className="text-xs">
                         {chart.app_version || '-'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center text-xs">
                       {formatRelativeTime(chart.ts)}
                     </TableCell>
                     <TableCell>
@@ -280,7 +314,7 @@ const HelmCharts: React.FC = () => {
                             openExternalUrl(`https://artifacthub.io/packages/helm/${chart.repository.name}/${chart.name}`);
                           }}
                         >
-                          <ExternalLink className="h-4 w-4" />
+                          <ArrowUpRight className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -288,6 +322,40 @@ const HelmCharts: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-800/80">
+            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+              <span>Page {currentPage}</span>
+              {totalResults > 0 && (
+                <span className="ml-2">
+                  ({startIndex}-{endIndex} of {totalResults})
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNextPage}
+                disabled={!hasNextPage}
+                className="flex items-center gap-1"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </Card>
       )}
