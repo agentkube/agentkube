@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, ArrowUp, BotMessageSquare, Search, ScanSearch, Loader, Plus, Lightbulb } from 'lucide-react';
+import { X, ArrowUp, BotMessageSquare, Search, ScanSearch, Loader, Plus, Lightbulb, Terminal } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from 'framer-motion';
-import { AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
+import { AddResourceLogsPicker, AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
 import { EnrichedSearchResult } from '@/types/search';
 import { toast as sooner } from "sonner";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { LogsSelection } from '@/types/logs';
 
 interface BackgroundTaskDialogProps {
 	isOpen: boolean;
@@ -31,6 +32,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const [contextLogs, setContextLogs] = useState<LogsSelection[]>([]);
 
 	useEffect(() => {
 		if (isOpen && inputRef.current) {
@@ -87,6 +89,17 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 
 	const handleResourcePreview = (resource: EnrichedSearchResult) => {
 		setPreviewResource(resource);
+	};
+
+	const handleLogsSelect = (selection: LogsSelection) => {
+		setContextLogs(prev => [
+			...prev.filter(log => 
+				!(log.podName === selection.podName && 
+					log.namespace === selection.namespace && 
+					log.containerName === selection.containerName)
+			),
+			selection
+		]);
 	};
 
 	const handleAddContext = (resource: any): void => {
@@ -154,41 +167,72 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 					</div>
 
 					{/* Main Container */}
-					<div className="px-3 py-2">
-						{/* Context Files */}
-						{contextFiles.length > 0 && (
-							<div className="mb-4 flex flex-wrap gap-2 relative">
-								{contextFiles.map(file => (
-									<div
-										key={file.resourceName}
-										className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-1"
-									>
-										<div
-											className="flex items-center cursor-pointer"
-											onClick={() => handleResourcePreview(file)}
-										>
-											<img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
-											<span className="ml-1">{file.resourceName}</span>
-										</div>
-										<X
-											size={12}
-											className="ml-1 cursor-pointer"
-											onClick={(e) => {
-												e.stopPropagation();
-												setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
-											}}
-										/>
-									</div>
-								))}
+					<div className="px-2 py-1">
 
-								{previewResource && (
-									<ResourcePreview
-										resource={previewResource}
-										onClose={() => setPreviewResource(null)}
-									/>
-								)}
-							</div>
-						)}
+						<div className='flex flex-wrap'>
+							{/* Context Files */}
+							{contextFiles.length > 0 && (
+								<div className="mb-1 flex flex-wrap gap-1 relative">
+									{contextFiles.map(file => (
+										<div
+											key={file.resourceName}
+											className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-1"
+										>
+											<div
+												className="flex items-center cursor-pointer"
+												onClick={() => handleResourcePreview(file)}
+											>
+												<img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+												<span className="ml-1">{file.resourceName}</span>
+											</div>
+											<X
+												size={12}
+												className="ml-1 cursor-pointer"
+												onClick={(e) => {
+													e.stopPropagation();
+													setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
+												}}
+											/>
+										</div>
+									))}
+
+									{previewResource && (
+										<ResourcePreview
+											resource={previewResource}
+											onClose={() => setPreviewResource(null)}
+										/>
+									)}
+								</div>
+							)}
+
+							{contextLogs.length > 0 && (
+								<div className="mb-1 flex flex-wrap gap-1">
+									{contextLogs.map(log => (
+										<div
+											key={`${log.podName}-${log.containerName}`}
+											className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded p-1"
+										>
+											<div className="flex items-center space-x-1">
+												{/* <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div> */}
+												<div className='bg-gray-400/20 dark:bg-gray-500/20 p-0.5 rounded-sm'>
+													<Terminal className='h-3 w-3' />
+												</div>
+												<span>{log.podName}/{log.containerName}</span> <span className='text-gray-400'>(100)</span>
+											</div>
+											<X
+												size={12}
+												className="ml-1 cursor-pointer"
+												onClick={() => {
+													setContextLogs(prev => prev.filter(l => 
+														!(l.podName === log.podName && l.containerName === log.containerName)
+													));
+												}}
+											/>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
 
 						{/* Input Form */}
 						<form
@@ -223,12 +267,8 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 						<div className="flex justify-between items-center relative">
 							<div className='flex items-center'>
 								<ResourceContext onResourceSelect={handleAddContext} />
-								<button
-									className="flex items-center text-gray-400 hover:text-gray-300 transition-colors rounded px-2 py-1"
-								>
-									<Plus size={14} className="mr-1" />
-									<span className="text-xs">Add Logs</span>
-								</button>
+								
+								<AddResourceLogsPicker onLogsSelect={handleLogsSelect} />
 								<button
 									className="flex items-center text-gray-400 hover:text-gray-300 transition-colors rounded px-2 py-1"
 								>

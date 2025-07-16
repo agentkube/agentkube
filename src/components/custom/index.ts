@@ -29,6 +29,8 @@ export { default as UninstallChartDialog } from './helmchartdialog/uninstallchar
 export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
 export { default as ReactivateLicenseKey } from './licensekey/reactivatelicensekey.component';
 
+export { default as AddResourceLogsPicker } from './resourcelogspicker/resourcelogpicker.component';
+
 // MCP
 export { default as MCPServerConfigPage } from './modelsconfig/modelconfig.component';
 export { default as MCPServerList } from './modelsconfig/modelcontextprotocol/modelcontextprotocol-list.component';
