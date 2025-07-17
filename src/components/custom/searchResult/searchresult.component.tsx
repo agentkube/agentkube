@@ -36,7 +36,12 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   const [isExecuting, setIsExecuting] = useState(false);
   const navigate = useNavigate();
   const [isDialogOpen, setDialogOpen] = useState(false);
+  const [hasNavigated, setHasNavigated] = useState(false);
   const { currentContext } = useCluster();
+
+  useEffect(() => {
+    setHasNavigated(false);
+  }, [query]);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -57,8 +62,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         );
 
         setResults(response.results || []);
-
-        // Notify parent of results count
         if (onResultsCountChange) {
           onResultsCountChange(response.results?.length || 0);
         }
@@ -72,8 +75,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       }
     };
 
-    // const timeout = setTimeout(() => {
-    // }, 300);
     fetchResults();
 
 
@@ -83,7 +84,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   // Handle keyboard events only in resource mode
   useEffect(() => {
     if (!isResourceMode) return;
-
+  
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle escape to close command output
       if (e.key === 'Escape' && commandOutput) {
@@ -92,17 +93,22 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         setCommandOutput(null);
         return;
       }
-
+  
       if (e.key.toLowerCase() === 'f' && commandOutput) {
         e.preventDefault();
         e.stopPropagation();
-        // You'll need to add this prop to CommandOutputSpotlight
         setDialogOpen(true);
         return;
       }
-
-      // Handle D/V keys only if no command output is showing
-      if (activeIndex >= 0 && results.length > 0 && !commandOutput) {
+  
+      // Track navigation with arrow keys
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        setHasNavigated(true);
+        return;
+      }
+  
+      // Handle D/V keys only if user has navigated and no command output is showing
+      if (activeIndex >= 0 && results.length > 0 && !commandOutput && hasNavigated) {
         if (e.key.toLowerCase() === 'd') {
           e.preventDefault();
           e.stopPropagation();
@@ -114,10 +120,10 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         }
       }
     };
-
+  
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isResourceMode, activeIndex, results, commandOutput]);
+  }, [isResourceMode, activeIndex, results, commandOutput, hasNavigated]);
 
   const handleResultClick = (result: SearchResult) => {
     const path = getResourceViewPath(result);
