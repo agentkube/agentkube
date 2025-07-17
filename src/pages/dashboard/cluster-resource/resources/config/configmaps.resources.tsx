@@ -34,6 +34,37 @@ interface SortState {
   direction: SortDirection;
 }
 
+// Helper to count total data entries (data + binaryData)
+const countDataEntries = (configMap: V1ConfigMap): number => {
+  const dataCount = Object.keys(configMap.data || {}).length;
+  const binaryDataCount = Object.keys(configMap.binaryData || {}).length;
+  return dataCount + binaryDataCount;
+};
+
+// Helper to calculate the total size of the ConfigMap data
+const calculateConfigMapSize = (configMap: V1ConfigMap): number => {
+  let totalSize = 0;
+
+  // Calculate size of string data
+  const data = configMap.data || {};
+  Object.values(data).forEach(value => {
+    if (typeof value === 'string') {
+      totalSize += value.length;
+    }
+  });
+
+  // Calculate size of binary data (if any)
+  const binaryData = configMap.binaryData || {};
+  Object.values(binaryData).forEach(value => {
+    if (typeof value === 'string') {
+      // Binary data is base64 encoded, so estimate actual size
+      totalSize += Math.floor((value.length * 3) / 4); // Approximate binary size from base64
+    }
+  });
+
+  return totalSize;
+};
+
 const ConfigMaps: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
@@ -456,36 +487,7 @@ const ConfigMaps: React.FC = () => {
     });
   }, [filteredConfigMaps, sort.field, sort.direction]);
 
-  // Helper to count total data entries (data + binaryData)
-  const countDataEntries = (configMap: V1ConfigMap): number => {
-    const dataCount = Object.keys(configMap.data || {}).length;
-    const binaryDataCount = Object.keys(configMap.binaryData || {}).length;
-    return dataCount + binaryDataCount;
-  };
 
-  // Helper to calculate the total size of the ConfigMap data
-  const calculateConfigMapSize = (configMap: V1ConfigMap): number => {
-    let totalSize = 0;
-
-    // Calculate size of string data
-    const data = configMap.data || {};
-    Object.values(data).forEach(value => {
-      if (typeof value === 'string') {
-        totalSize += value.length;
-      }
-    });
-
-    // Calculate size of binary data (if any)
-    const binaryData = configMap.binaryData || {};
-    Object.values(binaryData).forEach(value => {
-      if (typeof value === 'string') {
-        // Binary data is base64 encoded, so estimate actual size
-        totalSize += Math.floor((value.length * 3) / 4); // Approximate binary size from base64
-      }
-    });
-
-    return totalSize;
-  };
 
   // Format size for display
   const formatSize = (bytes: number): string => {
@@ -661,7 +663,7 @@ const ConfigMaps: React.FC = () => {
                     Size {renderSortIndicator('size')}
                   </TableHead>
                   <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
+                    className="text-center cursor-pointer hover:text-blue-500 w-[70px]"
                     onClick={() => handleSort('age')}
                   >
                     Age {renderSortIndicator('age')}

@@ -1106,7 +1106,7 @@ const Pods: React.FC = () => {
                     Name {renderSortIndicator('name')}
                   </TableHead>
                   <TableHead
-                    className="cursor-pointer hover:text-blue-500"
+                    className="cursor-pointer hover:text-blue-500 w-[110px]"
                     onClick={() => handleSort('namespace')}
                   >
                     Namespace {renderSortIndicator('namespace')}

@@ -562,7 +562,11 @@ const HelmReleases: React.FC = () => {
                       </div>
                     </TableCell>
                     {(showAllNamespaces || !namespace) && (
-                      <TableCell>{release.namespace}</TableCell>
+                      <TableCell>
+                       <span className='hover:text-blue-500 hover:underline cursor-pointer' onClick={() => navigate(`/dashboard/explore/namespaces/${release.namespace}`)}>
+                        {release.namespace}
+                       </span>
+                      </TableCell>
                     )}
                     <TableCell className="text-center">
                       <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStatusColorClass(release.status)}`}>
