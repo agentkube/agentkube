@@ -5,7 +5,7 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown, RotateCcw, Filter } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown, RotateCcw, Filter, Sparkles, TextSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -17,8 +17,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Switch } from "@/components/ui/switch";
-
-// Import the V1Event type from the @kubernetes/client-node library
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { toast } from '@/hooks/use-toast';
 import { CoreV1Event as V1Event } from '@kubernetes/client-node';
 
 // Define sorting types
@@ -454,7 +459,7 @@ const Events: React.FC = () => {
             {event.involvedObject.kind}
           </span>
         </div>
-        <span className="mt-1 text-sm hover:text-blue-500 hover:underline cursor-pointer" onClick={() => navigate(`/dashboard/explore/${event.involvedObject.kind?.toLocaleLowerCase()+'s'}/${event.metadata?.namespace}/${event.involvedObject.name}`)}>
+        <span className="mt-1 text-xs hover:text-blue-500 hover:underline cursor-pointer" onClick={() => navigate(`/dashboard/explore/${event.involvedObject.kind?.toLocaleLowerCase()+'s'}/${event.metadata?.namespace}/${event.involvedObject.name}`)}>
           {event.involvedObject.name}
         </span>
       </div>
@@ -485,7 +490,7 @@ const Events: React.FC = () => {
     }
     
     return (
-      <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${bgColor} ${textColor}`}>
+      <span className={`px-2 py-0.5 rounded-[0.3rem] text-xs font-medium ${bgColor} ${textColor}`}>
         {type}
       </span>
     );
@@ -522,11 +527,11 @@ const Events: React.FC = () => {
     
     return (
       <div className="flex flex-col">
-        <span className="text-sm font-medium">
+        <span className="font-medium">
           {event.source.component || 'Unknown'}
         </span>
         {event.source.host && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-gray-500 dark:text-gray-400">
             {event.source.host}
           </span>
         )}
@@ -977,7 +982,7 @@ const Events: React.FC = () => {
         <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <div className="rounded-md border">
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
+              <TableHeader className='text-xs'>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
                   <TableHead
                     className="cursor-pointer hover:text-blue-500"
@@ -1042,26 +1047,26 @@ const Events: React.FC = () => {
                       {formatEventType(event)}
                     </TableCell>
                     <TableCell className="font-medium" onClick={() => handleEventDetails(event)}>
-                      <div className="hover:text-blue-500 hover:underline">
+                      <div className="hover:text-blue-500 hover:underline text-xs">
                         {event.reason}
                       </div>
                     </TableCell>
                     <TableCell>
                       {formatInvolvedObject(event)}
                     </TableCell>
-                    <TableCell className="max-w-md ">
-                      <div className="truncate hover:truncate-none hover:overflow-visible hover:whitespace-normal transition-all" title={event.message}>
+                    <TableCell className="">
+                      <div className="w-[350px] text-xs truncate hover:truncate-none hover:overflow-visible hover:whitespace-normal transition-all" title={event.message}>
                         {event.message}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center text-xs">
                       {formatCount(event)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className='text-xs w-56'>
                       {formatSource(event)}
                     </TableCell>
                     <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={(e) => {
+                      <div className="hover:text-blue-500 hover:underline text-xs" onClick={(e) => {
                         e.stopPropagation();
                         if (event.metadata?.namespace) {
                           // Add this namespace to filter if not already selected
@@ -1074,20 +1079,37 @@ const Events: React.FC = () => {
                         {event.metadata?.namespace}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className='text-xs w-[70px]'>
                       {formatEventTime(event)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                    <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              toast({ title: "Ask AI", description: "Feature yet to be implemented" })
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask AI
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              // handleInvestigatePod(pod);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <TextSearch className="mr-2 h-4 w-4" />
+                              Investigate
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

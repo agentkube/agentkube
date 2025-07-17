@@ -311,7 +311,7 @@ const EventsViewer: React.FC = () => {
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Bell className="h-4 w-4 text-blue-500" />
-              <h3 className="text-sm font-medium">Total Events</h3>
+              <h3 className="text-xs font-medium">Total Events</h3>
             </div>
             <div className="text-2xl font-semibold">
               {events.length}
@@ -324,7 +324,7 @@ const EventsViewer: React.FC = () => {
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Info className="h-4 w-4 text-green-500" />
-              <h3 className="text-sm font-medium">Normal Events</h3>
+              <h3 className="text-xs font-medium">Normal Events</h3>
             </div>
             <div className="text-2xl font-semibold">
               {events.filter(event => event.type === 'Normal').length}
@@ -337,7 +337,7 @@ const EventsViewer: React.FC = () => {
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle className="h-4 w-4 text-amber-500" />
-              <h3 className="text-sm font-medium">Warning Events</h3>
+              <h3 className="text-xs font-medium">Warning Events</h3>
             </div>
             <div className="text-2xl font-semibold">
               {events.filter(event => event.type === 'Warning').length}
@@ -361,7 +361,7 @@ const EventsViewer: React.FC = () => {
           <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
             <div className="rounded-md border">
               <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-                <TableHeader>
+                <TableHeader className='text-xs'>
                   <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
                     <TableHead className="w-1/6">Time</TableHead>
                     <TableHead className="w-1/12">Type</TableHead>
@@ -371,7 +371,7 @@ const EventsViewer: React.FC = () => {
                     <TableHead>Message</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className='text-xs'>
                   {filteredEvents.map((event) => (
                     <TableRow
                       key={`${event.metadata?.namespace}-${event.metadata?.name}`}
