@@ -13,7 +13,8 @@ import {
   Search,
   XCircle,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  MessageSquare
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ interface ContainerLogsProps {
   namespace: string;
   clusterName: string;
   containers: string[];
+  onAddToChat?: (text: string) => void; // Add this prop for the chat functionality
 }
 
 // Log time filter options
@@ -60,7 +62,8 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   podName,
   namespace,
   clusterName,
-  containers
+  containers,
+  onAddToChat
 }) => {
   const [selectedContainer, setSelectedContainer] = useState<string>(containers[0] || '');
   const [logs, setLogs] = useState<LogLine[]>([]);
@@ -77,11 +80,14 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchMatches, setSearchMatches] = useState<number[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1);
+  const [selectedText, setSelectedText] = useState<string>('');
+  const [selectionWidget, setSelectionWidget] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
   
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const selectionWidgetRef = useRef<HTMLDivElement>(null);
 
   // Effect to handle auto-scrolling when new logs come in
   useEffect(() => {
@@ -118,6 +124,123 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [searchVisible]);
+
+  // Effect to handle text selection
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      // Don't show widget if no logs are available or still loading
+      if (logs.length === 0) {
+        setSelectionWidget({ x: 0, y: 0, visible: false });
+        setSelectedText('');
+        return;
+      }
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        setSelectionWidget({ x: 0, y: 0, visible: false });
+        setSelectedText('');
+        return;
+      }
+
+      const text = selection.toString().trim();
+      if (text.length === 0) {
+        setSelectionWidget({ x: 0, y: 0, visible: false });
+        setSelectedText('');
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      const logContainer = logContainerRef.current;
+      
+      if (!logContainer) {
+        setSelectionWidget({ x: 0, y: 0, visible: false });
+        setSelectedText('');
+        return;
+      }
+
+      // Check if selection is within the logs container
+      let isWithinLogContainer = false;
+      try {
+        const startContainer = range.startContainer;
+        const endContainer = range.endContainer;
+        
+        // Check if selection is within log container
+        isWithinLogContainer = logContainer.contains(startContainer) && logContainer.contains(endContainer);
+      } catch (error) {
+        console.warn('Error checking selection container:', error);
+        isWithinLogContainer = false;
+      }
+
+      if (!isWithinLogContainer) {
+        setSelectionWidget({ x: 0, y: 0, visible: false });
+        setSelectedText('');
+        return;
+      }
+
+      // Position the widget relative to the log container
+      try {
+        const rect = range.getBoundingClientRect();
+        const containerRect = logContainer.getBoundingClientRect();
+        
+        // Make sure we have valid dimensions
+        if (rect.width === 0 && rect.height === 0) {
+          setSelectionWidget({ x: 0, y: 0, visible: false });
+          setSelectedText('');
+          return;
+        }
+        
+        // Calculate position relative to the log container's scroll position
+        const scrollTop = logContainer.scrollTop;
+        const scrollLeft = logContainer.scrollLeft;
+        
+        // Position relative to container, accounting for scroll
+        const x = rect.left - containerRect.left + scrollLeft + (rect.width / 2);
+        const y = rect.top - containerRect.top + scrollTop - 45; // 45px above selection
+        
+        setSelectedText(text);
+        setSelectionWidget({
+          x: Math.max(50, Math.min(x, logContainer.clientWidth - 100)), // Keep within bounds
+          y: Math.max(10, y), // Don't go above container
+          visible: true
+        });
+      } catch (error) {
+        console.warn('Error positioning selection widget:', error);
+        setSelectionWidget({ x: 0, y: 0, visible: false });
+        setSelectedText('');
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      // Only handle if mouse up is within log container
+      const logContainer = logContainerRef.current;
+      if (logContainer && logContainer.contains(e.target as Node)) {
+        // Small delay to ensure selection is complete
+        setTimeout(handleSelectionChange, 50);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const logContainer = logContainerRef.current;
+      const isClickInWidget = selectionWidgetRef.current?.contains(e.target as Node);
+      const isClickInLogs = logContainer?.contains(e.target as Node);
+      
+      if (!isClickInWidget && !isClickInLogs) {
+        setSelectionWidget({ x: 0, y: 0, visible: false });
+        setSelectedText('');
+        // Clear selection
+        window.getSelection()?.removeAllRanges();
+      }
+    };
+
+    // Use mouseup for more reliable detection
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('click', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [logs.length]);
   
   // Effect to handle search
   useEffect(() => {
@@ -374,6 +497,19 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       if (logElements[searchMatches[prevIndex]]) {
         logElements[searchMatches[prevIndex]].scrollIntoView({ block: 'center' });
       }
+    }
+  };
+
+  // Handle adding selected text to chat
+  const handleAddToChat = () => {
+    if (selectedText && onAddToChat) {
+      const wrappedText = `\`\`\`\n${selectedText}\n\`\`\``;
+      onAddToChat(wrappedText);
+      
+      // Clear selection
+      window.getSelection()?.removeAllRanges();
+      setSelectionWidget({ x: 0, y: 0, visible: false });
+      setSelectedText('');
     }
   };
   
@@ -656,7 +792,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
           ref={logContainerRef}
           className="bg-gray-100 dark:bg-gray-500/10 p-4 rounded-lg overflow-auto h-[400px] font-mono text-sm 
           border border-gray-600/10 dark:border-gray-200/10
-          overflow-y-auto
+          overflow-y-auto relative
           
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
@@ -666,6 +802,30 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
           "
           onScroll={handleScroll}
         >
+          {/* Selection Widget */}
+          {selectionWidget.visible && (
+            <div
+              ref={selectionWidgetRef}
+              className="absolute z-50 rounded-lg shadow-lg  flex gap-2 bg-white dark:bg-[#1e1e1e]/80 backdrop-blur-sm border-gray-200 dark:border-gray-800/10"
+              style={{
+                left: `${selectionWidget.x}px`,
+                top: `${selectionWidget.y}px`,
+                transform: 'translateX(-50%)',
+                pointerEvents: 'auto'
+              }}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={handleAddToChat}
+              >
+                <MessageSquare className="h-3 w-3" />
+                Add to Chat
+              </Button>
+            </div>
+          )}
+
           {loading && logs.length === 0 ? (
             <div className="flex justify-center items-center h-full text-gray-500 dark:text-gray-400">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -679,7 +839,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
             logs.map((log, idx) => (
               <pre 
                 key={idx} 
-                className={`m-0 font-mono flex items-start break-all ${searchMatches.includes(idx) && currentMatchIndex === searchMatches.indexOf(idx) ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+                className={`m-0 font-mono flex items-start break-all select-text ${searchMatches.includes(idx) && currentMatchIndex === searchMatches.indexOf(idx) ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
               >
                 {showTimestamps && log.timestamp && (
                   <span className="text-gray-500 dark:text-green-400 mr-2 flex-shrink-0">
