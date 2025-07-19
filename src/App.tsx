@@ -11,7 +11,9 @@ import {
   Runbooks,
   Investigation,
   ClusterReport,
-  Indexing
+  Indexing,
+  ImageScans,
+  Watcher
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Provisioner, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -263,6 +265,8 @@ function App() {
                           <Route path="mcp" element={<MCPServerConfig />} />
                           <Route path="account" element={<Account />} />
                           <Route path="updates" element={<Updates />} />
+                          <Route path="imagescans" element={<ImageScans />} />
+                          <Route path="watcher" element={<Watcher />} />
                           <Route path="indexing" element={<Indexing />} />
                           <Route index element={<GeneralSettings />} />
                         </Route>

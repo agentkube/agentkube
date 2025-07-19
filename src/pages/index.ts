@@ -9,7 +9,9 @@ export { default as ModelConfiguration } from './settings/models/models.pages';
 export { default as MCPServerConfig } from './settings/mcp/mcp.pages';
 export { default as Account } from './settings/account/account.pages';
 export { default as Updates } from './settings/updates/updates.pages';
-export { default as Indexing } from './settings/indexing/indexing.pages'
+export { default as Indexing } from './settings/indexing/indexing.pages';
+export { default as ImageScans } from './settings/imagescans/imagescans.pages';
+export { default as Watcher } from './settings/watcher/watcher.pages';
 
 // Dashboard
 export { default as Dashboard } from './dashboard/dashboard.pages';
