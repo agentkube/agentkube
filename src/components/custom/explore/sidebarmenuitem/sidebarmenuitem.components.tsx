@@ -1,5 +1,5 @@
 // (components/custom/explore/sidebarmenuitem/sidebarmenuitem.components.tsx)
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { SidebarItem } from '@/types/sidebar';
 import {
@@ -28,6 +28,7 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
   onExpandToggle,
   isCollapsed
 }) => {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const hasChildren = item.children && item.children.length > 0;
   const isSelected = selectedItem === item.id;
   const paddingLeft = `${level * 1}rem`;
@@ -46,11 +47,7 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
   if (isCollapsed && level === 0 && hasChildren) {
     return (
       <div className="py-1 relative group">
-        <DropdownMenu open={isExpanded} onOpenChange={(open) => {
-          if (open !== isExpanded) {
-            onExpandToggle(item.id);
-          }
-        }}>
+        <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <button
               className={`w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors
@@ -71,6 +68,7 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
             side="right"
             align="start"
             className="mt-0 ml-4 z-50 dark:bg-white dark:dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-md border border-gray-200 dark:border-gray-800/60 w-48 overflow-hidden"
+            onInteractOutside={() => setDropdownOpen(false)}
           >
             <div className="p-2 text-sm font-medium text-gray-800 dark:text-gray-300 font-[Anton] uppercase border-b border-gray-200 dark:border-gray-800">
               {item.label}
