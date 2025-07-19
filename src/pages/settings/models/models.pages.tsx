@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle, Brain, ChevronDown, ChevronRight, Key, ArrowUpRight, Rocket, Sparkles } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle, Brain, ChevronDown, ChevronRight, Key, ArrowUpRight, Rocket, Sparkles, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -73,9 +73,21 @@ const ModelConfiguration = () => {
   const [showAddInput, setShowAddInput] = useState(false);
   const [newModelName, setNewModelName] = useState('');
   const [newModelProvider, setNewModelProvider] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
+
+  // Filter models based on search term
+  const filteredModels = useMemo(() => {
+    if (!searchTerm.trim()) return models;
+    
+    const search = searchTerm.toLowerCase().trim();
+    return models.filter(model => 
+      model.name.toLowerCase().includes(search) ||
+      model.provider.toLowerCase().includes(search)
+    );
+  }, [models, searchTerm]);
 
   const toggleModelEnabled = async (modelId: string) => {
     const modelToToggle = models.find(model => model.id === modelId);
@@ -233,46 +245,76 @@ const ModelConfiguration = () => {
       {/* MAX Mode Banner */}
       <UpgradePro />
 
-      <div className="space-y-1">
-        {models.map(model => renderModelItem(model))}
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <input
+          type="text"
+          className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 pl-10 pr-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
+          placeholder="Search models by name or provider..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-        {showAddInput ? (
-          <div className="flex flex-col space-y-2 mt-2">
-            <input
-              type="text"
-              className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
-              placeholder="New model name"
-              value={newModelName}
-              onChange={(e) => setNewModelName(e.target.value)}
-              onKeyPress={handleKeyPress}
-              autoFocus
-            />
-            <div className="flex items-center space-x-2">
+      <div className="space-y-1">
+        {filteredModels.length > 0 ? (
+          filteredModels.map(model => renderModelItem(model))
+        ) : (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No models found matching "{searchTerm}"</p>
+            <p className="text-xs mt-1">Try adjusting your search term</p>
+          </div>
+        )}
+
+        {(!searchTerm || filteredModels.length > 0) && (
+          showAddInput ? (
+            <div className="flex flex-col space-y-2 mt-2">
               <input
                 type="text"
                 className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
-                placeholder="Provider (e.g. openai, anthropic)"
-                value={newModelProvider}
-                onChange={(e) => setNewModelProvider(e.target.value)}
+                placeholder="New model name"
+                value={newModelName}
+                onChange={(e) => setNewModelName(e.target.value)}
+                onKeyPress={handleKeyPress}
+                autoFocus
               />
-              <Button
-                // variant="outline"
-                className="px-4 py-2 rounded text-sm"
-                onClick={handleAddModel}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Model
-              </Button>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
+                  placeholder="Provider (e.g. openai, anthropic)"
+                  value={newModelProvider}
+                  onChange={(e) => setNewModelProvider(e.target.value)}
+                />
+                <Button
+                  // variant="outline"
+                  className="px-4 py-2 rounded text-sm"
+                  onClick={handleAddModel}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Model
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <button
-            className="flex items-center py-2 px-3 w-full mt-2 hover:bg-gray-300/50 dark:hover:bg-gray-800/50 rounded-sm text-gray-500 dark:text-gray-400"
-            onClick={() => setShowAddInput(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            <span className="text-sm">Add model</span>
-          </button>
+          ) : (
+            <button
+              className="flex items-center py-2 px-3 w-full mt-2 hover:bg-gray-300/50 dark:hover:bg-gray-800/50 rounded-sm text-gray-500 dark:text-gray-400"
+              onClick={() => setShowAddInput(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="text-sm">Add model</span>
+            </button>
+          )
         )}
       </div>
 
