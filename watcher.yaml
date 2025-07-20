@@ -1,0 +1,14 @@
+handler:  
+  webhook:  
+    url: "http://localhost:4689/orchestrator/api/handle"  
+    cert: ""  # Optional: path to certificate file  
+    tlsskip: false  # Optional: skip TLS verification  
+  
+resource:  
+  deployment: true  
+  pod: true  
+  services: true  
+  namespace: true  
+  # All other resources default to false  
+  
+namespace: ""  # Monitor all namespaces

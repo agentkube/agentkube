@@ -1,0 +1,96 @@
+package slack
+
+import (
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/slack-go/slack"
+
+	config "github.com/agentkube/operator/config"
+	event "github.com/agentkube/operator/pkg/event"
+)
+
+var webhookErrMsg = `
+%s
+
+You need to set Webhook url
+using "--channel/-c, --username/-n, --emoji/-e, --slackwebhookurl/-u" or using environment variables:
+
+export KW_SLACK_CHANNEL=slack_channel
+export KW_SLACK_USERNAME=slack_username
+export KW_SLACK_EMOJI=slack_emoji
+export KW_SLACK_WEBHOOK_URL=slack_webhook_url
+
+Command line flags will override environment variables
+
+`
+
+// Webhook handler implements handler.Handler interface,
+// Notify event to Webhook channel
+type SlackWebhook struct {
+	Channel         string
+	Username        string
+	Emoji           string
+	Slackwebhookurl string
+}
+
+// Init prepares Webhook configuration
+func (m *SlackWebhook) Init(c *config.Config) error {
+	channel := c.Handler.SlackWebhook.Channel
+	username := c.Handler.SlackWebhook.Username
+	emoji := c.Handler.SlackWebhook.Emoji
+	slackwebhookurl := c.Handler.SlackWebhook.Slackwebhookurl
+
+	if channel == "" {
+		channel = os.Getenv("KW_SLACK_CHANNEL")
+	}
+	if username == "" {
+		username = os.Getenv("KW_SLACK_USERNAME")
+	}
+	if emoji == "" {
+		emoji = os.Getenv("KW_SLACK_EMOJI")
+	}
+	if slackwebhookurl == "" {
+		slackwebhookurl = os.Getenv("KW_SLACK_WEBHOOK_URL")
+	}
+
+	m.Channel = channel
+	m.Username = username
+	m.Emoji = emoji
+	m.Slackwebhookurl = slackwebhookurl
+
+	return checkMissingWebhookVars(m)
+}
+
+// Handle handles an event.
+func (m *SlackWebhook) Handle(e event.Event) {
+
+	webhookMessage := slack.WebhookMessage{
+		Channel:   m.Channel,
+		Username:  m.Username,
+		Text:      e.Message(),
+		IconEmoji: m.Emoji,
+	}
+
+	logrus.Printf("slackwebhook-handle():Slackwebhook WebHookMessage: %s", webhookMessage.Text)
+
+	err := slack.PostWebhook(m.Slackwebhookurl, &webhookMessage)
+
+	if err != nil {
+		logrus.Printf("slackwebhook-handle() Error: %s\n", err)
+		return
+	}
+
+	logrus.Printf("Message successfully sent to %s at %s. Message: %s", m.Slackwebhookurl, time.Now(), webhookMessage.Text)
+}
+
+func checkMissingWebhookVars(s *SlackWebhook) error {
+	if s.Slackwebhookurl == "" {
+		return fmt.Errorf(webhookErrMsg, "Missing Slack Webhook url")
+	}
+
+	return nil
+}
