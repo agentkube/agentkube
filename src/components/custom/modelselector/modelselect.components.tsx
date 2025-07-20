@@ -12,6 +12,7 @@ import { getProviderIcon } from '@/utils/providerIconMap';
 import { useNavigate } from 'react-router-dom';
 import { ModelData } from '@/types/llm';
 import LoadingSpinner from '@/utils/loader.utils';
+import MarkdownContent from '@/utils/markdown-formatter';
 
 interface ModelSelectorProps {
   selectedModel: string;
@@ -169,7 +170,7 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
           <TooltipContent
             side="left"
             align="center"
-            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/60 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
+            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
             sideOffset={8}
             onMouseEnter={() => setIsTooltipOpen(true)}
             onMouseLeave={() => setIsTooltipOpen(false)}
@@ -202,7 +203,7 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
           <TooltipContent
             side="left"
             align="center"
-            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/60  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
+            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
             sideOffset={8}
             onMouseEnter={() => setIsTooltipOpen(true)}
             onMouseLeave={() => setIsTooltipOpen(false)}
@@ -238,7 +239,7 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
         <TooltipContent
           side="left"
           align="center"
-          className="w-80 p-0 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/60  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 "
+          className="w-80 p-0 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 "
           sideOffset={8}
           onMouseEnter={() => setIsTooltipOpen(true)}
           onMouseLeave={() => {
@@ -246,9 +247,9 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
             setShowFullDescription(false); // Reset when tooltip closes
           }}
         >
-          <div className="p-4 space-y-3">
+          <div className="">
             {/* Header */}
-            <div className="flex items-start justify-between">
+            <div className="p-4 flex items-start justify-between">
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
                   {openRouterModel.name}
@@ -278,130 +279,134 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
 
             </div>
 
-            {/* Description with Read More */}
-            {hasDescription && (
-              <div className="space-y-1">
-                <p className={`text-xs text-gray-600 dark:text-gray-300 leading-relaxed ${!showFullDescription && descriptionNeedsTruncation ? '' : ''}`}>
-                  {showFullDescription || !descriptionNeedsTruncation
-                    ? openRouterModel.description
-                    : getTruncatedDescription(openRouterModel.description)
-                  }
-                </p>
-                {descriptionNeedsTruncation && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowFullDescription(!showFullDescription);
-                      setIsTooltipOpen(true); // Keep tooltip open
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer underline focus:outline-none"
-                  >
-                    {showFullDescription ? 'Show less' : 'Read more'}
-                  </button>
+            <div className='bg-white dark:bg-[#0B0D13]/40 p-4 space-y-3'>
+              {/* Description with Read More */}
+              {hasDescription && (
+                <div className="space-y-1">
+                  <div className="text-xs leading-relaxed [&>div]:space-y-1 [&_h1]:text-xs [&_h1]:font-semibold [&_h2]:text-xs [&_h2]:font-semibold [&_h3]:text-xs [&_h3]:font-medium [&_p]:text-xs [&_p]:text-gray-300 [&_p]:dark:text-gray-300 [&_p]:mb-1 [&_li]:text-xs [&_li]:text-gray-300 [&_li]:dark:text-gray-300 [&_ul]:mb-1 [&_ol]:mb-1 [&_code]:text-xs [&_code]:bg-gray-600/20 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded">
+                    <MarkdownContent
+                      content={showFullDescription || !descriptionNeedsTruncation
+                        ? openRouterModel.description
+                        : getTruncatedDescription(openRouterModel.description)
+                      }
+                    />
+                  </div>
+                  {descriptionNeedsTruncation && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowFullDescription(!showFullDescription);
+                        setIsTooltipOpen(true); // Keep tooltip open
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      className="text-xs text-blue-500 hover:text-blue-300 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer underline focus:outline-none"
+                    >
+                      {showFullDescription ? 'Show less' : 'Read more'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+
+              {/* Specs Grid */}
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                {/* Context Length */}
+                <div className="flex items-center space-x-2">
+                  <Database size={12} className="text-gray-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">
+                      {formatTokenCount(openRouterModel.context_length)}
+                    </p>
+                    <p className="text-xs text-gray-500">Context</p>
+                  </div>
+                </div>
+
+                {/* Modality */}
+                <div className="flex items-center space-x-2">
+                  <Zap size={12} className="text-gray-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">
+                      {openRouterModel.architecture?.modality || 'text->text'}
+                    </p>
+                    <p className="text-xs text-gray-500">Type</p>
+                  </div>
+                </div>
+
+                {/* Input Price */}
+                {openRouterModel.pricing?.prompt && (
+                  <div className="flex items-center space-x-2">
+                    <DollarSign size={12} className="text-gray-500" />
+                    <div>
+                      <p className="text-xs font-medium text-gray-900 dark:text-white font-mono">
+                        {formatPrice(openRouterModel.pricing.prompt)}
+                      </p>
+                      <p className="text-xs text-gray-500">Input</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Output Price */}
+                {openRouterModel.pricing?.completion && (
+                  <div className="flex items-center space-x-2">
+                    <DollarSign size={12} className="text-gray-500" />
+                    <div>
+                      <p className="text-xs font-medium text-gray-900 dark:text-white font-mono">
+                        {formatPrice(openRouterModel.pricing.completion)}
+                      </p>
+                      <p className="text-xs text-gray-500">Output</p>
+                    </div>
+                  </div>
                 )}
               </div>
-            )}
 
-
-            {/* Specs Grid */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-              {/* Context Length */}
-              <div className="flex items-center space-x-2">
-                <Database size={12} className="text-gray-500" />
-                <div>
-                  <p className="text-xs font-medium text-gray-900 dark:text-white">
-                    {formatTokenCount(openRouterModel.context_length)}
-                  </p>
-                  <p className="text-xs text-gray-500">Context</p>
-                </div>
-              </div>
-
-              {/* Modality */}
-              <div className="flex items-center space-x-2">
-                <Zap size={12} className="text-gray-500" />
-                <div>
-                  <p className="text-xs font-medium text-gray-900 dark:text-white">
-                    {openRouterModel.architecture?.modality || 'text->text'}
-                  </p>
-                  <p className="text-xs text-gray-500">Type</p>
-                </div>
-              </div>
-
-              {/* Input Price */}
-              {openRouterModel.pricing?.prompt && (
-                <div className="flex items-center space-x-2">
-                  <DollarSign size={12} className="text-gray-500" />
-                  <div>
-                    <p className="text-xs font-medium text-gray-900 dark:text-white font-mono">
-                      {formatPrice(openRouterModel.pricing.prompt)}
-                    </p>
-                    <p className="text-xs text-gray-500">Input</p>
+              {/* Additional features */}
+              {openRouterModel.endpoint && (
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">Features:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {openRouterModel.endpoint.supports_tool_parameters && (
+                      <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded">
+                        Tools
+                      </span>
+                    )}
+                    {openRouterModel.endpoint.supports_reasoning && (
+                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded">
+                        Reasoning
+                      </span>
+                    )}
+                    {openRouterModel.endpoint.supports_multipart && (
+                      <span className="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 rounded">
+                        Multipart
+                      </span>
+                    )}
+                    {openRouterModel.endpoint.is_free && (
+                      <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded">
+                        Free Tier
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Output Price */}
-              {openRouterModel.pricing?.completion && (
-                <div className="flex items-center space-x-2">
-                  <DollarSign size={12} className="text-gray-500" />
-                  <div>
-                    <p className="text-xs font-medium text-gray-900 dark:text-white font-mono">
-                      {formatPrice(openRouterModel.pricing.completion)}
-                    </p>
-                    <p className="text-xs text-gray-500">Output</p>
+              {/* Rate limits */}
+              {openRouterModel.per_request_limits && (openRouterModel.per_request_limits.rpm || openRouterModel.per_request_limits.rpd) && (
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">Rate Limits:</p>
+                  <div className="text-xs text-gray-300 dark:text-gray-300 space-y-0.5">
+                    {openRouterModel.per_request_limits.rpm && (
+                      <div>{openRouterModel.per_request_limits.rpm}/min requests</div>
+                    )}
+                    {openRouterModel.per_request_limits.rpd && (
+                      <div>{openRouterModel.per_request_limits.rpd}/day requests</div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
-
-            {/* Additional features */}
-            {openRouterModel.endpoint && (
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">Features:</p>
-                <div className="flex flex-wrap gap-1">
-                  {openRouterModel.endpoint.supports_tool_parameters && (
-                    <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded">
-                      Tools
-                    </span>
-                  )}
-                  {openRouterModel.endpoint.supports_reasoning && (
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded">
-                      Reasoning
-                    </span>
-                  )}
-                  {openRouterModel.endpoint.supports_multipart && (
-                    <span className="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 rounded">
-                      Multipart
-                    </span>
-                  )}
-                  {openRouterModel.endpoint.is_free && (
-                    <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded">
-                      Free Tier
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Rate limits */}
-            {openRouterModel.per_request_limits && (openRouterModel.per_request_limits.rpm || openRouterModel.per_request_limits.rpd) && (
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">Rate Limits:</p>
-                <div className="text-xs text-gray-600 dark:text-gray-300 space-y-0.5">
-                  {openRouterModel.per_request_limits.rpm && (
-                    <div>{openRouterModel.per_request_limits.rpm}/min requests</div>
-                  )}
-                  {openRouterModel.per_request_limits.rpd && (
-                    <div>{openRouterModel.per_request_limits.rpd}/day requests</div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </TooltipContent>
       </Tooltip>
@@ -614,7 +619,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
                 </span>
               </div>
             </TooltipTrigger>
-            <TooltipContent className="bg-gray-100 dark:bg-gray-800/60 text-gray-800 dark:text-gray-100 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50">
+            <TooltipContent className="bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-100 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50">
               <p>Requires Pro Plan. Activate a license to unlock premium models.</p>
             </TooltipContent>
           </Tooltip>
@@ -627,10 +632,10 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
         key={model.id}
         data-selectable="true"
         className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between transition-colors ${isSelected
-            ? 'bg-gray-300 dark:bg-gray-800/30 dark:text-white'
-            : isHighlighted
-              ? 'bg-gray-200 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-700/20'
+          ? 'bg-gray-300 dark:bg-gray-800/30 dark:text-white'
+          : isHighlighted
+            ? 'bg-gray-200 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-700/20'
           }`}
         onClick={() => selectModel(model.id, model.provider, model.premiumOnly)}
         onMouseEnter={() => {
@@ -673,7 +678,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md shadow-lg dark:bg-[#0B0D13]/60 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 border border-gray-400/30 dark:border-gray-800/50 z-50">
+        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md shadow-lg dark:bg-[#0B0D13]/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 border border-gray-400/30 dark:border-gray-800/50 z-50">
           <div className="p-2">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -701,8 +706,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
             <div
               data-selectable="true"
               className={`flex items-center px-1 py-2 text-xs w-full transition-colors cursor-pointer ${highlightedIndex === getTotalSelectableCount() - 1
-                  ? 'bg-gray-200 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200'
-                  : 'hover:bg-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300'
+                ? 'bg-gray-200 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200'
+                : 'hover:bg-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-800 text-gray-300 dark:text-gray-300'
                 }`}
               onClick={() => {
                 navigate("/settings/models");
