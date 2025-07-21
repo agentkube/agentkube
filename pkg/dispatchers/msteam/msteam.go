@@ -117,9 +117,9 @@ func (ms *MSTeams) Handle(e event.Event) {
 	card := &TeamsMessageCard{
 		Type:    messageType,
 		Context: context,
-		Title:   "kubewatch",
+		Title:   "watcher",
 		// Set a default Summary, this is required for Microsoft Teams
-		Summary: "kubewatch notification received",
+		Summary: "watcher notification received",
 	}
 
 	card.ThemeColor = msTeamsColors[e.Status]

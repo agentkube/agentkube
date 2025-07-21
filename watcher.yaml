@@ -1,21 +1,10 @@
-handler:
-  webhook:
-    url: http://localhost:4689/orchestrator/api/handle
-    cert: ""
-    tlsskip: false
+enabled: true
+skipClusters: []
+includeClusters: 
+  - kind-black-dinosaurs
+  - kind-rooster-one
 resource:
   deployment: true
-  replicationcontroller: true
-  replicaset: true
-  daemonset: true
-  services: true
-  pod: true
-  clusterrole: true
-  persistentvolume: true
   namespace: true
-  configmap: true
-customresources:
-  - group: argoproj.io
-    version: v1alpha1
-    resource: applications
+customresources: []
 namespace: ""

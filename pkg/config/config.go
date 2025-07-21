@@ -17,6 +17,10 @@ import (
 
 const defaultPort = 4688
 
+var (
+	OperatorWebhook string = "http://localhost:4689/orchestrator/api/handle"
+)
+
 type Config struct {
 	InCluster             bool   `koanf:"in-cluster"`
 	DevMode               bool   `koanf:"dev"`

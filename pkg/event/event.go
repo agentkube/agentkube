@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Ref: https://github.com/robusta-dev/kubewatch/blob/master/pkg/event/event.go
+// Ref: https://github.com/robusta-dev/watcher/blob/master/pkg/event/event.go
 
 type Event struct {
 	Namespace  string

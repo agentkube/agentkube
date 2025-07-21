@@ -1,10 +1,7 @@
-// Ref: https://github.com/robusta-dev/kubewatch/blob/master/pkg/utils/k8sutil.go
+// Ref: https://github.com/robusta-dev/watcher/blob/master/pkg/utils/k8sutil.go
 package utils
 
 import (
-	"os"
-
-	"github.com/sirupsen/logrus"
 	apps_v1 "k8s.io/api/apps/v1"
 	batch_v1 "k8s.io/api/batch/v1"
 	api_v1 "k8s.io/api/core/v1"
@@ -14,78 +11,7 @@ import (
 	rbac_v1 "k8s.io/api/rbac/v1"
 	rbac_v1beta1 "k8s.io/api/rbac/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
-
-// GetDynamicClient returns a k8s dynamic clientset to the request from inside of cluster
-func GetDynamicClient() dynamic.Interface {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		logrus.Fatalf("Can not get kubernetes config: %v", err)
-	}
-
-	clientset, err := dynamic.NewForConfig(config)
-	if err != nil {
-		logrus.Fatalf("Can not create dynamic kubernetes client: %v", err)
-	}
-
-	return clientset
-}
-
-func GetClient() kubernetes.Interface {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		logrus.Fatalf("Can not get kubernetes config: %v", err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		logrus.Fatalf("Can not create kubernetes client: %v", err)
-	}
-
-	return clientset
-}
-
-func buildOutOfClusterConfig() (*rest.Config, error) {
-	kubeconfigPath := os.Getenv("KUBECONFIG")
-	if kubeconfigPath == "" {
-		kubeconfigPath = os.Getenv("HOME") + "/.kube/config"
-	}
-	return clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-}
-
-// GetClientOutOfCluster returns a k8s clientset to the request from outside of cluster
-func GetClientOutOfCluster() kubernetes.Interface {
-	config, err := buildOutOfClusterConfig()
-	if err != nil {
-		logrus.Fatalf("Can not get kubernetes config: %v", err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		logrus.Fatalf("Can not get kubernetes config: %v", err)
-	}
-
-	return clientset
-}
-
-// GetDynamicClientOutOfCluster returns a k8s dynamic clientset to the request from outside of cluster
-func GetDynamicClientOutOfCluster() dynamic.Interface {
-	config, err := buildOutOfClusterConfig()
-	if err != nil {
-		logrus.Fatalf("Can not get kubernetes config: %v", err)
-	}
-
-	clientset, err := dynamic.NewForConfig(config)
-	if err != nil {
-		logrus.Fatalf("Can not get kubernetes config: %v", err)
-	}
-
-	return clientset
-}
 
 // GetObjectMetaData returns metadata of a given k8s object
 func GetObjectMetaData(obj interface{}) (objectMeta meta_v1.ObjectMeta) {

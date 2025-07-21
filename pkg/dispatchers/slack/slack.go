@@ -56,7 +56,7 @@ func (s *Slack) Init(c *config.Config) error {
 	if title == "" {
 		title = os.Getenv("SLACK_TITLE")
 		if title == "" {
-			title = "kubewatch"
+			title = "watcher"
 		}
 	}
 

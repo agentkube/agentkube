@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	defaultSubject = "Kubewatch notification"
+	defaultSubject = "Watcher notification"
 
 	// ConfigExample is an example configuration.
 	ConfigExample = `handler:
   smtp:
     to: "myteam@mycompany.com"
-    from: "kubewatch@mycluster.com"
+    from: "watcher@mycluster.com"
     smarthost: smtp.mycompany.com:2525
     subject: Test notification
     auth:

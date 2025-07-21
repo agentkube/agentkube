@@ -49,6 +49,7 @@ type EventMeta struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
 	Reason    string `json:"reason"`
+	Host      string `json:"host"`
 }
 
 // Init prepares Webhook configuration
@@ -115,6 +116,7 @@ func prepareWebhookMessage(e event.Event, _ *Webhook) *WebhookMessage {
 			Name:      e.Name,
 			Namespace: e.Namespace,
 			Reason:    e.Reason,
+			Host:      e.Host,
 		},
 		Text: e.Message(),
 		Time: time.Now(),

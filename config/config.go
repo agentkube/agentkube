@@ -78,6 +78,15 @@ type Config struct {
 	// For watching specific namespace, leave it empty for watching all.
 	// this config is ignored when watching namespaces
 	Namespace string `json:"namespace,omitempty"`
+
+	// Enable/disable the entire watcher
+	Enabled bool `json:"enabled" yaml:"enabled"`
+
+	// Clusters to skip (exclude from watching)
+	SkipClusters []string `json:"skipClusters,omitempty" yaml:"skipClusters,omitempty"`
+
+	// Clusters to include (if specified, only watch these clusters)
+	IncludeClusters []string `json:"includeClusters,omitempty" yaml:"includeClusters,omitempty"`
 }
 
 // Slack contains slack configuration
@@ -233,67 +242,6 @@ func (c *Config) Load() error {
 	return nil
 }
 
-// CheckMissingResourceEnvvars will read the environment for equivalent config variables to set
-func (c *Config) CheckMissingResourceEnvvars() {
-	if !c.Resource.DaemonSet && os.Getenv("DAEMONSET") == "true" {
-		c.Resource.DaemonSet = true
-	}
-	if !c.Resource.ReplicaSet && os.Getenv("REPLICASET") == "true" {
-		c.Resource.ReplicaSet = true
-	}
-	if !c.Resource.Namespace && os.Getenv("NAMESPACE") == "true" {
-		c.Resource.Namespace = true
-	}
-	if !c.Resource.Deployment && os.Getenv("DEPLOYMENT") == "true" {
-		c.Resource.Deployment = true
-	}
-	if !c.Resource.Pod && os.Getenv("POD") == "true" {
-		c.Resource.Pod = true
-	}
-	if !c.Resource.ReplicationController && os.Getenv("REPLICATION_CONTROLLER") == "true" {
-		c.Resource.ReplicationController = true
-	}
-	if !c.Resource.Services && os.Getenv("SERVICE") == "true" {
-		c.Resource.Services = true
-	}
-	if !c.Resource.Job && os.Getenv("JOB") == "true" {
-		c.Resource.Job = true
-	}
-	if !c.Resource.PersistentVolume && os.Getenv("PERSISTENT_VOLUME") == "true" {
-		c.Resource.PersistentVolume = true
-	}
-	if !c.Resource.Secret && os.Getenv("SECRET") == "true" {
-		c.Resource.Secret = true
-	}
-	if !c.Resource.ConfigMap && os.Getenv("CONFIGMAP") == "true" {
-		c.Resource.ConfigMap = true
-	}
-	if !c.Resource.Ingress && os.Getenv("INGRESS") == "true" {
-		c.Resource.Ingress = true
-	}
-	if !c.Resource.Node && os.Getenv("NODE") == "true" {
-		c.Resource.Node = true
-	}
-	if !c.Resource.ServiceAccount && os.Getenv("SERVICE_ACCOUNT") == "true" {
-		c.Resource.ServiceAccount = true
-	}
-	if !c.Resource.ClusterRole && os.Getenv("CLUSTER_ROLE") == "true" {
-		c.Resource.ClusterRole = true
-	}
-	if !c.Resource.ClusterRoleBinding && os.Getenv("CLUSTER_ROLE_BINDING") == "true" {
-		c.Resource.ClusterRoleBinding = true
-	}
-	if (c.Handler.Slack.Channel == "") && (os.Getenv("SLACK_CHANNEL") != "") {
-		c.Handler.Slack.Channel = os.Getenv("SLACK_CHANNEL")
-	}
-	if (c.Handler.Slack.Token == "") && (os.Getenv("SLACK_TOKEN") != "") {
-		c.Handler.Slack.Token = os.Getenv("SLACK_TOKEN")
-	}
-	if (c.Handler.SlackWebhook.Slackwebhookurl == "") && (os.Getenv("SLACK_WEBHOOK_URL") != "") {
-		c.Handler.SlackWebhook.Slackwebhookurl = os.Getenv("SLACK_WEBHOOK_URL")
-	}
-}
-
 func (c *Config) Write() error {
 	f, err := os.OpenFile(getConfigFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -302,7 +250,7 @@ func (c *Config) Write() error {
 	defer f.Close()
 
 	enc := yaml.NewEncoder(f)
-	enc.SetIndent(2) // compat with old versions of kubewatch
+	enc.SetIndent(2) // compat with old versions of watcher
 	return enc.Encode(c)
 }
 
@@ -335,7 +283,7 @@ func configDir() string {
 		return home
 	}
 	return os.Getenv("HOME")
-	//path := "/etc/kubewatch"
+	//path := "/.agentkube/watcher.yaml"
 	//if _, err := os.Stat(path); os.IsNotExist(err) {
 	//	os.Mkdir(path, 755)
 	//}
