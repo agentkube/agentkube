@@ -202,7 +202,7 @@ func New() (*Config, error) {
 
 func createIfNotExist() error {
 	// create file if not exist
-	configFile := getConfigFile()
+	configFile := GetWatcherConfigFile()
 	_, err := os.Stat(configFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -225,7 +225,7 @@ func (c *Config) Load() error {
 		return err
 	}
 
-	file, err := os.Open(getConfigFile())
+	file, err := os.Open(GetWatcherConfigFile())
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (c *Config) Load() error {
 }
 
 func (c *Config) Write() error {
-	f, err := os.OpenFile(getConfigFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	f, err := os.OpenFile(GetWatcherConfigFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func (c *Config) Write() error {
 	return enc.Encode(c)
 }
 
-func getConfigFile() string {
+func GetWatcherConfigFile() string {
 	// Use ~/.agentkube/watcher.yaml path
 	return filepath.Join(configDir(), ConfigFileName)
 }

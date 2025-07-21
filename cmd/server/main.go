@@ -87,7 +87,7 @@ func main() {
 	if err != nil {
 		logger.Log(logger.LevelError, nil, err, "loading watcher config from current directory")
 	} else {
-		logger.Log(logger.LevelInfo, map[string]string{"config_file": "watcher.yaml"}, nil, "Watcher configuration loaded successfully")
+		logger.Log(logger.LevelInfo, map[string]string{"config_file": config.GetWatcherConfigFile()}, nil, "Watcher configuration loaded successfully")
 		if !watcherConfig.Enabled {
 			logger.Log(logger.LevelInfo, nil, nil, "Watcher is disabled in configuration")
 		} else {
