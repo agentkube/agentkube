@@ -255,22 +255,8 @@ func (c *Config) Write() error {
 }
 
 func getConfigFile() string {
-	// First check current directory
-	currentDir, _ := os.Getwd()
-	configFile := filepath.Join(currentDir, ConfigFileName)
-	if _, err := os.Stat(configFile); err == nil {
-		return configFile
-	}
-
-	// Then check config directory (home dir)
-	configFile = filepath.Join(configDir(), ConfigFileName)
-	if _, err := os.Stat(configFile); err == nil {
-		return configFile
-	}
-
-	// Return current directory path even if file doesn't exist (for creation)
-	currentDir, _ = os.Getwd()
-	return filepath.Join(currentDir, ConfigFileName)
+	// Use ~/.agentkube/watcher.yaml path
+	return filepath.Join(configDir(), ConfigFileName)
 }
 
 func configDir() string {
@@ -278,14 +264,17 @@ func configDir() string {
 		return configDir
 	}
 
+	var home string
 	if runtime.GOOS == "windows" {
-		home := os.Getenv("USERPROFILE")
-		return home
+		home = os.Getenv("USERPROFILE")
+	} else {
+		home = os.Getenv("HOME")
 	}
-	return os.Getenv("HOME")
-	//path := "/.agentkube/watcher.yaml"
-	//if _, err := os.Stat(path); os.IsNotExist(err) {
-	//	os.Mkdir(path, 755)
-	//}
-	//return path
+
+	agentKubeDir := filepath.Join(home, ".agentkube")
+	// Create directory if it doesn't exist
+	if _, err := os.Stat(agentKubeDir); os.IsNotExist(err) {
+		os.MkdirAll(agentKubeDir, 0755)
+	}
+	return agentKubeDir
 }
