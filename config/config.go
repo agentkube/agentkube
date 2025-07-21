@@ -13,7 +13,7 @@ import (
 
 var (
 	// ConfigFileName stores file of config
-	ConfigFileName = ".datasource.yaml"
+	ConfigFileName = "watcher.yaml"
 
 	// ConfigSample is a sample configuration file.
 	ConfigSample = yannotated
@@ -21,40 +21,40 @@ var (
 
 // Handler contains handler configuration
 type Handler struct {
-	Slack        Slack        `json:"slack"`
-	SlackWebhook SlackWebhook `json:"slackwebhook"`
-	Hipchat      Hipchat      `json:"hipchat"`
-	Mattermost   Mattermost   `json:"mattermost"`
-	Flock        Flock        `json:"flock"`
-	Webhook      Webhook      `json:"webhook"`
-	CloudEvent   CloudEvent   `json:"cloudevent"`
-	MSTeams      MSTeams      `json:"msteams"`
-	SMTP         SMTP         `json:"smtp"`
-	Lark         Lark         `json:"lark"`
+	Slack        Slack        `json:"slack,omitempty" yaml:"slack,omitempty"`
+	SlackWebhook SlackWebhook `json:"slackwebhook,omitempty" yaml:"slackwebhook,omitempty"`
+	Hipchat      Hipchat      `json:"hipchat,omitempty" yaml:"hipchat,omitempty"`
+	Mattermost   Mattermost   `json:"mattermost,omitempty" yaml:"mattermost,omitempty"`
+	Flock        Flock        `json:"flock,omitempty" yaml:"flock,omitempty"`
+	Webhook      Webhook      `json:"webhook" yaml:"webhook"`
+	CloudEvent   CloudEvent   `json:"cloudevent,omitempty" yaml:"cloudevent,omitempty"`
+	MSTeams      MSTeams      `json:"msteams,omitempty" yaml:"msteams,omitempty"`
+	SMTP         SMTP         `json:"smtp,omitempty" yaml:"smtp,omitempty"`
+	Lark         Lark         `json:"lark,omitempty" yaml:"lark,omitempty"`
 }
 
 // Resource contains resource configuration
 type Resource struct {
-	Deployment            bool `json:"deployment"`
-	ReplicationController bool `json:"rc"`
-	ReplicaSet            bool `json:"rs"`
-	DaemonSet             bool `json:"ds"`
-	StatefulSet           bool `json:"statefulset"`
-	Services              bool `json:"svc"`
-	Pod                   bool `json:"po"`
-	Job                   bool `json:"job"`
-	Node                  bool `json:"node"`
-	ClusterRole           bool `json:"clusterrole"`
-	ClusterRoleBinding    bool `json:"clusterrolebinding"`
-	ServiceAccount        bool `json:"sa"`
-	PersistentVolume      bool `json:"pv"`
-	Namespace             bool `json:"ns"`
-	Secret                bool `json:"secret"`
-	ConfigMap             bool `json:"configmap"`
-	Ingress               bool `json:"ing"`
-	HPA                   bool `json:"hpa"`
-	Event                 bool `json:"event"`
-	CoreEvent             bool `json:"coreevent"`
+	Deployment            bool `json:"deployment" yaml:"deployment"`
+	ReplicationController bool `json:"replicationcontroller,omitempty" yaml:"replicationcontroller,omitempty"`
+	ReplicaSet            bool `json:"replicaset,omitempty" yaml:"replicaset,omitempty"`
+	DaemonSet             bool `json:"daemonset,omitempty" yaml:"daemonset,omitempty"`
+	StatefulSet           bool `json:"statefulset,omitempty" yaml:"statefulset,omitempty"`
+	Services              bool `json:"services" yaml:"services"`
+	Pod                   bool `json:"pod" yaml:"pod"`
+	Job                   bool `json:"job,omitempty" yaml:"job,omitempty"`
+	Node                  bool `json:"node,omitempty" yaml:"node,omitempty"`
+	ClusterRole           bool `json:"clusterrole,omitempty" yaml:"clusterrole,omitempty"`
+	ClusterRoleBinding    bool `json:"clusterrolebinding,omitempty" yaml:"clusterrolebinding,omitempty"`
+	ServiceAccount        bool `json:"serviceaccount,omitempty" yaml:"serviceaccount,omitempty"`
+	PersistentVolume      bool `json:"persistentvolume,omitempty" yaml:"persistentvolume,omitempty"`
+	Namespace             bool `json:"namespace" yaml:"namespace"`
+	Secret                bool `json:"secret,omitempty" yaml:"secret,omitempty"`
+	ConfigMap             bool `json:"configmap,omitempty" yaml:"configmap,omitempty"`
+	Ingress               bool `json:"ingress,omitempty" yaml:"ingress,omitempty"`
+	HPA                   bool `json:"hpa,omitempty" yaml:"hpa,omitempty"`
+	Event                 bool `json:"event,omitempty" yaml:"event,omitempty"`
+	CoreEvent             bool `json:"coreevent,omitempty" yaml:"coreevent,omitempty"`
 }
 
 type CRD struct {
@@ -193,7 +193,7 @@ func New() (*Config, error) {
 
 func createIfNotExist() error {
 	// create file if not exist
-	configFile := filepath.Join(configDir(), ConfigFileName)
+	configFile := getConfigFile()
 	_, err := os.Stat(configFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -307,12 +307,22 @@ func (c *Config) Write() error {
 }
 
 func getConfigFile() string {
-	configFile := filepath.Join(configDir(), ConfigFileName)
+	// First check current directory
+	currentDir, _ := os.Getwd()
+	configFile := filepath.Join(currentDir, ConfigFileName)
 	if _, err := os.Stat(configFile); err == nil {
 		return configFile
 	}
 
-	return ""
+	// Then check config directory (home dir)
+	configFile = filepath.Join(configDir(), ConfigFileName)
+	if _, err := os.Stat(configFile); err == nil {
+		return configFile
+	}
+
+	// Return current directory path even if file doesn't exist (for creation)
+	currentDir, _ = os.Getwd()
+	return filepath.Join(currentDir, ConfigFileName)
 }
 
 func configDir() string {

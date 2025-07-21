@@ -1,14 +1,21 @@
-handler:  
-  webhook:  
-    url: "http://localhost:4689/orchestrator/api/handle"  
-    cert: ""  # Optional: path to certificate file  
-    tlsskip: false  # Optional: skip TLS verification  
-  
-resource:  
-  deployment: true  
-  pod: true  
-  services: true  
-  namespace: true  
-  # All other resources default to false  
-  
-namespace: ""  # Monitor all namespaces
+handler:
+  webhook:
+    url: http://localhost:4689/orchestrator/api/handle
+    cert: ""
+    tlsskip: false
+resource:
+  deployment: true
+  replicationcontroller: true
+  replicaset: true
+  daemonset: true
+  services: true
+  pod: true
+  clusterrole: true
+  persistentvolume: true
+  namespace: true
+  configmap: true
+customresources:
+  - group: argoproj.io
+    version: v1alpha1
+    resource: applications
+namespace: ""

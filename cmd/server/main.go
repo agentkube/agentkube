@@ -7,10 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/agentkube/operator/config"
 	"github.com/agentkube/operator/internal/handlers"
 	"github.com/agentkube/operator/internal/routes"
 	"github.com/agentkube/operator/pkg/cache"
-	"github.com/agentkube/operator/pkg/config"
+	internalconfig "github.com/agentkube/operator/pkg/config"
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/logger"
 )
@@ -22,7 +23,7 @@ type Settings struct {
 }
 
 func main() {
-	cfg, err := config.Parse(os.Args)
+	cfg, err := internalconfig.Parse(os.Args)
 	if err != nil {
 		log.Fatalf("Failed to parse config: %v", err)
 	}
@@ -67,6 +68,14 @@ func main() {
 	err = handlers.LoadUploadedKubeconfigs(contextStore)
 	if err != nil {
 		logger.Log(logger.LevelError, nil, err, "loading uploaded kubeconfigs on startup")
+	}
+
+	// Load watcher configuration from current directory
+	_, err = config.New()
+	if err != nil {
+		logger.Log(logger.LevelError, nil, err, "loading watcher config from current directory")
+	} else {
+		logger.Log(logger.LevelInfo, map[string]string{"config_file": "watcher.yaml"}, nil, "Watcher configuration loaded successfully")
 	}
 
 	portforwardCache := cache.New[interface{}]()

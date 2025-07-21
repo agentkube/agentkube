@@ -190,6 +190,15 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 					portforward.GetPortForwardByID(cacheSvc, c.Writer, c.Request)
 				})
 			}
+
+			// Watcher configuration routes
+			watcherGroup := v1.Group("/watcher")
+			{
+				// Get current watcher configuration
+				watcherGroup.GET("/config", handlers.GetWatcherConfigHandler())
+				// Patch watcher configuration
+				watcherGroup.PATCH("/config", handlers.PatchWatcherConfigHandler())
+			}
 		}
 
 	}
