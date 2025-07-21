@@ -72,9 +72,9 @@ export const ExplorerSuggestionsConstant = [
 
   // Config
   {
-    id: 'config-maps',
-    title: 'View Config Maps',
-    description: 'Check all config maps',
+    id: 'configmaps',
+    title: 'View Configmaps',
+    description: 'Check all configmaps',
     icon: <Terminal className="w-4 h-4" />
   },
   {
