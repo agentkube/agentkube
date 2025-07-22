@@ -33,7 +33,7 @@ function SwitchDarkMode() {
   return (
     <button
       onClick={darkModeHandler}
-      className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+      className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
       title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
     >
       {theme === 'dark' ? (

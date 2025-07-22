@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Airplay, Settings, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom';
 import SwitchDarkMode from './SwitchDarkMode';
@@ -82,7 +82,7 @@ export function Menu() {
       controlsOrder="right"
       windowControlsProps={{ className: "" }}
     >
-      <div className="py-1 px-4 flex items-center w-full justify-between draggable">
+      <div className="py-2 px-4 flex items-center w-full justify-between draggable">
         <div className="inline-flex ml-2 space-x-1.5">
           {/* Window Controls */}
         </div>
@@ -130,7 +130,7 @@ export function Menu() {
           {/* Improved drawer button with explicit role and aria-label for accessibility */}
           <button
             onClick={handleOpenDrawer}
-            className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer rounded-[0.3rem] transition-colors"
+            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer rounded-[0.3rem] transition-colors"
             title="AI Assistant"
             role="button"
             aria-label="Open Assistant"
@@ -140,7 +140,7 @@ export function Menu() {
 
           <button
             onClick={() => navigate('/')}
-            className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="Home"
           >
             <Airplay size={15} className="text-gray-700 dark:text-gray-300" />
@@ -150,7 +150,7 @@ export function Menu() {
 
           <button
             onClick={() => navigate('/settings')}
-            className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="Settings"
           >
             <Settings size={15} className="text-gray-700 dark:text-gray-300" />
