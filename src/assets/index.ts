@@ -11,3 +11,5 @@ export { default as TIPS3 } from './tipsassets/tips3.png';
 export { default as TIPS4 } from './tipsassets/tips4.png';
 export { default as TIPS5 } from './tipsassets/tips5.png';
 export { default as TIPS6 } from './tipsassets/tips6.png';
+
+export { default as AGENTKUBE } from './agentkube.svg';

@@ -90,7 +90,7 @@
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.7.2",
     "remark-gfm": "^4.0.1",
-    "shiki": "^3.6.0",
+    "shiki": "^3.8.1",
     "sonner": "^2.0.5",
     "tailwind-scrollbar": "^3.0.4",
     "tailwindcss-animate": "^1.0.6",
@@ -102,6 +102,7 @@
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.1.0",
+    "@shikijs/monaco": "^3.8.1",
     "@tauri-apps/cli": "^2.0.0-alpha.10",
     "@types/lodash": "^4.17.16",
     "@types/node": "^20.4.6",

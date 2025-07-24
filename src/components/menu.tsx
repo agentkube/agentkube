@@ -6,6 +6,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import SwitchDarkMode from './SwitchDarkMode';
 import { useDrawer } from '@/contexts/useDrawer';
 import { WindowTitlebar } from "./WindowTitlebar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface NavigationHistoryState {
   history: string[];
@@ -16,7 +22,7 @@ export function Menu() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setIsOpen } = useDrawer();
-  
+
   const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryState>({
     history: [location.pathname],
     currentIndex: 0
@@ -91,70 +97,111 @@ export function Menu() {
         <div className="flex items-center space-x-2 undraggable">
           {/* Navigation controls with history indicator */}
           <div className="ml-4 flex items-center space-x-1">
-            <button
-              onClick={handleBack}
-              className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors undraggable ${!canGoBack
-                  ? 'opacity-30 cursor-not-allowed'
-                  : 'cursor-pointer'
-                }`}
-              title="Go back"
-              disabled={!canGoBack}
-            >
-              <ChevronLeft
-                size={18}
-                className={`${canGoBack
-                    ? 'text-gray-700 dark:text-gray-300'
-                    : 'text-gray-400 dark:text-gray-500'
-                  }`}
-              />
-            </button>
-            <button
-              onClick={handleForward}
-              className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors undraggable ${!canGoForward
-                  ? 'opacity-30 cursor-not-allowed'
-                  : 'cursor-pointer'
-                }`}
-              title="Go forward"
-              disabled={!canGoForward}
-            >
-              <ChevronRight
-                size={18}
-                className={`${canGoForward
-                    ? 'text-gray-700 dark:text-gray-300'
-                    : 'text-gray-400 dark:text-gray-500'
-                  }`}
-              />
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleBack}
+                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors undraggable ${!canGoBack
+                      ? 'opacity-30 cursor-not-allowed'
+                      : 'cursor-pointer'
+                      }`}
+                    disabled={!canGoBack}
+                  >
+                    <ChevronLeft
+                      size={18}
+                      className={`${canGoBack
+                        ? 'text-gray-700 dark:text-gray-300'
+                        : 'text-gray-400 dark:text-gray-500'
+                        }`}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="p-1">
+                  <p>⌘+←</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleForward}
+                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors undraggable ${!canGoForward
+                      ? 'opacity-30 cursor-not-allowed'
+                      : 'cursor-pointer'
+                      }`}
+                    disabled={!canGoForward}
+                  >
+                    <ChevronRight
+                      size={18}
+                      className={`${canGoForward
+                        ? 'text-gray-700 dark:text-gray-300'
+                        : 'text-gray-400 dark:text-gray-500'
+                        }`}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="p-1">
+                  <p>⌘+→</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           {/* Improved drawer button with explicit role and aria-label for accessibility */}
-          <button
-            onClick={handleOpenDrawer}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer rounded-[0.3rem] transition-colors"
-            title="AI Assistant"
-            role="button"
-            aria-label="Open Assistant"
-          >
-            <Sparkles size={15} className="text-gray-700 dark:text-gray-300" />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleOpenDrawer}
+                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer rounded-[0.3rem] transition-colors"
+                  role="button"
+                  aria-label="Open Assistant"
+                >
+                  <Sparkles size={15} className="text-gray-700 dark:text-gray-300" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="p-1">
+                <p>Talk to Cluster (⌘+L)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-          <button
-            onClick={() => navigate('/')}
-            className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Home"
-          >
-            <Airplay size={15} className="text-gray-700 dark:text-gray-300" />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => navigate('/')}
+                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Airplay size={15} className="text-gray-700 dark:text-gray-300" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="p-1">
+                <p>Home (⌘+D)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <SwitchDarkMode />
 
-          <button
-            onClick={() => navigate('/settings')}
-            className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Settings"
-          >
-            <Settings size={15} className="text-gray-700 dark:text-gray-300" />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Settings size={15} className="text-gray-700 dark:text-gray-300" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="p-1">
+                <p>Settings</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </WindowTitlebar>

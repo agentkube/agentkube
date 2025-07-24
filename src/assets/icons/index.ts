@@ -14,3 +14,5 @@ export { default as OpenTofu } from './opentofu';
 export { default as Pulumi } from './pulumi';
 export { default as Kubernetes } from './kubernetes';
 export { default as MoonshotAi } from './moonshotai';
+
+export { default as Blur } from './blur';

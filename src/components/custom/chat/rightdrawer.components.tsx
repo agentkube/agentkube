@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare, Send, ArrowUp } from "lucide-react";
+import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare, Send, ArrowUp, ChevronLeft, Settings, MessageSquare } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
-import { AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
+import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
 import Messages from './main-assistant/message';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { EnrichedSearchResult, SearchResult } from '@/types/search';
@@ -13,6 +13,7 @@ import { chatStream, executeCommand, ToolCall } from '@/api/orchestrator.chat';
 import { useCluster } from '@/contexts/clusterContext';
 import UpgradeToProContainer from './upgradepro.component';
 import { useAuth } from '@/contexts/useAuth';
+import { AGENTKUBE } from '@/assets';
 
 interface SuggestedQuestion {
   question: string;
@@ -27,7 +28,7 @@ interface ChatMessage {
 
 const suggestedQuestions: SuggestedQuestion[] = [
   {
-    question: "What does this application do?",
+    question: "What’s running inside the kube-system namespace?",
     icon: <Search className="w-4 h-4" />
   },
   {
@@ -35,7 +36,11 @@ const suggestedQuestions: SuggestedQuestion[] = [
     icon: <Search className="w-4 h-4" />
   },
   {
-    question: "Can you show me keyboard shortcuts for this app?",
+    question: "How do I view all pods across namespaces?",
+    icon: <Search className="w-4 h-4" />
+  },
+  {
+    question: "What are the default roles and service accounts in a cluster?",
     icon: <Search className="w-4 h-4" />
   }
 ];
@@ -68,8 +73,10 @@ const RightDrawer: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
   const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
   const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
+  const [showChatSettings, setShowChatSettings] = useState<boolean>(false);
   const { currentContext } = useCluster();
   const { user } = useAuth();
+
 
   // Conversation ID state to maintain session with the orchestrator
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
@@ -141,29 +148,29 @@ const RightDrawer: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
-  
+
     // Check if user is on free version and block the request
     if (!user || !user.isLicensed || user.subscription.status !== 'active') {
       // Add a message indicating they need to upgrade
-      setMessages(prev => [...prev, 
-        {
-          role: 'user',
-          content: inputValue
-        },
-        {
-          role: 'assistant',
-          content: '**Upgrade Required** \n\nThis feature requires a Pro subscription. Please upgrade to continue using the AI assistant.'
-        }
+      setMessages(prev => [...prev,
+      {
+        role: 'user',
+        content: inputValue
+      },
+      {
+        role: 'assistant',
+        content: '**Upgrade Required** \n\nThis feature requires a Pro subscription. Please upgrade to continue using the AI assistant.'
+      }
       ]);
       setInputValue('');
       return;
     }
-  
+
     const userMessage: ChatMessage = {
       role: 'user',
       content: inputValue
     };
-  
+
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
@@ -172,14 +179,14 @@ const RightDrawer: React.FC = () => {
     responseRef.current = '';
     toolCallsRef.current = [];
     setIsInputFocused(false);
-  
+
     try {
       // Transform contextFiles to the format expected by the API
       const formattedFiles = contextFiles.map(file => ({
         resource_name: `${file.resourceType}/${file.resourceName}`,
         resource_content: file.resourceContent || ''
       }));
-  
+
       await chatStream(
         {
           message: inputValue,
@@ -211,7 +218,7 @@ const RightDrawer: React.FC = () => {
                 }
               ]);
             }
-          
+
             setCurrentResponse('');
             setCurrentToolCalls([]);
             setContextFiles([]);
@@ -220,7 +227,7 @@ const RightDrawer: React.FC = () => {
           onError: (error) => {
             console.error('Error in chat stream:', error);
             setIsLoading(false);
-          
+
             setMessages(prev => [
               ...prev,
               {
@@ -228,7 +235,7 @@ const RightDrawer: React.FC = () => {
                 content: `Something went wrong during the chat.`
               }
             ]);
-            
+
             responseRef.current = '';
             toolCallsRef.current = [];
             setCurrentResponse('');
@@ -237,7 +244,7 @@ const RightDrawer: React.FC = () => {
           }
         }
       );
-  
+
       // Check if the input starts with 'kubectl' to execute as a command
       if (inputValue.trim().startsWith('kubectl')) {
         await handleKubectlCommand(inputValue.trim());
@@ -245,7 +252,7 @@ const RightDrawer: React.FC = () => {
     } catch (error) {
       console.error('Failed to process message:', error);
       setIsLoading(false);
-  
+
       setMessages(prev => [
         ...prev,
         {
@@ -355,33 +362,51 @@ const RightDrawer: React.FC = () => {
             variants={drawerVariants}
           >
             <div className="flex flex-col h-full">
-              <div className="p-4 border-b dark:border-gray-700/30 flex items-center justify-between">
+              <div className="px-2 py-2 dark:bg-gray-800/20 flex items-center justify-between">
                 <div className='flex items-center space-x-2'>
-                  <Sparkles className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                  <h3 className="font-medium text-md text-gray-800 dark:text-gray-200">Assistant: Talk to Cluster</h3>
+                  {showChatSettings && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowChatSettings(false)}
+                      className="p-1 text-gray-700 dark:text-gray-300"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Back to Chat
+                    </Button>
+                  )}
+                  {!showChatSettings && (
+                    <>
+                      <div>
+                        <img src={AGENTKUBE} alt="" className='h-6 ml-1 top-0.5 relative' />
+                      </div>
+                      <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200">Assistant: Talk to Cluster</h3>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-gray-800 dark:text-gray-500">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearChat}
-                    className="p-1"
-                    title="Clear chat"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="p-1"
-                  >
-                    {isCollapsed ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronUp className="h-4 w-4" />
-                    )}
-                  </Button>
+                  {!showChatSettings && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearChat}
+                        className="p-1"
+                        title="Clear chat"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowChatSettings(true)}
+                        className="p-1"
+                        title="Chat settings"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -392,30 +417,34 @@ const RightDrawer: React.FC = () => {
                   </Button>
                 </div>
               </div>
-              
-         
+
+
 
               <div
                 className={`flex-grow 
-                  
-                  [&::-webkit-scrollbar]:w-1.5 
-                  [&::-webkit-scrollbar-track]:bg-transparent 
-                  [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-                  [&::-webkit-scrollbar-thumb]:rounded-full
-                  [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
-                  overflow-auto transition-all duration-300 ${isCollapsed ? 'max-h-0' : 'max-h-full'}`}
+    
+    [&::-webkit-scrollbar]:w-1.5 
+    [&::-webkit-scrollbar-track]:bg-transparent 
+    [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+    [&::-webkit-scrollbar-thumb]:rounded-full
+    [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+    overflow-auto transition-all duration-300 ${isCollapsed ? 'max-h-0' : 'max-h-full'}`}
               >
-                <Messages
-                  messages={messages}
-                  currentResponse={currentResponse}
-                  currentToolCalls={currentToolCalls}
-                  isLoading={isLoading}
-                  onQuestionClick={handleQuestionClick}
-                  suggestedQuestions={suggestedQuestions}
-                />
+                {!showChatSettings ? (
+                  <Messages
+                    messages={messages}
+                    currentResponse={currentResponse}
+                    currentToolCalls={currentToolCalls}
+                    isLoading={isLoading}
+                    onQuestionClick={handleQuestionClick}
+                    suggestedQuestions={suggestedQuestions}
+                  />
+                ) : (
+                  <ChatSetting />
+                )}
               </div>
 
-              {isInputFocused && messages.length === 0 && (
+              {isInputFocused && messages.length === 0 && !showChatSettings && (
                 <motion.div
                   className='px-8 py-4 bg-gray-200 dark:bg-[#18181b]'
                   initial={{ opacity: 0, y: 10 }}
@@ -434,76 +463,77 @@ const RightDrawer: React.FC = () => {
               )}
 
 
-              <UpgradeToProContainer />
+              {!showChatSettings && <UpgradeToProContainer />}
 
 
-              <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
-                <div className="flex justify-between items-center mb-2">
-                  <ResourceContext onResourceSelect={handleAddContext} />
-                  <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
-                </div>
+              {!showChatSettings && (
+                <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
+                  <div className="flex justify-between items-center mb-2">
+                    <ResourceContext onResourceSelect={handleAddContext} />
+                    <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+                  </div>
 
-                {contextFiles.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-1 relative">
-                    {contextFiles.map(file => (
-                      <div
-                        key={file.resourceName}
-                        className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
-                      >
+                  {contextFiles.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1 relative">
+                      {contextFiles.map(file => (
                         <div
-                          className="flex items-center cursor-pointer"
-                          onClick={() => handleResourcePreview(file)}
+                          key={file.resourceName}
+                          className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
                         >
-                          <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
-                          <span className="ml-1">{file.resourceName}</span>
+                          <div
+                            className="flex items-center cursor-pointer"
+                            onClick={() => handleResourcePreview(file)}
+                          >
+                            <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+                            <span className="ml-1">{file.resourceName}</span>
+                          </div>
+                          <X
+                            size={12}
+                            className="ml-1 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
+                            }}
+                          />
                         </div>
-                        <X
-                          size={12}
-                          className="ml-1 cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
-                          }}
+                      ))}
+
+                      {previewResource && (
+                        <ResourcePreview
+                          resource={previewResource}
+                          onClose={() => setPreviewResource(null)}
                         />
-                      </div>
-                    ))}
+                      )}
+                    </div>
+                  )}
 
-                    {previewResource && (
-                      <ResourcePreview
-                        resource={previewResource}
-                        onClose={() => setPreviewResource(null)}
-                      />
-                    )}
-                  </div>
-                )}
+                  <form onSubmit={handleSubmit} className="flex gap-2 items-baseline">
+                    <AutoResizeTextarea
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      onSubmit={handleSubmit}
+                      placeholder="Ask anything (⌘L)"
+                      disabled={isLoading}
+                      className="dark:border-transparent"
+                      autoFocus={true}
+                      mentionItems={mentionData}
+                      onMentionSelect={handleMentionSelect}
+                    />
 
-                <form onSubmit={handleSubmit} className="flex gap-2 items-baseline">
-                  <AutoResizeTextarea
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                    onSubmit={handleSubmit}
-                    placeholder="Ask anything (⌘L)"
-                    disabled={isLoading}
-                    className="dark:border-transparent"
-                    autoFocus={true}
-                    mentionItems={mentionData}
-                    onMentionSelect={handleMentionSelect}
-                  />
-
-
-                  <div className="flex items-center justify-end">
-                    <Button
-                      type="submit"
-                      disabled={isLoading || !inputValue.trim()}
-                      className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
-                    >
-                      <ArrowUp className='h-2 w-2' />
-                    </Button>
-                  </div>
-                </form>
-              </div>
+                    <div className="flex items-center justify-end">
+                      <Button
+                        type="submit"
+                        disabled={isLoading || !inputValue.trim()}
+                        className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+                      >
+                        <ArrowUp className='h-2 w-2' />
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           </motion.div>
         </>

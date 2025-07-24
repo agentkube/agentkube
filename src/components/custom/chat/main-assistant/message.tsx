@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
-import { Search, Sparkle, Sparkles } from "lucide-react";
+import { Hand, Search, Sparkle, Sparkles } from "lucide-react";
 import UserMessage from './user-message.rightdrawer';
 import AssistantMessage from './assistant-message.rightdrawer';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { ShiningText } from '@/components/ui/text-shining';
+import { AGENTKUBE } from '@/assets';
 
 interface SuggestedQuestion {
   question: string;
@@ -44,19 +45,20 @@ const Messages: React.FC<MessagesProps> = ({
     <div className="flex flex-col h-full">
       {messages.length === 0 ? (
         <div className="text-center px-10 py-8 flex-grow flex flex-col justify-center">
-          <Sparkles className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200">Ask me anything about the app</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Get help navigating or using features</p>
+     
+          {/* <Sparkles className="mx-auto h-8 w-8 text-emerald-500 mb-2" /> */}
+          <h3 className="text-2xl font-medium text-gray-700 dark:text-gray-200 flex items-center mx-auto space-x-1.5"><Sparkles className='rotate-[-35deg] mr-1.5' />Hello! from <span className='text-emerald-500'>Agentkube</span></h3>
+          <p className="text-md text-gray-500 dark:text-gray-400 mb-6">Let’s manage some pods.</p>
 
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2 px-3">
             {suggestedQuestions.map((item, index) => (
               <button
                 key={index}
-                className="flex items-center w-full p-2 text-left border border-gray-300 dark:border-gray-800/60 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/20 transition-colors"
+                className="flex items-center w-full p-2 text-left border border-gray-300 dark:border-gray-800/60 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/20 transition-colors dark:text-gray-400"
                 onClick={() => onQuestionClick(item.question)}
               >
                 <span className="mr-2">{item.icon}</span>
-                <span className="text-sm">{item.question}</span>
+                <span className="text-xs truncate">{item.question}</span>
               </button>
             ))}
           </div>
