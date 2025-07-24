@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme } from 'next-themes';
-import { Wallpaper } from '@/components/custom';
+import { EditorTheme, Wallpaper } from '@/components/custom';
 
 const Appearance = () => {
   // State for appearance settings
@@ -393,6 +393,8 @@ const Appearance = () => {
       </div>
 
       <Wallpaper />
+
+      <EditorTheme />
 
       {/* Save button for all settings */}
       <div className="flex justify-end">

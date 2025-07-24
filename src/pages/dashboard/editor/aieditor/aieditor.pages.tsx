@@ -12,10 +12,10 @@ import {
   Shield,
   Code,
   LayoutGrid,
+  Settings,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { jsonToYaml, yamlToJson } from '@/utils/yaml';
-import { createResource } from '@/api/internal/resources';
 import { ChatMessage } from '@/types/chat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCluster } from '@/contexts/clusterContext';
@@ -25,6 +25,21 @@ import { scanConfig } from '@/api/scanner/security';
 import { ResourceTemplate } from '@/components/custom';
 import { kubeProxyRequest } from '@/api/cluster';
 import { completionStream, ToolCall } from '@/api/orchestrator.chat';
+import { useNavigate } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Blur } from '@/assets/icons';
 
 // Define type for resource tab
 interface ResourceTab {
@@ -37,6 +52,7 @@ interface ResourceTab {
 }
 
 const AIResourceEditor: React.FC = () => {
+  const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const [securityReport, setSecurityReport] = useState<MisconfigurationReport | null>(null);
@@ -57,8 +73,13 @@ const AIResourceEditor: React.FC = () => {
   const [activeTabId, setActiveTabId] = useState<string>('tab-1');
 
   // Editor state
-  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'light'>('vs-dark');
+  const [editorTheme, setEditorTheme] = useState<string>(() => {
+    const cached = localStorage.getItem('editor_theme');
+    return cached || 'github-dark';
+  });
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+
 
   // State for sidebar visibility
   const [showSidebar, setShowSidebar] = useState<boolean>(false);
@@ -75,6 +96,10 @@ const AIResourceEditor: React.FC = () => {
   const isDragging = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isResizing, setIsResizing] = useState<boolean>(false);
+
+  useEffect(() => {
+    localStorage.setItem('editor_theme', editorTheme);
+  }, [editorTheme]);
 
   // Extract resource metadata from YAML content
   const extractResourceMetadata = (yamlContent: string) => {
@@ -571,15 +596,22 @@ const AIResourceEditor: React.FC = () => {
           <h1 className="text-4xl uppercase font-[Anton] font-bold text-gray-800 dark:text-gray-700/80">Editor</h1>
 
           <div className="space-x-2">
-            <Button
-              variant={showSidebar ? "default" : "outline"}
-              onClick={toggleAssist}
-              className="relative text-black dark:text-gray-300 bg-gray-50 hover:bg-gray-200 dark:hover:bg-gray-800"
-            >
-              <Wand2 className="h-4 w-4 mr-2" /> Assist
-              <span className="text-xs opacity-70 ml-1">(⌘+B)</span>
-            </Button>
-
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={showSidebar ? "default" : "outline"}
+                    onClick={toggleAssist}
+                    className="relative text-black dark:text-gray-300 bg-gray-50 hover:bg-gray-200 dark:hover:bg-gray-800"
+                  >
+                    <Wand2 className="h-4 w-4 mr-2" /> Assist
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="p-1">
+                  <p>Toggle AI Assistant (⌘+B)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button
               onClick={handleSave}
               disabled={isSaving}
@@ -601,18 +633,18 @@ const AIResourceEditor: React.FC = () => {
             className="flex flex-col h-full"
           >
             {/* Tabs Row */}
-            <div className={`flex border-b ${editorTheme === 'vs-dark' ? 'border-gray-700 bg-[#1e1e1e]' : 'border-gray-200 bg-white'}`}>
+            <div className={`flex border-b ${editorTheme !== 'vs-dark' ? 'border-gray-700 bg-[#1e1e1e]' : 'border-gray-200 bg-white'}`}>
               <div className="flex-1 flex items-center overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400">
                 {resourceTabs.map(tab => (
                   <div
                     key={tab.id}
                     onClick={() => setActiveTabId(tab.id)}
-                    className={`flex items-center overflow-x-auto px-4 py-2 border-r cursor-pointer ${editorTheme === 'vs-dark' ? 'border-gray-700' : 'border-gray-200'
+                    className={`flex items-center overflow-x-auto px-4 py-2 border-r cursor-pointer ${editorTheme !== 'vs-dark' ? 'border-gray-700' : 'border-gray-200'
                       } ${activeTabId === tab.id
-                        ? editorTheme === 'vs-dark'
+                        ? editorTheme !== 'vs-dark'
                           ? 'text-white bg-gray-800'
                           : 'text-black bg-gray-100'
-                        : editorTheme === 'vs-dark'
+                        : editorTheme !== 'vs-dark'
                           ? 'text-gray-400 hover:bg-gray-800'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
@@ -629,7 +661,7 @@ const AIResourceEditor: React.FC = () => {
 
                 <button
                   onClick={addNewTab}
-                  className={`p-2 flex items-center ${editorTheme === 'vs-dark'
+                  className={`p-2 flex items-center ${editorTheme !== 'vs-dark'
                     ? 'text-gray-400 hover:bg-gray-800'
                     : 'text-gray-600 hover:bg-gray-100'
                     }`}
@@ -638,24 +670,30 @@ const AIResourceEditor: React.FC = () => {
                 </button>
               </div>
 
-              <button
-                onClick={toggleTheme}
-                className={`p-2 ${editorTheme === 'vs-dark'
-                  ? 'text-gray-400 hover:bg-gray-800'
-                  : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-              >
-                {editorTheme === 'vs-dark' ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`p-2 ${editorTheme !== 'vs-dark'
+                      ? 'text-gray-400 hover:bg-gray-500/10'
+                      : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                  >
+                    <Blur />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm'>
+                  {/* <DropdownMenuSeparator /> */}
+                  <DropdownMenuItem onClick={() => navigate('/settings/appearance')}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    More Themes
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Editor */}
             <div className="flex-1 overflow-hidden">
-              <div className={`h-full w-full ${editorTheme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+              <div className={`flex border-b ${editorTheme === 'vs-dark' || editorTheme === "hc-black" ? 'border-gray-700 bg-[#1e1e1e]' : 'border-gray-200 bg-white'}`}>
                 <CustomMonacoEditor
                   value={getActiveTab().content}
                   onChange={handleEditorChange}

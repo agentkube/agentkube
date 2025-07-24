@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CustomMonacoEditor, ChatPanel, SecurityReport, EditorDiff } from '@/components/custom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sun, Moon, Save, ArrowLeft, GripVertical, Wand2 } from 'lucide-react';
+import { Sun, Moon, Save, ArrowLeft, GripVertical, Wand2, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { jsonToYaml, yamlToJson } from '@/utils/yaml';
 import { updateResource } from '@/api/internal/resources';
@@ -12,6 +12,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { scanConfig } from '@/api/scanner/security'; // Add this import
 import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report';
 import { completionStream, ToolCall } from '@/api/orchestrator.chat';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
+import { Blur } from '@/assets/icons';
 
 interface AIEditorProps {
   // The resource data
@@ -47,10 +56,14 @@ const AIEditor: React.FC<AIEditorProps> = ({
   kind,
   onBack
 }) => {
+  const navigate = useNavigate();
   // State for editor
   const [yamlContent, setYamlContent] = useState<string>('');
   const [originalContent, setOriginalContent] = useState<string>('');
-  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'light'>('vs-dark');
+  const [editorTheme, setEditorTheme] = useState<string>(() => {
+    const cached = localStorage.getItem('editor_theme');
+    return cached || 'github-dark';
+  });
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [securityReport, setSecurityReport] = useState<MisconfigurationReport | null>(null);
@@ -67,13 +80,16 @@ const AIEditor: React.FC<AIEditorProps> = ({
   const chatResponseRef = useRef<string>('');
   // Add this state in AIEditor
   const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-4o-mini");
-  
+
   // State for layout
   const [editorWidth, setEditorWidth] = useState<string>('100%');
   const isDragging = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isResizing, setIsResizing] = useState<boolean>(false);
 
+  useEffect(() => {
+    localStorage.setItem('editor_theme', editorTheme);
+  }, [editorTheme]);
 
   const handleSecurityScan = async () => {
     if (!yamlContent) {
@@ -356,22 +372,28 @@ const AIEditor: React.FC<AIEditorProps> = ({
             className="flex flex-col h-full"
           >
             <div className="flex-1 overflow-auto">
-              <div className={`h-full ${editorTheme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-white'}  dark:border-gray-900 rounded-xl overflow-hidden`}>
-                <div className={`${editorTheme === 'vs-dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'} border-b px-4 py-2 flex justify-between items-center`}>
+              <div className={`h-full ${editorTheme !== 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-white'}  dark:border-gray-900 rounded-xl overflow-hidden`}>
+                <div className={`${editorTheme !== 'vs-dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'} border-b px-4 py-2 flex justify-between items-center`}>
                   <span>{resourceName} {hasChanges && '*'}</span>
-                  <button
-                    onClick={toggleTheme}
-                    className={`p-2 rounded-lg transition-colors ${editorTheme === 'vs-dark'
-                      ? 'hover:bg-gray-700 text-gray-300'
-                      : 'hover:bg-gray-100 text-gray-600'
-                      }`}
-                  >
-                    {editorTheme === 'vs-dark' ? (
-                      <Sun className="h-4 w-4" />
-                    ) : (
-                      <Moon className="h-4 w-4" />
-                    )}
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={`p-2 ${editorTheme !== 'vs-dark'
+                          ? 'text-gray-400 hover:bg-gray-500/10'
+                          : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                      >
+                        <Blur />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm'>
+                      {/* <DropdownMenuSeparator /> */}
+                      <DropdownMenuItem onClick={() => navigate('/settings/appearance')}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        More Themes
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <CustomMonacoEditor
                   value={yamlContent}
