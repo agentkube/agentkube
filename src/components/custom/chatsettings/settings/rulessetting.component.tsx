@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, Save, X, UserCog, ClipboardList } from "lucide-react";
 import { SiKubernetes } from '@icons-pack/react-simple-icons';
+import { MinimalEditor } from '@/components/custom';
 
 interface Rule {
   id: number;
@@ -108,17 +109,24 @@ const RulesSetting: React.FC = () => {
       }
     };
 
+    const handleEditorChange = (value: string | undefined): void => {
+      if (value !== undefined) {
+        setContent(value);
+      }
+    };
+
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 mt-2">
+      <div className="  border-gray-300 dark:border-gray-600 rounded-lg mt-2">
         <div className="mb-3">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {type === 'user' ? 'User Rule' : 'Cluster Rule'}
           </label>
-          <textarea
+          <MinimalEditor
             value={content}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
+            onChange={handleEditorChange}
+            language="markdown"
+            height="150px"
             placeholder={`Enter your ${type} rule here...`}
-            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         <div className="flex justify-end space-x-2">
@@ -160,18 +168,22 @@ const RulesSetting: React.FC = () => {
       }
     };
 
-    const handleEditChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-      setEditContent(e.target.value);
+    const handleEditChange = (value: string | undefined): void => {
+      if (value !== undefined) {
+        setEditContent(value);
+      }
     };
 
     return (
       <div className="bg-white dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600/30 rounded-lg">
         {isEditing ? (
-          <div>
-            <textarea
+          <div className="p-4">
+            <MinimalEditor
               value={editContent}
               onChange={handleEditChange}
-              className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+              language="markdown"
+              height="150px"
+              className="mb-3"
             />
             <div className="flex justify-end space-x-2">
               <Button
