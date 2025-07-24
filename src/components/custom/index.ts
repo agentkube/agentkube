@@ -68,6 +68,8 @@ export { default as EventMetricsCard } from './overview/eventmetrics.components'
 export { default as ResourceViewerYamlTab } from './editor/resource-viewer-tabs.component';
 export { default as CustomMonacoEditor } from './editor/custom-monaco-editor';
 export { default as ChatPanel } from './editor/chat-panel-tab.component';
+export { default as EditorTheme } from './editortheme/editortheme.component';
+export { default as ChatSetting } from './chatsettings/chatsettings.component';
 
 export { default as NotificationDropdown } from './notificationdropdown/notificationdropdown.component';
 export { default as BackgroundTask } from './backgroundtaskdialog/backgroundtask.component';

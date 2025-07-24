@@ -447,18 +447,6 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="p-1"
-                  >
-                    {isCollapsed ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronUp className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
                     onClick={handleClose}
                     className="p-1"
                   >

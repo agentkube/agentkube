@@ -1,11 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import MonacoEditor, { OnMount } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
+import { shikiToMonaco } from '@shikijs/monaco';
+import { createHighlighter } from 'shiki';
+import { themeSlugs } from '@/constants/theme.constants';
 
 interface CustomMonacoEditorProps {
   value: string;
   onChange: (value: string | undefined) => void;
-  theme: 'vs-dark' | 'light' | 'hc-black' | 'hc-light';
+  theme: string;
   setQuestion: (text: string) => void;
   handleChatSubmit: (e: React.FormEvent | React.KeyboardEvent) => void;
 }
@@ -26,7 +29,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
       const widget = document.createElement('div');
       widget.className = `
         p-1 rounded-[0.5rem] shadow-lg border flex gap-2 absolute z-50
-        ${theme === 'vs-dark' || theme === 'hc-black' ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}
+        ${theme !== 'vs-dark' ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}
       `;
       widget.style.display = 'none';
       widgetRef.current = widget;
@@ -38,13 +41,13 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   const createCopilotWidget = () => {
     if (!copilotWidgetRef.current) {
       const widget = document.createElement('div');
-      const isDarkTheme = theme === 'vs-dark' || theme === 'hc-black';
+      const isDarkTheme = theme !== 'vs-dark';
       widget.className = `
-        absolute z-50 w-[600px] shadow-lg border border-gray-600 rounded-[0.5rem]
-        ${isDarkTheme ? 'bg-[#1e1e1e]' : 'bg-white'}
+        absolute z-50 w-[600px] shadow-lg border border-gray-600/50 rounded-[0.5rem]
+        ${isDarkTheme ? 'bg-[#0B0D13]/50' : 'bg-white'}
       `;
       widget.innerHTML = `
-        <div class="flex items-center px-3 py-2 gap-2 border-b rounded-t-[0.5rem] ${isDarkTheme ? 'bg-[#252526] border-[#3c3c3c] text-[#cccccc]' : 'bg-gray-100 border-gray-200 text-gray-700'}">
+        <div class="flex items-center px-3 py-2 gap-2 border-b rounded-t-[0.5rem] ${isDarkTheme ? 'bg-[#0B0D13] border-gray-800/50 text-[#cccccc]' : 'bg-gray-100 border-gray-200 text-gray-700'}">
           <span class="text-xs opacity-70">Editing instructions... (↑↓ for history, @ for code / documentation)</span>
           <div class="flex-1"></div>
           <span class="text-xs opacity-70">Esc to close</span>
@@ -52,7 +55,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
         <input type="text" 
           class="w-full px-3 py-2 text-sm outline-none border-none rounded-b-[0.5rem] ${
             isDarkTheme
-              ? 'bg-[#1e1e1e] text-[#cccccc] placeholder-[#6c6c6c]'
+              ? 'bg-[#0B0D13]/50 backdrop-blur-md text-[#cccccc] placeholder-[#6c6c6c]'
               : 'bg-white text-gray-900 placeholder-gray-500'
           }"
           placeholder="Ask a question about the code..." 
@@ -153,7 +156,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
 
     const editorRect = editorDomNode.getBoundingClientRect();
     
-    const isDarkTheme = theme === 'vs-dark' || theme === 'hc-black';
+    const isDarkTheme = theme !== 'vs-dark';
     widget.innerHTML = `
       <button class="flex items-center gap-1 px-2 py-1 rounded hover:bg-opacity-80 transition-colors bg-[#1e1e1e] text-md
         ${isDarkTheme ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}">
@@ -200,8 +203,19 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
 
   };
 
-  const handleEditorDidMount: OnMount = (editor) => {
+  const handleEditorDidMount: OnMount = async (editor, monaco) => {
     editorRef.current = editor;
+
+    const highlighter = await createHighlighter({
+      themes: themeSlugs,
+      langs: ['yaml', 'typescript', 'javascript', 'json', 'go', 'rust', 'nginx', 'python', 'java'],
+    });
+
+    // 2. Register Shiki themes with Monaco
+    shikiToMonaco(highlighter, monaco);
+
+    // 3. Activate the requested theme
+    monaco.editor.setTheme(theme);
 
     createWidget();
     createCopilotWidget();
