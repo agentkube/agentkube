@@ -5,7 +5,7 @@ import * as monaco from 'monaco-editor';
 interface CustomMonacoEditorProps {
   value: string;
   onChange: (value: string | undefined) => void;
-  theme: 'vs-dark' | 'light';
+  theme: 'vs-dark' | 'light' | 'hc-black' | 'hc-light';
   setQuestion: (text: string) => void;
   handleChatSubmit: (e: React.FormEvent | React.KeyboardEvent) => void;
 }
@@ -26,7 +26,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
       const widget = document.createElement('div');
       widget.className = `
         p-1 rounded-[0.5rem] shadow-lg border flex gap-2 absolute z-50
-        ${theme === 'vs-dark' ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}
+        ${theme === 'vs-dark' || theme === 'hc-black' ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}
       `;
       widget.style.display = 'none';
       widgetRef.current = widget;
@@ -38,19 +38,20 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   const createCopilotWidget = () => {
     if (!copilotWidgetRef.current) {
       const widget = document.createElement('div');
+      const isDarkTheme = theme === 'vs-dark' || theme === 'hc-black';
       widget.className = `
         absolute z-50 w-[600px] shadow-lg border border-gray-600 rounded-[0.5rem]
-        ${theme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-white'}
+        ${isDarkTheme ? 'bg-[#1e1e1e]' : 'bg-white'}
       `;
       widget.innerHTML = `
-        <div class="flex items-center px-3 py-2 gap-2 border-b rounded-t-[0.5rem] ${theme === 'vs-dark' ? 'bg-[#252526] border-[#3c3c3c] text-[#cccccc]' : 'bg-gray-100 border-gray-200 text-gray-700'}">
+        <div class="flex items-center px-3 py-2 gap-2 border-b rounded-t-[0.5rem] ${isDarkTheme ? 'bg-[#252526] border-[#3c3c3c] text-[#cccccc]' : 'bg-gray-100 border-gray-200 text-gray-700'}">
           <span class="text-xs opacity-70">Editing instructions... (↑↓ for history, @ for code / documentation)</span>
           <div class="flex-1"></div>
           <span class="text-xs opacity-70">Esc to close</span>
         </div>
         <input type="text" 
           class="w-full px-3 py-2 text-sm outline-none border-none rounded-b-[0.5rem] ${
-            theme === 'vs-dark'
+            isDarkTheme
               ? 'bg-[#1e1e1e] text-[#cccccc] placeholder-[#6c6c6c]'
               : 'bg-white text-gray-900 placeholder-gray-500'
           }"
@@ -152,9 +153,10 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
 
     const editorRect = editorDomNode.getBoundingClientRect();
     
+    const isDarkTheme = theme === 'vs-dark' || theme === 'hc-black';
     widget.innerHTML = `
       <button class="flex items-center gap-1 px-2 py-1 rounded hover:bg-opacity-80 transition-colors bg-[#1e1e1e] text-md
-        ${theme === 'vs-dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}">
+        ${isDarkTheme ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}">
         <span class="flex items-center text-gray-400">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#9ca3af" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-command">
           <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>
@@ -164,7 +166,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
         Chat
       </button>
       <button class="flex items-center gap-1 px-2 py-1 rounded hover:bg-opacity-80 transition-colors bg-[#1e1e1e] text-md
-        ${theme === 'vs-dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}">
+        ${isDarkTheme ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}">
         <span class="flex items-center text-gray-400">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#9ca3af" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-command">
           <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>
@@ -174,7 +176,6 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
         Edit
       </button>
     `;
-
     const leftPosition = Math.max(0, editorRect.left + selectionPos.left);
     const topPosition = Math.max(0, editorRect.top + selectionPos.top - 40);
 
