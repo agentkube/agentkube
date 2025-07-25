@@ -114,19 +114,19 @@ const ServerRow = memo(({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-medium">{server.name}</span>
-            <span className={`text-xs px-2 py-0.5 rounded ${server.enabled
+            <span className="font-medium text-sm">{server.name}</span>
+            <span className={`text-xs px-2 py-0.3 rounded ${server.enabled
               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
               : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
               }`}>
               {server.enabled ? 'Enabled' : 'Disabled'}
             </span>
-            <span className="bg-gray-200 dark:bg-gray-700/50 dark:text-gray-300 px-1.5 py-0.5 rounded text-xs mr-2">
+            <span className="bg-gray-200 dark:bg-gray-700/50 dark:text-gray-300 px-1.5 py-0.3 rounded text-xs mr-2">
               {server.transport}
             </span>
           </div>
         </div>
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-xs text-gray-500 w-96 truncate">
 
           {server.transport === 'stdio' && server.command && (
             <span>{server.command} {server.args?.join(' ')}</span>

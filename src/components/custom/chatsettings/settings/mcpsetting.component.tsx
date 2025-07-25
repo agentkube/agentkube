@@ -11,6 +11,7 @@ import {
 import { SiClaude, SiDask, SiFigma, SiGithub, SiGitlab, SiGoogledrive, SiGooglemaps, SiPostgresql, SiPuppeteer, SiSlack } from '@icons-pack/react-simple-icons';
 import { AWS_PROVIDER } from '@/assets/providers';
 import AddMCPConfig from './addmcpconfig.component';
+import MCPServer from '../mcp/mcpserver.component';
 
 interface MCPTool {
   id: string;
@@ -233,13 +234,11 @@ const MCPSetting = () => {
       </div>
 
       {/* Empty State */}
-      <div className="bg-gray-400/20 dark:bg-gray-800/30 rounded-lg p-12 text-center">
-        <div className="mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-tools"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M3 21h4l13 -13a1.5 1.5 0 0 0 -4 -4l-13 13v4" /><path d="M14.5 5.5l4 4" /><path d="M12 8l-5 -5l-4 4l5 5" /><path d="M7 8l-1.5 1.5" /><path d="M16 12l5 5l-4 4l-5 -5" /><path d="M16 17l-1.5 1.5" /></svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No MCP servers available</h3>
-        </div>
+      <MCPServer 
+          onAddManually={handleAddManually}
+          onAddFromMarketplace={handleAddFromMarketplace}
+        />
+      {/* <div className="bg-gray-400/20 dark:bg-gray-800/30 rounded-lg p-12 ">
 
         <div className="flex justify-center space-x-3">
           <Button
@@ -256,7 +255,7 @@ const MCPSetting = () => {
             Add from Marketplace
           </Button>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

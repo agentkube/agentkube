@@ -59,7 +59,7 @@ const RulesSetting: React.FC = () => {
     }
 
     setShowAddForm({ type: null, show: false });
-    
+
     // TODO: Make API call to save rule
     console.log('API Call - Save rule:', { type, rule: newRule });
   };
@@ -71,7 +71,7 @@ const RulesSetting: React.FC = () => {
     } else {
       setClusterRules(clusterRules.filter(rule => rule.id !== id));
     }
-    
+
     // TODO: Make API call to delete rule
     console.log('API Call - Delete rule:', { type, id });
   };
@@ -83,8 +83,8 @@ const RulesSetting: React.FC = () => {
 
   // Save edited rule
   const handleSaveEdit = (type: RuleType, id: number, newContent: string): void => {
-    const updateRules = (rules: Rule[]): Rule[] => 
-      rules.map(rule => 
+    const updateRules = (rules: Rule[]): Rule[] =>
+      rules.map(rule =>
         rule.id === id ? { ...rule, content: newContent.trim() } : rule
       );
 
@@ -95,7 +95,7 @@ const RulesSetting: React.FC = () => {
     }
 
     setEditingRule(null);
-    
+
     // TODO: Make API call to update rule
     console.log('API Call - Update rule:', { type, id, content: newContent });
   };
@@ -116,7 +116,7 @@ const RulesSetting: React.FC = () => {
     };
 
     return (
-      <div className="  border-gray-300 dark:border-gray-600 rounded-lg mt-2">
+      <div className="border-gray-300 dark:border-gray-600 rounded-lg mt-2">
         <div className="mb-3">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {type === 'user' ? 'User Rule' : 'Cluster Rule'}
@@ -151,14 +151,14 @@ const RulesSetting: React.FC = () => {
     );
   };
 
-  const RuleItem: React.FC<RuleItemProps> = ({ 
-    rule, 
-    type, 
-    onEdit, 
-    onDelete, 
-    onSaveEdit, 
-    isEditing, 
-    onCancelEdit 
+  const RuleItem: React.FC<RuleItemProps> = ({
+    rule,
+    type,
+    onEdit,
+    onDelete,
+    onSaveEdit,
+    isEditing,
+    onCancelEdit
   }) => {
     const [editContent, setEditContent] = useState<string>(rule.content);
 
@@ -175,9 +175,9 @@ const RulesSetting: React.FC = () => {
     };
 
     return (
-      <div className="bg-white dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600/30 rounded-lg">
+      <div className="border border-gray-300 dark:border-gray-600/30 rounded-lg">
         {isEditing ? (
-          <div className="p-4">
+          <div>
             <MinimalEditor
               value={editContent}
               onChange={handleEditChange}
@@ -207,12 +207,14 @@ const RulesSetting: React.FC = () => {
         ) : (
           <div>
             <div className="flex items-start justify-between">
-              <div className="flex items-center p-2">
-                {type === 'user' ? (
-                  <UserCog className="w-4 h-4 text-gray-500 mr-2" />
-                ) : (
-                  <SiKubernetes className="w-4 h-4 text-gray-500 mr-2" />
-                )}
+              <div className="flex items-center p-1 mt-0.5">
+                <div className='p-1 rounded-md w-fit mr-2'>
+                  {type === 'user' ? (
+                    <UserCog className="w-4 h-4 text-red-500" />
+                  ) : (
+                    <SiKubernetes className="w-4 h-4 text-blue-500" />
+                  )}
+                </div>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   {rule.name}
                 </span>
@@ -253,17 +255,17 @@ const RulesSetting: React.FC = () => {
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
           User Rules
         </h3>
-        <div className="bg-gray-200 dark:bg-gray-700/20 rounded-lg p-4">
+        <div className="bg-gray-200 dark:bg-gray-700/20 rounded-lg p-2">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Define usage preferences here, such as the output language for Agentkube, or whether code generation should include comments by default, etc. Agentkube will follow your personal preference rules during chats, and the rules will remain effective when switching projects.
           </p>
-          
+
           {userRules.length > 0 && (
             <div className="mb-4">
               {userRules.map((rule: Rule) => (
-                <RuleItem 
-                  key={rule.id} 
-                  rule={rule} 
+                <RuleItem
+                  key={rule.id}
+                  rule={rule}
                   type="user"
                   onEdit={handleEditRule}
                   onDelete={handleDeleteRule}
@@ -282,9 +284,9 @@ const RulesSetting: React.FC = () => {
               onCancel={() => setShowAddForm({ type: null, show: false })}
             />
           ) : userRules.length === 0 ? (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="text-gray-600 dark:text-gray-400"
               onClick={() => handleAddRule('user')}
             >
@@ -304,13 +306,13 @@ const RulesSetting: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Create the .agentkube/rules/cluster_rules.md file within a project to define the rules Agentkube should follow when conversing in the current project.
           </p>
-          
+
           {clusterRules.length > 0 && (
             <div className="mb-4">
               {clusterRules.map((rule: Rule) => (
-                <RuleItem 
-                  key={rule.id} 
-                  rule={rule} 
+                <RuleItem
+                  key={rule.id}
+                  rule={rule}
                   type="cluster"
                   onEdit={handleEditRule}
                   onDelete={handleDeleteRule}
@@ -329,9 +331,9 @@ const RulesSetting: React.FC = () => {
               onCancel={() => setShowAddForm({ type: null, show: false })}
             />
           ) : clusterRules.length === 0 ? (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="text-gray-600 dark:text-gray-400"
               onClick={() => handleAddRule('cluster')}
             >

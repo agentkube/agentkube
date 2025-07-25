@@ -8,14 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getSettings, patchConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
-import { usePostHog } from '@/contexts/useAnalytics'; 
+import { usePostHog } from '@/contexts/useAnalytics';
 import { useCluster } from '@/contexts/clusterContext';
 
 const GeneralSettings: React.FC = () => {
   const { toast } = useToast();
   const { analyticsEnabled, setAnalyticsEnabled } = usePostHog();
   const { fullWidth, setFullWidth } = useCluster();
-  
+
   // State for settings
   const [language, setLanguage] = useState<string | undefined>(undefined);
   const [defaultLocation, setDefaultLocation] = useState<string | undefined>(undefined);
@@ -40,20 +40,20 @@ const GeneralSettings: React.FC = () => {
         setLanguage(settings.general?.language ?? 'en');
         setAutoUpdate(settings.general?.autoUpdate);
         setKubectlPath(settings.general?.kubectlPath ?? '');
-        
+
         // Set usageAnalytics and sync with PostHog
         const analyticsValue = settings.general?.usageAnalytics;
         setUsageAnalytics(analyticsValue);
-        
+
         // Sync PostHog state with settings - only if we have a defined value
         if (analyticsValue !== undefined) {
           setAnalyticsEnabled(analyticsValue);
         }
-        
+
         // Check actual autostart status from Tauri
         const autoStartEnabled = await isEnabled();
         setStartOnLogin(autoStartEnabled);
-        
+
         setExcludeNamespaces(settings.general?.excludeNamespaces ?? []);
 
         // Default location is stored in agentkubeconfig.path
@@ -123,7 +123,7 @@ const GeneralSettings: React.FC = () => {
 
       // Create a config patch object with only defined values
       const configPatch: Record<string, any> = {};
-      
+
       // Only add general section if there are changes
       const generalChanges: Record<string, any> = {};
       if (language !== undefined) generalChanges.language = language;
@@ -132,11 +132,11 @@ const GeneralSettings: React.FC = () => {
       if (startOnLogin !== undefined) generalChanges.startOnLogin = startOnLogin;
       if (excludeNamespaces !== undefined) generalChanges.excludeNamespaces = excludeNamespaces;
       if (kubectlPath !== undefined) generalChanges.kubectlPath = kubectlPath;
-      
+
       if (Object.keys(generalChanges).length > 0) {
         configPatch.general = generalChanges;
       }
-      
+
       // Only add agentkubeconfig section if there are changes
       if (defaultLocation !== undefined) {
         configPatch.agentkubeconfig = {
@@ -234,20 +234,20 @@ const GeneralSettings: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="flex items-center justify-between">
-  <div className="space-y-0.5">
-    <Label htmlFor="full-width">Full Width</Label>
-    <div className="text-sm text-muted-foreground">
-      Use full width for resource views
-    </div>
-  </div>
-  <Switch
-    id="full-width"
-    checked={fullWidth}
-    onCheckedChange={setFullWidth}
-  />
-</div>
+          <div className="space-y-0.5">
+            <Label htmlFor="full-width">Full Width</Label>
+            <div className="text-sm text-muted-foreground">
+              Use full width for resource views
+            </div>
+          </div>
+          <Switch
+            id="full-width"
+            checked={fullWidth}
+            onCheckedChange={setFullWidth}
+          />
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="auto-update" className="block">Automatic Updates</Label>

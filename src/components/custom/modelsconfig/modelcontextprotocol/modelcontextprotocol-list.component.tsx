@@ -9,7 +9,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Switch } from '@/components/ui/switch';
 
 interface MCPTool {
   name: string;

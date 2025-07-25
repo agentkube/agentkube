@@ -132,7 +132,12 @@ const AgentSetting: React.FC = () => {
               <label className="text-sm text-gray-700 dark:text-gray-300">
                 Automatically run commands and MCP tools
               </label>
-              <Switch onClick={() => setAutoRun(!autoRun)} />
+  
+              <Switch
+                id="auto-run-tools"
+                checked={autoRun}
+                onCheckedChange={() => setAutoRun(!autoRun)}
+              />
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 w-96">
               When using agents, automatically execute commands and MCP tools deemed safe by the model.

@@ -16,7 +16,7 @@ const ContextSetting = () => {
         </h3>
         <div className="bg-gray-200 dark:bg-gray-700/20 rounded-lg p-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Configure the list of files that would be ignored by Agentkube when indexing your repository. These ignored files will be in addition to those specified in your .gitignore.
+            Configure the list of files that would be ignored by Agentkube when indexing your repository. These ignored resources will be in addition to those specified in your .kubeignore.
           </p>
           <div className="mt-2">
             <Button

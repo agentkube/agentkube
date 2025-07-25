@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import MonacoEditor, { OnMount } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { shikiToMonaco } from '@shikijs/monaco';
-import { createHighlighter } from 'shiki';
+import { createHighlighter, Highlighter } from 'shiki';
 import { themeSlugs } from '@/constants/theme.constants';
 
 interface CustomMonacoEditorProps {
@@ -12,6 +12,25 @@ interface CustomMonacoEditorProps {
   setQuestion: (text: string) => void;
   handleChatSubmit: (e: React.FormEvent | React.KeyboardEvent) => void;
 }
+
+let highlighterInstance: Highlighter | null = null;
+let highlighterPromise: Promise<Highlighter> | null = null;
+
+const getHighlighter = async (): Promise<Highlighter> => {
+  if (highlighterInstance) {
+    return highlighterInstance;
+  }
+  
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighter({
+      themes: themeSlugs,
+      langs: ['yaml', 'typescript', 'javascript', 'json', 'go', 'rust', 'nginx', 'python', 'java'],
+    });
+  }
+  
+  highlighterInstance = await highlighterPromise;
+  return highlighterInstance;
+};
 
 const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   value,
@@ -206,11 +225,8 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   const handleEditorDidMount: OnMount = async (editor, monaco) => {
     editorRef.current = editor;
 
-    const highlighter = await createHighlighter({
-      themes: themeSlugs,
-      langs: ['yaml', 'typescript', 'javascript', 'json', 'go', 'rust', 'nginx', 'python', 'java'],
-    });
-
+    const highlighter = await getHighlighter();
+    
     // 2. Register Shiki themes with Monaco
     shikiToMonaco(highlighter, monaco);
 

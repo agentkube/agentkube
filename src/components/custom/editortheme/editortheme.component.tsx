@@ -46,8 +46,6 @@ spec:
 
   const handleThemeChange = (theme: string) => {
     setSelectedTheme(theme);
-    // Here you can add any additional logic for saving the theme
-    console.log('Selected theme:', theme);
   };
 
   return (

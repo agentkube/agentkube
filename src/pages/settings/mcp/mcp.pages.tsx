@@ -12,10 +12,7 @@ interface MCPServerConfig {
   command?: string;
   args?: string[];
   env?: Record<string, string>;
-}
-
-interface McpConfig {
-  mcpServers: Record<string, MCPServerConfig>;
+  enabled: boolean;
 }
 
 interface MCPServer {
@@ -99,7 +96,8 @@ const MCPServerConfigPage = () => {
           // For remote servers (using SSE)
           mcpServersObject[server.name] = {
             url: server.url || '',  // Add fallback to prevent undefined
-            transport: 'sse'
+            transport: 'sse',
+            enabled: false,
           };
         } else if (server.type === 'process') {
           // For process-based servers (using stdio)
@@ -107,7 +105,8 @@ const MCPServerConfigPage = () => {
             command: server.command || '',
             args: server.args || [],
             env: server.env || {},
-            transport: 'stdio'
+            transport: 'stdio',
+            enabled: false,
           };
         }
       });
