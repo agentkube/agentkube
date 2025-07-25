@@ -54,7 +54,7 @@ const MinimalEditor: React.FC<MinimalEditorProps> = ({
 
   const defaultOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
     minimap: { enabled: false },
-    fontSize: 13,
+    fontSize: 10,
     lineNumbers: 'off',
     roundedSelection: false,
     scrollBeyondLastLine: false,
