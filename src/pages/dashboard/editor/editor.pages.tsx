@@ -372,13 +372,13 @@ const AIEditor: React.FC<AIEditorProps> = ({
             className="flex flex-col h-full"
           >
             <div className="flex-1 overflow-auto">
-              <div className={`h-full ${editorTheme !== 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-white'}  dark:border-gray-900 rounded-xl overflow-hidden`}>
-                <div className={`${editorTheme !== 'vs-dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'} border-b px-4 py-2 flex justify-between items-center`}>
-                  <span>{resourceName} {hasChanges && '*'}</span>
+              <div className={`h-full ${editorTheme !== 'vs-dark' ? 'bg-[#1e1e1e] dark:bg-transparent' : 'bg-white'} border dark:border-gray-800 rounded-xl overflow-hidden`}>
+                <div className={`${editorTheme !== 'vs-dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'} border-b px-4 py-0.5 flex justify-between items-center`}>
+                  <span className='text-xs'>{resourceName} {hasChanges && '*'}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className={`p-2 ${editorTheme !== 'vs-dark'
+                        className={`p-2 rounded-md ${editorTheme !== 'vs-dark'
                           ? 'text-gray-400 hover:bg-gray-500/10'
                           : 'text-gray-600 hover:bg-gray-100'
                           }`}

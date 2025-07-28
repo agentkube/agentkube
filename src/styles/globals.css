@@ -33,7 +33,7 @@
     @apply min-h-screen dark:text-gray-200;
   }
   :root {
-    --background: white;  
+    /* --background: white;   */
     /* --background: url("../assets/background/wall2-light.jpg"); */
     /* background-repeat: no-repeat; */
     /* --background: linear-gradient(to bottom right, #232531, #000000); */
