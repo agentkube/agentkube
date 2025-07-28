@@ -17,6 +17,7 @@
     "updater:allow-download",
     "updater:allow-download-and-install",
     "core:event:default",
+    "deep-link:default",
     "core:event:allow-listen",
     "cors-fetch:default",
     "core:window:default",

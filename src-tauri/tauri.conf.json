@@ -166,6 +166,13 @@
     "longDescription": "Agentkube: AI-powered Kubernetes management platform"
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {  
+        "schemes": ["agentkube"],  
+        "name": "AgentKube Protocol",   
+        "role": "Editor"  
+      }  
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBNTk0MjQxMTU1MkQ5QzUKUldURjJWSVZRVUpabXUycWVFNHN2NER6TStwZ1dpK2ZMR1p0NjNoT0NqbkxNUXhlVU9MbnJoZnAK",
       "endpoints": [
