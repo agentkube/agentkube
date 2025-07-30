@@ -5,6 +5,7 @@ import AssistantMessage from './assistant-message.rightdrawer';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { ShiningText } from '@/components/ui/text-shining';
 import { AGENTKUBE } from '@/assets';
+import { formatElapsedTime } from '@/utils/elapsedTime';
 
 interface SuggestedQuestion {
   question: string;
@@ -24,6 +25,7 @@ interface MessagesProps {
   isLoading: boolean;
   onQuestionClick: (question: string) => void;
   suggestedQuestions: SuggestedQuestion[];
+  elapsedTime?: number;
 }
 
 const Messages: React.FC<MessagesProps> = ({
@@ -32,7 +34,8 @@ const Messages: React.FC<MessagesProps> = ({
   currentToolCalls = [],
   isLoading,
   onQuestionClick,
-  suggestedQuestions
+  suggestedQuestions,
+  elapsedTime = 0
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +48,7 @@ const Messages: React.FC<MessagesProps> = ({
     <div className="flex flex-col h-full">
       {messages.length === 0 ? (
         <div className="text-center px-10 py-8 flex-grow flex flex-col justify-center">
-     
+
           {/* <Sparkles className="mx-auto h-8 w-8 text-emerald-500 mb-2" /> */}
           <h3 className="text-2xl font-medium text-gray-700 dark:text-gray-200 flex items-center mx-auto space-x-1.5"><Sparkles className='rotate-[-35deg] mr-1.5' />Hello! from <span className='text-emerald-500'>Agentkube</span></h3>
           <p className="text-md text-gray-500 dark:text-gray-400 mb-6">Let’s manage some pods.</p>
@@ -68,14 +71,14 @@ const Messages: React.FC<MessagesProps> = ({
           {messages.map((message, index) => (
             <div key={index} className="flex items-start">
               {message.role === 'user' && (
-                <UserMessage content={message.content} /> 
+                <UserMessage content={message.content} />
               )}
 
               {message.role === 'assistant' && (
-                <AssistantMessage 
-                  content={message.content} 
-                  toolCalls={message.toolCalls} 
-                /> 
+                <AssistantMessage
+                  content={message.content}
+                  toolCalls={message.toolCalls}
+                />
               )}
             </div>
           ))}
@@ -83,22 +86,24 @@ const Messages: React.FC<MessagesProps> = ({
           {/* Display current streaming response if available */}
           {isLoading && currentResponse && (
             <div className="flex items-start">
-              <AssistantMessage 
-                content={currentResponse} 
-                toolCalls={currentToolCalls} 
+              <AssistantMessage
+                content={currentResponse}
+                toolCalls={currentToolCalls}
               />
             </div>
           )}
-          
+
           {/* Assistant isLoading response */}
           {isLoading && !currentResponse && !currentToolCalls.length && (
             <div className="flex justify-center">
-              <div className="flex items-center space-x-2 p-6 bg-gray-300/30 dark:bg-gray-800/20 w-full">
-                {/* <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1"></span>
-                <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1" style={{ animationDelay: '0.2s' }}></span>
-                <span className="inline-block animate-bounce rounded-full h-2 w-2 bg-gray-500 mx-1" style={{ animationDelay: '0.4s' }}></span> */}
-                <Sparkles className='h-4 w-4 text-green-500 dark:text-gray-100/50 animate-pulse' />
-                <ShiningText />
+              <div className="flex items-center justify-between space-x-2 px-6 py-4 bg-gray-300/30 dark:bg-gray-800/20 w-full">
+                <div className='flex items-center space-x-2'>
+                  <Sparkles className='h-4 w-4 text-green-500 dark:text-gray-100/50 animate-pulse' />
+                  <ShiningText />
+                </div>
+                <div className="ml-auto text-xs text-gray-500 dark:text-gray-400/40 font-mono">
+                  {formatElapsedTime(elapsedTime)}
+                </div>
               </div>
             </div>
           )}

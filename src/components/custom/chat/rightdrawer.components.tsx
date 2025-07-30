@@ -14,6 +14,12 @@ import { useCluster } from '@/contexts/clusterContext';
 import UpgradeToProContainer from './upgradepro.component';
 import { useAuth } from '@/contexts/useAuth';
 import { AGENTKUBE } from '@/assets';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface SuggestedQuestion {
   question: string;
@@ -76,6 +82,25 @@ const RightDrawer: React.FC = () => {
   const [showChatSettings, setShowChatSettings] = useState<boolean>(false);
   const { currentContext } = useCluster();
   const { user } = useAuth();
+
+  const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isLoading && responseStartTime) {
+      interval = setInterval(() => {
+        setElapsedTime(Date.now() - responseStartTime);
+      }, 100);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isLoading, responseStartTime]);
 
 
   // Conversation ID state to maintain session with the orchestrator
@@ -179,6 +204,8 @@ const RightDrawer: React.FC = () => {
     responseRef.current = '';
     toolCallsRef.current = [];
     setIsInputFocused(false);
+    setResponseStartTime(Date.now());
+    setElapsedTime(0);
 
     try {
       // Transform contextFiles to the format expected by the API
@@ -223,6 +250,7 @@ const RightDrawer: React.FC = () => {
             setCurrentToolCalls([]);
             setContextFiles([]);
             setIsLoading(false);
+            setResponseStartTime(null);
           },
           onError: (error) => {
             console.error('Error in chat stream:', error);
@@ -241,6 +269,7 @@ const RightDrawer: React.FC = () => {
             setCurrentResponse('');
             setCurrentToolCalls([]);
             setContextFiles([]);
+            setResponseStartTime(null);
           }
         }
       );
@@ -340,88 +369,102 @@ const RightDrawer: React.FC = () => {
   if (!drawerMounted || !isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop with animation */}
-          <motion.div
-            className="fixed inset-0 bg-black/20 dark:bg-gray-900/40 z-40"
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            variants={backdropVariants}
-            onClick={handleClose}
-          />
+    <TooltipProvider>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop with animation */}
+            <motion.div
+              className="fixed inset-0 bg-black/20 dark:bg-gray-900/40 z-40"
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={backdropVariants}
+              onClick={handleClose}
+            />
 
-          {/* Drawer with smooth animation */}
-          <motion.div
-            className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg  shadow-lg z-40"
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            variants={drawerVariants}
-          >
-            <div className="flex flex-col h-full">
-              <div className="px-2 py-2 dark:bg-gray-800/20 flex items-center justify-between">
-                <div className='flex items-center space-x-2'>
-                  {showChatSettings && (
+            {/* Drawer with smooth animation */}
+            <motion.div
+              className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg  shadow-lg z-40"
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={drawerVariants}
+            >
+              <div className="flex flex-col h-full">
+                <div className="px-2 py-2 dark:bg-gray-800/20 flex items-center justify-between">
+                  <div className='flex items-center space-x-2'>
+                    {showChatSettings && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowChatSettings(false)}
+                        className="p-1 text-gray-700 dark:text-gray-300"
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Back to Chat
+                      </Button>
+                    )}
+                    {!showChatSettings && (
+                      <>
+                        <div>
+                          <img src={AGENTKUBE} alt="" className='h-6 ml-1 top-0.5 relative' />
+                        </div>
+                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200">Assistant: Talk to Cluster</h3>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-800 dark:text-gray-500">
+                    {!showChatSettings && (
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleClearChat}
+                              className="p-1"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="p-1">
+                            <p>Clear chat</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowChatSettings(true)}
+                              className="p-1"
+
+                            >
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="p-1">
+                            <p>Chat settings</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setShowChatSettings(false)}
-                      className="p-1 text-gray-700 dark:text-gray-300"
+                      onClick={handleClose}
+                      className="p-1"
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Back to Chat
+                      <X className="h-4 w-4" />
                     </Button>
-                  )}
-                  {!showChatSettings && (
-                    <>
-                      <div>
-                        <img src={AGENTKUBE} alt="" className='h-6 ml-1 top-0.5 relative' />
-                      </div>
-                      <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200">Assistant: Talk to Cluster</h3>
-                    </>
-                  )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-gray-800 dark:text-gray-500">
-                  {!showChatSettings && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearChat}
-                        className="p-1"
-                        title="Clear chat"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowChatSettings(true)}
-                        className="p-1"
-                        title="Chat settings"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClose}
-                    className="p-1"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
 
 
 
-              <div
-                className={`flex-grow 
+                <div
+                  className={`flex-grow 
     
     [&::-webkit-scrollbar]:w-1.5 
     [&::-webkit-scrollbar-track]:bg-transparent 
@@ -429,116 +472,118 @@ const RightDrawer: React.FC = () => {
     [&::-webkit-scrollbar-thumb]:rounded-full
     [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
     overflow-auto transition-all duration-300 ${isCollapsed ? 'max-h-0' : 'max-h-full'}`}
-              >
-                {!showChatSettings ? (
-                  <Messages
-                    messages={messages}
-                    currentResponse={currentResponse}
-                    currentToolCalls={currentToolCalls}
-                    isLoading={isLoading}
-                    onQuestionClick={handleQuestionClick}
-                    suggestedQuestions={suggestedQuestions}
-                  />
-                ) : (
-                  <ChatSetting />
+                >
+                  {!showChatSettings ? (
+                    <Messages
+                      messages={messages}
+                      currentResponse={currentResponse}
+                      currentToolCalls={currentToolCalls}
+                      isLoading={isLoading}
+                      onQuestionClick={handleQuestionClick}
+                      suggestedQuestions={suggestedQuestions}
+                      elapsedTime={elapsedTime}
+                    />
+                  ) : (
+                    <ChatSetting />
+                  )}
+                </div>
+
+                {isInputFocused && messages.length === 0 && !showChatSettings && (
+                  <motion.div
+                    className='px-8 py-4 bg-gray-200 dark:bg-[#18181b]'
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="mb-3">
+                      <BotMessageSquare className="h-4 w-4 text-gray-700 dark:text-gray-300 mb-2" />
+                      <TextGenerateEffect
+                        words="How can I assist you with your Kubernetes cluster today? Feel free to ask me anything about your application or infrastructure."
+                        className="text-sm"
+                        duration={0.8}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
+
+                {!showChatSettings && <UpgradeToProContainer />}
+
+
+                {!showChatSettings && (
+                  <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
+                    <div className="flex justify-between items-center mb-2">
+                      <ResourceContext onResourceSelect={handleAddContext} />
+                      <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+                    </div>
+
+                    {contextFiles.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1 relative">
+                        {contextFiles.map(file => (
+                          <div
+                            key={file.resourceName}
+                            className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
+                          >
+                            <div
+                              className="flex items-center cursor-pointer"
+                              onClick={() => handleResourcePreview(file)}
+                            >
+                              <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+                              <span className="ml-1">{file.resourceName}</span>
+                            </div>
+                            <X
+                              size={12}
+                              className="ml-1 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
+                              }}
+                            />
+                          </div>
+                        ))}
+
+                        {previewResource && (
+                          <ResourcePreview
+                            resource={previewResource}
+                            onClose={() => setPreviewResource(null)}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="flex gap-2 items-baseline">
+                      <AutoResizeTextarea
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
+                        onSubmit={handleSubmit}
+                        placeholder="Ask anything (⌘L)"
+                        disabled={isLoading}
+                        className="dark:border-transparent"
+                        autoFocus={true}
+                        mentionItems={mentionData}
+                        onMentionSelect={handleMentionSelect}
+                      />
+
+                      <div className="flex items-center justify-end">
+                        <Button
+                          type="submit"
+                          disabled={isLoading || !inputValue.trim()}
+                          className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+                        >
+                          <ArrowUp className='h-2 w-2' />
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
                 )}
               </div>
-
-              {isInputFocused && messages.length === 0 && !showChatSettings && (
-                <motion.div
-                  className='px-8 py-4 bg-gray-200 dark:bg-[#18181b]'
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="mb-3">
-                    <BotMessageSquare className="h-4 w-4 text-gray-700 dark:text-gray-300 mb-2" />
-                    <TextGenerateEffect
-                      words="How can I assist you with your Kubernetes cluster today? Feel free to ask me anything about your application or infrastructure."
-                      className="text-sm"
-                      duration={0.8}
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-
-              {!showChatSettings && <UpgradeToProContainer />}
-
-
-              {!showChatSettings && (
-                <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
-                  <div className="flex justify-between items-center mb-2">
-                    <ResourceContext onResourceSelect={handleAddContext} />
-                    <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
-                  </div>
-
-                  {contextFiles.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-1 relative">
-                      {contextFiles.map(file => (
-                        <div
-                          key={file.resourceName}
-                          className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
-                        >
-                          <div
-                            className="flex items-center cursor-pointer"
-                            onClick={() => handleResourcePreview(file)}
-                          >
-                            <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
-                            <span className="ml-1">{file.resourceName}</span>
-                          </div>
-                          <X
-                            size={12}
-                            className="ml-1 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setContextFiles(prev => prev.filter(f => f.resourceName !== file.resourceName));
-                            }}
-                          />
-                        </div>
-                      ))}
-
-                      {previewResource && (
-                        <ResourcePreview
-                          resource={previewResource}
-                          onClose={() => setPreviewResource(null)}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmit} className="flex gap-2 items-baseline">
-                    <AutoResizeTextarea
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onFocus={handleInputFocus}
-                      onBlur={handleInputBlur}
-                      onSubmit={handleSubmit}
-                      placeholder="Ask anything (⌘L)"
-                      disabled={isLoading}
-                      className="dark:border-transparent"
-                      autoFocus={true}
-                      mentionItems={mentionData}
-                      onMentionSelect={handleMentionSelect}
-                    />
-
-                    <div className="flex items-center justify-end">
-                      <Button
-                        type="submit"
-                        disabled={isLoading || !inputValue.trim()}
-                        className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
-                      >
-                        <ArrowUp className='h-2 w-2' />
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </TooltipProvider>
   );
 };
 
