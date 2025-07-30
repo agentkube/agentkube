@@ -1,5 +1,5 @@
 import { ORCHESTRATOR_URL } from "@/config";
-// import { fetch } from '@tauri-apps/plugin-http';
+import { fetch } from '@tauri-apps/plugin-http';
 // Type definitions
 export interface ChatRequest {
   message: string;
