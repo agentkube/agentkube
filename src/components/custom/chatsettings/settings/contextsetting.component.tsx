@@ -200,6 +200,7 @@ kubectl apply -f manifests/
             <Button
               variant="outline"
               size="sm"
+                   className="text-gray-600 dark:text-gray-400"
               onClick={handleConfigureIgnore}
             >
               <Plus className="w-4 h-4 mr-1" />
@@ -283,6 +284,7 @@ kubectl apply -f manifests/
             <Button
               variant="outline"
               size="sm"
+              className="text-gray-600 dark:text-gray-400"
               onClick={handleAddDocs}
             >
               <Plus className="w-4 h-4 mr-1" />

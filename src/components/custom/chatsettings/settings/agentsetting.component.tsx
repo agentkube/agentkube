@@ -3,18 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { X, Plus, Info, EllipsisVertical, Terminal, Files, Lightbulb, BotMessageSquare, Settings, Power } from "lucide-react";
 import { Switch } from '@/components/ui/switch';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SiHelm, SiKubernetes, SiArgo, SiPrometheus, SiTrivy } from '@icons-pack/react-simple-icons';
-import { Shield } from 'lucide-react';
+import { SiHelm, SiKubernetes, SiArgo, SiPrometheus, SiTrivy, SiDatadog, SiGrafana, SiDocker } from '@icons-pack/react-simple-icons';
+import { Loki, SigNoz } from '@/assets/icons';
+import { ConfigDialog } from './toolconfigdialog.component';
 
-interface Agent {
+export interface Agent {
   id: string;
   name: string;
   description: string;
@@ -23,162 +22,13 @@ interface Agent {
   enabled?: boolean;
 }
 
-interface ExtendedToolConfig {
+export interface ExtendedToolConfig {
   id: string;
   enabled: boolean;
   config: Record<string, any>;
 }
 
-// Configuration Dialog Component
-const ConfigDialog: React.FC<{
-  tool: Agent;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (config: Record<string, any>) => void;
-  currentConfig?: Record<string, any>;
-}> = ({ tool, isOpen, onClose, onSave, currentConfig = {} }) => {
-  const [config, setConfig] = useState(currentConfig);
 
-  if (!isOpen) return null;
-
-  const handleSave = () => {
-    onSave(config);
-    onClose();
-  };
-
-  const updateConfig = (key: string, value: string) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
-  };
-
-  const renderConfigFields = () => {
-    switch (tool.id) {
-      case 'argocd':
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Base URL
-              </Label>
-              <Input
-                id="base_url"
-                type="url"
-                placeholder="https://argocd.example.com"
-                value={config.base_url || ''}
-                onChange={(e) => updateConfig('base_url', e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="api_token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                API Token
-              </Label>
-              <Input
-                id="api_token"
-                type="password"
-                placeholder="Enter API token"
-                value={config.api_token || ''}
-                onChange={(e) => updateConfig('api_token', e.target.value)}
-                className="w-full"
-              />
-            </div>
-          </>
-        );
-      case 'prometheus':
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Base URL
-              </Label>
-              <Input
-                id="base_url"
-                type="url"
-                placeholder="https://prometheus.example.com"
-                value={config.base_url || ''}
-                onChange={(e) => updateConfig('base_url', e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Username <span className="text-gray-500">(optional)</span>
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Enter username"
-                value={config.username || ''}
-                onChange={(e) => updateConfig('username', e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Password <span className="text-gray-500">(optional)</span>
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter password"
-                value={config.password || ''}
-                onChange={(e) => updateConfig('password', e.target.value)}
-                className="w-full"
-              />
-            </div>
-          </>
-        );
-      case 'trivy':
-        return (
-          <div className="space-y-2">
-            <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Base URL
-            </Label>
-            <Input
-              id="base_url"
-              type="url"
-              placeholder="https://trivy.example.com"
-              value={config.base_url || ''}
-              onChange={(e) => updateConfig('base_url', e.target.value)}
-              className="w-full"
-            />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-gray-900/30 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border dark:border-gray-700/40 rounded-lg w-[500px] max-w-full mx-4">
-        <div className="flex items-center justify-between px-2 py-1 dark:bg-gray-800/40">
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 bg-gray-300/80 rounded-sm flex items-center justify-center">
-              <span className="text-gray-800">{tool.icon}</span>
-            </div>
-            <h3 className="text-sm font-semibold dark:text-white">Configure {tool.name}</h3>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="p-4 space-y-4">
-          {renderConfigFields()}
-        </div>
-        
-        <div className="flex justify-end space-x-2 p-4 ">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
-            Save Configuration
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const AgentSetting: React.FC = () => {
   const [autoRun, setAutoRun] = useState<boolean>(true);
@@ -189,6 +39,12 @@ const AgentSetting: React.FC = () => {
     argocd: { id: 'argocd', enabled: false, config: {} },
     prometheus: { id: 'prometheus', enabled: false, config: {} },
     trivy: { id: 'trivy', enabled: false, config: {} },
+    grafana: { id: 'grafana', enabled: false, config: {} },
+    datadog: { id: 'datadog', enabled: false, config: {} },
+    tempo: { id: 'tempo', enabled: false, config: {} },
+    loki: { id: 'loki', enabled: false, config: {} },
+    alertmanager: { id: 'alertmanager', enabled: false, config: {} },
+    signoz: { id: 'signoz', enabled: false, config: {} },
   });
 
   const builtInTools: Agent[] = [
@@ -224,6 +80,14 @@ const AgentSetting: React.FC = () => {
 
   const extendedTools: Agent[] = [
     {
+      id: 'docker',
+      name: 'Docker',
+      description: 'Container platform for building, shipping, and running applications.',
+      type: 'extended',
+      icon: <SiDocker className='h-4 w-4' />,
+      enabled: extendedToolsConfig.argocd.enabled
+    },
+    {
       id: 'argocd',
       name: 'ArgoCD',
       description: 'Declarative GitOps continuous delivery tool for Kubernetes.',
@@ -246,6 +110,54 @@ const AgentSetting: React.FC = () => {
       type: 'extended',
       icon: <SiTrivy className='h-4 w-4' />,
       enabled: extendedToolsConfig.trivy.enabled
+    },
+    {
+      id: 'grafana',
+      name: 'Grafana',
+      description: 'Visualization and analytics platform for monitoring data.',
+      type: 'extended',
+      icon: <SiGrafana className='h-4 w-4' />,
+      enabled: extendedToolsConfig.grafana?.enabled || false
+    },
+    {
+      id: 'datadog',
+      name: 'Datadog',
+      description: 'Cloud monitoring platform for infrastructure, applications, and logs.',
+      type: 'extended',
+      icon: <SiDatadog className='h-4 w-4' />,
+      enabled: extendedToolsConfig.datadog?.enabled || false
+    },
+    {
+      id: 'tempo',
+      name: 'Tempo',
+      description: 'High-scale distributed tracing backend by Grafana.',
+      type: 'extended',
+      icon: <SiGrafana className='h-4 w-4' />, // Using Shield as placeholder
+      enabled: extendedToolsConfig.tempo?.enabled || false
+    },
+    {
+      id: 'loki',
+      name: 'Loki',
+      description: 'Log aggregation system designed to store and query logs efficiently.',
+      type: 'extended',
+      icon: <Loki className='h-4 w-4' />, // Using Shield as placeholder
+      enabled: extendedToolsConfig.loki?.enabled || false
+    },
+    {
+      id: 'alertmanager',
+      name: 'Alertmanager',
+      description: 'Handles alerts sent by Prometheus server and routes them to receivers.',
+      type: 'extended',
+      icon: <SiPrometheus className='h-4 w-4' />, // Using Shield as placeholder
+      enabled: extendedToolsConfig.alertmanager?.enabled || false
+    },
+    {
+      id: 'signoz',
+      name: 'SigNoz',
+      description: 'Open-source observability platform with APM, logs, and metrics.',
+      type: 'extended',
+      icon: <SigNoz className='h-4 w-4' />, // Using Shield as placeholder
+      enabled: extendedToolsConfig.signoz?.enabled || false
     }
   ];
 
@@ -291,7 +203,21 @@ const AgentSetting: React.FC = () => {
 
   const renderToolSection = (tools: Agent[], title: string, isExtended = false) => (
     <div>
-      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">{title}</h3>
+      <div className="flex items-center space-x-2 mb-4">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</h3>
+        {isExtended && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="w-4 h-4 text-gray-600 dark:text-gray-400 cursor-pointer" />
+            </TooltipTrigger>
+            <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-gray-700/50'>
+              <p className="max-w-xs text-black dark:text-gray-200 p-1">
+                Extended tools require additional configuration and need to be enabled before usage.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       <div className='border border-gray-500/20 dark:border-gray-700/50 rounded-lg'>
         {tools.map((tool) => (
           <div
@@ -315,7 +241,7 @@ const AgentSetting: React.FC = () => {
                   </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 w-96 truncate text-end cursor-pointer">{tool.description}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 w-44 lg:w-96  truncate text-end cursor-pointer">{tool.description}</p>
                     </TooltipTrigger>
                     <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-gray-700/50'>
                       <span className='flex items-center space-x-2 py-2 px-1'>
@@ -330,10 +256,10 @@ const AgentSetting: React.FC = () => {
                 {isExtended ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <EllipsisVertical className='h-4' />
+                      <EllipsisVertical className='h-4' />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className=" dark:bg-[#0B0D13]/60 backdrop-blur-md">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => toggleExtendedTool(tool.id)}
                         className="flex items-center justify-between"
                       >
@@ -342,7 +268,7 @@ const AgentSetting: React.FC = () => {
                           <span className='text-xs dark:text-gray-400'>{tool.enabled ? 'Disable' : 'Enable'}</span>
                         </span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => openConfigDialog(tool)}
                         className="flex items-center space-x-1"
                       >
@@ -371,12 +297,6 @@ const AgentSetting: React.FC = () => {
         <h1 className='text-2xl font-medium'>Agent</h1>
       </div>
       <div className="space-y-6">
-        {/* Built-in Tools Section */}
-        {renderToolSection(builtInTools, "Built-In Tools")}
-
-        {/* Extended Tools Section */}
-        {renderToolSection(extendedTools, "Extended Tools", true)}
-
         <div className="bg-gray-200/50 dark:bg-gray-800/30 rounded-lg p-4 space-y-2">
           {/* Auto-Run Section */}
           <div className='border-b dark:border-gray-700/40 pb-4'>
@@ -442,6 +362,14 @@ const AgentSetting: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Built-in Tools Section */}
+        {renderToolSection(builtInTools, "Built-In Tools")}
+
+        {/* Extended Tools Section */}
+        {renderToolSection(extendedTools, "Extended Tools", true)}
+
+
       </div>
 
       {/* Configuration Dialog */}

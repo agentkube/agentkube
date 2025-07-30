@@ -38,7 +38,7 @@ const ChatSetting: React.FC = () => {
     <div className="h-full flex flex-col">
       {/* Tabs */}
       <div className="mt-2 flex">
-        <div className="flex space-x-0 px-4">
+        <div className="flex space-x-0 px-4 py-2">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -56,7 +56,14 @@ const ChatSetting: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 p-6 
+          max-h-[90vh] overflow-y-auto
+          [&::-webkit-scrollbar]:w-1.5 
+          [&::-webkit-scrollbar-track]:bg-transparent 
+          [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+      ">
         {renderTabContent()}
       </div>
     </div>
