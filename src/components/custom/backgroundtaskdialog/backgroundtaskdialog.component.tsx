@@ -93,9 +93,9 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 
 	const handleLogsSelect = (selection: LogsSelection) => {
 		setContextLogs(prev => [
-			...prev.filter(log => 
-				!(log.podName === selection.podName && 
-					log.namespace === selection.namespace && 
+			...prev.filter(log =>
+				!(log.podName === selection.podName &&
+					log.namespace === selection.namespace &&
 					log.containerName === selection.containerName)
 			),
 			selection
@@ -143,7 +143,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 						<div className='flex items-center space-x-2 text-xs '>
 							<div className='flex items-center text-gray-800 dark:text-gray-300 space-x-1'>
 								<ScanSearch className='h-4' />
-								<h3 className="text-xs font-mediums">
+								<h3 className="text-xs font-medium">
 									Background Task
 								</h3>
 							</div>
@@ -168,6 +168,32 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 
 					{/* Main Container */}
 					<div className="px-2 py-1">
+						{/* Input Form */}
+						<form
+							onSubmit={handleSubmit}
+							className="flex gap-3 items-end">
+							<div className="flex-1 h-52">
+								<AutoResizeTextarea
+									ref={inputRef}
+									value={inputValue}
+									onChange={(e) => setInputValue(e.target.value)}
+									onFocus={handleInputFocus}
+									onBlur={handleInputBlur}
+									onSubmit={handleSubmit}
+									// placeholder="What would you like to investigate? (e.g., '')"
+									animatedSuggestions={[
+										"What would you like to investigate?",
+										"Check pod health and recent issues",
+										"Run Stress testing on my deployment in kube-system namespace"
+									]}
+									disabled={isLoading}
+									className="dark:border-transparent h-64"
+									autoFocus={true}
+									mentionItems={mentionData}
+									onMentionSelect={handleMentionSelect}
+								/>
+							</div>
+						</form>
 
 						<div className='flex flex-wrap'>
 							{/* Context Files */}
@@ -223,7 +249,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 												size={12}
 												className="ml-1 cursor-pointer"
 												onClick={() => {
-													setContextLogs(prev => prev.filter(l => 
+													setContextLogs(prev => prev.filter(l =>
 														!(l.podName === log.podName && l.containerName === log.containerName)
 													));
 												}}
@@ -234,32 +260,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 							)}
 						</div>
 
-						{/* Input Form */}
-						<form
-							onSubmit={handleSubmit}
-							className="flex gap-3 items-end">
-							<div className="flex-1 h-52">
-								<AutoResizeTextarea
-									ref={inputRef}
-									value={inputValue}
-									onChange={(e) => setInputValue(e.target.value)}
-									onFocus={handleInputFocus}
-									onBlur={handleInputBlur}
-									onSubmit={handleSubmit}
-									// placeholder="What would you like to investigate? (e.g., '')"
-									animatedSuggestions={[
-										"What would you like to investigate?",
-										"Check pod health and recent issues",
-										"Run Stress testing on my deployment in kube-system namespace"
-									]}
-									disabled={isLoading}
-									className="dark:border-transparent h-64"
-									autoFocus={true}
-									mentionItems={mentionData}
-									onMentionSelect={handleMentionSelect}
-								/>
-							</div>
-						</form>
+
 						<div className='flex items-center text-xs p-2 text-blue-800 dark:text-blue-400 bg-blue-400/20 dark:bg-blue-500/10 my-2 rounded-lg'>
 							<Lightbulb size={14} className="mr-1" />
 							<p> Describe what you'd like to investigate about this resource. The analysis will run in the background.</p>
@@ -267,7 +268,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 						<div className="flex justify-between items-center relative">
 							<div className='flex items-center'>
 								<ResourceContext onResourceSelect={handleAddContext} />
-								
+
 								<AddResourceLogsPicker onLogsSelect={handleLogsSelect} />
 								<button
 									className="flex items-center text-gray-400 hover:text-gray-300 transition-colors rounded px-2 py-1"
