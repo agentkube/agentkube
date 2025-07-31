@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, ArrowUp, BotMessageSquare, Search, ScanSearch, Loader, Plus, Lightbulb, Terminal } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from 'framer-motion';
-import { AddResourceLogsPicker, AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
+import { AddResourceLogsPicker, AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview, ResourceLogPreview } from '@/components/custom';
 import { EnrichedSearchResult } from '@/types/search';
 import { toast as sooner } from "sonner";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
@@ -234,27 +234,15 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 							{contextLogs.length > 0 && (
 								<div className="mb-1 flex flex-wrap gap-1">
 									{contextLogs.map(log => (
-										<div
+										<ResourceLogPreview
 											key={`${log.podName}-${log.containerName}`}
-											className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded p-1"
-										>
-											<div className="flex items-center space-x-1">
-												{/* <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div> */}
-												<div className='bg-gray-400/20 dark:bg-gray-500/20 p-0.5 rounded-sm'>
-													<Terminal className='h-3 w-3' />
-												</div>
-												<span>{log.podName}/{log.containerName}</span> <span className='text-gray-400'>(100)</span>
-											</div>
-											<X
-												size={12}
-												className="ml-1 cursor-pointer"
-												onClick={() => {
-													setContextLogs(prev => prev.filter(l =>
-														!(l.podName === log.podName && l.containerName === log.containerName)
-													));
-												}}
-											/>
-										</div>
+											log={log}
+											onRemove={() => {
+												setContextLogs(prev => prev.filter(l =>
+													!(l.podName === log.podName && l.containerName === log.containerName)
+												));
+											}}
+										/>
 									))}
 								</div>
 							)}
