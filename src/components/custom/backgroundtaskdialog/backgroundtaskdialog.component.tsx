@@ -31,7 +31,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
-	const inputRef = useRef<HTMLInputElement>(null);
+	const inputRef = useRef<HTMLTextAreaElement>(null);
 	const [contextLogs, setContextLogs] = useState<LogsSelection[]>([]);
 
 	useEffect(() => {
@@ -176,7 +176,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 								<AutoResizeTextarea
 									ref={inputRef}
 									value={inputValue}
-									onChange={(e) => setInputValue(e.target.value)}
+									onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
 									onFocus={handleInputFocus}
 									onBlur={handleInputBlur}
 									onSubmit={handleSubmit}

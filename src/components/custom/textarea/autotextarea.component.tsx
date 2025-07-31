@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, ChangeEvent, FocusEvent, KeyboardEvent } from 'react';
+import React, { useRef, useState, useEffect, ChangeEvent, FocusEvent, KeyboardEvent, useImperativeHandle } from 'react';
 
 interface MentionItem {
   id: string | number;
@@ -23,7 +23,7 @@ interface AutoResizeTextareaProps {
   [key: string]: any;
 }
 
-const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
+const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTextareaProps>(({
   value,
   onChange,
   onFocus,
@@ -37,8 +37,10 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   width = "100%", // Default to 100%
   animatedSuggestions = [],
   ...props
-}) => {
+}, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  
+  useImperativeHandle(ref, () => textareaRef.current!);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -195,7 +197,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   const getFilteredMentionItems = () => {
     if (!searchTerm) return mentionItems;
 
-    return mentionItems.filter(item =>
+    return mentionItems.filter((item: MentionItem) =>
       item.name.toLowerCase().includes(searchTerm)
     );
   };
@@ -305,7 +307,7 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
             Functions
           </div>
           {getFilteredMentionItems().length > 0 ? (
-            getFilteredMentionItems().map((item, index) => (
+            getFilteredMentionItems().map((item: MentionItem, index: number) => (
               <div
                 key={item.id}
                 style={{
@@ -395,6 +397,8 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
       {renderHighlightedMentions()}
     </div>
   );
-};
+});
+
+AutoResizeTextarea.displayName = 'AutoResizeTextarea';
 
 export default AutoResizeTextarea;
