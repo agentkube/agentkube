@@ -40,6 +40,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Blur } from '@/assets/icons';
+import { SiKubernetes } from '@icons-pack/react-simple-icons';
 
 // Define type for resource tab
 interface ResourceTab {
@@ -639,17 +640,20 @@ const AIResourceEditor: React.FC = () => {
                   <div
                     key={tab.id}
                     onClick={() => setActiveTabId(tab.id)}
-                    className={`flex items-center overflow-x-auto px-4 py-2 border-r cursor-pointer ${editorTheme !== 'vs-dark' ? 'border-gray-700' : 'border-gray-200'
+                    className={`flex items-center overflow-x-auto px-4 py-1 border-r cursor-pointer ${editorTheme !== 'vs-dark' ? 'border-gray-700' : 'border-gray-200'
                       } ${activeTabId === tab.id
                         ? editorTheme !== 'vs-dark'
-                          ? 'text-white bg-gray-800'
+                          ? 'text-white bg-neutral-800/80'
                           : 'text-black bg-gray-100'
                         : editorTheme !== 'vs-dark'
-                          ? 'text-gray-400 hover:bg-gray-800'
+                          ? 'text-gray-400 hover:bg-neutral-800'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
                   >
-                    <span className="truncate max-w-[150px]">{tab.name}</span>
+                      <SiKubernetes className='h-3.5 w-3.5 mr-2' />
+                    <span className="truncate max-w-[150px] text-xs"> 
+                      {tab.name}
+                    </span>
                     <button
                       className="ml-2 p-1 rounded-full text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
                       onClick={(e) => closeTab(tab.id, e)}
@@ -661,8 +665,8 @@ const AIResourceEditor: React.FC = () => {
 
                 <button
                   onClick={addNewTab}
-                  className={`p-2 flex items-center ${editorTheme !== 'vs-dark'
-                    ? 'text-gray-400 hover:bg-gray-800'
+                  className={`px-2 py-1.5 flex items-center ${editorTheme !== 'vs-dark'
+                    ? 'text-gray-400 hover:bg-neutral-800'
                     : 'text-gray-600 hover:bg-gray-100'
                     }`}
                 >

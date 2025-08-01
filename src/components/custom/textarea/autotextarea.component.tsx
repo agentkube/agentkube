@@ -382,7 +382,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
             }}
           >
             <span
-              className={`text-sm text-gray-400 dark:text-gray-500 transition-all duration-300 ${isAnimating
+              className={`text-sm text-gray-400 px-0.5 dark:text-gray-500 transition-all duration-300 ${isAnimating
                   ? 'opacity-0 transform translate-y-1'
                   : 'opacity-100 transform translate-y-0'
                 }`}
