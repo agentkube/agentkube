@@ -13,7 +13,8 @@ import {
   ClusterReport,
   Indexing,
   ImageScans,
-  Watcher
+  Watcher,
+  TaskReport
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Provisioner, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -122,6 +123,8 @@ function App() {
                           <Route path="cluster-report" element={<ClusterReport />} />
                           <Route path="runbooks" element={<Runbooks />} />
                           <Route path="investigations" element={<Investigation />} />
+                          <Route path="tasks" element={<TaskReport />} />
+
                           <Route path="cost" element={<CostOverview />} />
                           <Route path="llm-comparison" element={<LLMComparison />} />
                           <Route path="llm-comparison/compare" element={<ModelCompare />} />

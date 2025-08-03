@@ -497,7 +497,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                 <div className=" gap-2 items-baseline rounded-lg px-1">
                   <AutoResizeTextarea
                     value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                     onFocus={handleInputFocus}
                     onSubmit={handleSubmit}
                     animatedSuggestions={[

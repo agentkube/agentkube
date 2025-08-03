@@ -27,6 +27,9 @@ export { default as Runbooks } from './dashboard/runbooks/runbooks.pages';
 export { default as Investigation } from './dashboard/investigations/investigation.pages';
 export { default as ClusterReport } from './dashboard/cluster-report/cluster-report.pages';
 
+// Background Task
+export { default as TaskReport } from './dashboard/tasks/task-report.pages';
+
 // Security
 export { default as VulnerabilityReport } from './dashboard/security/vulnerability-report.pages';
 export { default as BestPractices } from './dashboard/security/best-practices.pages';

@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, AlertTriangle, Shield, Bug, TrendingUp } from 'lucide-react';
-
+import { useNavigate } from 'react-router-dom';
 // TODO: Remove mock data when API integration is added
 interface Investigation {
   id: string;
@@ -437,6 +437,8 @@ const Investigations: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('all');
   const [summary, setSummary] = useState('');
 
+  const navigate = useNavigate();
+
   // Search and pagination states
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -716,7 +718,7 @@ const Investigations: React.FC = () => {
                                 <div className="flex items-center gap-3">
                                   {getStatusIcon(investigation.status)}
                                   <div>
-                                    <div className="hover:text-blue-500 hover:underline font-medium text-xs">
+                                    <div className="hover:text-blue-500 hover:underline font-medium text-xs" onClick={() => navigate("/dashboard/tasks")}>
                                       {investigation.protocol.name}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
