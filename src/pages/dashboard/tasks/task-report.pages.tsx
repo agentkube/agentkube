@@ -73,7 +73,7 @@ interface Metrics {
 interface ReportData {
   id: string;
   title: string;
-  description: string;
+  summary: string;
   duration: string;
   status: string;
   severity: string;
@@ -88,11 +88,11 @@ interface ReportData {
 const reportData: ReportData = {
   id: "e74e261e-ac2b-4c9d-a122-8faed13a51ce",
   title: "TooManyErrorResponses - Service webstore-frontend",
-  description: "Service webstore-frontend in namespace webstore has a high rate of error responses",
+  summary: "Service webstore-frontend in namespace webstore has a high rate of error responses",
   duration: "1 minute",
   status: "ACTIVE",
   severity: "HIGH",
-  tags: ["USER IMPACTING", "DEPLOYMENT CHANGE", "DOWNSTREAM SERVICE"],
+  tags: ["ACTIVE", "USER IMPACTING", "DEPLOYMENT CHANGE", "DOWNSTREAM SERVICE"],
   rootCause: {
     title: "LIKELY ROOT CAUSE THEORY",
     theory: "The likely cause of the high rate of error responses is a recent deployment change in the checkoutservice (downstream from frontend), introducing a new image that correlates with the errors. This new image appears to have introduced a NullPointerException, causing the failed responses in the frontend.",
@@ -293,18 +293,34 @@ The frontend service experienced cascading failures due to checkout service erro
   }
 };
 
+
+const getTagColor = (tag: string): string => {
+  const tagLower = tag.toLowerCase();
+  
+  const greenTags = ['active'];
+  const redTags = ['impacting', 'danger', 'bug', 'failure'];
+  
+  if (greenTags.some(term => tagLower.includes(term))) {
+    return 'bg-emerald-400/60 text-green-800 dark:bg-green-900/20 dark:text-emerald-400';
+  }
+  
+  if (redTags.some(term => tagLower.includes(term))) {
+    return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+  }
+  
+  // Default cyan for all other tags
+  return 'bg-cyan-300 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300';
+};
+
+
 const TaskReport: React.FC = () => {
   const [expandedTimeline, setExpandedTimeline] = useState<number | null>(null);
-  const expandedContentStyle = {
-    transition: 'all 0.3s ease-in-out',
-    overflow: 'hidden'
-  };
 
   const getSeverityColor = (severity: 'critical' | 'error' | 'warning' | 'info' | 'success' | string): string => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      case 'error': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      case 'warning': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
+      case 'error': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'warning': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300';
       case 'info': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
       case 'success': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-400';
@@ -385,9 +401,9 @@ const TaskReport: React.FC = () => {
                   {reportData.title}
                 </h2>
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-4">
-                  {reportData.description}
+                  {reportData.summary}
                 </p>
-                <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1 text-xs">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-600 dark:text-gray-400">Duration: {reportData.duration}</span>
@@ -402,7 +418,7 @@ const TaskReport: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2 max-w-md">
                 {reportData.tags.map((tag, index) => (
-                  <div key={index} className="bg-gray-200 dark:bg-gray-500/20 px-1.5 py-0.5 rounded-md text-xs text-gray-700 dark:text-gray-300">
+                  <div key={index} className={`${getTagColor(tag)} font-medium px-1.5 py-0.5 rounded-md text-xs`}>
                     {tag}
                   </div>
                 ))}
