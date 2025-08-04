@@ -333,11 +333,11 @@ const TaskReport: React.FC = () => {
 
   const getSeverityIndicatorStyles = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'bg-red-500/50 border-red-500/40 text-gray-200';
-      case 'error': return 'bg-red-500/50 border-red-500/40 text-gray-200';
-      case 'warning': return 'bg-orange-500/50 border-orange-500/40 text-gray-200';
-      case 'info': return 'bg-blue-500/50 border-blue-500/40 text-gray-200';
-      case 'success': return 'bg-green-500/50 border-green-500/40 text-gray-200';
+      case 'critical': return 'bg-red-300 dark:bg-red-900 border-red-500/40 text-red-900 dark:text-gray-200';
+      case 'error': return 'bg-rose-300 dark:bg-rose-900 border-rose-500/40 text-rose-900 dark:text-gray-200';
+      case 'warning': return 'bg-orange-300 dark:bg-orange-900 border-orange-500/40 text-orange-900 dark:text-gray-200';
+      case 'info': return 'bg-blue-300 dark:bg-blue-900 border-blue-500/40 text-blue-900 dark:text-gray-200';
+      case 'success': return 'bg-green-300 dark:bg-green-900 border-green-500/40 text-green-900 dark:text-gray-200';
       default: return 'bg-gray-200 dark:bg-gray-700 border-gray-300/40 dark:border-gray-600';
     }
   };
