@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Airplay, Settings, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom';
 import SwitchDarkMode from './SwitchDarkMode';
@@ -12,6 +12,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ReconModeSwitch } from "./ui/reconmode";
+import RECONGIF from '@/assets/recon.gif'
+import { Button } from "./ui/button";
 
 interface NavigationHistoryState {
   history: string[];
@@ -22,6 +25,7 @@ export function Menu() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setIsOpen } = useDrawer();
+  const reconSwitchRef = useRef<HTMLButtonElement>(null);
 
   const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryState>({
     history: [location.pathname],
@@ -31,6 +35,21 @@ export function Menu() {
   // Derived states
   const canGoBack = navigationHistory.currentIndex > 0;
   const canGoForward = navigationHistory.currentIndex < navigationHistory.history.length - 1;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.altKey) && e.key === '/') {
+        e.preventDefault();
+        // Trigger the switch toggle
+        if (reconSwitchRef.current) {
+          reconSwitchRef.current.click();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     // When location changes, update our custom history tracker
@@ -93,8 +112,36 @@ export function Menu() {
           {/* Window Controls */}
         </div>
 
+
+
         {/* Right-side controls */}
         <div className="flex items-center space-x-2 undraggable">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <ReconModeSwitch
+                    ref={reconSwitchRef}
+                    onCheckedChange={(checked: boolean) => {
+                      console.log('Recon mode:', checked ? 'enabled' : 'disabled');
+                      // Handle your recon mode logic here
+                    }}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="p-3 max-w-xs text-black bg-gray-50 dark:bg-[#0B0D13]/40 border border-gray-800/20 dark:border-gray-500/20 backdrop-blur-md">
+                <div className="space-y-2">
+                  <p className="dark:text-gray-200"><span className="dark:text-emerald-500 font-bold">RECON</span> Mode</p>
+                  <img src={RECONGIF} className="rounded-lg" alt="" />
+                  <p className="text-sm dark:text-gray-400">
+                    Provides secure, read-only access to your Kubernetes cluster. All modifying actions - including create, update, delete, exec, port forwarding, and node operations are disabled.
+                  </p>
+                  <Button className="w-full dark:hover:bg-gray-400 dark:bg-gray-200 dark:text-gray-800">Switch to Agent Mode</Button>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Navigation controls with history indicator */}
           <div className="ml-4 flex items-center space-x-1">
             <TooltipProvider>
