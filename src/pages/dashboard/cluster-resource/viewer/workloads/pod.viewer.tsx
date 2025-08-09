@@ -418,7 +418,7 @@ const PodViewer: React.FC = () => {
 
             {/* Pod Conditions */}
             {podData.status?.conditions && podData.status.conditions.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800/50 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Conditions</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {podData.status.conditions.map((condition, index) => (

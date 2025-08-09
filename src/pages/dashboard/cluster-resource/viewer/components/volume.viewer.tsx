@@ -330,7 +330,7 @@ const VolumeViewer: React.FC<VolumeViewerProps> = ({ volumes }) => {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800/50 bg-white dark:bg-transparent p-4 mb-6">
       <h2 className="text-lg font-medium mb-4">Volumes</h2>
       <div className="space-y-4">
         {volumes.map((volume) => {
@@ -343,7 +343,7 @@ const VolumeViewer: React.FC<VolumeViewerProps> = ({ volumes }) => {
               className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden"
             >
               <div 
-                className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900/50 cursor-pointer"
+                className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-transparent cursor-pointer"
                 onClick={() => toggleVolumeExpansion(volume.name)}
               >
                 <div className="flex items-center gap-2">
