@@ -34,7 +34,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import MarkdownContent from '@/utils/markdown-formatter';
-import { ChartCryptoPortfolio } from '@/components/custom/promgraphcontainer/graphs.component';
+import { SideDrawer, DrawerHeader, DrawerContent } from "@/components/ui/sidedrawer.custom";
 import { Separator } from '@/components/ui/separator';
 
 // TypeScript interfaces
@@ -296,18 +296,18 @@ The frontend service experienced cascading failures due to checkout service erro
 
 const getTagColor = (tag: string): string => {
   const tagLower = tag.toLowerCase();
-  
+
   const greenTags = ['active'];
   const redTags = ['impacting', 'danger', 'bug', 'failure'];
-  
+
   if (greenTags.some(term => tagLower.includes(term))) {
     return 'bg-emerald-400/60 text-green-800 dark:bg-green-900/20 dark:text-emerald-400';
   }
-  
+
   if (redTags.some(term => tagLower.includes(term))) {
     return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
   }
-  
+
   // Default cyan for all other tags
   return 'bg-cyan-300 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300';
 };
@@ -315,6 +315,7 @@ const getTagColor = (tag: string): string => {
 
 const TaskReport: React.FC = () => {
   const [expandedTimeline, setExpandedTimeline] = useState<number | null>(null);
+  const [selectedCheck, setSelectedCheck] = useState<SystemCheck | null>(null);
 
   const getSeverityColor = (severity: 'critical' | 'error' | 'warning' | 'info' | 'success' | string): string => {
     switch (severity) {
@@ -416,7 +417,8 @@ const TaskReport: React.FC = () => {
                   </Badge>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 max-w-md">
+
+              <div className="flex flex-wrap gap-1">
                 {reportData.tags.map((tag, index) => (
                   <div key={index} className={`${getTagColor(tag)} font-medium px-1.5 py-0.5 rounded-md text-xs`}>
                     {tag}
@@ -524,7 +526,11 @@ const TaskReport: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {reportData.checks.map((check, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-500/5">
+              <div
+                key={index}
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-500/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500/10 transition-colors"
+                onClick={() => setSelectedCheck(check)}
+              >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {getStatusIcon(check.status)}
                   <div className="min-w-0 flex-1">
@@ -547,6 +553,105 @@ const TaskReport: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* System Check Details Drawer */}
+      <SideDrawer
+        isOpen={selectedCheck !== null}
+        onClose={() => setSelectedCheck(null)}
+      >
+        {selectedCheck && (
+          <>
+            <DrawerHeader onClose={() => setSelectedCheck(null)}>
+              <div className='flex items-center space-x-2'>
+                <div className="p-2">
+                  {getStatusIcon(selectedCheck.status)}
+                </div>
+                <div className='flex items-center gap-1'>
+                  <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide">
+                    {selectedCheck.category}
+                  </h3>
+                  <Badge className={getSeverityColor(selectedCheck.severity)} >
+                    {selectedCheck.status}
+                  </Badge>
+                </div>
+              </div>
+            </DrawerHeader>
+
+            <DrawerContent>
+              <div className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Check Details</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedCheck.description}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Status</h4>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(selectedCheck.status)}
+                    <span className="text-sm">{selectedCheck.status}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Severity Level</h4>
+                  <Badge className={getSeverityColor(selectedCheck.severity)}>
+                    {selectedCheck.severity.toUpperCase()}
+                  </Badge>
+                </div>
+
+                {/* Additional detailed content based on check type */}
+                {selectedCheck.category === 'APPLICATION HEALTH' && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Recommended Actions</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                      <li>• Monitor error rate trends</li>
+                      <li>• Check application logs for patterns</li>
+                      <li>• Verify load balancer configuration</li>
+                    </ul>
+                  </div>
+                )}
+
+                {selectedCheck.category === 'DOWNSTREAM SERVICES' && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Affected Services</h4>
+                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                      <li>• checkoutservice - Primary issue</li>
+                      <li>• payment-service - Secondary impact</li>
+                      <li>• inventory-service - Timeout cascades</li>
+                    </ul>
+                  </div>
+                )}
+
+                {selectedCheck.category === 'DEPLOYMENT CHANGE' && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Deployment Details</h4>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <p>• Image: checkoutservice:v2.1.3</p>
+                      <p>• Strategy: Rolling Update</p>
+                      <p>• Time: 02:40:05 AM</p>
+                      <p>• Correlation with errors: High</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedCheck.category === 'INFRASTRUCTURE' && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Infrastructure Metrics</h4>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <p>• Node memory usage: Normal</p>
+                      <p>• CPU utilization: 45%</p>
+                      <p>• Network latency: Within limits</p>
+                      <p>• Disk I/O: Healthy</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DrawerContent>
+          </>
+        )}
+      </SideDrawer>
 
       {/* Enhanced Timeline Section with Markdown and Charts */}
       <Card className="bg-transparent border-gray-200/70 dark:border-gray-700/30">
