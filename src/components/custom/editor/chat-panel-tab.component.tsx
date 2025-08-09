@@ -95,7 +95,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         <form onSubmit={handleChatSubmit} className="flex gap-2 items-center">
           <AutoResizeTextarea
             value={question}
-            onChange={(e) => setQuestion(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuestion(e.target.value)}
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
             onSubmit={handleChatSubmit}

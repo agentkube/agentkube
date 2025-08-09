@@ -554,7 +554,7 @@ const RightDrawer: React.FC = () => {
                     <form onSubmit={handleSubmit} className="flex gap-2 items-baseline">
                       <AutoResizeTextarea
                         value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                         onFocus={handleInputFocus}
                         onBlur={handleInputBlur}
                         onSubmit={handleSubmit}

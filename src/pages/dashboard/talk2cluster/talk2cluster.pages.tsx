@@ -438,7 +438,7 @@ const Talk2Cluster = () => {
                 <div className="flex-1">
                   <AutoResizeTextarea
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
                     onSubmit={handleSubmit}
                     placeholder={currentContext ? "Ask about your Kubernetes cluster..." : "Select a cluster first..."}
                     disabled={isChatLoading || !currentContext}
