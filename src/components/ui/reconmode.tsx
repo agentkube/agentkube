@@ -35,7 +35,7 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
             "peer relative inline-flex h-6 w-16 shrink-0 cursor-pointer items-center rounded-md border-2 border-transparent shadow-lg transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
             isChecked
               ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
-              : "bg-gray-300 dark:bg-gray-600/40",
+              : "bg-gray-300 dark:bg-gray-600/20",
             className
           )}
           onCheckedChange={handleCheckedChange}
@@ -57,7 +57,7 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
               "pointer-events-none flex h-5 w-5 items-center justify-center rounded-md shadow-lg ring-0 transition-all duration-300 z-10",
               isChecked
                 ? "translate-x-10 bg-white"
-                : "translate-x-0.5 bg-white dark:bg-gray-200"
+                : "translate-x-0.5 bg-gray-100 dark:bg-gray-600/40"
             )}
           >
             {/* Icon inside the thumb */}
