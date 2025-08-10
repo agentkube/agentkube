@@ -151,7 +151,7 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
       </button>
       
       {!isAdvancedCollapsed && (
-        <div className="flex flex-col space-y-1 pt-1">
+        <div className="flex flex-col space-y-1 pt-1 px-2">
           {advancedFeatures.map(feature => (
             <FeatureMenuItem
               key={feature.id}
