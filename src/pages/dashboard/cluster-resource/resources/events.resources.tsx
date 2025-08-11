@@ -657,7 +657,7 @@ const Events: React.FC = () => {
             <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1 flex items-center dark:bg-gray-900 dark:text-gray-400 border-gray-400 dark:border-gray-800">
+                  <Button variant="outline" size="sm" className="gap-1 flex items-center dark:bg-transparent dark:text-gray-400 border-gray-400 dark:border-gray-800">
                     <Filter className="h-4 w-4" />
                     <span>Filter</span>
                     {(filters.type.length > 0 || 
@@ -798,7 +798,7 @@ const Events: React.FC = () => {
                 size="sm" 
                 onClick={() => fetchEvents()}
                 disabled={refreshing}
-                className="gap-1 dark:bg-gray-900 dark:text-gray-400 border-gray-400 dark:border-gray-800"
+                className="gap-1 dark:bg-transparent dark:text-gray-400 border-gray-400 dark:border-gray-800"
               >
                 {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                 <span>Refresh</span>
@@ -814,7 +814,7 @@ const Events: React.FC = () => {
                 <Label htmlFor="auto-refresh" className="text-xs">Auto</Label>
               </div>
               
-              <Button variant="outline" size="sm" className='dark:bg-gray-900 dark:text-gray-400 border-gray-400 dark:border-gray-800' onClick={exportEvents}>
+              <Button variant="outline" size="sm" className='dark:bg-transparent dark:text-gray-400 border-gray-400 dark:border-gray-800' onClick={exportEvents}>
                 <FileDown className="h-4 w-4 mr-1" />
                 Export
               </Button>
