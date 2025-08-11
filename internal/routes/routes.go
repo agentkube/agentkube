@@ -72,6 +72,8 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 				kubeconfigGroup.POST("/validate-folder", handlers.AddKubeconfigFolderHandler(kubeConfigStore))
 			}
 
+			// Popeye endpoints
+			v1.GET("/popeye/status", handlers.PopeyeStatusHandler(kubeConfigStore))
 			// Cluster report endpoint using Popeye
 			v1.GET("/cluster/:clusterName/report", handlers.ClusterReportHandler(kubeConfigStore))
 

@@ -851,3 +851,18 @@ func ClusterReportHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFu
 		c.JSON(http.StatusOK, report)
 	}
 }
+
+// check Popeye installation status
+func PopeyeStatusHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		popeyeInstaller := extensions.NewPopeyeInstaller(kubeConfigStore)
+		status := popeyeInstaller.CheckInstallation()
+
+		c.JSON(http.StatusOK, gin.H{
+			"installed": status.Installed,
+			"version":   status.Version,
+			"path":      status.Path,
+			"error":     status.Error,
+		})
+	}
+}

@@ -1,7 +1,6 @@
 package extensions
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -200,10 +199,38 @@ func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeRepo
 		return nil, fmt.Errorf("failed to extract JSON from Popeye output: %v, raw output: %s", err, string(output))
 	}
 
-	// Parse JSON output
+	// Parse JSON output - try different parsing approaches
 	var report PopeyeReport
+
+	// First, try parsing as our expected structure (with outer wrapper)
 	if err := json.Unmarshal([]byte(jsonOutput), &report); err != nil {
-		return nil, fmt.Errorf("failed to parse Popeye JSON output: %v, json: %s", err, jsonOutput)
+		// If that fails, try parsing as just the inner Popeye structure
+		var innerReport struct {
+			ReportTime string    `json:"report_time"`
+			Score      int       `json:"score"`
+			Grade      string    `json:"grade"`
+			Sections   []Section `json:"sections,omitempty"`
+			Errors     []string  `json:"errors,omitempty"`
+		}
+
+		if innerErr := json.Unmarshal([]byte(jsonOutput), &innerReport); innerErr != nil {
+			return nil, fmt.Errorf("failed to parse Popeye JSON output: %v, json: %s", err, jsonOutput)
+		}
+
+		// If inner parsing succeeded, wrap it in our report structure
+		report = PopeyeReport{
+			ClusterName: clusterName,
+			ContextName: clusterName,
+		}
+		report.Popeye.ReportTime = innerReport.ReportTime
+		report.Popeye.Score = innerReport.Score
+		report.Popeye.Grade = innerReport.Grade
+		report.Popeye.Sections = innerReport.Sections
+		report.Popeye.Errors = innerReport.Errors
+	} else {
+		// If outer parsing succeeded, just add cluster info
+		report.ClusterName = clusterName
+		report.ContextName = clusterName
 	}
 
 	logger.Log(logger.LevelInfo, map[string]string{
@@ -216,31 +243,40 @@ func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeRepo
 }
 
 func extractJSONFromOutput(output string) (string, error) {
-	scanner := bufio.NewScanner(strings.NewReader(output))
-	var jsonLines []string
-	var inJSON bool
+	// Remove ANSI escape sequences from the entire output first
+	cleanOutput := removeANSIEscapes(output)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		line = removeANSIEscapes(line)
-
-		if strings.HasPrefix(strings.TrimSpace(line), "{") {
-			inJSON = true
-		}
-		if inJSON {
-			jsonLines = append(jsonLines, line)
-		}
-
-		if inJSON && strings.HasSuffix(strings.TrimSpace(line), "}") {
-			break
+	// Look for JSON object that starts with {"popeye":
+	jsonStart := strings.Index(cleanOutput, `{"popeye":`)
+	if jsonStart == -1 {
+		// Fallback: look for any JSON object
+		jsonStart = strings.Index(cleanOutput, `{`)
+		if jsonStart == -1 {
+			return "", fmt.Errorf("no JSON found in output")
 		}
 	}
 
-	if len(jsonLines) == 0 {
-		return "", fmt.Errorf("no JSON found in output")
+	// Find the matching closing brace
+	braceCount := 0
+	var jsonEnd int
+
+	for i := jsonStart; i < len(cleanOutput); i++ {
+		switch cleanOutput[i] {
+		case '{':
+			braceCount++
+		case '}':
+			braceCount--
+			if braceCount == 0 {
+				jsonEnd = i + 1
+			}
+		}
 	}
 
-	return strings.Join(jsonLines, "\n"), nil
+	if braceCount != 0 {
+		return "", fmt.Errorf("unmatched braces in JSON output")
+	}
+
+	return cleanOutput[jsonStart:jsonEnd], nil
 }
 
 // helper function to remove ANSI escape sequences
