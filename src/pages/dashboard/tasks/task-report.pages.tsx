@@ -364,7 +364,7 @@ const TaskReport: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-h-[92vh] overflow-y-auto
+    <div className="px-6 pb-6 space-y-6 max-h-[92vh] overflow-y-auto
       [&::-webkit-scrollbar]:w-1.5 
       [&::-webkit-scrollbar-track]:bg-transparent 
       [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
@@ -558,21 +558,24 @@ const TaskReport: React.FC = () => {
       <SideDrawer
         isOpen={selectedCheck !== null}
         onClose={() => setSelectedCheck(null)}
+        offsetTop="-top-6"
       >
         {selectedCheck && (
           <>
             <DrawerHeader onClose={() => setSelectedCheck(null)}>
-              <div className='flex items-center space-x-2'>
-                <div className="p-2">
-                  {getStatusIcon(selectedCheck.status)}
-                </div>
-                <div className='flex items-center gap-1'>
-                  <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide">
-                    {selectedCheck.category}
-                  </h3>
-                  <Badge className={getSeverityColor(selectedCheck.severity)} >
-                    {selectedCheck.status}
-                  </Badge>
+              <div className="py-1">
+                <div className='flex items-center space-x-2'>
+                  <div className="p-2">
+                    {getStatusIcon(selectedCheck.status)}
+                  </div>
+                  <div className='flex items-center gap-1'>
+                    <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide">
+                      {selectedCheck.category}
+                    </h3>
+                    <Badge className={getSeverityColor(selectedCheck.severity)} >
+                      {selectedCheck.status}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </DrawerHeader>
