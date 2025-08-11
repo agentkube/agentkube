@@ -628,7 +628,7 @@ const MonitoringOverview = () => {
             </div>
             {/* CPU usage chart */}
             <div className="h-32 mt-4 p-0">
-              <ResponsiveContainer className="-ml-1" width="103%" height="100%">
+              <ResponsiveContainer className="-ml-1 rounded-md" width="103%" height="100%">
                 <AreaChart data={cpuChartData.length > 0 ? cpuChartData : [
                   ...Array.from({ length: 50 }, (_, i) => {
                     const now = new Date();
