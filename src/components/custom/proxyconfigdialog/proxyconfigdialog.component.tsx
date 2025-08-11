@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { AlertCircle, Save, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PROMETHEUS_OPERATOR } from '@/assets';
 import { OPENCOST } from '@/assets/providers';
+import { SiPrometheus } from '@icons-pack/react-simple-icons';
+import { IconType } from '@icons-pack/react-simple-icons';
 
 interface ServiceConfig {
   namespace: string;
@@ -46,20 +48,20 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Determine which image to use based on serviceName
-  const getServiceImage = () => {
+  const getServiceImage = (): { type: 'component'; component: IconType } | { type: 'image'; src: string } | null => {
     // Convert serviceName to lowercase and check if it contains specific keywords
     const serviceNameLower = serviceName.toLowerCase();
-    
+
     if (serviceNameLower.includes('prometheus')) {
-      return PROMETHEUS_OPERATOR;
+      return { type: 'component', component: SiPrometheus };
     } else if (serviceNameLower.includes('opencost')) {
-      return OPENCOST;
+      return { type: 'image', src: OPENCOST };
     }
-    
-    // Default case: no image or you could return a default image
+
+    // Default case: no image or component
     return null;
   };
-  
+
   const serviceImage = getServiceImage();
 
   useEffect(() => {
@@ -106,12 +108,18 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
       <DialogContent className="sm:max-w-md bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md border-gray-200/10 dark:border-gray-200/10">
         <DialogHeader>
           <DialogTitle className="text-xl font-[Anton] uppercase flex items-center space-x-2">
-            {serviceImage && <img src={serviceImage} className='h-6 w-6' alt="" />}
+            {serviceImage && (
+              serviceImage.type === 'component' ? (
+                <serviceImage.component className="h-6 w-6" />
+              ) : (
+                <img src={serviceImage.src} className="h-6 w-6" alt="" />
+              )
+            )}
             <span>
               {serviceName} Proxy Settings
             </span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className='text-xs'>
             {serviceDescription || `Configure the ${serviceName} service connection details if it's installed in a different namespace or with a custom service name.`}
           </DialogDescription>
         </DialogHeader>

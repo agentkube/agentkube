@@ -1,44 +1,55 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+import { SiGrafana, SiDatadog, SiNewrelic, SiPrometheus } from '@icons-pack/react-simple-icons';
+import { SigNoz } from '@/assets/icons';
+import { Check, ArrowUpRight, TriangleAlert, TrendingUp, Server, Network, Settings, ListTree } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  AreaChart, Area, BarChart, Bar
-} from 'recharts';
-import { listResources, getResource } from '@/api/internal/resources';
-import { getPodMetrics, PodMetrics } from '@/api/internal/metrics';
-import { useCluster } from '@/contexts/clusterContext';
-import { useNamespace } from '@/contexts/useNamespace';
-import { V1Pod, V1Namespace } from '@kubernetes/client-node';
-
-// Component imports
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, AlertCircle, Cpu, HardDrive, Activity, Loader2, Settings } from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from '@/components/ui/button';
+import { Line, ResponsiveContainer, Tooltip, Area, AreaChart, XAxis } from 'recharts';
 import { ProxyConfigDialog } from '@/components/custom';
+import { kubeProxyRequest } from '@/api/cluster';
+import { useCluster } from '@/contexts/clusterContext';
+import {
+  ChartTooltip,
+} from "@/components/ui/chart";
+import { useNavigate } from 'react-router-dom';
 
-const PodMonitoringOverview = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+interface DataSource {
+  id: string;
+  name: string;
+  icon: React.ReactElement;
+}
+
+const MonitoringOverview = () => {
   const { currentContext } = useCluster();
-
-  const { namespaces, loading: namespacesLoading, error: namespacesError } = useNamespace();
-  const [pods, setPods] = useState<V1Pod[]>([]);
-  const [selectedNamespace, setSelectedNamespace] = useState<string>('');
-  const [selectedPod, setSelectedPod] = useState<string>('');
-  const [podDetails, setPodDetails] = useState<V1Pod | null>(null);
-  const [podMetrics, setPodMetrics] = useState<PodMetrics | null>(null);
-  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h'>('1h');
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Settings Dialog State
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState<boolean>(false);
+  const [targets, setTargets] = useState<any>(null);
+  const [metadata, setMetadata] = useState<any>({});
+  const [targetAvailability, setTargetAvailability] = useState<number>(0);
+  const [diskUsage, setDiskUsage] = useState<number>(0);
+  const [currentCpuUsage, setCurrentCpuUsage] = useState<number>(0);
+  const [peakCpuUsage, setPeakCpuUsage] = useState<number>(0);
+  const [avgCpuUsage, setAvgCpuUsage] = useState<number>(0);
+  const [cpuChartData, setCpuChartData] = useState<Array<{ value: number, time: string }>>([]);
+  const [memoryUsagePercent, setMemoryUsagePercent] = useState<number>(0);
+  const [usedMemoryGB, setUsedMemoryGB] = useState<number>(0);
+  const [totalMemoryGB, setTotalMemoryGB] = useState<number>(0);
+  const [topMemoryPods, setTopMemoryPods] = useState<Array<{ name: string, namespace: string, memoryGB: number }>>([]);
+  const [requestRate, setRequestRate] = useState<number>(0);
+  const [p99Latency, setP99Latency] = useState<number>(0);
+  const [errorRate, setErrorRate] = useState<number>(0);
+  const [errorRateDelta, setErrorRateDelta] = useState<number>(0);
+  const [activePods, setActivePods] = useState<number>(0);
+  const [totalPods, setTotalPods] = useState<number>(0);
+  const [failedDeployments, setFailedDeployments] = useState<number>(0);
+  const [apiServerSuccessRate, setApiServerSuccessRate] = useState<number>(0);
+  const navigate = useNavigate();
+
+
   const [monitoringConfig, setMonitoringConfig] = useState<{
     namespace: string;
     service: string;
@@ -46,36 +57,14 @@ const PodMonitoringOverview = () => {
     namespace: 'monitoring',
     service: 'prometheus:9090'
   });
+  const [selectedTimeRange, setSelectedTimeRange] = useState<string>('1H');
+  const [selectedDataSource, setSelectedDataSource] = useState<DataSource>({
+    id: 'grafana',
+    name: 'Grafana',
+    icon: <SiGrafana className="h-4 w-4" />
+  });
 
-  // Metrics data for charts (derived from podMetrics)
-  const [metricsData, setMetricsData] = useState<any[]>([]);
-
-  // Initialize from URL params or defaults
-  useEffect(() => {
-    if (currentContext) {
-      const namespaceParam = searchParams.get('namespace');
-      const podParam = searchParams.get('pod');
-
-      if (namespaceParam) {
-        setSelectedNamespace(namespaceParam);
-        fetchPods(namespaceParam);
-      } else if (namespaces.length > 0) {
-        // Use namespaces from the context instead of fetching them again
-        initializeNamespace();
-      }
-
-      if (podParam) {
-        setSelectedPod(podParam);
-      }
-
-    }
-
-    // Load monitoring config
-    loadMonitoringConfig();
-  }, [currentContext, searchParams, namespaces]);
-
-  // Load monitoring configuration from localStorage
-  const loadMonitoringConfig = () => {
+  const loadMonitoringConfig = useCallback(() => {
     if (!currentContext) return;
 
     try {
@@ -89,329 +78,481 @@ const PodMonitoringOverview = () => {
     } catch (err) {
       console.error('Error loading saved monitoring config:', err);
     }
-  };
+  }, [currentContext]);
 
-  // Save monitoring configuration to localStorage
   const handleSaveConfig = (config: { namespace: string; service: string }) => {
     if (!currentContext) return;
 
     setMonitoringConfig(config);
     console.log('Saving monitoring config:', config);
-    localStorage.setItem(`${currentContext.name}.monitoringConfig`, JSON.stringify({
-      externalConfig: {
-        monitoring: config
-      }
-    }));
-
-    // Refresh metrics with new config
-    if (selectedNamespace && selectedPod) {
-      fetchPodMetrics(selectedNamespace, selectedPod);
-    }
-  };
-
-  // Initialize namespace from available namespaces
-  const initializeNamespace = () => {
-    if (namespaces.length > 0) {
-      // Try to find default namespace first
-      const defaultNamespace = namespaces.find(
-        ns => ns.metadata?.name === 'default'
-      ) || namespaces[0];
-
-      if (defaultNamespace.metadata?.name) {
-        setSelectedNamespace(defaultNamespace.metadata.name);
-        fetchPods(defaultNamespace.metadata.name);
-      }
-    }
-  };
-
-  // Fetch pods in the selected namespace
-  const fetchPods = async (namespace: string) => {
-    if (!currentContext || !namespace) return;
 
     try {
-      setLoading(true);
-      const podList = await listResources<'pods'>(
-        currentContext.name,
-        'pods',
-        { namespace }
-      );
-
-      setPods(podList);
-
-      // Select first pod if none selected
-      if ((!selectedPod || !podList.find(p => p.metadata?.name === selectedPod)) && podList.length > 0) {
-        const firstPodName = podList[0].metadata?.name;
-        if (firstPodName) {
-          setSelectedPod(firstPodName);
-          fetchPodDetails(namespace, firstPodName);
-          fetchPodMetrics(namespace, firstPodName);
-
-          // Update URL with namespace and pod
-          setSearchParams({
-            namespace,
-            pod: firstPodName
-          });
+      const configKey = `${currentContext.name}.monitoringConfig`;
+      const configToSave = {
+        externalConfig: {
+          monitoring: config
         }
-      } else if (selectedPod) {
-        fetchPodDetails(namespace, selectedPod);
-        fetchPodMetrics(namespace, selectedPod);
+      };
+      localStorage.setItem(configKey, JSON.stringify(configToSave));
+    } catch (err) {
+      console.error('Error saving monitoring config:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (currentContext) {
+      loadMonitoringConfig();
+    }
+  }, [currentContext, loadMonitoringConfig]);
+
+
+
+  const fetchMetadata = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
+
+    try {
+      const servicePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/metadata`;
+      const metadataResponse = await kubeProxyRequest(currentContext.name, servicePath, 'GET');
+
+      if (metadataResponse.status === 'success') {
+        setMetadata(metadataResponse.data);
       }
     } catch (err) {
-      console.error('Error fetching pods:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch pods');
-    } finally {
-      setLoading(false);
+      console.error('Error fetching Prometheus metadata:', err);
     }
-  };
+  }, [currentContext, monitoringConfig]);
 
-  // Fetch pod details
-  const fetchPodDetails = async (namespace: string, podName: string) => {
-    if (!currentContext || !namespace || !podName) return;
+  const fetchTargets = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
 
     try {
-      // Fetch the pod to get its details
-      const pod = await getResource<'pods'>(
-        currentContext.name,
-        'pods',
-        podName,
-        namespace
-      );
+      const servicePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/targets`;
+      const targetsResponse = await kubeProxyRequest(currentContext.name, servicePath, 'GET');
 
-      setPodDetails(pod);
+      if (targetsResponse.status === 'success') {
+        setTargets(targetsResponse.data);
+      }
     } catch (err) {
-      console.error('Error fetching pod details:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch pod details');
+      console.error('Error fetching Prometheus targets:', err);
     }
-  };
+  }, [currentContext, monitoringConfig]);
 
-  // Fetch metrics for the selected pod using our metrics API
-  const fetchPodMetrics = async (namespace: string, podName: string) => {
-    if (!currentContext || !namespace || !podName) return;
+  const fetchPrometheusMetrics = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
 
     try {
-      setRefreshing(true);
+      // Fetch target availability
+      const availabilityQuery = 'count(up == 1) / count(up) * 100';
+      const availabilityPath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query`;
+      const availabilityParams = new URLSearchParams({ query: availabilityQuery });
+      const availabilityResponse = await kubeProxyRequest(currentContext.name, `${availabilityPath}?${availabilityParams}`, 'GET');
 
-      // Call our metrics API
-      // You might need to update your API call to use the monitoringConfig
-      const metrics = await getPodMetrics(
-        currentContext.name,
-        namespace,
-        podName
-      );
-      setPodMetrics(metrics);
+      if (availabilityResponse.status === 'success' && availabilityResponse.data?.result?.length > 0) {
+        const availability = parseFloat(availabilityResponse.data.result[0].value[1]);
+        setTargetAvailability(availability);
+      }
 
-      // Process metrics history for charts
-      const formattedData = processMetricsForCharts(metrics, timeRange);
-      setMetricsData(formattedData);
+      // Fetch disk usage
+      const diskQuery = 'prometheus_tsdb_storage_blocks_bytes';
+      const diskParams = new URLSearchParams({ query: diskQuery });
+      const diskResponse = await kubeProxyRequest(currentContext.name, `${availabilityPath}?${diskParams}`, 'GET');
 
-      setError(null);
+      if (diskResponse.status === 'success' && diskResponse.data?.result?.length > 0) {
+        const bytes = parseFloat(diskResponse.data.result[0].value[1]);
+        const gb = bytes / (1024 * 1024 * 1024); // Convert to GB
+        setDiskUsage(gb);
+      }
     } catch (err) {
-      console.error('Error fetching pod metrics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch pod metrics');
-    } finally {
-      setRefreshing(false);
+      console.error('Error fetching Prometheus metrics:', err);
     }
-  };
+  }, [currentContext, monitoringConfig]);
 
-  // Process metrics history data for charts (keeping your existing format)
-  const processMetricsForCharts = (metrics: PodMetrics, timeRangeFilter: string) => {
-    if (!metrics || !metrics.history || metrics.history.length === 0) {
-      return [];
+
+  // Add this function after the fetchPrometheusMetrics function
+  const fetchCpuMetrics = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
+
+    try {
+      const basePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query`;
+
+      // Convert selectedTimeRange to PromQL format
+      const timeRangeMap: { [key: string]: string } = {
+        '1H': '1h',
+        '6H': '6h',
+        '24H': '24h',
+        '7D': '7d'
+      };
+      const promTimeRange = timeRangeMap[selectedTimeRange] || '24h';
+
+      // 1. Current CPU Usage
+      const currentQuery = '100 - (avg by (cluster) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)';
+      const currentParams = new URLSearchParams({ query: currentQuery });
+      const currentResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${currentParams}`, 'GET');
+
+      if (currentResponse.status === 'success' && currentResponse.data?.result?.length > 0) {
+        const current = parseFloat(currentResponse.data.result[0].value[1]);
+        setCurrentCpuUsage(current);
+      }
+
+      // 2. Peak CPU Usage over time range
+      const peakQuery = `max_over_time(( 100 - avg by (cluster) ( rate(node_cpu_seconds_total{mode="idle"}[5m]) ) * 100 )[${promTimeRange}:])`;
+      const peakParams = new URLSearchParams({ query: peakQuery });
+      const peakResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${peakParams}`, 'GET');
+
+      if (peakResponse.status === 'success' && peakResponse.data?.result?.length > 0) {
+        const peak = parseFloat(peakResponse.data.result[0].value[1]);
+        setPeakCpuUsage(peak);
+      }
+
+      // 3. Average CPU Usage over time range
+      const avgQuery = `avg_over_time(( 100 - avg by (cluster) ( rate(node_cpu_seconds_total{mode="idle"}[5m]) ) * 100 )[${promTimeRange}:])`;
+      const avgParams = new URLSearchParams({ query: avgQuery });
+      const avgResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${avgParams}`, 'GET');
+
+      if (avgResponse.status === 'success' && avgResponse.data?.result?.length > 0) {
+        const avg = parseFloat(avgResponse.data.result[0].value[1]);
+        setAvgCpuUsage(avg);
+      }
+
+      // 4. CPU Usage time series for chart
+      const now = Math.floor(Date.now() / 1000);
+      const start = now - (parseInt(promTimeRange.replace(/[hd]/, '')) * (promTimeRange.includes('h') ? 3600 : 86400));
+      const step = Math.floor((now - start) / 50); // 50 data points
+
+      const rangeQuery = '100 - (avg by (cluster) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)';
+      const rangeParams = new URLSearchParams({
+        query: rangeQuery,
+        start: start.toString(),
+        end: now.toString(),
+        step: step.toString()
+      });
+
+      const rangePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query_range`;
+      const rangeResponse = await kubeProxyRequest(currentContext.name, `${rangePath}?${rangeParams}`, 'GET');
+
+      if (rangeResponse.status === 'success' && rangeResponse.data?.result?.length > 0) {
+        const values = rangeResponse.data.result[0].values || [];
+        const chartData = values.map((point: [number, string]) => {
+          const date = new Date(point[0] * 1000);
+          const timeFormat = selectedTimeRange === '7D'
+            ? {
+              month: 'short' as const,
+              day: 'numeric' as const,
+              hour: '2-digit' as const,
+              minute: '2-digit' as const
+            }
+            : {
+              hour: '2-digit' as const,
+              minute: '2-digit' as const
+            };
+
+          return {
+            value: parseFloat(point[1]),
+            time: date.toLocaleString('en-US', timeFormat)
+          };
+        });
+        setCpuChartData(chartData);
+      }
+
+    } catch (err) {
+      console.error('Error fetching CPU metrics:', err);
     }
+  }, [currentContext, monitoringConfig, selectedTimeRange]);
 
-    // Sort history by timestamp
-    const sortedHistory = [...metrics.history].sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+  const fetchMemoryMetrics = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
 
-    // Filter based on time range if needed
-    let filteredHistory = sortedHistory;
-    if (timeRangeFilter) {
-      const now = new Date();
-      const cutoff = new Date();
+    try {
+      const basePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query`;
 
-      if (timeRangeFilter === '1h') cutoff.setHours(now.getHours() - 1);
-      else if (timeRangeFilter === '6h') cutoff.setHours(now.getHours() - 6);
-      else if (timeRangeFilter === '24h') cutoff.setHours(now.getHours() - 24);
+      // 1. Memory Usage Percentage
+      const memoryPercentQuery = '100 * ( 1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes) )';
+      const memoryPercentParams = new URLSearchParams({ query: memoryPercentQuery });
+      const memoryPercentResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${memoryPercentParams}`, 'GET');
 
-      filteredHistory = sortedHistory.filter(point =>
-        new Date(point.timestamp) >= cutoff
-      );
+      if (memoryPercentResponse.status === 'success' && memoryPercentResponse.data?.result?.length > 0) {
+        const percent = parseFloat(memoryPercentResponse.data.result[0].value[1]);
+        setMemoryUsagePercent(percent);
+      }
+
+      // 2. Used Memory (GB)
+      const usedMemoryQuery = '(sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / 1024 / 1024 / 1024';
+      const usedMemoryParams = new URLSearchParams({ query: usedMemoryQuery });
+      const usedMemoryResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${usedMemoryParams}`, 'GET');
+
+      if (usedMemoryResponse.status === 'success' && usedMemoryResponse.data?.result?.length > 0) {
+        const usedGB = parseFloat(usedMemoryResponse.data.result[0].value[1]);
+        setUsedMemoryGB(usedGB);
+      }
+
+      // 3. Total Memory (GB)
+      const totalMemoryQuery = 'sum(node_memory_MemTotal_bytes) / 1024 / 1024 / 1024';
+      const totalMemoryParams = new URLSearchParams({ query: totalMemoryQuery });
+      const totalMemoryResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${totalMemoryParams}`, 'GET');
+
+      if (totalMemoryResponse.status === 'success' && totalMemoryResponse.data?.result?.length > 0) {
+        const totalGB = parseFloat(totalMemoryResponse.data.result[0].value[1]);
+        setTotalMemoryGB(totalGB);
+      }
+
+      // 4. Top Memory Consuming Pods
+      const topPodsQuery = 'topk(5, sum by (namespace, pod) (container_memory_usage_bytes{container!=""}) / 1024 / 1024 / 1024)';
+      const topPodsParams = new URLSearchParams({ query: topPodsQuery });
+      const topPodsResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${topPodsParams}`, 'GET');
+
+      if (topPodsResponse.status === 'success' && topPodsResponse.data?.result?.length > 0) {
+        const pods = topPodsResponse.data.result.map((item: any) => ({
+          name: item.metric.pod,
+          namespace: item.metric.namespace,
+          memoryGB: parseFloat(item.value[1])
+        }));
+        setTopMemoryPods(pods);
+      }
+
+    } catch (err) {
+      console.error('Error fetching memory metrics:', err);
     }
+  }, [currentContext, monitoringConfig]);
 
-    // Format data to match your chart expectations
-    return filteredHistory.map(point => ({
-      time: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date(point.timestamp).toLocaleDateString(),
-      cpu: Math.round(point.cpu * 100), // Convert to percentage
-      memory: Math.round(point.memory / metrics.memory.requestedMemoryMiB * 100), // Convert to percentage of requested
-      // For network data - if available in your API, add it here
-      network_in: 0, // Placeholder
-      network_out: 0, // Placeholder
-    }));
-  };
+  // Add this new function after the fetchMemoryMetrics function:
+  const fetchRequestMetrics = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
 
-  // Handle namespace change
-  const handleNamespaceChange = (value: string) => {
-    setSelectedNamespace(value);
-    setSelectedPod(''); // Reset pod selection
-    setPodMetrics(null); // Clear metrics
-    setMetricsData([]); // Clear chart data
-    fetchPods(value);
+    try {
+      const basePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query`;
 
-    // Update URL with new namespace
-    setSearchParams({
-      namespace: value
-    });
-  };
+      // 1. Request Rate (req/sec)
+      const requestRateQuery = 'sum(rate(http_requests_total[5m]))';
+      const requestRateParams = new URLSearchParams({ query: requestRateQuery });
+      const requestRateResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${requestRateParams}`, 'GET');
 
-  // Handle pod change
-  const handlePodChange = (value: string) => {
-    setSelectedPod(value);
-    fetchPodDetails(selectedNamespace, value);
-    fetchPodMetrics(selectedNamespace, value);
+      if (requestRateResponse.status === 'success' && requestRateResponse.data?.result?.length > 0) {
+        const rate = parseFloat(requestRateResponse.data.result[0].value[1]);
+        setRequestRate(rate);
+      }
 
-    // Update URL with new pod
-    setSearchParams({
-      namespace: selectedNamespace,
-      pod: value
-    });
-  };
+      // 2. P99 Latency (ms)
+      const p99LatencyQuery = 'histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) * 1000';
+      const p99LatencyParams = new URLSearchParams({ query: p99LatencyQuery });
+      const p99LatencyResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${p99LatencyParams}`, 'GET');
 
-  // Handle refresh
-  const handleRefresh = () => {
-    if (selectedNamespace && selectedPod) {
-      fetchPodMetrics(selectedNamespace, selectedPod);
+      if (p99LatencyResponse.status === 'success' && p99LatencyResponse.data?.result?.length > 0) {
+        const latency = parseFloat(p99LatencyResponse.data.result[0].value[1]);
+        setP99Latency(latency);
+      }
+
+      // 3. Current Error Rate (%)
+      const errorRateQuery = '(sum(rate(http_requests_total{code=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100';
+      const errorRateParams = new URLSearchParams({ query: errorRateQuery });
+      const errorRateResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${errorRateParams}`, 'GET');
+
+      if (errorRateResponse.status === 'success' && errorRateResponse.data?.result?.length > 0) {
+        const currentErrorRate = parseFloat(errorRateResponse.data.result[0].value[1]);
+        setErrorRate(currentErrorRate);
+      }
+
+      // 4. Error Rate Delta (compared to previous period)
+      const errorRateDeltaQuery = '((sum(rate(http_requests_total{code=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) - (sum(rate(http_requests_total{code=~"5.."}[5m] offset 5m)) / sum(rate(http_requests_total[5m] offset 5m)))) * 100';
+      const errorRateDeltaParams = new URLSearchParams({ query: errorRateDeltaQuery });
+      const errorRateDeltaResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${errorRateDeltaParams}`, 'GET');
+
+      if (errorRateDeltaResponse.status === 'success' && errorRateDeltaResponse.data?.result?.length > 0) {
+        const delta = parseFloat(errorRateDeltaResponse.data.result[0].value[1]);
+        setErrorRateDelta(delta);
+      }
+
+    } catch (err) {
+      console.error('Error fetching request metrics:', err);
     }
-  };
+  }, [currentContext, monitoringConfig]);
 
-  // Handle time range change
-  const handleTimeRangeChange = (value: '1h' | '6h' | '24h') => {
-    setTimeRange(value);
-    if (selectedNamespace && selectedPod && podMetrics) {
-      // Reprocess existing metrics data for new time range
-      const formattedData = processMetricsForCharts(podMetrics, value);
-      setMetricsData(formattedData);
+  const fetchPodsAndDeploymentsMetrics = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
 
-      // Optionally refetch with new time range parameter
-      // fetchPodMetrics(selectedNamespace, selectedPod);
+    try {
+      const basePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query`;
+
+      // 1. Active Pods (Running)
+      const activePodsQuery = 'sum(count(kube_pod_status_phase{phase="Running"}) by (namespace))';
+      const activePodsParams = new URLSearchParams({ query: activePodsQuery });
+      const activePodsResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${activePodsParams}`, 'GET');
+
+      if (activePodsResponse.status === 'success' && activePodsResponse.data?.result?.length > 0) {
+        const active = parseFloat(activePodsResponse.data.result[0].value[1]);
+        setActivePods(active);
+      }
+
+      // 2. Total Pods (all phases)
+      const totalPodsQuery = 'count(count by (namespace, pod) (kube_pod_status_phase))';
+      const totalPodsParams = new URLSearchParams({ query: totalPodsQuery });
+      const totalPodsResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${totalPodsParams}`, 'GET');
+
+      if (totalPodsResponse.status === 'success' && totalPodsResponse.data?.result?.length > 0) {
+        const total = parseFloat(totalPodsResponse.data.result[0].value[1]);
+        setTotalPods(total);
+      }
+
+      // 3. Failed Deployments (last 24h)
+      const failedDeploymentsQuery = 'sum(increase(kube_deployment_status_condition{condition="Progressing", status="false"}[24h]))';
+      const failedDeploymentsParams = new URLSearchParams({ query: failedDeploymentsQuery });
+      const failedDeploymentsResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${failedDeploymentsParams}`, 'GET');
+
+      if (failedDeploymentsResponse.status === 'success' && failedDeploymentsResponse.data?.result?.length > 0) {
+        const failed = parseFloat(failedDeploymentsResponse.data.result[0].value[1]);
+        setFailedDeployments(failed);
+      }
+
+    } catch (err) {
+      console.error('Error fetching pods and deployments metrics:', err);
     }
+  }, [currentContext, monitoringConfig]);
+
+  // Add this new function after the fetchPodsAndDeploymentsMetrics function:
+  const fetchApiServerMetrics = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
+
+    try {
+      const basePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query`;
+
+      // API Server Success Rate (%)
+      const apiServerSuccessQuery = 'sum(rate(apiserver_request_total{code=~"2.."}[5m])) / sum(rate(apiserver_request_total[5m])) * 100';
+      const apiServerSuccessParams = new URLSearchParams({ query: apiServerSuccessQuery });
+      const apiServerSuccessResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${apiServerSuccessParams}`, 'GET');
+
+      if (apiServerSuccessResponse.status === 'success' && apiServerSuccessResponse.data?.result?.length > 0) {
+        const successRate = parseFloat(apiServerSuccessResponse.data.result[0].value[1]);
+        setApiServerSuccessRate(successRate);
+      }
+
+    } catch (err) {
+      console.error('Error fetching API server metrics:', err);
+    }
+  }, [currentContext, monitoringConfig]);
+
+  useEffect(() => {
+    if (currentContext && monitoringConfig.namespace && monitoringConfig.service) {
+      fetchMetadata();
+      fetchTargets();
+      fetchPrometheusMetrics();
+      fetchCpuMetrics();
+      fetchMemoryMetrics();
+      fetchRequestMetrics();
+      fetchPodsAndDeploymentsMetrics();
+      fetchApiServerMetrics();
+    }
+  }, [currentContext?.name, monitoringConfig, fetchMetadata, fetchTargets, fetchPrometheusMetrics, fetchCpuMetrics, fetchMemoryMetrics, fetchRequestMetrics, fetchPodsAndDeploymentsMetrics, fetchApiServerMetrics]);
+
+  useEffect(() => {
+    if (currentContext && monitoringConfig.namespace && monitoringConfig.service) {
+      fetchCpuMetrics();
+    }
+  }, [selectedTimeRange, fetchCpuMetrics]);
+
+  const formatRequestRate = (rate: number): string => {
+    if (rate >= 1000) {
+      return `${(rate / 1000).toFixed(1)}K`;
+    }
+    return rate.toFixed(0);
   };
 
-  // Loading state
-  if ((loading || namespacesLoading) && !pods.length && !namespaces.length) {
-    return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-8 w-96 mb-8" />
-        <Skeleton className="h-36 w-full mb-4" />
-        <Skeleton className="h-48 w-full mb-4" />
-        <Skeleton className="h-48 w-full" />
-      </div>
-    );
-  }
+  const formatErrorRateDelta = (delta: number): string => {
+    const sign = delta >= 0 ? '↑' : '↓';
+    return `(${sign} ${Math.abs(delta).toFixed(2)}%)`;
+  };
 
-  // Error state
-  if ((error || namespacesError) && !pods.length && !namespaces.length) {
-    const errorMessage = error || namespacesError;
-    return (
-      <div className="p-6">
-        <Alert variant="destructive" className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error loading monitoring data</AlertTitle>
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const dataSources: DataSource[] = [
+    {
+      id: 'grafana',
+      name: 'Grafana',
+      icon: <SiGrafana className="h-4 w-4" />
+    },
+    {
+      id: 'signoz',
+      name: 'SigNoz',
+      icon: <SigNoz className="h-4 w-4" />
+    },
+    {
+      id: 'newrelic',
+      name: 'New Relic',
+      icon: <SiNewrelic className="h-4 w-4" />
+    },
+    {
+      id: 'datadog',
+      name: 'Datadog',
+      icon: <SiDatadog className="h-4 w-4" />
+    }
+  ];
+
+  const handleTimeRangeSelect = (timeRange: string) => {
+    setSelectedTimeRange(timeRange);
+    console.log(`Selected time range: ${timeRange}`);
+    // Here you could add logic to fetch new data based on the selected time range
+  };
 
   return (
-    <div className="max-h-[92vh] overflow-y-auto
+    <div className="
+		      max-h-[93vh] overflow-y-auto
           
           [&::-webkit-scrollbar]:w-1.5 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-            
-      <div className="p-6 max-w-7xl mx-auto">
-        <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-200/80">
-          <AlertCircle color='yellow' className="h-4 w-4 mr-2" />
-          <AlertTitle className="font-semibold text-amber-800 dark:text-amber-200">Development Preview</AlertTitle>
-          <AlertDescription>
-            Pod monitoring is currently under development and will be fully functional in future updates.
-            Some features may be limited or unavailable. Stay tuned for improvements!
-          </AlertDescription>
-        </Alert>
+      <div className="p-6 mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Monitoring</h1>
 
-
-        {/* Header and Selection Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-5xl font-[Anton] uppercase text-gray-800/30 dark:text-gray-700/50">Monitoring</h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              Real-time performance metrics for Kubernetes pods (Experimentation)
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            <Select
-              value={selectedNamespace}
-              onValueChange={handleNamespaceChange}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Select Namespace" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-                {namespaces.map((ns) => ns.metadata?.name ? (
-                  <SelectItem key={ns.metadata.name} value={ns.metadata.name}>
-                    {ns.metadata.name}
-                  </SelectItem>
-                ) : null)}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={selectedPod}
-              onValueChange={handlePodChange}
-              disabled={!selectedNamespace || pods.length === 0}
-            >
-              <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue placeholder="Select Pod" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-                {pods.map((pod) => pod.metadata?.name ? (
-                  <SelectItem key={pod.metadata.name} value={pod.metadata.name}>
-                    {pod.metadata.name}
-                  </SelectItem>
-                ) : null)}
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={!selectedPod || refreshing}
-            >
-              {refreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </Button>
+          <div className="flex items-center gap-2">
+            {/* Data Source Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-transparent border border-gray-200 dark:border-gray-700/40 rounded-lg hover:bg-gray-50 dark:hover:dark:bg-gray-800/20/40 transition-colors">
+                  <div className="w-4 h-4 text-gray-600 dark:text-gray-300">
+                    {selectedDataSource.icon}
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {selectedDataSource.name}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-48 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border border-gray-200 dark:border-gray-700/40"
+              >
+                {dataSources.map((source) => (
+                  <DropdownMenuItem
+                    key={source.id}
+                    onClick={() => setSelectedDataSource(source)}
+                    className="flex items-center justify-between px-3 py-2 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 text-gray-600 dark:text-gray-300">
+                        {source.icon}
+                      </div>
+                      <span className="text-xs text-gray-700 dark:text-gray-300">
+                        {source.name}
+                      </span>
+                    </div>
+                    {selectedDataSource.id === source.id && (
+                      <Check className="h-4 w-4 text-blue-500" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Settings Button */}
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => setIsConfigDialogOpen(true)}
-              className="flex items-center"
+              className="flex items-center gap-2"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             </Button>
           </div>
         </div>
-        {/* ProxyConfigDialog Component */}
+
         <ProxyConfigDialog
           isOpen={isConfigDialogOpen}
           onClose={() => setIsConfigDialogOpen(false)}
@@ -423,273 +564,334 @@ const PodMonitoringOverview = () => {
           defaultService="prometheus:9090"
         />
 
-        {/* Time Range Selector */}
-        <div className="mb-6">
-          <Tabs
-            defaultValue={timeRange}
-            onValueChange={(value: any) => handleTimeRangeChange(value)}
-            className="w-full sm:w-auto"
-          >
-            <TabsList>
-              <TabsTrigger value="1h">Last Hour</TabsTrigger>
-              <TabsTrigger value="6h">Last 6 Hours</TabsTrigger>
-              <TabsTrigger value="24h">Last 24 Hours</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Pod Basic Info (if pod is selected) */}
-        {podDetails && (
-          <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle>Pod Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Node</h3>
-                  <p>{podDetails.spec?.nodeName || 'N/A'}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</h3>
-                  <p>{podDetails.status?.phase || 'N/A'}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Restart Count</h3>
-                  <p>{podDetails.status?.containerStatuses?.[0]?.restartCount || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Main Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* CPU Usage Chart */}
-          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center">
-                <Cpu className="mr-2 h-5 w-5 text-blue-500" />
-                CPU Usage {podMetrics && `(Current: ${podMetrics.cpu.currentUsage})`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                {metricsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={metricsData}>
-                      <defs>
-                        <linearGradient id="cpuColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                      <XAxis
-                        dataKey="time"
-                        scale="band"
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 12 }}
-                        domain={[0, 100]}
-                        unit="%"
-                      />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', border: 'none', color: '#fff', backdropFilter: 'blur(8px)' }}
-                        formatter={(value) => [`${value}%`, 'CPU Usage']}
-                        labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="cpu"
-                        stroke="#3b82f6"
-                        fillOpacity={1}
-                        fill="url(#cpuColor)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    {refreshing ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Loading metrics...</span>
-                      </div>
-                    ) : (
-                      <span>No metrics data available</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Memory Usage Chart */}
-          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center">
-                <HardDrive className="mr-2 h-5 w-5 text-emerald-500" />
-                Memory Usage {podMetrics && `(Current: ${podMetrics.memory.currentUsage})`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                {metricsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={metricsData}>
-                      <defs>
-                        <linearGradient id="memoryColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                      <XAxis
-                        dataKey="time"
-                        scale="band"
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 12 }}
-                        domain={[0, 100]}
-                        unit="%"
-                      />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', border: 'none', color: '#fff', backdropFilter: 'blur(8px)' }}
-                        formatter={(value) => [`${value}%`, 'Memory Usage']}
-                        labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="memory"
-                        stroke="#10b981"
-                        fillOpacity={1}
-                        fill="url(#memoryColor)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    {refreshing ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Loading metrics...</span>
-                      </div>
-                    ) : (
-                      <span>No metrics data available</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Network Chart */}
-        {/* Note: This is preserved from your original design, but populated with placeholders since your API doesn't include network metrics */}
-        <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center">
-              <Activity className="mr-2 h-5 w-5 text-purple-500" />
-              Network Traffic
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              {metricsData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={metricsData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                    <XAxis
-                      dataKey="time"
-                      scale="band"
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      unit="KB"
-                    />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', border: 'none', color: '#fff', backdropFilter: 'blur(8px)' }}
-                      formatter={(value) => [`${value} KB`, '']}
-                      labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="network_in"
-                      name="Inbound"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 5 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="network_out"
-                      name="Outbound"
-                      stroke="#ec4899"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 5 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  {refreshing ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Loading metrics...</span>
-                    </div>
-                  ) : (
-                    <span>Network metrics not available</span>
-                  )}
-                </div>
-              )}
+        {/* Main container */}
+        <div className="grid grid-cols-4 grid-rows-6 gap-2 h-[750px]">
+          {/* Row 1 */}
+          {/* Active Pods - 1 col 1 row */}
+          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-1">
+            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2 flex justify-between items-center">
+              ACTIVE PODS
+              <div className="text-green-500">●</div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-4xl font-light text-white">{activePods}</div>
+            <div className="text-gray-800 dark:text-gray-400 text-xs mt-1">/ {totalPods}</div>
+          </div>
 
-        {/* Container Details (if available) */}
-        {podMetrics && podMetrics.containers.length > 0 && (
-          <Card className="mb-6 bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle>Container Metrics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {podMetrics.containers.map(container => (
-                  <div key={container.name} className="border p-4 rounded-lg dark:border-gray-800">
-                    <h3 className="text-lg font-medium mb-3">{container.name}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">CPU Usage</h4>
-                        <p>{container.cpu.currentUsage} ({container.cpu.usagePercentage}% of request)</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">CPU Request</h4>
-                        <p>{container.cpu.requestedCPU}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Memory Usage</h4>
-                        <p>{container.memory.currentUsage} ({Math.round(container.memory.usagePercentage)}% of request)</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Memory Request</h4>
-                        <p>{container.memory.requestedMemory}</p>
-                      </div>
-                    </div>
+          {/* Request Rate & Latency - 2 col 2 row */}
+          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-2 row-span-2">
+            <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
+              REQUEST RATE & P99 LATENCY
+              <TrendingUp />
+            </div>
+            <div className="flex items-end gap-4 mb-4">
+              <div>
+                <div className="text-4xl font-light text-white">{formatRequestRate(requestRate)}</div>
+                <div className="text-gray-800 dark:text-gray-400 text-xs">req/sec</div>
+              </div>
+              <div>
+                <div className="text-4xl font-light text-orange-400">{p99Latency.toFixed(0)}ms</div>
+                <div className="text-gray-800 dark:text-gray-400 text-xs">p99 latency</div>
+              </div>
+            </div>
+            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">ERROR RATE</div>
+            <div className="text-red-400 text-sm font-medium">{errorRate.toFixed(2)}% {formatErrorRateDelta(errorRateDelta)}</div>
+          </div>
+
+          {/* CPU Usage Chart - 1 col 2 row */}
+          <div className="dark:bg-gray-800/20 rounded-lg col-span-1 row-span-2">
+            <div className='p-4'>
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
+                CLUSTER CPU USAGE
+                <div className="flex gap-0.5">
+                  {['1H', '6H', '24H', '7D'].map((timeRange) => (
+                    <button
+                      key={timeRange}
+                      className={`px-1 py-1 text-xs rounded transition-colors ${timeRange === selectedTimeRange
+                        ? 'text-blue-400 bg-blue-400/10'
+                        : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                      onClick={() => handleTimeRangeSelect(timeRange)}
+                    >
+                      {timeRange}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className='flex items-baseline space-x-2'>
+                <div className="text-4xl font-light text-white">{currentCpuUsage.toFixed(1)}%</div>
+                <div className="text-xs text-gray-800 dark:text-gray-400 mb-2">Current AVG</div>
+              </div>
+              <div className='flex space-x-2'>
+                <div className="text-xs text-gray-800 dark:text-gray-400 mb-2">Peak: {peakCpuUsage.toFixed(1)}%</div>
+                <div className="text-xs text-gray-800 dark:text-gray-400">AVG: {avgCpuUsage.toFixed(1)}%</div>
+              </div>
+            </div>
+            {/* CPU usage chart */}
+            <div className="h-32 mt-4 p-0">
+              <ResponsiveContainer className="-ml-1" width="103%" height="100%">
+                <AreaChart data={cpuChartData.length > 0 ? cpuChartData : [
+                  ...Array.from({ length: 50 }, (_, i) => {
+                    const now = new Date();
+                    const timeOffset = (i * 2) * 60000; // 2 minutes intervals
+                    const timePoint = new Date(now.getTime() - timeOffset);
+                    const timeFormat = selectedTimeRange === '7D'
+                      ? {
+                        month: 'short' as const,
+                        day: 'numeric' as const,
+                        hour: '2-digit' as const,
+                        minute: '2-digit' as const
+                      }
+                      : {
+                        hour: '2-digit' as const,
+                        minute: '2-digit' as const
+                      };
+
+                    return {
+                      value: 0,
+                      time: timePoint.toLocaleString('en-US', timeFormat)
+                    };
+                  }).reverse()
+                ]}>
+                  <defs>
+                    <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6CC" stopOpacity={0.5} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="time"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={false}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="rounded-lg border dark:bg-[#0B0D13]/40 backdrop-blur-md max-w-sm p-3 shadow-lg">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Time: {label}
+                            </p>
+                            <p className="text-sm font-bold">
+                              {parseFloat(payload[0].value as string).toFixed(2)}% CPU Usage
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#3b82f6"
+                    fill="url(#cpuGradient)"
+                    fillOpacity={1}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Row 2 */}
+          {/* Failed Deployments - 1 col 1 row */}
+          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-1">
+            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2 flex justify-between items-center">
+              FAILED DEPLOYMENTS
+
+              <TriangleAlert className="text-red-500 dark:text-red-500/50" />
+            </div>
+            <div className="text-4xl font-light text-red-400">{failedDeployments}</div>
+            <div className="text-gray-800 dark:text-gray-400 text-xs mt-1">last 24h</div>
+          </div>
+
+          {/* Row 3-6 */}
+          {/* Memory Usage - 1 col 4 row */}
+          <div className="flex flex-col dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-4">
+            <div className="flex-1">
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
+                MEMORY USAGE
+                <div className=" w-6 h-6 flex items-center justify-center">
+                  <div className="dark:text-gray-600 text-xs">
+                    <Server />
+                  </div>
+                </div>
+              </div>
+              <div className="text-5xl font-light text-white mb-4">{memoryUsagePercent.toFixed(1)}%</div>
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-6">{usedMemoryGB.toFixed(1)}GB / {totalMemoryGB.toFixed(1)}GB</div>
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-4">TOP CONSUMERS</div>
+              {/* Top memory consuming pods */}
+              <div className="space-y-2">
+                {topMemoryPods.map((pod, index) => (
+                  <div key={index} onClick={() => navigate(`/dashboard/explore/pods/${pod.namespace}/${pod.name}`)} className="flex justify-between group items-center bg-gray-200/30 dark:bg-gray-700/30 hover:dark:bg-gray-600/30 rounded p-2">
+                    <span className="text-xs text-gray-300 truncate group-hover:text-blue-500 cursor-pointer pr-1">{pod.name}</span>
+                    <span className="text-xs text-white">{pod.memoryGB.toFixed(1)}GB</span>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+
+
+            <Button className='flex justify-between'>
+              Drilldown Memory Usage
+              <ArrowUpRight />
+            </Button>
+          </div>
+
+          {/* Distributed Tracing Insights - 1 col 4 row */}
+          <div className="dark:bg-slate-700/30 rounded-lg p-4 col-span-1 row-span-4 relative overflow-hidden flex flex-col">
+            <div className="relative z-10 flex-1">
+              <div className='text-gray-800 dark:text-gray-400 flex justify-between items-start'>
+                <div className="text-xs uppercase">
+                  Traces
+                </div>
+                <ListTree />
+              </div>
+
+              <div className="flex gap-1 mt-4">
+                <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+              </div>
+            </div>
+            <div className="space-y-3 mb-2 px-2">
+              <div className="flex justify-between">
+                <span className="text-xs text-gray-300">Spans/min</span>
+                <span className="text-sm text-white">15.2K</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-gray-300">Avg Duration</span>
+                <span className="text-sm text-green-400">247ms</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-gray-300">Error Traces</span>
+                <span className="text-sm text-red-400">0.3%</span>
+              </div>
+            </div>
+
+            {/* View Traces Button */}
+            <Button className='flex justify-between'>
+              Drilldown Traces
+              <ArrowUpRight />
+            </Button>
+
+            {/* Abstract trace visualization */}
+            <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+              <div className="absolute top-8 right-8 w-16 h-16 border border-purple-400 rounded"></div>
+              <div className="absolute top-12 right-12 w-8 h-8 border border-blue-400 rounded transform rotate-45"></div>
+              <div className="absolute top-6 right-16 w-4 h-4 bg-purple-400 rounded-full"></div>
+            </div>
+          </div>
+
+
+          {/* Prometheus Metrics - 1 col 3 row */}
+          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-3 flex flex-col">
+            <div className="flex-1">
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
+                PROMETHEUS METRICS
+                <div className="text-orange-600">
+                  <SiPrometheus />
+                </div>
+              </div>
+              <div className="text-5xl font-light text-white">{targetAvailability.toFixed(1)}%</div>
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">Target availability</div>
+              {/* Progress Bar */}
+              <div className="my-4">
+                <div className="w-full bg-gray-700 rounded-full h-1">
+                  <div
+                    className="bg-white h-1 rounded-full"
+                    style={{ width: `${targetAvailability}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="space-y-3 my-2">
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-400">Targets</span>
+                  <span className="text-xs text-white">{targets?.activeTargets?.length || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-400">Metrics</span>
+                  <span className="text-xs text-white">{Object.keys(metadata).length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-400">Disk Usage</span>
+                  <span className="text-xs text-white">{diskUsage.toFixed(1)}GB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* View Metrics Button */}
+            <Button className='flex justify-between'>
+              Drilldown Metrics
+              <ArrowUpRight />
+            </Button>
+          </div>
+
+          {/* Service Mesh Health - 1 col 3 row */}
+          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-3">
+            <div className="flex justify-between items-center mb-4">
+              <div className="text-gray-800 dark:text-gray-400 text-xs">API SERVER</div>
+              <div className="text-green-500">
+                <Network />
+              </div>
+            </div>
+            <div className="text-white text-5xl font-light mb-2">{apiServerSuccessRate.toFixed(2)}%</div>
+            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">SUCCESS RATE</div>
+            {/* Service mesh circular progress */}
+            <div className="relative w-56 h-56 mx-auto">
+              <svg className="w-56 h-56 transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  fill="none"
+                  stroke="rgb(55, 65, 81)"
+                  strokeWidth="3"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  fill="none"
+                  stroke="rgb(34, 197, 94)"
+                  strokeWidth="4"
+                  strokeDasharray="200"
+                  strokeDashoffset={220 - (apiServerSuccessRate / 100) * 220}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-lg font-light text-white">{apiServerSuccessRate.toFixed(2)}%</div>
+                <div className="text-xs text-gray-400">{apiServerSuccessRate >= 95 ? 'HEALTHY' : 'DEGRADED'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Dashboard - 2 col 1 row */}
+          <div className="bg-gray-200 dark:bg-gray-600/40 hover:dark:bg-gray-500/30 cursor-pointer transition-color rounded-lg p-4 col-span-2 row-span-1 flex justify-between items-center">
+            <div>
+              <div className="text-gray-800 dark:text-gray-300/30 text-4xl font-medium w-10 font-[Anton] uppercase">Custom Dashboard</div>
+            </div>
+
+            <div className='h-full flex flex-col justify-between items-end'>
+              <ArrowUpRight />
+              <div className="text-black dark:text-gray-300 text-sm">COMING SOON</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default PodMonitoringOverview;
+export default MonitoringOverview;
