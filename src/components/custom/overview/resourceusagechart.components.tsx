@@ -254,7 +254,7 @@ const ResourceUsageChart = () => {
   };
 
   return (
-    <Card className="bg-white dark:bg-transparent border-gray-200/50 dark:border-gray-700/20 shadow-lg">
+    <Card className="bg-white dark:bg-transparent border-gray-200/50 dark:border-gray-700/20">
       <CardContent className="p-6">
         <div className="space-y-6">
           {loading ? (
@@ -269,8 +269,8 @@ const ResourceUsageChart = () => {
               {/* Cluster info display at the top */}
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Cluster Overview</h2>
-                  <div className="text-5xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  <h2 className="text-sm uppercase text-gray-700 dark:text-gray-500 mb-2">Cluster Overview</h2>
+                  <div className="text-5xl font-light text-gray-900 dark:text-white flex items-center gap-3">
                     {clusterResources.nodeCount} Nodes 
                   </div>
                   <div>{clusterResources.cpuTotal} CPUs · {formatMemory(clusterResources.memoryTotal)} RAM</div>
@@ -293,9 +293,11 @@ const ResourceUsageChart = () => {
                 </div>
               </div>
               
-              <div className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                <span className="text-gray-500 dark:text-gray-400">Node:</span>{" "}
-                {nodeResources.nodeName}
+              <div className="text-xl font-light text-gray-900 dark:text-white flex items-center gap-3">
+                <span className="font-bold text-gray-500 dark:text-gray-400">Node:</span>{" "}
+                <span className='hover:text-blue-500 dark:hover:text-blue-500 cursor-pointer' onClick={() => navigate(`/dashboard/explore/nodes/${nodeResources.nodeName}`)}>
+                  {nodeResources.nodeName}
+                </span>
               </div>
               
               <div className="flex gap-3 flex-wrap">

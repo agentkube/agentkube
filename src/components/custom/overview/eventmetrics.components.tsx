@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 import { listResources, getEvents } from '@/api/internal/resources';
@@ -63,10 +63,10 @@ const EventMetricsCard: React.FC = () => {
     .slice(0, 2);
 
   return (
-    <Card className="bg-white dark:bg-transparent border-gray-200/50 dark:border-gray-700/30 shadow-lg">
-      <CardContent className="p-6">
+    <Card className="bg-white dark:bg-transparent border-gray-200/50 border dark:border-gray-600/30 rounded-md">
+      <CardContent className="p-5">
         <div className="flex justify-between">
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">Events</h3>
+          <h3 className="text-sm uppercase text-gray-700 dark:text-gray-400">Events</h3>
           <div className="p-1 rounded-full bg-amber-500/20">
             <AlertCircle className="h-5 w-5 text-amber-500 dark:text-amber-400" />
           </div>
@@ -74,7 +74,7 @@ const EventMetricsCard: React.FC = () => {
         
         <div className="mt-4 flex items-center justify-between">
           <div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="text-3xl font-light text-gray-900 dark:text-white">
               {loading ? "..." : warningEvents.length}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -83,7 +83,7 @@ const EventMetricsCard: React.FC = () => {
           </div>
           
           <div className="text-right">
-            <div className="text-3xl font-bold text-gray-900 dark:text-green-400">
+            <div className="text-3xl font-light text-gray-900 dark:text-green-400">
               {loading ? "..." : normalEvents.length}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -113,10 +113,10 @@ const EventMetricsCard: React.FC = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-center "
+            className="w-full flex justify-between "
             onClick={() => navigate('/dashboard/explore/events')}
           >
-            View all events <ArrowRight className="h-4 w-4" />
+            View events <ArrowUpRight className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>

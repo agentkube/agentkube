@@ -186,7 +186,7 @@ const CostOverviewReport = () => {
   }
 
   return (
-    <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+    <Card className="bg-white dark:bg-gray-800/10 border-gray-200/50 border dark:border-gray-600/30">
       <CardContent className="p-6">
         <Tabs defaultValue="balance" className="w-full">
           <TabsList className="bg-gray-100 dark:bg-gray-900/30 mb-4">
