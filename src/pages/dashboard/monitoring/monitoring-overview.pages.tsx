@@ -506,7 +506,7 @@ const MonitoringOverview = () => {
             {/* Data Source Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-transparent border border-gray-200 dark:border-gray-700/40 rounded-lg hover:bg-gray-50 dark:hover:dark:bg-gray-800/20/40 transition-colors">
+                <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-transparent border border-gray-200 dark:border-gray-700/40 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-200/30 dark:bg-gray-800/20/40 transition-colors">
                   <div className="w-4 h-4 text-gray-600 dark:text-gray-300">
                     {selectedDataSource.icon}
                   </div>
@@ -568,24 +568,24 @@ const MonitoringOverview = () => {
         <div className="grid grid-cols-4 grid-rows-6 gap-2 h-[750px]">
           {/* Row 1 */}
           {/* Active Pods - 1 col 1 row */}
-          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-1">
+          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-1">
             <div className="text-gray-800 dark:text-gray-400 text-xs mb-2 flex justify-between items-center">
               ACTIVE PODS
               <div className="text-green-500">●</div>
             </div>
-            <div className="text-4xl font-light text-white">{activePods}</div>
+            <div className="text-4xl font-light text-black dark:text-white">{activePods}</div>
             <div className="text-gray-800 dark:text-gray-400 text-xs mt-1">/ {totalPods}</div>
           </div>
 
           {/* Request Rate & Latency - 2 col 2 row */}
-          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-2 row-span-2">
+          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 col-span-2 row-span-2">
             <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
               REQUEST RATE & P99 LATENCY
               <TrendingUp />
             </div>
             <div className="flex items-end gap-4 mb-4">
               <div>
-                <div className="text-4xl font-light text-white">{formatRequestRate(requestRate)}</div>
+                <div className="text-4xl font-light text-black dark:text-white">{formatRequestRate(requestRate)}</div>
                 <div className="text-gray-800 dark:text-gray-400 text-xs">req/sec</div>
               </div>
               <div>
@@ -598,7 +598,7 @@ const MonitoringOverview = () => {
           </div>
 
           {/* CPU Usage Chart - 1 col 2 row */}
-          <div className="dark:bg-gray-800/20 rounded-lg col-span-1 row-span-2">
+          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg col-span-1 row-span-2">
             <div className='p-4'>
               <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
                 CLUSTER CPU USAGE
@@ -618,7 +618,7 @@ const MonitoringOverview = () => {
                 </div>
               </div>
               <div className='flex items-baseline space-x-2'>
-                <div className="text-4xl font-light text-white">{currentCpuUsage.toFixed(1)}%</div>
+                <div className="text-4xl font-light text-black dark:text-white">{currentCpuUsage.toFixed(1)}%</div>
                 <div className="text-xs text-gray-800 dark:text-gray-400 mb-2">Current AVG</div>
               </div>
               <div className='flex space-x-2'>
@@ -703,7 +703,7 @@ const MonitoringOverview = () => {
 
           {/* Row 2 */}
           {/* Failed Deployments - 1 col 1 row */}
-          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-1">
+          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-1">
             <div className="text-gray-800 dark:text-gray-400 text-xs mb-2 flex justify-between items-center">
               FAILED DEPLOYMENTS
 
@@ -715,7 +715,7 @@ const MonitoringOverview = () => {
 
           {/* Row 3-6 */}
           {/* Memory Usage - 1 col 4 row */}
-          <div className="flex flex-col dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-4">
+          <div className="flex flex-col bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-4">
             <div className="flex-1">
               <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
                 MEMORY USAGE
@@ -725,15 +725,15 @@ const MonitoringOverview = () => {
                   </div>
                 </div>
               </div>
-              <div className="text-5xl font-light text-white mb-4">{memoryUsagePercent.toFixed(1)}%</div>
+              <div className="text-5xl font-light dark:text-white mb-4">{memoryUsagePercent.toFixed(1)}%</div>
               <div className="text-gray-800 dark:text-gray-400 text-xs mb-6">{usedMemoryGB.toFixed(1)}GB / {totalMemoryGB.toFixed(1)}GB</div>
               <div className="text-gray-800 dark:text-gray-400 text-xs mb-4">TOP CONSUMERS</div>
               {/* Top memory consuming pods */}
               <div className="space-y-2">
                 {topMemoryPods.map((pod, index) => (
-                  <div key={index} onClick={() => navigate(`/dashboard/explore/pods/${pod.namespace}/${pod.name}`)} className="flex justify-between group items-center bg-gray-200/30 dark:bg-gray-700/30 hover:dark:bg-gray-600/30 rounded p-2">
-                    <span className="text-xs text-gray-300 truncate group-hover:text-blue-500 cursor-pointer pr-1">{pod.name}</span>
-                    <span className="text-xs text-white">{pod.memoryGB.toFixed(1)}GB</span>
+                  <div key={index} onClick={() => navigate(`/dashboard/explore/pods/${pod.namespace}/${pod.name}`)} className="flex justify-between group items-center bg-gray-200/60 dark:bg-gray-700/30 hover:dark:bg-gray-600/30 rounded p-2">
+                    <span className="text-xs text-gray-700 dark:text-gray-300 truncate group-hover:text-blue-500 cursor-pointer pr-1">{pod.name}</span>
+                    <span className="text-xs dark:text-white">{pod.memoryGB.toFixed(1)}GB</span>
                   </div>
                 ))}
               </div>
@@ -747,7 +747,7 @@ const MonitoringOverview = () => {
           </div>
 
           {/* Distributed Tracing Insights - 1 col 4 row */}
-          <div className="dark:bg-slate-700/30 rounded-lg p-4 col-span-1 row-span-4 relative overflow-hidden flex flex-col">
+          <div className="bg-gray-800/10 dark:bg-slate-700/30 rounded-lg p-4 col-span-1 row-span-4 relative overflow-hidden flex flex-col">
             <div className="relative z-10 flex-1">
               <div className='text-gray-800 dark:text-gray-400 flex justify-between items-start'>
                 <div className="text-xs uppercase">
@@ -765,15 +765,15 @@ const MonitoringOverview = () => {
             </div>
             <div className="space-y-3 mb-2 px-2">
               <div className="flex justify-between">
-                <span className="text-xs text-gray-300">Spans/min</span>
-                <span className="text-sm text-white">15.2K</span>
+                <span className="text-xs text-gray-800 dark:text-gray-300">Spans/min</span>
+                <span className="text-sm dark:text-white">15.2K</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-gray-300">Avg Duration</span>
-                <span className="text-sm text-green-400">247ms</span>
+                <span className="text-xs text-gray-800 dark:text-gray-300">Avg Duration</span>
+                <span className="text-sm text-green-600 tdark:text-green-400">247ms</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-gray-300">Error Traces</span>
+                <span className="text-xs text-gray-800 dark:text-gray-300">Error Traces</span>
                 <span className="text-sm text-red-400">0.3%</span>
               </div>
             </div>
@@ -794,7 +794,7 @@ const MonitoringOverview = () => {
 
 
           {/* Prometheus Metrics - 1 col 3 row */}
-          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-3 flex flex-col">
+          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-3 flex flex-col">
             <div className="flex-1">
               <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
                 PROMETHEUS METRICS
@@ -802,7 +802,7 @@ const MonitoringOverview = () => {
                   <SiPrometheus />
                 </div>
               </div>
-              <div className="text-5xl font-light text-white">{targetAvailability.toFixed(1)}%</div>
+              <div className="text-5xl font-light dark:text-white">{targetAvailability.toFixed(1)}%</div>
               <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">Target availability</div>
               {/* Progress Bar */}
               <div className="my-4">
@@ -817,15 +817,15 @@ const MonitoringOverview = () => {
               <div className="space-y-3 my-2">
                 <div className="flex justify-between">
                   <span className="text-xs text-gray-400">Targets</span>
-                  <span className="text-xs text-white">{targets?.activeTargets?.length || 0}</span>
+                  <span className="text-xs dark:text-white">{targets?.activeTargets?.length || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-xs text-gray-400">Metrics</span>
-                  <span className="text-xs text-white">{Object.keys(metadata).length}</span>
+                  <span className="text-xs dark:text-white">{Object.keys(metadata).length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-xs text-gray-400">Disk Usage</span>
-                  <span className="text-xs text-white">{diskUsage.toFixed(1)}GB</span>
+                  <span className="text-xs dark:text-white">{diskUsage.toFixed(1)}GB</span>
                 </div>
               </div>
             </div>
@@ -838,14 +838,14 @@ const MonitoringOverview = () => {
           </div>
 
           {/* Service Mesh Health - 1 col 3 row */}
-          <div className="dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-3">
+          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 col-span-1 row-span-3">
             <div className="flex justify-between items-center mb-4">
               <div className="text-gray-800 dark:text-gray-400 text-xs">API SERVER</div>
               <div className="text-green-500">
                 <Network />
               </div>
             </div>
-            <div className="text-white text-5xl font-light mb-2">{apiServerSuccessRate.toFixed(2)}%</div>
+            <div className="dark:text-white text-5xl font-light mb-2">{apiServerSuccessRate.toFixed(2)}%</div>
             <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">SUCCESS RATE</div>
             {/* Service mesh circular progress */}
             <div className="relative w-56 h-56 mx-auto">
@@ -855,7 +855,7 @@ const MonitoringOverview = () => {
                   cy="50"
                   r="35"
                   fill="none"
-                  stroke="rgb(55, 65, 81)"
+                  className="stroke-[#d2d3d3] dark:stroke-[#374151]"
                   strokeWidth="3"
                 />
                 <circle
@@ -871,7 +871,7 @@ const MonitoringOverview = () => {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-lg font-light text-white">{apiServerSuccessRate.toFixed(2)}%</div>
+                <div className="text-lg font-light dark:text-white">{apiServerSuccessRate.toFixed(2)}%</div>
                 <div className="text-xs text-gray-400">{apiServerSuccessRate >= 95 ? 'HEALTHY' : 'DEGRADED'}</div>
               </div>
             </div>
