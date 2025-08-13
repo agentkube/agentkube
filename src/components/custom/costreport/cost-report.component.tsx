@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Server, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowRight, Server, AlertCircle, Loader2, ArrowUpRight, Download } from "lucide-react";
 import { useCluster } from '@/contexts/clusterContext';
 import { getOpenCostStatus } from '@/api/cost';
 import { kubeProxyRequest } from '@/api/cluster';
@@ -187,18 +187,18 @@ const CostOverviewReport = () => {
 
   return (
     <Card className="bg-white dark:bg-gray-800/10 border-gray-200/50 border dark:border-gray-600/30">
-      <CardContent className="p-6">
-        <Tabs defaultValue="balance" className="w-full">
-          <TabsList className="bg-gray-100 dark:bg-gray-900/30 mb-4">
+      <CardContent className="p-5">
+        <Tabs defaultValue="balance" className="w-full text-xs">
+          <TabsList className="bg-gray-100 dark:bg-gray-900/30 mb-2">
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="balance">Cloud Cost</TabsTrigger>
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="audience">Resources</TabsTrigger>
             {/* <TabsTrigger className='text-gray-700 dark:text-gray-300' value="refunds">Alerts</TabsTrigger> */}
           </TabsList>
           
-          <TabsContent value="balance" className="mt-0">
-            <div className="space-y-6">
+          <TabsContent value="balance">
+            <div className="flex flex-col h-full space-y-3">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Monthly Spend</h2>
+                <h2 className="text-sm font-light text-gray-700 dark:text-gray-300">Monthly Spend</h2>
                 {isOpenCostInstalled ? (
                   <span className={`px-2 py-0.5 ${costData.changePercentage >= 0 ? 'bg-green-500/20 text-green-500 dark:text-green-400' : 'bg-red-500/20 text-red-500 dark:text-red-400'} text-xs rounded-full`}>
                     {costData.changePercentage >= 0 ? '+' : ''}{costData.changePercentage.toFixed(1)}%
@@ -210,7 +210,7 @@ const CostOverviewReport = () => {
                 )}
               </div>
               
-              <div className="text-5xl font-bold text-gray-900 dark:text-white">
+              <div className="text-5xl font-light text-gray-900 dark:text-white">
                 {isOpenCostInstalled ? (
                   <>
                     <span className="text-gray-500 dark:text-gray-400">$</span>
@@ -241,17 +241,23 @@ const CostOverviewReport = () => {
                 Running {clusterMetrics.pods} pods across {clusterMetrics.namespaces} namespaces.
               </div>
               
-              <div className="">
-                {isOpenCostInstalled ? (
+              <div className="flex-grow"></div>
+              
+              {isOpenCostInstalled && (
+                <div className="mt-auto">
                   <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white gap-2" onClick={() => navigate('/dashboard/cost')}>
                     Details <ArrowRight className="h-4 w-4" />
                   </Button>
-                ) : (
-                  <Button variant="outline" className="gap-2" onClick={handleInstallOpenCost}>
-                    Install OpenCost <ArrowRight className="h-4 w-4" />
+                </div>
+              )}
+              
+              {!isOpenCostInstalled && (
+                <div className="mt-auto">
+                  <Button variant="outline" className="flex justify-between w-56 gap-2" onClick={handleInstallOpenCost}>
+                    Install OpenCost <Download className="h-4 w-4" />
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </TabsContent>
           

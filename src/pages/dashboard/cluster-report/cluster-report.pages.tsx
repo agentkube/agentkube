@@ -34,14 +34,14 @@ const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, icon, colo
         <div className={`p-2 rounded-lg ${color}`}>
           {icon}
         </div>
-        <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-200">
+        <h2 className="text-4xl font-light text-gray-900 dark:text-gray-200">
           {count}
         </h2>
       </div>
-      <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+      <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100">
         {label}
       </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-gray-500 dark:text-gray-400">
         {timeframe}
       </p>
     </CardContent>
@@ -253,20 +253,20 @@ const ClusterReport: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div>
-                  <div className={`text-6xl font-bold ${getScoreColor(report.popeye.score)}`}>
+                <div className='flex items-baseline gap-1'>
+                  <div className={`text-6xl font-light ${getScoreColor(report.popeye.score)}`}>
                     {report.popeye.score}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">out of 100</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">/ 100</div>
                 </div>
                 <div className={`text-8xl font-bold ${getGradeColor(report.popeye.grade)} opacity-20`}>
                   {report.popeye.grade}
                 </div>
               </div>
               <div className="mt-4">
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                   <div
-                    className={`h-3 rounded-full transition-all duration-300 ${report.popeye.score >= 90 ? 'bg-green-500' :
+                    className={`h-1 rounded-full transition-all duration-300 ${report.popeye.score >= 90 ? 'bg-green-500' :
                         report.popeye.score >= 75 ? 'bg-blue-500' :
                           report.popeye.score >= 60 ? 'bg-yellow-500' :
                             report.popeye.score >= 40 ? 'bg-orange-500' : 'bg-red-500'
