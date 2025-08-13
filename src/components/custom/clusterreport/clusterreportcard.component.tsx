@@ -153,7 +153,7 @@ const ClusterReportCard: React.FC<ClusterReportCardProps> = ({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm uppercase text-gray-700 dark:text-gray-400">Cluster Report</h2>
+            <h2 className="text-sm uppercase font-medium text-gray-700 dark:text-gray-400">Cluster Report</h2>
           </div>
           {showActions && (
             <Button 

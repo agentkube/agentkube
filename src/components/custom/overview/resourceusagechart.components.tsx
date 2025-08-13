@@ -269,7 +269,7 @@ const ResourceUsageChart = () => {
               {/* Cluster info display at the top */}
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-sm uppercase text-gray-700 dark:text-gray-500 mb-2">Cluster Overview</h2>
+                  <h2 className="text-sm uppercase font-medium text-gray-700 dark:text-gray-500 mb-2">Cluster Overview</h2>
                   <div className="text-5xl font-light text-gray-900 dark:text-white flex items-center gap-3">
                     {clusterResources.nodeCount} Nodes 
                   </div>
