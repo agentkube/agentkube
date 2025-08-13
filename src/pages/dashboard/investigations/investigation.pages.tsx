@@ -271,24 +271,24 @@ const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, delay, ico
     }}
     className="flex-1"
   >
-    <Card className="flex-1 bg-transparent border border-gray-300/20 dark:border-gray-700/50">
-      <CardContent className="p-3">
+    <div className="flex-1 bg-gray-400/10 dark:bg-gray-800/20 rounded-md">
+      <div className="p-3">
         <div className="flex items-center justify-between mb-4">
           <div className={`p-2 rounded-lg ${color}`}>
             {icon}
           </div>
-          <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-200">
+          <h2 className="text-4xl font-light text-gray-900 dark:text-gray-200">
             {count}
           </h2>
         </div>
-        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+        <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100">
           {label}
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           {timeframe}
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   </div>
 );
 
@@ -647,9 +647,9 @@ const Investigations: React.FC = () => {
             className="w-full"
           >
             <div className='flex justify-between'>
-              <TabsList>
+              <TabsList className='dark:bg-transparent'>
                 {["all", "completed", "ongoing", "stopped"].map((tab) => (
-                  <TabsTrigger key={tab} value={tab} className='text-sm'>
+                  <TabsTrigger key={tab} value={tab} className='text-xs'>
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
                     {tab === 'all' && ` (${investigations.length})`}
                     {tab === 'completed' && ` (${getCompletedInvestigations().length})`}
@@ -662,13 +662,13 @@ const Investigations: React.FC = () => {
               {/* Search Bar */}
               <div className="w-full max-w-md">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
                   <Input
                     type="text"
                     placeholder="Search investigations by name, status, or severity..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-gray-300 dark:border-gray-600/20"
+                    className="pl-8 border-gray-300 dark:border-gray-600/20"
                   />
                 </div>
               </div>
