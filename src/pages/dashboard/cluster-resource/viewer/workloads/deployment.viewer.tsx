@@ -474,7 +474,7 @@ const DeploymentViewer: React.FC = () => {
             />
 
             {/* Deployment Strategy Details */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Deployment Strategy</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -517,7 +517,7 @@ const DeploymentViewer: React.FC = () => {
             </div>
 
             {/* Deployment Template */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Pod Template</h2>
               <div className="space-y-4">
                 {/* Template Labels */}
@@ -529,7 +529,7 @@ const DeploymentViewer: React.FC = () => {
                         <Badge
                           key={key}
                           variant="outline"
-                          className="bg-gray-100 dark:bg-gray-800 text-xs"
+                          className="text-xs"
                         >
                           {key}: {value}
                         </Badge>
@@ -551,7 +551,7 @@ const DeploymentViewer: React.FC = () => {
                       >
                         <div className="font-medium mb-1">{container.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                          Image: <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">{container.image}</code>
+                          Image: <code className="bg-gray-100 dark:bg-gray-800/60 px-1 py-0.5 rounded">{container.image}</code>
                         </div>
 
                         {/* Resources */}
@@ -589,7 +589,7 @@ const DeploymentViewer: React.FC = () => {
                                 <Badge
                                   key={`${container.name}-port-${portIndex}`}
                                   variant="outline"
-                                  className="bg-blue-50 dark:bg-blue-900/20"
+                                  className=""
                                 >
                                   {port.containerPort}{port.protocol ? `/${port.protocol}` : ''}
                                   {port.name ? ` (${port.name})` : ''}
@@ -607,7 +607,7 @@ const DeploymentViewer: React.FC = () => {
 
             {/* Deployment Conditions */}
             {deploymentData.status?.conditions && deploymentData.status.conditions.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800/50 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800/50 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Conditions</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {deploymentData.status.conditions.map((condition, index) => (

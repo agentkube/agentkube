@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { SiGrafana, SiDatadog, SiNewrelic, SiPrometheus } from '@icons-pack/react-simple-icons';
 import { SigNoz } from '@/assets/icons';
-import { Check, ArrowUpRight, TriangleAlert, TrendingUp, Server, Network, Settings, ListTree } from 'lucide-react';
+import { Check, ArrowUpRight, TriangleAlert, TrendingUp, Server, Network, Settings, ListTree, RefreshCw, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +63,10 @@ const MonitoringOverview = () => {
     name: 'Grafana',
     icon: <SiGrafana className="h-4 w-4" />
   });
+
+  const [refreshInterval, setRefreshInterval] = useState<string>('Off');
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadMonitoringConfig = useCallback(() => {
     if (!currentContext) return;
@@ -489,6 +493,73 @@ const MonitoringOverview = () => {
     // Here you could add logic to fetch new data based on the selected time range
   };
 
+  const refreshAllMetrics = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchMetadata(),
+        fetchTargets(),
+        fetchPrometheusMetrics(),
+        fetchCpuMetrics(),
+        fetchMemoryMetrics(),
+        fetchRequestMetrics(),
+        fetchPodsAndDeploymentsMetrics(),
+        fetchApiServerMetrics()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing metrics:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchMetadata, fetchTargets, fetchPrometheusMetrics, fetchCpuMetrics, fetchMemoryMetrics, fetchRequestMetrics, fetchPodsAndDeploymentsMetrics, fetchApiServerMetrics]);
+
+  const handleRefreshIntervalChange = useCallback((interval: string) => {
+    setRefreshInterval(interval);
+    
+    // Clear existing timer
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    // Set up new timer if not 'Off'
+    if (interval !== 'Off' && interval !== 'Auto') {
+      const intervalMs = parseIntervalToMs(interval);
+      refreshTimerRef.current = setInterval(() => {
+        refreshAllMetrics();
+      }, intervalMs);
+    }
+  }, [refreshAllMetrics]);
+
+  const parseIntervalToMs = (interval: string): number => {
+    switch (interval) {
+      case '5s': return 5000;
+      case '10s': return 10000;
+      case '30s': return 30000;
+      case '1m': return 60000;
+      case '5m': return 300000;
+      case '15m': return 900000;
+      case '30m': return 1800000;
+      case '1h': return 3600000;
+      case '2h': return 7200000;
+      case '1d': return 86400000;
+      default: return 60000;
+    }
+  };
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleManualRefresh = () => {
+    refreshAllMetrics();
+  };
+
   return (
     <div className="
 		      max-h-[93vh] overflow-y-auto
@@ -506,14 +577,14 @@ const MonitoringOverview = () => {
             {/* Data Source Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-transparent border border-gray-200 dark:border-gray-700/40 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-200/30 dark:bg-gray-800/20/40 transition-colors">
+                <Button variant="outline" className="flex items-center gap-2 bg-white dark:bg-transparent border border-gray-200 dark:border-gray-700/40 hover:bg-gray-50 dark:hover:dark:bg-gray-800/20 transition-colors">
                   <div className="w-4 h-4 text-gray-600 dark:text-gray-300">
                     {selectedDataSource.icon}
                   </div>
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {selectedDataSource.name}
                   </span>
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
@@ -540,11 +611,63 @@ const MonitoringOverview = () => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="outline"
+              
+              className="flex justify-between w-56  "
+            >
+              Open {selectedDataSource.name} Dashboard
+              <ArrowUpRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            </Button>
+
+            {/* Refresh Button */}
+            <DropdownMenu>
+              <div className="flex items-center">
+                <Button
+                  variant="outline"
+                  onClick={handleManualRefresh}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-2 rounded-r-none border-r-0"
+                >
+                  <RefreshCw className={`h-4 w-4 text-gray-600 dark:text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {refreshInterval}
+                  </span>
+                </Button>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex items-center px-2 rounded-l-none"
+                  >
+                    <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </div>
+              <DropdownMenuContent
+                align="end"
+                className="w-20 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border border-gray-200 dark:border-gray-700/40"
+              >
+                {['Off', 'Auto', '5s', '10s', '30s', '1m', '5m', '15m', '30m', '1h', '2h', '1d'].map((interval) => (
+                  <DropdownMenuItem
+                    key={interval}
+                    onClick={() => handleRefreshIntervalChange(interval)}
+                    className="flex items-center justify-between px-3 py-2 cursor-pointer"
+                  >
+                    <span className="text-xs text-gray-700 dark:text-gray-300">
+                      {interval}
+                    </span>
+                    {refreshInterval === interval && (
+                      <Check className="h-4 w-4 text-blue-500" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Settings Button */}
             <Button
               variant="outline"
-              size="sm"
+              
               onClick={() => setIsConfigDialogOpen(true)}
               className="flex items-center gap-2"
             >
