@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Search, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Check, Loader2 } from 'lucide-react';
 import { useNamespace } from '@/contexts/useNamespace';
+import { useCluster } from '@/contexts/clusterContext';
+import { getNamespaces } from '@/api/internal/resources';
 import { debounce } from 'lodash';
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from 'framer-motion';
+import { V1Namespace } from '@kubernetes/client-node';
 
 interface NamespacePickerProps {
   isOpen: boolean;
@@ -11,12 +14,42 @@ interface NamespacePickerProps {
 }
 
 const NamespacePicker: React.FC<NamespacePickerProps> = ({ isOpen, onClose }) => {
-  const { availableNamespaces, selectedNamespaces, setSelectedNamespaces } = useNamespace();
+  const { selectedNamespaces, setSelectedNamespaces } = useNamespace();
+  const { currentContext } = useCluster();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [tabPressed, setTabPressed] = useState(false);
+  
+  // Local namespace state for fresh data
+  const [namespaces, setNamespaces] = useState<V1Namespace[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Local function to fetch fresh namespaces
+  const fetchFreshNamespaces = useCallback(async () => {
+    if (!currentContext || !isOpen) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const namespacesData = await getNamespaces(currentContext.name);
+      setNamespaces(namespacesData);
+    } catch (err) {
+      console.error('Failed to fetch fresh namespaces:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch namespaces');
+      setNamespaces([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentContext, isOpen]);
+
+  // Get available namespaces from local state
+  const availableNamespaces = namespaces
+    .map(ns => ns.metadata?.name)
+    .filter(Boolean) as string[];
+  availableNamespaces.sort((a, b) => a.localeCompare(b));
 
   // Debounced search handler
   const debouncedSearch = useCallback(
@@ -40,6 +73,13 @@ const NamespacePicker: React.FC<NamespacePickerProps> = ({ isOpen, onClose }) =>
       setActiveIndex(0);
     }
   }, [isOpen]);
+
+  // Fetch fresh namespaces when picker opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchFreshNamespaces();
+    }
+  }, [isOpen, fetchFreshNamespaces]);
 
   // Handle keyboard navigation and selection
   const handleKeyDown = useCallback((e: KeyboardEvent): void => {
@@ -243,9 +283,31 @@ const NamespacePicker: React.FC<NamespacePickerProps> = ({ isOpen, onClose }) =>
               </div>
               <Separator className="bg-gray-200 dark:bg-gray-900/20 mb-3" />
             </div>
-            <div className="px-4 max-h-60 overflow-y-auto">
-              <div className="grid grid-cols-3 gap-2 py-2">
-                {filteredNamespaces.length > 0 ? (
+            <div className="px-4 max-h-60 
+            overflow-y-auto py-1 
+            [&::-webkit-scrollbar]:w-1.5 
+            [&::-webkit-scrollbar-track]:bg-transparent 
+            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                  <span className="ml-2 text-sm text-gray-500">Refreshing namespaces...</span>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <span className="text-sm text-red-500 mb-2">Failed to load namespaces</span>
+                  <button
+                    onClick={fetchFreshNamespaces}
+                    className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 py-2">
+                  {filteredNamespaces.length > 0 ? (
                   filteredNamespaces.map((namespace, index) => {
                     // Generate deterministic color based on namespace name
                    const colorOptions = [
@@ -291,12 +353,13 @@ const NamespacePicker: React.FC<NamespacePickerProps> = ({ isOpen, onClose }) =>
                       </div>
                     );
                   })
-                ) : (
-                  <div className="col-span-3 text-center py-8 text-gray-500 dark:text-gray-400">
-                    No namespaces found
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="col-span-3 text-center py-8 text-gray-500 dark:text-gray-400">
+                      No namespaces found
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
