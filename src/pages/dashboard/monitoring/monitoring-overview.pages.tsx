@@ -709,7 +709,7 @@ const MonitoringOverview = () => {
 
               <TriangleAlert className="text-red-500 dark:text-red-500/50" />
             </div>
-            <div className="text-4xl font-light text-red-400">{failedDeployments}</div>
+            <div className="text-4xl font-light text-red-400">{failedDeployments.toFixed(2)}</div>
             <div className="text-gray-800 dark:text-gray-400 text-xs mt-1">last 24h</div>
           </div>
 
