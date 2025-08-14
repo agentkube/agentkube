@@ -28,7 +28,7 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, icon, color }) => (
-  <Card className="bg-transparent border border-gray-300/20 dark:border-gray-700/50">
+  <Card className="bg-transparent hover:dark:bg-gray-800/20 border border-gray-300/20 dark:border-gray-700/50 rounded-md">
     <CardContent className="p-3">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-2 rounded-lg ${color}`}>
@@ -224,7 +224,7 @@ const ClusterReport: React.FC = () => {
       [&::-webkit-scrollbar-thumb]:rounded-full
       [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
 
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-1.5">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -243,8 +243,8 @@ const ClusterReport: React.FC = () => {
         </div>
 
         {/* Score Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-gray-900/20 border-blue-200 dark:border-blue-800/50">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          <Card className="rounded-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-gray-900/20 border border-gray-300/20 dark:border-gray-700/30">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-blue-600" />
@@ -267,9 +267,9 @@ const ClusterReport: React.FC = () => {
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                   <div
                     className={`h-1 rounded-full transition-all duration-300 ${report.popeye.score >= 90 ? 'bg-green-500' :
-                        report.popeye.score >= 75 ? 'bg-blue-500' :
-                          report.popeye.score >= 60 ? 'bg-yellow-500' :
-                            report.popeye.score >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                      report.popeye.score >= 75 ? 'bg-blue-500' :
+                        report.popeye.score >= 60 ? 'bg-yellow-500' :
+                          report.popeye.score >= 40 ? 'bg-orange-500' : 'bg-red-500'
                       }`}
                     style={{ width: `${report.popeye.score}%` }}
                   />
@@ -278,14 +278,14 @@ const ClusterReport: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-50 dark:bg-transparent border-gray-200 dark:border-gray-800/50">
+          <Card className="rounded-md bg-gray-50 dark:bg-transparent border border-gray-300/20 dark:border-gray-700/40">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-purple-600" />
                 Report Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Generated</span>
                 <span className="font-medium">{new Date(report.popeye.report_time).toLocaleString()}</span>
@@ -303,7 +303,7 @@ const ClusterReport: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1">
           <StatCard
             count={totalStats.ok}
             label="Healthy Resources"
@@ -337,7 +337,7 @@ const ClusterReport: React.FC = () => {
         {/* Main Content */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <div className="flex justify-between items-center">
-            <TabsList>
+            <TabsList className='text-sm dark:bg-transparent'>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="issues">Issues</TabsTrigger>
@@ -443,36 +443,43 @@ const ClusterReport: React.FC = () => {
               <Card key={sectionIndex} className="bg-gray-50 dark:bg-transparent border-gray-200 dark:border-gray-800/50">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="capitalize">{section.linter.replace(/([A-Z])/g, ' $1').trim()}</span>
-                      <div className={`font-bold text-lg ${getScoreColor(section.tally?.score || 0)}`}>
-                        Score: {section.tally?.score || 0}
-                      </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="capitalize font-light text-2xl">{section.linter.replace(/([A-Z])/g, ' $1').trim()}</span>
+
                     </div>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className="text-green-600 border-green-200">
-                        {section.tally?.ok || 0} OK
-                      </Badge>
-                      <Badge variant="outline" className="text-blue-600 border-blue-200">
-                        {section.tally?.info || 0} Info
-                      </Badge>
-                      <Badge variant="outline" className="text-yellow-600 border-yellow-200">
-                        {section.tally?.warning || 0} Warning
-                      </Badge>
-                      <Badge variant="outline" className="text-red-600 border-red-200">
-                        {section.tally?.error || 0} Error
-                      </Badge>
+                    <div className='flex items-center gap-4'>
+
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-green-600 border-green-200">
+                          {section.tally?.ok || 0} OK
+                        </Badge>
+                        <Badge variant="outline" className="text-blue-600 border-blue-200">
+                          {section.tally?.info || 0} Info
+                        </Badge>
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-200">
+                          {section.tally?.warning || 0} Warning
+                        </Badge>
+                        <Badge variant="outline" className="text-rose-500 border-rose-200">
+                          {section.tally?.error || 0} Error
+                        </Badge>
+                      </div>
+                      <div className='flex items-baseline'>
+                        <div className={`font-light text-3xl ${getScoreColor(section.tally?.score || 0)}`}>
+                          {section.tally?.score || 0}
+                        </div>
+                        <span className='text-xs font-light text-gray-400 dark:text-gray-500'>/ 100</span>
+                      </div>
                     </div>
                   </CardTitle>
                 </CardHeader>
                 {Object.keys(section.issues || {}).length > 0 && (
                   <CardContent>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                       GVR: {section.gvr}
                     </div>
                     <div className="space-y-3">
                       {Object.entries(section.issues || {}).map(([resource, issues], resourceIndex) => (
-                        <div key={resourceIndex} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                        <div key={resourceIndex} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
                           <div
                             className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
                             onClick={() => navigateToResource(resource, section.gvr)}
@@ -483,8 +490,8 @@ const ClusterReport: React.FC = () => {
                             {issues.map((issue, issueIndex) => (
                               <div key={issueIndex} className="flex items-start gap-2 text-sm">
                                 {getSeverityIcon(issue.level)}
-                                <div className="flex-1">
-                                  <div className="text-gray-900 dark:text-gray-100">{issue.message}</div>
+                                <div className="flex-1 text-xs">
+                                  <div className="text-gray-900 dark:text-gray-300">{issue.message}</div>
                                   {issue.group !== '__root__' && (
                                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                       Group: {issue.group}
