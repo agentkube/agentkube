@@ -6,7 +6,7 @@ import { V1Pod } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Sparkles, WandSparkles, TextSearch } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Sparkles, WandSparkles, TextSearch, SearchCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -1288,6 +1288,15 @@ const Pods: React.FC = () => {
                               <TextSearch className="mr-2 h-4 w-4" />
                               Investigate
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              toast({ title: "Telemetry", description: "Feature yet to be implemented" })
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <SearchCode className="mr-2 h-4 w-4" />
+                              Telemetry
+                            </DropdownMenuItem>
+
+                            
 
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
