@@ -93,7 +93,7 @@ const NodeViewer: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
       if (data && data.usage) {
         const cpuUsage = data.usage.cpu || '0';
         const memoryUsage = data.usage.memory || '0Ki';
@@ -220,17 +220,17 @@ const NodeViewer: React.FC = () => {
   const handleOpenShell = async () => {
     try {
       if (!currentContext?.name || !nodeName) return;
-  
+
       // Use busybox instead of ubuntu - smaller and faster
       const command = `kubectl debug node/${nodeName} -it --image=busybox`;
-  
+
       await runExternalShell(currentContext.name, command);
     } catch (err) {
       console.error('Error opening shell:', err);
       setError(err instanceof Error ? err.message : 'Failed to open shell');
     }
   };
-  
+
   // Handle refresh data
   const handleRefresh = () => {
     setLoading(true);
@@ -438,7 +438,7 @@ const NodeViewer: React.FC = () => {
         <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
         <AlertTitle>Metrics Unavailable</AlertTitle>
         <AlertDescription>
-          {metricsError.includes('not installed') 
+          {metricsError.includes('not installed')
             ? 'Metrics server is not installed. Resource usage data is not available.'
             : `Unable to fetch metrics: ${metricsError}`}
         </AlertDescription>
@@ -583,12 +583,12 @@ const NodeViewer: React.FC = () => {
 
         {/* Status alert if needed */}
         <NodeStatusAlert />
-        
+
         {/* Metrics alert if needed */}
         <MetricsAlert />
 
         {/* Main content tabs */}
-        <Tabs 
+        <Tabs
           defaultValue={defaultTab}
           onValueChange={(value) => {
             setSearchParams(params => {
@@ -607,12 +607,12 @@ const NodeViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* Node Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Server className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Status</h3>
                 </div>
-                <div className={`text-2xl font-semibold ${statusColor}`}>
+                <div className={`text-4xl font-light ${statusColor}`}>
                   {status}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -620,12 +620,14 @@ const NodeViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Cpu className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">CPU</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+
+
+                <div className="text-4xl font-light">
                   {formatCPU(resources.allocatable.cpu)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -634,15 +636,16 @@ const NodeViewer: React.FC = () => {
                   ) : (
                     metricsError ? 'Metrics unavailable' : 'Loading metrics...'
                   )}
-                </div>
+                </div>                
+                <Progress value={resources.usage.cpuPercent} className="h-1 mt-2 dark:bg-gray-400/10" />
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Memory</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {formatMemory(resources.allocatable.memory)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -651,78 +654,24 @@ const NodeViewer: React.FC = () => {
                   ) : (
                     metricsError ? 'Metrics unavailable' : 'Loading metrics...'
                   )}
+                  <Progress value={resources.usage.memoryPercent} className="h-1 mt-2 dark:bg-gray-400/10" />
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Age</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {getNodeAge()}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-auto">
                   Since creation
                 </div>
               </div>
             </div>
 
-            {/* Resource Usage */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
-              <h2 className="text-lg font-medium mb-4">Resource Usage</h2>
-              {metricsError ? (
-                <div className="text-center py-8">
-                  <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-400 mb-2">Resource usage metrics are not available</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
-                    {metricsError.includes('not installed') 
-                      ? 'Install the Kubernetes metrics server to view resource usage'
-                      : metricsError}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">CPU</span>
-                      <span className="text-sm text-gray-500">
-                        {metrics ? `${metrics.cpuUsagePercentage.toFixed(1)}%` : 'Loading...'}
-                      </span>
-                    </div>
-                    <Progress value={resources.usage.cpuPercent} className="h-3" />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>0</span>
-                      <span>{formatCPU(resources.allocatable.cpu)}</span>
-                    </div>
-                    {metrics && (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Using {metrics.cpuConsumed.toFixed(2)} cores
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">Memory</span>
-                      <span className="text-sm text-gray-500">
-                        {metrics ? `${metrics.memoryUsagePercentage.toFixed(1)}%` : 'Loading...'}
-                      </span>
-                    </div>
-                    <Progress value={resources.usage.memoryPercent} className="h-3" />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>0</span>
-                      <span>{formatMemory(resources.allocatable.memory)}</span>
-                    </div>
-                    {metrics && (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Using {formatMemory(metrics.memoryUsage)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Node Properties */}
             <PropertiesViewer

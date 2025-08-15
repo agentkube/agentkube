@@ -421,12 +421,12 @@ const NamespaceViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* Namespace Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Status</h3>
                 </div>
-                <div className={`text-lg font-semibold ${statusColor}`}>
+                <div className={`text-4xl font-light ${statusColor}`}>
                   {status}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -434,12 +434,12 @@ const NamespaceViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Age</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light">
                   {getNamespaceAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -447,12 +447,12 @@ const NamespaceViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Layers className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Resources</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light">
                   {Object.values(resourceCounts).reduce((sum, count) => sum + count, 0)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -460,12 +460,12 @@ const NamespaceViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Lock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Label Count</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light">
                   {Object.keys(namespaceData.metadata?.labels || {}).length}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">

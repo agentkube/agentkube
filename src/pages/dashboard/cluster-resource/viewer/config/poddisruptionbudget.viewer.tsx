@@ -441,12 +441,12 @@ const PodDisruptionBudgetViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* PDB Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Target className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Healthy Pods</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {currentHealthy}/{expectedPods}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -454,12 +454,12 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Minimum Healthy</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {desiredHealthy}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -467,12 +467,12 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Percent className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Disruptions Allowed</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {disruptionsAllowed}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -480,12 +480,12 @@ const PodDisruptionBudgetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Age</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {getPDBAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">

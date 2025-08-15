@@ -381,15 +381,15 @@ const DaemonSetViewer: React.FC = () => {
             <TabsTrigger value="pods">Pods</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6 bg-transparent">
+          <TabsContent value="overview" className="space-y-2 bg-transparent">
             {/* DaemonSet Status Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Server className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Scheduled</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {currentNumber}/{desiredNumber}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -397,12 +397,12 @@ const DaemonSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Box className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Ready</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {readyNumber}/{desiredNumber}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -410,12 +410,12 @@ const DaemonSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Available</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {availableNumber}/{desiredNumber}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -423,12 +423,12 @@ const DaemonSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Status</h3>
                 </div>
-                <div className={`text-2xl font-semibold ${statusColor}`}>
+                <div className={`text-4xl font-light ${statusColor}`}>
                   {status}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -439,28 +439,25 @@ const DaemonSetViewer: React.FC = () => {
 
             {/* DaemonSet Scheduling Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Misscheduled</div>
-                <div className={daemonSetData.status?.numberMisscheduled ? "text-red-500 font-medium" : ""}>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+                <div className={`text-4xl font-light ${daemonSetData.status?.numberMisscheduled ? "text-red-500 " : ""} `}>
                   {daemonSetData.status?.numberMisscheduled || 0}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Pods running on nodes they shouldn't be on</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Misscheduled</div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Unavailable</div>
-                <div className={unavailableNumber ? "text-red-500 font-medium" : ""}>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+                <div className={`text-4xl font-light ${unavailableNumber ? "text-red-500 font-medium" : ""}`}>
                   {unavailableNumber}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Pods that aren't available for service</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Unavailable</div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Updated</div>
-                <div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+                <div className='text-4xl font-light'>
                   {daemonSetData.status?.updatedNumberScheduled || 0}/{desiredNumber}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Pods running with the latest pod template</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Updated</div>
               </div>
             </div>
 

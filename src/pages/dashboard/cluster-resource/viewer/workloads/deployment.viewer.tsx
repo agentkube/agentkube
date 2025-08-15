@@ -391,12 +391,12 @@ const DeploymentViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* Deployment Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Box className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Replicas</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {readyReplicas}/{totalReplicas}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -404,12 +404,12 @@ const DeploymentViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <ChevronsUpDown className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Updated</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {updatedReplicas}/{totalReplicas}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -417,12 +417,12 @@ const DeploymentViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Available</h3>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-4xl font-light">
                   {availableReplicas}/{totalReplicas}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -430,12 +430,12 @@ const DeploymentViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Status</h3>
                 </div>
-                <div className={`text-2xl font-semibold ${statusColor}`}>
+                <div className={`text-4xl font-light ${statusColor}`}>
                   {status}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">

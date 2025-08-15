@@ -512,12 +512,12 @@ const CronJobViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* CronJob Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Schedule</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light ">
                   {cronJobData.spec?.schedule || 'Not scheduled'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -525,12 +525,12 @@ const CronJobViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <History className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Last Scheduled</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light ">
                   {cronJobData.status?.lastScheduleTime ?
                     new Date(cronJobData.status.lastScheduleTime).toLocaleDateString() :
                     'Never'
@@ -544,12 +544,12 @@ const CronJobViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Jobs History</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light ">
                   {jobs.length}
                 </div>
                 <div className="flex gap-2 text-xs mt-1">
@@ -559,12 +559,12 @@ const CronJobViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Status</h3>
                 </div>
-                <div className={`text-lg font-semibold ${statusColor}`}>
+                <div className={`text-4xl font-light  ${statusColor}`}>
                   {status}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -610,7 +610,7 @@ const CronJobViewer: React.FC = () => {
             />
 
             {/* Schedule Information */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Schedule Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -654,7 +654,7 @@ const CronJobViewer: React.FC = () => {
             </div>
 
             {/* Job Template */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Job Template</h2>
               <div className="space-y-4">
                 {/* Template configurations */}
@@ -757,7 +757,7 @@ const CronJobViewer: React.FC = () => {
 
             {/* Recent Jobs */}
             {jobs.length > 0 && (
-              <div className="rounded-lg border bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border bg-white dark:bg-transparent p-4 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Recent Jobs</h2>
                   <Button variant="outline" size="sm" onClick={handleRefresh}>
@@ -879,7 +879,7 @@ const CronJobViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="jobs" className="space-y-6">
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium">Jobs History</h2>
                 <Button variant="outline" size="sm" onClick={handleRefresh}>

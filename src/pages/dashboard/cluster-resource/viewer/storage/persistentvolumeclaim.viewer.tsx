@@ -459,12 +459,12 @@ const PersistentVolumeClaimViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* PVC Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Status</h3>
                 </div>
-                <div className={`text-lg font-semibold ${phase === 'Bound' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                <div className={`text-4xl font-light ${phase === 'Bound' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                   {phase}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -472,12 +472,12 @@ const PersistentVolumeClaimViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <HardDrive className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Capacity</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light">
                   {formatStorage(pvcData.spec?.resources?.requests?.storage) || 'N/A'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -485,12 +485,12 @@ const PersistentVolumeClaimViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Link2 className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Volume</h3>
                 </div>
-                <div className="text-lg font-semibold truncate" title={pvcData.spec?.volumeName || 'Not bound'}>
+                <div className="text-4xl font-light truncate" title={pvcData.spec?.volumeName || 'Not bound'}>
                   {pvcData.spec?.volumeName || 'Not bound'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -498,12 +498,12 @@ const PersistentVolumeClaimViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Age</h3>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-4xl font-light">
                   {getPVCAge()}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
