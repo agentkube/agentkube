@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MoreVertical, Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash } from "lucide-react";
+import { MoreVertical, Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash, Server } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getNodes } from '@/api/internal/resources';
@@ -33,7 +33,7 @@ interface SortState {
 
 
 const UnitToggle: React.FC<UnitToggleProps> = ({ activeUnit, onUnitChange }) => (
-  <div className="flex gap-1 px-1 bg-gray-200 dark:bg-gray-800/30 rounded-lg">
+  <div className="flex gap-1 px-1 bg-gray-200 dark:bg-transparent rounded-lg">
     <button
       className={`px-2 py-1 text-xs rounded-md ${activeUnit === 'MiB'
         ? 'bg-white shadow-sm dark:bg-gray-800/30'
@@ -532,76 +532,76 @@ const Nodes: React.FC = () => {
       </div>
 
       {/* Resource Information Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-gray-50 dark:bg-transparent border border-gray-200 dark:border-gray-800/50 shadow-none">
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">CPU Usage</h2>
-            <div className="flex items-center gap-2">
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">{selectedNode.cpuCores}</p>
-              {selectedNode.metrics && (
-                <div>
-                  <p className="text-sm text-blue-800 dark:text-blue-400">
-                    {selectedNode.metrics.cpuConsumed.toFixed(2)} ({selectedNode.metrics.cpuUsagePercentage.toFixed(1)}%)
-                  </p>
-                </div>
-              )}
+      <div className="grid grid-cols-3 gap-1">
+        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+          <CardContent className="py-2 flex flex-col h-full">
+            <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">CPU Usage</h2>
+            <div className="mt-auto">
+              <div className="flex items-baseline gap-2">
+                <p className="text-5xl font-light text-blue-600 dark:text-blue-400 mb-1">{selectedNode.cpuCores}</p>
+                {selectedNode.metrics && (
+                  <div>
+                    <p className="text-sm text-blue-800 dark:text-blue-400">
+                      {selectedNode.metrics.cpuConsumed.toFixed(2)} ({selectedNode.metrics.cpuUsagePercentage.toFixed(1)}%)
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                {selectedNode.metrics && (
+                  <div
+                    className="h-1 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]"
+                    style={{ width: `${Math.min(selectedNode.metrics.cpuUsagePercentage, 100)}%` }}
+                  ></div>
+                )}
+              </div>
             </div>
-            <div className="w-full h-4 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-2 mb-4">
-              {selectedNode.metrics && (
-                <div
-                  className="h-4 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]"
-                  style={{ width: `${Math.min(selectedNode.metrics.cpuUsagePercentage, 100)}%` }}
-                ></div>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-[200px]">
-              Current CPU usage of the selected node. Shows consumed cores and percentage of total capacity.
-            </p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-50 dark:bg-transparent border border-gray-200 dark:border-gray-800/50 shadow-none">
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">Memory</h2>
+        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+          <CardContent className="py-2 flex flex-col h-full">
+            <div className="flex items-center justify-between gap-2 mb-auto">
+              <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Memory</h2>
               <UnitToggle activeUnit={memoryUnit} onUnitChange={setMemoryUnit} />
             </div>
-            <div className="flex items-center gap-2">
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                {getDisplayValue(selectedNode.memory, 'memory')}
-              </p>
-              {selectedNode.metrics && (
-                <div>
-                  <p className="text-sm text-purple-800 dark:text-purple-400">
-                    {convertUnit(selectedNode.metrics.memoryConsumed.toString() + 'Ki', memoryUnit)}({selectedNode.metrics.memoryUsagePercentage.toFixed(1)}%)
-                  </p>
-                </div>
-              )}
+            <div className="mt-auto">
+              <div className="flex items-baseline gap-2">
+                <p className="text-5xl font-light text-purple-600 dark:text-purple-400 mb-2">
+                  {getDisplayValue(selectedNode.memory, 'memory')}
+                </p>
+                {selectedNode.metrics && (
+                  <div>
+                    <p className="text-sm text-purple-800 dark:text-purple-400">
+                      {convertUnit(selectedNode.metrics.memoryConsumed.toString() + 'Ki', memoryUnit)}({selectedNode.metrics.memoryUsagePercentage.toFixed(1)}%)
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/50 rounded-[0.3rem]">
+                {selectedNode.metrics && (
+                  <div
+                    className="h-1 bg-purple-500 dark:bg-purple-400 rounded-[0.3rem]"
+                    style={{ width: `${Math.min(selectedNode.metrics.memoryUsagePercentage, 100)}%` }}
+                  ></div>
+                )}
+              </div>
             </div>
-            <div className="w-full h-4 bg-gray-200 dark:bg-gray-800/50 rounded-[0.3rem] mt-2 mb-4">
-              {selectedNode.metrics && (
-                <div
-                  className="h-4 bg-purple-500 dark:bg-purple-400 rounded-[0.3rem]"
-                  style={{ width: `${Math.min(selectedNode.metrics.memoryUsagePercentage, 100)}%` }}
-                ></div>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-[200px]">
-              Memory usage of the node. The percentage shows actual usage relative to total capacity.
-            </p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-50 dark:bg-transparent border border-gray-200 dark:border-gray-800/50 shadow-none">
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">Disk</h2>
+        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+          <CardContent className="py-2 flex flex-col h-full">
+            <div className="flex items-center justify-between gap-2 mb-auto">
+              <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Disk</h2>
               <UnitToggle activeUnit={diskUnit} onUnitChange={setDiskUnit} />
             </div>
-            <p className="text-3xl font-bold text-gray-600 dark:text-gray-400 mb-2">
-              {getDisplayValue(selectedNode.disk, 'disk')}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-[200px]">
-              Storage capacity of the node. High pressure may indicate need for cleanup or storage expansion.
-            </p>
+            <div className="mt-auto">
+              <p className="text-5xl font-light text-gray-600 dark:text-gray-400 mb-1">
+                {getDisplayValue(selectedNode.disk, 'disk')}
+              </p>
+              <p className="flex item-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                <Server className='h-3 w-3' /> <span> {selectedNode.name}</span>
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

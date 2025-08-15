@@ -65,7 +65,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex h-[93vh] overflow-hidden">
+    <div className="flex h-[94vh] overflow-hidden">
       <ExploreSidebar
         items={sidebarItems}
         expandedItems={expandedItems}

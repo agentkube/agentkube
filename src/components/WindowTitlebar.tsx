@@ -144,10 +144,10 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
       );
     } else if (platform === "windows") {
       return (
-        <div className={`flex items-center ${windowControlsProps?.className || ""}`}>
+        <div className={`flex items-center border-b dark:border-gray-300/10 ${windowControlsProps?.className || ""}`}>
           <button
             onClick={handleMinimize}
-            className="px-4 py-2.5 hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700"
             title="Minimize"
           >
             <Minus className="w-4 h-4 dark:text-gray-200/70 hover:dark:text-gray-100" />
@@ -157,7 +157,7 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
           </button>
           <button
             onClick={handleMaximize}
-            className="px-4 py-2.5 hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700"
             title={isMaximized ? "Restore" : "Maximize"}
           >
             {isMaximized ? (
@@ -185,7 +185,7 @@ export const WindowTitlebar: React.FC<WindowTitlebarProps> = ({
           </button>
           <button
             onClick={handleClose}
-            className="px-4 py-2.5 hover:bg-red-500 hover:text-white"
+            className="px-4 py-2 hover:bg-red-500 hover:text-white"
             title="Close"
           >
             {/* <svg width="12" height="12" viewBox="0 0 12 12">

@@ -107,7 +107,7 @@ export function Menu() {
       controlsOrder="right"
       windowControlsProps={{ className: "" }}
     >
-      <div className="py-2 px-4 flex items-center w-full justify-between draggable">
+      <div className="py-[3px] px-4 flex items-center w-full justify-between draggable border-b dark:border-gray-300/10">
         <div className="inline-flex ml-2 space-x-1.5">
           {/* Window Controls */}
         </div>

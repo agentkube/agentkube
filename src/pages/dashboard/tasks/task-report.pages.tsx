@@ -364,7 +364,7 @@ const TaskReport: React.FC = () => {
   };
 
   return (
-    <div className="px-6 pb-6 space-y-6 max-h-[92vh] overflow-y-auto
+    <div className="px-6 py-6 space-y-6 max-h-[92vh] overflow-y-auto
       [&::-webkit-scrollbar]:w-1.5 
       [&::-webkit-scrollbar-track]:bg-transparent 
       [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

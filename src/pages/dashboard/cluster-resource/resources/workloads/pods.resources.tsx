@@ -26,6 +26,8 @@ import { toast } from '@/hooks/use-toast';
 import { toast as sooner } from "sonner"
 import BackgroundTaskDialog from '@/components/custom/backgroundtaskdialog/backgroundtaskdialog.component';
 import { useBackgroundTask } from '@/contexts/useBackgroundTask';
+import { SideDrawer } from '@/components/ui/sidedrawer.custom';
+import Telemetry from '@/components/custom/telemetry/telemetry.component';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -127,6 +129,10 @@ const Pods: React.FC = () => {
   const [showBackgroundTaskDialog, setShowBackgroundTaskDialog] = useState(false);
   const [backgroundTaskPod, setBackgroundTaskPod] = useState<V1Pod | null>(null);
   const { isOpen: isBackgroundTaskOpen, resourceName, resourceType, onClose: closeBackgroundTask, openWithResource } = useBackgroundTask();
+  
+  // Telemetry drawer state
+  const [isTelemetryDrawerOpen, setIsTelemetryDrawerOpen] = useState(false);
+  const [telemetryPod, setTelemetryPod] = useState<V1Pod | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,6 +156,11 @@ const Pods: React.FC = () => {
     // setBackgroundTaskPod(pod);
     // setShowBackgroundTaskDialog(true);
     openWithResource(pod.metadata?.name || '', 'Pod');
+  };
+
+  const handleTelemetryPod = (pod: V1Pod) => {
+    setTelemetryPod(pod);
+    setIsTelemetryDrawerOpen(true);
   };
 
   const handlePodClick = (e: React.MouseEvent, pod: V1Pod) => {
@@ -1089,6 +1100,17 @@ const Pods: React.FC = () => {
         resourceType={resourceType}
       />
 
+      {/* Telemetry Drawer */}
+      <SideDrawer isOpen={isTelemetryDrawerOpen} onClose={() => setIsTelemetryDrawerOpen(false)} offsetTop='-top-6'>
+        {telemetryPod && (
+          <Telemetry
+            resourceName={telemetryPod.metadata?.name || ''}
+            namespace={telemetryPod.metadata?.namespace || ''}
+            kind="Pod"
+            onClose={() => setIsTelemetryDrawerOpen(false)}
+          />
+        )}
+      </SideDrawer>
 
       {/* Pods table */}
       {sortedPods.length > 0 && (
@@ -1290,7 +1312,7 @@ const Pods: React.FC = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
-                              toast({ title: "Telemetry", description: "Feature yet to be implemented" })
+                              handleTelemetryPod(pod);
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <SearchCode className="mr-2 h-4 w-4" />
                               Telemetry
