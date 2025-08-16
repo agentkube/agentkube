@@ -1,16 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  AreaChart, Area
-} from 'recharts';
-import { getPodMetrics, PodMetrics } from '@/api/internal/metrics';
+import { kubeProxyRequest } from '@/api/cluster';
 import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, Cpu, Database, Activity, Loader2, Terminal } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { RefreshCw, Cpu, Database, Activity, Loader2, Terminal, Container, ChevronDown, ChevronRight } from "lucide-react";
+import { SiDocker } from '@icons-pack/react-simple-icons';
+
+// Define metrics interfaces based on what the pods.resources.tsx expects
+interface ContainerMetrics {
+  name: string;
+  usage: {
+    cpu: string;
+    memory: string;
+  };
+}
+
+interface PodMetrics {
+  metadata: {
+    name: string;
+    namespace: string;
+    creationTimestamp?: string;
+  };
+  timestamp: string;
+  window: string;
+  containers: ContainerMetrics[];
+}
 
 interface PodMetricsComponentProps {
   namespace: string;
@@ -20,20 +36,22 @@ interface PodMetricsComponentProps {
 const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, podName }) => {
   const { currentContext } = useCluster();
   const [podMetrics, setPodMetrics] = useState<PodMetrics | null>(null);
-  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h'>('1h');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Fetch metrics for the pod using our metrics API
+  const [expandedContainers, setExpandedContainers] = useState<Set<string>>(new Set());
+
+  // Fetch metrics for the pod using kubeProxyRequest
   const fetchPodMetrics = async () => {
     if (!currentContext || !namespace || !podName) return;
-    
+
     try {
       setRefreshing(true);
-      
-      // Call our metrics API
-      const metrics = await getPodMetrics(currentContext.name, namespace, podName);
-      setPodMetrics(metrics);
+
+      // Use the same approach as pods.resources.tsx to fetch metrics
+      const metricsApiPath = `apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods/${podName}`;
+
+      const data = await kubeProxyRequest(currentContext.name, metricsApiPath, 'GET');
+      setPodMetrics(data);
       setError(null);
     } catch (err) {
       console.error('Error fetching pod metrics:', err);
@@ -47,38 +65,108 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
   // Initial fetch on component mount
   useEffect(() => {
     fetchPodMetrics();
-    
+
     // Optional: Set up auto-refresh every 30 seconds
     // const refreshInterval = setInterval(fetchPodMetrics, 30000);
     // return () => clearInterval(refreshInterval);
   }, [currentContext, namespace, podName]);
-  
+
   // Handle refresh button click
   const handleRefresh = () => {
     fetchPodMetrics();
   };
-  
-  // Handle time range change - this would be used for historical metrics
-  const handleTimeRangeChange = (value: '1h' | '6h' | '24h') => {
-    setTimeRange(value);
-    // In a real implementation, you would refetch metrics with the new time range
-    fetchPodMetrics();
+
+  // Toggle container expansion
+  const toggleContainer = (containerName: string) => {
+    const newExpanded = new Set(expandedContainers);
+    if (newExpanded.has(containerName)) {
+      newExpanded.delete(containerName);
+    } else {
+      newExpanded.add(containerName);
+    }
+    setExpandedContainers(newExpanded);
   };
 
-  // Format history data for charts if available
-  const cpuMemoryChartData = podMetrics?.history.map(point => ({
-    timestamp: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    cpu: point.cpu * 1000, // Convert to millicores for better visualization
-    memory: point.memory // Already in MiB
-  })) || [];
-  
+
+  // Parse resource quantities (reusing logic from pods.resources.tsx)
+  const parseQuantity = (quantity: string): number => {
+    if (!quantity) return 0;
+
+    if (quantity.endsWith('m')) {
+      return parseFloat(quantity.slice(0, -1)) / 1000;
+    } else if (quantity.endsWith('n')) {
+      return parseFloat(quantity.slice(0, -1)) / 1000000000;
+    } else if (quantity.endsWith('Mi')) {
+      return parseFloat(quantity.slice(0, -2));
+    } else if (quantity.endsWith('Ki')) {
+      return parseFloat(quantity.slice(0, -2)) / 1024;
+    } else if (quantity.endsWith('Gi')) {
+      return parseFloat(quantity.slice(0, -2)) * 1024;
+    }
+
+    return parseFloat(quantity);
+  };
+
+  // Format resource value (reusing logic from pods.resources.tsx)
+  const formatResourceValue = (value: number, type: 'cpu' | 'memory'): string => {
+    if (type === 'cpu') {
+      if (value < 0.01) {
+        return `${(value * 1000).toFixed(0)}m`;
+      }
+      return value.toFixed(2);
+    } else {
+      if (value < 1) {
+        return `${(value * 1024).toFixed(0)}Ki`;
+      } else if (value > 1024) {
+        return `${(value / 1024).toFixed(2)}Gi`;
+      }
+      return `${value.toFixed(0)}Mi`;
+    }
+  };
+
+  // Process metrics data for display
+  const processedMetrics = podMetrics ? (() => {
+    // Aggregate container metrics
+    let totalCpu = 0;
+    let totalMemory = 0;
+
+    podMetrics.containers.forEach((container: ContainerMetrics) => {
+      const cpuValue = parseQuantity(container.usage.cpu);
+      const memoryValue = parseQuantity(container.usage.memory);
+      totalCpu += cpuValue;
+      totalMemory += memoryValue;
+    });
+
+    return {
+      cpu: {
+        value: formatResourceValue(totalCpu, 'cpu'),
+        rawValue: totalCpu
+      },
+      memory: {
+        value: formatResourceValue(totalMemory, 'memory'),
+        rawValue: totalMemory
+      },
+      containers: podMetrics.containers.map((container: ContainerMetrics) => ({
+        name: container.name,
+        cpu: {
+          value: formatResourceValue(parseQuantity(container.usage.cpu), 'cpu'),
+          rawValue: parseQuantity(container.usage.cpu)
+        },
+        memory: {
+          value: formatResourceValue(parseQuantity(container.usage.memory), 'memory'),
+          rawValue: parseQuantity(container.usage.memory)
+        }
+      }))
+    };
+  })() : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Controls section */}
       <div className="flex justify-end items-center">
-     
-        <Button 
-          variant="outline" 
+
+        <Button
+          variant="outline"
           size="sm"
           onClick={handleRefresh}
           disabled={refreshing}
@@ -92,7 +180,7 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
           Refresh
         </Button>
       </div>
-        
+
       {/* Loading indicator when refreshing */}
       {refreshing && (
         <div className="flex justify-center">
@@ -102,451 +190,134 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
           </div>
         </div>
       )}
-        
-      {/* Metrics Overview Cards - if metrics are available */}
-      {podMetrics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* CPU Usage Card */}
-          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-medium flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-blue-500" />
-                CPU Usage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-6">
-                <div className="flex items-center justify-center">
-                  <div className="relative h-36 w-36">
-                    <svg className="h-full w-full" viewBox="0 0 100 100">
-                      {/* Background circle */}
-                      <circle
-                        className="text-gray-200 dark:text-gray-800"
-                        strokeWidth="8"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="46"
-                        cx="50"
-                        cy="50"
-                      />
-                      {/* Progress circle */}
-                      <circle
-                        className={podMetrics.cpu.usagePercentage >= 80 ? "text-red-500" : 
-                                  podMetrics.cpu.usagePercentage >= 60 ? "text-yellow-500" : 
-                                  "text-blue-500"}
-                        strokeWidth="8"
-                        strokeDasharray={`${podMetrics.cpu.usagePercentage * 2.89} 289`}
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="46"
-                        cx="50"
-                        cy="50"
-                        transform="rotate(-90 50 50)"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold">{podMetrics.cpu.usagePercentage.toFixed(2)}%</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">of request</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400">Current</span>
-                    <span className="text-lg font-semibold">{podMetrics.cpu.currentUsage}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400">Requested</span>
-                    <span className="text-lg font-semibold">{podMetrics.cpu.requestedCPU}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Memory Usage Card */}
-          <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-medium flex items-center gap-2">
-                <Database className="h-5 w-5 text-emerald-500" />
-                Memory Usage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-6">
-                <div className="flex items-center justify-center">
-                  <div className="relative h-36 w-36">
-                    <svg className="h-full w-full" viewBox="0 0 100 100">
-                      {/* Background circle */}
-                      <circle
-                        className="text-gray-200 dark:text-gray-800"
-                        strokeWidth="8"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="46"
-                        cx="50"
-                        cy="50"
-                      />
-                      {/* Progress circle */}
-                      <circle
-                        className={podMetrics.memory.usagePercentage >= 80 ? "text-red-500" : 
-                                  podMetrics.memory.usagePercentage >= 60 ? "text-yellow-500" : 
-                                  "text-emerald-500"}
-                        strokeWidth="8"
-                        strokeDasharray={`${podMetrics.memory.usagePercentage * 2.89} 289`}
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="46"
-                        cx="50"
-                        cy="50"
-                        transform="rotate(-90 50 50)"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold">{Math.round(podMetrics.memory.usagePercentage)}%</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">of request</span>
-                    </div>
-                  </div>
+      {/* Pod Metrics Cards - styled like nodes viewer */}
+      {processedMetrics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+            <div className='flex items-end justify-between mt-6'>
+              <div>
+                <div className="text-5xl font-light">
+                  {processedMetrics.cpu.value}
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400">Current</span>
-                    <span className="text-lg font-semibold">{podMetrics.memory.currentUsage}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400">Requested</span>
-                    <span className="text-lg font-semibold">{podMetrics.memory.requestedMemory}</span>
-                  </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 ">
+                  Current CPU consumption
                 </div>
               </div>
-            </CardContent>
-          </Card>
+
+              <div className="flex items-center gap-2 ">
+                <Cpu className="h-4 w-4 text-green-500" />
+                <h3 className="text-sm uppercase font-medium">CPU Usage</h3>
+              </div>
+            </div>
+
+
+            <Progress value={Math.min(processedMetrics.cpu.rawValue * 20, 100)} className="h-1 mt-2 dark:bg-gray-400/10" />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+            <div className='flex items-end justify-between mt-6'>
+              <div>
+                <div className="text-5xl font-light">
+                  {processedMetrics.memory.value}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 ">
+                  Current memory consumption
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4 text-purple-500" />
+                <h3 className="text-sm uppercase font-medium">Memory Usage</h3>
+              </div>
+            </div>
+
+
+            <Progress value={Math.min(processedMetrics.memory.rawValue / 10, 100)} className="h-1 mt-2 dark:bg-gray-400/10" />
+          </div>
         </div>
       )}
-        
-      {/* Historical Metrics Chart - if history data is available */}
-      {podMetrics && cpuMemoryChartData.length > 1 && (
-        <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center">
-              <Activity className="mr-2 h-5 w-5 text-purple-500" />
-              Resource Usage History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={cpuMemoryChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                  <XAxis 
-                    dataKey="timestamp" 
-                    scale="band"
-                    tick={{fontSize: 12}}
-                  />
-                  <YAxis 
-                    yAxisId="left"
-                    tick={{fontSize: 12}}
-                    domain={[0, 'auto']}
-                    label={{ value: 'CPU (millicores)', angle: -90, position: 'insideLeft' }}
-                  />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{fontSize: 12}}
-                    domain={[0, 'auto']}
-                    label={{ value: 'Memory (MiB)', angle: -90, position: 'insideRight' }}
-                  />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', border: 'none', color: '#fff', backdropFilter: 'blur(8px)' }}
-                    formatter={(value, name) => [
-                      name === 'cpu' ? `${value} millicores` : `${value} MiB`, 
-                      name === 'cpu' ? 'CPU' : 'Memory'
-                    ]}
-                    labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
-                  />
-                  <Legend />
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="cpu" 
-                    name="CPU"
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 5 }}
-                  />
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="memory" 
-                    name="Memory"
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-        
-      {/* Container Details - if metrics are available */}
-      {podMetrics && podMetrics.containers.length > 0 && (
-        <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <CardHeader>
-            <CardTitle className="text-lg font-medium flex items-center gap-2">
-              <Terminal className="h-5 w-5" />
-              Container Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {podMetrics.containers.map((container) => (
-                <div key={container.name} className="border p-4 rounded-lg dark:border-gray-800">
-                  <h3 className="text-lg font-medium mb-4">{container.name}</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">CPU</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>Current: <span className="font-semibold">{container.cpu.currentUsage}</span></div>
-                        <div>Requested: <span className="font-semibold">{container.cpu.requestedCPU}</span></div>
-                        <div>Limit: <span className="font-semibold">{container.cpu.limitCPU === '0' ? 'Not set' : container.cpu.limitCPU}</span></div>
-                        <div>Usage: <span className={`font-semibold ${
-                          container.cpu.usagePercentage >= 80 ? "text-red-500" : 
-                          container.cpu.usagePercentage >= 60 ? "text-yellow-500" : 
-                          "text-blue-500"
-                        }`}>{container.cpu.usagePercentage}%</span></div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">Memory</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>Current: <span className="font-semibold">{container.memory.currentUsage}</span></div>
-                        <div>Requested: <span className="font-semibold">{container.memory.requestedMemory}</span></div>
-                        <div>Limit: <span className="font-semibold">{container.memory.limitMemory === '0' ? 'Not set' : container.memory.limitMemory}</span></div>
-                        <div>Usage: <span className={`font-semibold ${
-                          container.memory.usagePercentage >= 80 ? "text-red-500" : 
-                          container.memory.usagePercentage >= 60 ? "text-yellow-500" : 
-                          "text-emerald-500"
-                        }`}>{Math.round(container.memory.usagePercentage)}%</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-        
-      {/* Show empty charts when no metrics are available */}
-      {(!podMetrics || error) && !refreshing && (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* CPU Usage Card - Empty State */}
-            <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium flex items-center gap-2">
-                  <Cpu className="h-5 w-5 text-blue-500" />
-                  CPU Usage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col space-y-6">
-                  <div className="flex items-center justify-center">
-                    <div className="relative h-36 w-36">
-                      <svg className="h-full w-full" viewBox="0 0 100 100">
-                        {/* Background circle */}
-                        <circle
-                          className="text-gray-200 dark:text-gray-800"
-                          strokeWidth="8"
-                          stroke="currentColor"
-                          fill="transparent"
-                          r="46"
-                          cx="50"
-                          cy="50"
-                        />
-                        {/* Empty progress circle */}
-                        <circle
-                          className="text-gray-300 dark:text-gray-700"
-                          strokeWidth="8"
-                          strokeDasharray="0 289"
-                          strokeLinecap="round"
-                          stroke="currentColor"
-                          fill="transparent"
-                          r="46"
-                          cx="50"
-                          cy="50"
-                          transform="rotate(-90 50 50)"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold">0%</span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">of request</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400">Current</span>
-                      <span className="text-lg font-semibold">0m</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400">Requested</span>
-                      <span className="text-lg font-semibold">N/A</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Memory Usage Card - Empty State */}
-            <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium flex items-center gap-2">
-                  <Database className="h-5 w-5 text-emerald-500" />
-                  Memory Usage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col space-y-6">
-                  <div className="flex items-center justify-center">
-                    <div className="relative h-36 w-36">
-                      <svg className="h-full w-full" viewBox="0 0 100 100">
-                        {/* Background circle */}
-                        <circle
-                          className="text-gray-200 dark:text-gray-800"
-                          strokeWidth="8"
-                          stroke="currentColor"
-                          fill="transparent"
-                          r="46"
-                          cx="50"
-                          cy="50"
-                        />
-                        {/* Empty progress circle */}
-                        <circle
-                          className="text-gray-300 dark:text-gray-700"
-                          strokeWidth="8"
-                          strokeDasharray="0 289"
-                          strokeLinecap="round"
-                          stroke="currentColor"
-                          fill="transparent"
-                          r="46"
-                          cx="50"
-                          cy="50"
-                          transform="rotate(-90 50 50)"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold">0%</span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">of request</span>
+
+      {/* Container Metrics - collapsible with same card design */}
+      {processedMetrics && processedMetrics.containers.length > 0 && (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-2">
+          <h2 className="text-sm uppercase font-medium dark:text-gray-400 mb-4 flex items-center gap-2">
+
+            Container Metrics
+          </h2>
+          <div className="space-y-4">
+            {processedMetrics.containers.map((container) => (
+              <div key={container.name} className="space-y-2">
+                <button
+                  onClick={() => toggleContainer(container.name)}
+                  className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-transparent border hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+                >
+                  <div className='flex items-center gap-2'>
+                    <Container className="h-5 w-5" />
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{container.name}</h3>
+                  </div>
+                  {expandedContainers.has(container.name) ? (
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+
+                {expandedContainers.has(container.name) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+                      <div className='flex items-end justify-between mt-6'>
+                        <div>
+                          <div className="text-5xl font-light">
+                            {container.cpu.value}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Container CPU consumption
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Cpu className="h-4 w-4 text-green-500" />
+                          <h3 className="text-sm uppercase font-medium">CPU Usage</h3>
+                        </div>
                       </div>
+
+                      <Progress value={Math.min(container.cpu.rawValue * 20, 100)} className="h-1 mt-2 dark:bg-gray-400/10" />
+                    </div>
+
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+                      <div className='flex items-end justify-between mt-6'>
+                        <div>
+                          <div className="text-5xl font-light">
+                            {container.memory.value}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Container memory consumption
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Database className="h-4 w-4 text-purple-500" />
+                          <h3 className="text-sm uppercase font-medium">Memory Usage</h3>
+                        </div>
+                      </div>
+
+                      <Progress value={Math.min(container.memory.rawValue / 10, 100)} className="h-1 mt-2 dark:bg-gray-400/10" />
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400">Current</span>
-                      <span className="text-lg font-semibold">0Mi</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400">Requested</span>
-                      <span className="text-lg font-semibold">N/A</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                )}
+              </div>
+            ))}
           </div>
-          
-          {/* Historical Metrics Chart - Empty State */}
-          <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center">
-                <Activity className="mr-2 h-5 w-5 text-purple-500" />
-                Resource Usage History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={[{timestamp: "now", cpu: 0, memory: 0}]}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="gray" />
-                    <XAxis 
-                      dataKey="timestamp" 
-                      scale="band"
-                      tick={{fontSize: 12}}
-                    />
-                    <YAxis 
-                      yAxisId="left"
-                      tick={{fontSize: 12}}
-                      domain={[0, 10]}
-                      label={{ value: 'CPU (millicores)', angle: -90, position: 'insideLeft' }}
-                    />
-                    <YAxis 
-                      yAxisId="right"
-                      orientation="right"
-                      tick={{fontSize: 12}}
-                      domain={[0, 10]}
-                      label={{ value: 'Memory (MiB)', angle: -90, position: 'insideRight' }}
-                    />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', border: 'none', color: '#fff', backdropFilter: 'blur(8px)' }}
-                      formatter={(value, name) => [
-                        name === 'cpu' ? `0 millicores` : `0 MiB`, 
-                        name === 'cpu' ? 'CPU' : 'Memory'
-                      ]}
-                      labelFormatter={(time) => <span className='font-[Anton] uppercase'>Time <span className='text-gray-700 dark:text-gray-400'>{time}</span></span>}
-                    />
-                    <Legend />
-                    <Line 
-                      yAxisId="left"
-                      type="monotone" 
-                      dataKey="cpu" 
-                      name="CPU"
-                      stroke="#3b82f6" 
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="memory" 
-                      name="Memory"
-                      stroke="#10b981" 
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Container Metrics - Empty State */}
-          <Card className="bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium flex items-center gap-2">
-                <Terminal className="h-5 w-5" />
-                Container Metrics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-6 text-gray-500">
-                <p>No container metrics available</p>
-              </div>
-            </CardContent>
-          </Card>
-        </>
+        </div>
+      )}
+
+      {/* Show empty state when no metrics are available */}
+      {(!processedMetrics || error) && !refreshing && (
+        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+          <Activity className="h-12 w-12 mb-4 opacity-50" />
+          <p className="text-lg font-medium mb-2">No pod metrics available</p>
+          <p className="text-sm">Metrics may not be available if the metrics server is not installed or the pod is not running.</p>
+        </div>
       )}
     </div>
   );
