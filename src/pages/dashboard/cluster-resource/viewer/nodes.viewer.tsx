@@ -26,6 +26,7 @@ import PropertiesViewer from './components/properties.viewer';
 import EventsViewer from './components/event.viewer';
 import NodePods from './components/nodepods.viewer';
 import { ResourceViewerYamlTab } from '@/components/custom';
+import { SiArm, SiContainerd, SiLinux } from '@icons-pack/react-simple-icons';
 
 // Define interface for node data (extending V1Node with events)
 interface NodeData extends V1Node {
@@ -703,7 +704,7 @@ const NodeViewer: React.FC = () => {
             />
 
             {/* Node Addresses */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Node Addresses</h2>
               {nodeData.status?.addresses && nodeData.status.addresses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -722,21 +723,50 @@ const NodeViewer: React.FC = () => {
               )}
             </div>
 
-            {/* Node Labels */}
-            {nodeData.metadata.labels && Object.keys(nodeData.metadata.labels).length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
-                <h2 className="text-lg font-medium mb-4">Node Labels</h2>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(nodeData.metadata.labels).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/30 rounded-md px-3 py-1.5">
-                      <Tag className="h-3.5 w-3.5 text-gray-500" />
-                      <span className="text-sm font-medium">{key}:</span>
-                      <span className="text-sm">{value}</span>
-                    </div>
-                  ))}
+                       {/* Node System Info */}
+                       <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
+              <h2 className="text-lg font-medium mb-4">System Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">OS</div>
+                  <div className='flex items-center gap-1'><SiLinux className='h-4 w-4' />{nodeInfo.operatingSystem} / {nodeInfo.osImage}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Architecture</div>
+                  <div className='flex items-center gap-1'><SiArm className='h-4 w-4' />{nodeInfo.architecture}</div>
+                </div>
+              
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Kernel Version</div>
+                  <div>{nodeInfo.kernelVersion}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Container Runtime</div>
+                  <div className='flex items-center gap-1'><SiContainerd className='h-4 w-4' /> {nodeInfo.containerRuntime}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Kubelet Version</div>
+                  <div>{nodeInfo.kubeletVersion}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Kube-Proxy Version</div>
+                  <div>{nodeInfo.kubeProxyVersion}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Machine ID</div>
+                  <div className="font-mono text-xs">{nodeInfo.machineID}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">System UUID</div>
+                  <div className="font-mono text-xs">{nodeInfo.systemUUID}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Boot ID</div>
+                  <div className="font-mono text-xs">{nodeInfo.bootID}</div>
                 </div>
               </div>
-            )}
+            </div>
+
 
             {/* Node Conditions */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
@@ -779,74 +809,7 @@ const NodeViewer: React.FC = () => {
               )}
             </div>
 
-            {/* Node System Info */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-gray-900/20 p-4 mb-6">
-              <h2 className="text-lg font-medium mb-4">System Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">OS</div>
-                  <div>{nodeInfo.operatingSystem} / {nodeInfo.osImage}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Architecture</div>
-                  <div>{nodeInfo.architecture}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Kernel Version</div>
-                  <div>{nodeInfo.kernelVersion}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Container Runtime</div>
-                  <div>{nodeInfo.containerRuntime}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Kubelet Version</div>
-                  <div>{nodeInfo.kubeletVersion}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Kube-Proxy Version</div>
-                  <div>{nodeInfo.kubeProxyVersion}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Machine ID</div>
-                  <div className="font-mono text-xs">{nodeInfo.machineID}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">System UUID</div>
-                  <div className="font-mono text-xs">{nodeInfo.systemUUID}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Boot ID</div>
-                  <div className="font-mono text-xs">{nodeInfo.bootID}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Metrics Information */}
-            {metrics && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
-                <h2 className="text-lg font-medium mb-4">Current Metrics</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/30">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">CPU Usage</div>
-                    <div className="text-lg font-semibold">{metrics.cpuConsumed.toFixed(3)} cores</div>
-                    <div className="text-xs text-gray-500">{metrics.cpuUsagePercentage.toFixed(2)}% of capacity</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/30">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Memory Usage</div>
-                    <div className="text-lg font-semibold">{formatMemory(metrics.memoryUsage)}</div>
-                    <div className="text-xs text-gray-500">{metrics.memoryUsagePercentage.toFixed(2)}% of capacity</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/30">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Last Updated</div>
-                    <div className="text-lg font-semibold">
-                      {metrics.timestamp ? new Date(metrics.timestamp).toLocaleTimeString() : 'N/A'}
-                    </div>
-                    <div className="text-xs text-gray-500">Metrics timestamp</div>
-                  </div>
-                </div>
-              </div>
-            )}
+ 
 
             {/* Node Events */}
             <EventsViewer
