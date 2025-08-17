@@ -19,3 +19,5 @@ export { default as Loki } from './loki';
 
 export { default as Blur } from './blur';
 export { default as WrenchScrewdriver } from './wrenchscrewdriver';
+
+export { default as AgentkubeBot } from './agentkubebot';

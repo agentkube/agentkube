@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { AgentkubeBot } from '@/assets/icons';
 
 interface SuggestedQuestion {
   question: string;
@@ -408,9 +409,12 @@ const RightDrawer: React.FC = () => {
                     {!showChatSettings && (
                       <>
                         <div>
-                          <img src={AGENTKUBE} alt="" className='h-6 ml-1 top-0.5 relative' />
+                          {/* <img src={AGENTKUBE} alt="" className='h-6 ml-1 top-0.5 relative' /> */}
+                          <div className='dark:bg-gray-700/20 p-1 rounded-md'>
+                            <AgentkubeBot className='text-green-400 h-5 w-5' />
+                          </div>
                         </div>
-                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200">Assistant: Talk to Cluster</h3>
+                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200"><span className='text-gray-600 dark:text-gray-400/80'>Assistant</span> Talk to Cluster</h3>
                       </>
                     )}
                   </div>

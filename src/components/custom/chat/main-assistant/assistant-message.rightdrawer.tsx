@@ -10,6 +10,7 @@ import { LinkPreview } from '@/components/ui/link-preview';
 import ToolParameter from './toolparameter.rightdrawer';
 import ResponseFeedback from '../../responsefeedback/responsefeedback.component';
 import { ChartLineDotsColors, ChartBarStacked, ChartBarLabelCustom, ChartNetworkTrafficStep, ChartCryptoPortfolio } from '@/components/custom/promgraphcontainer/graphs.component';
+import { AgentkubeBot } from '@/assets/icons';
 
 interface CodeProps {
   inline?: boolean;
@@ -31,8 +32,8 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
     <div className="w-full relative">
       <div className="bg-gray-300/30 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
         <div className="flex items-start">
-          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
-            <Sparkles className="h-4 w-4" />
+          <div className="dark:bg-gray-700/30 w-7 h-7 rounded-md overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
+            <AgentkubeBot className="h-5 w-5" />
           </div>
           <div className="flex-1 overflow-auto py-1">
             {/* Display tool calls if available */}
