@@ -12,6 +12,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useToast } from '@/hooks/use-toast';
+import { SiSlack } from '@icons-pack/react-simple-icons';
 
 interface CustomResource {
   group: string;
@@ -337,7 +338,7 @@ const Watcher: React.FC = () => {
           <AccordionItem value="slack" className="">
             <AccordionTrigger className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 ">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
+                <SiSlack className="w-4 h-4" />
                 <span>Slack</span>
               </div>
             </AccordionTrigger>
