@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, ArrowUp, BotMessageSquare, Search, ScanSearch, Loader, Plus, Lightbulb, Terminal } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from 'framer-motion';
-import { AddResourceLogsPicker, AutoResizeTextarea, ModelSelector, ResourceContext, ResourcePreview, ResourceLogPreview } from '@/components/custom';
+import { AddResourceLogsPicker, AutoResizeTextarea, ModelSelector, ResourceContext as ResourceContextComponent, ResourcePreview, ResourceLogPreview } from '@/components/custom';
 import { EnrichedSearchResult } from '@/types/search';
 import { toast as sooner } from "sonner";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { LogsSelection } from '@/types/logs';
+import { submitInvestigationTask } from '@/api/task';
+import { InvestigationRequest, InvestigationResponse, ResourceContext, LogContext } from '@/types/task';
 
 interface BackgroundTaskDialogProps {
 	isOpen: boolean;
@@ -59,25 +61,67 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	const createBackgroundTask = async (message: string) => {
 		setIsLoading(true);
 
-		// Mock function to simulate background task creation
-		setTimeout(() => {
-			sooner("Running Investigation", {
-				description: `Investigating ${resourceName || 'resource'}`,
+		try {
+			// Build resource context from selected files
+			const resourceContext: ResourceContext[] = contextFiles.map(file => ({
+				resource_name: `${file.resourceType}/${file.resourceName}`,
+				resource_content: JSON.stringify(file) // Or actual resource content if available
+			}));
+
+			// Build log context from selected logs
+			const logContext: LogContext[] = contextLogs.map(log => ({
+				log_name: `${log.podName}/${log.containerName}`,
+				log_content: log.logs || '' // Use logs property from LogsSelection
+			}));
+
+			// Create investigation request
+			const investigationRequest: InvestigationRequest = {
+				prompt: message,
+				model: selectedModel,
+				context: {
+					resource_name: resourceName,
+					resource_type: resourceType,
+					// Add kubecontext and namespace if available
+				},
+				resource_context: resourceContext.length > 0 ? resourceContext : undefined,
+				log_context: logContext.length > 0 ? logContext : undefined,
+			};
+
+			// Submit investigation
+			const response: InvestigationResponse = await submitInvestigationTask(investigationRequest);
+			
+			sooner("Investigation Started", {
+				description: `Task ID: ${response.task_id}`,
 				action: {
-					label: "View",
-					onClick: () => console.log("View investigation"),
+					label: "View Task",
+					onClick: () => {
+						// Navigate to task details
+						window.location.href = `/tasks/${response.task_id}`;
+					},
 				},
 				cancel: {
-					label: "Cancel",
-					onClick: () => console.log("Cancel investigation"),
+					label: "Dismiss",
+					onClick: () => {},
 				}
 			});
 
-			setIsLoading(false);
 			setInputValue('');
 			setContextFiles([]);
+			setContextLogs([]);
 			onClose();
-		}, 1000);
+
+		} catch (error) {
+			console.error('Failed to create investigation:', error);
+			sooner("Investigation Failed", {
+				description: error instanceof Error ? error.message : 'Unknown error occurred',
+				action: {
+					label: "Retry",
+					onClick: () => createBackgroundTask(message),
+				}
+			});
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
@@ -255,7 +299,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 						</div>
 						<div className="flex justify-between items-center relative">
 							<div className='flex items-center'>
-								<ResourceContext onResourceSelect={handleAddContext} />
+								<ResourceContextComponent onResourceSelect={handleAddContext} />
 
 								<AddResourceLogsPicker onLogsSelect={handleLogsSelect} />
 								<button

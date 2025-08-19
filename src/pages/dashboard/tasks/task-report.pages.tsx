@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Timeline,
-  TimelineContent,
-  TimelineHeader,
-  TimelineIndicator,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineTitle,
-} from "@/components/ui/timeline";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertTriangle,
   Clock,
@@ -18,287 +22,40 @@ import {
   XCircle,
   ArrowRight,
   TrendingUp,
-  Activity,
   Server,
-  GitBranch,
   Eye,
   MessageSquare,
-  BarChart3,
   Calendar,
-  Shield,
-  Bug,
-  Zap,
-  Database,
   Globe,
   Settings,
-  Sparkles
+  Sparkles,
+  ClipboardCheck,
+  SearchCode,
+  ArrowUpRight,
+  Edit,
+  Copy,
+  Check
 } from 'lucide-react';
 import MarkdownContent from '@/utils/markdown-formatter';
 import { SideDrawer, DrawerHeader, DrawerContent } from "@/components/ui/sidedrawer.custom";
 import { Separator } from '@/components/ui/separator';
+import { getTaskDetails, getInvestigationTaskDetails } from '@/api/task';
+import { TaskDetails, SubTask, InvestigationTaskDetails } from '@/types/task';
+import { AgentkubeBot } from '@/assets/icons';
+import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
+import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CSSProperties } from 'react';
+import { SiKubernetes } from '@icons-pack/react-simple-icons';
 
-// TypeScript interfaces
-interface TimelineEvent {
-  time: string;
-  type: string;
-  service: string;
-  title: string;
-  description?: string;
-  severity: 'critical' | 'error' | 'warning' | 'info' | 'success';
-  content?: string; // New field for markdown/chart content
-  hasChart?: boolean;
-  chartType?: string;
-}
+const SyntaxHighlighter = (Prism as any) as React.FC<SyntaxHighlighterProps>;
 
-interface SystemCheck {
-  category: string;
-  status: 'ISSUES FOUND' | 'ALL GOOD';
-  description: string;
-  severity: 'critical' | 'error' | 'warning' | 'info' | 'success';
-}
-
-interface RootCause {
-  title: string;
-  theory: string;
-  remediation: string;
-}
-
-interface Metrics {
-  errorRate: number;
-  affectedUsers: number;
-  impactDuration: string;
-  servicesAffected: number;
-}
-
-interface ReportData {
-  id: string;
-  title: string;
-  summary: string;
-  duration: string;
-  status: string;
-  severity: string;
-  tags: string[];
-  rootCause: RootCause;
-  checks: SystemCheck[];
-  timeline: TimelineEvent[];
-  metrics: Metrics;
-}
-
-// Enhanced mock data with markdown and chart content
-const reportData: ReportData = {
-  id: "e74e261e-ac2b-4c9d-a122-8faed13a51ce",
-  title: "TooManyErrorResponses - Service webstore-frontend",
-  summary: "Service webstore-frontend in namespace webstore has a high rate of error responses",
-  duration: "1 minute",
-  status: "ACTIVE",
-  severity: "HIGH",
-  tags: ["ACTIVE", "USER IMPACTING", "DEPLOYMENT CHANGE", "DOWNSTREAM SERVICE"],
-  rootCause: {
-    title: "LIKELY ROOT CAUSE THEORY",
-    theory: "The likely cause of the high rate of error responses is a recent deployment change in the checkoutservice (downstream from frontend), introducing a new image that correlates with the errors. This new image appears to have introduced a NullPointerException, causing the failed responses in the frontend.",
-    remediation: `**Immediate Actions:**
-1. Roll back the recent deployment in checkoutservice to restore stability
-2. Fix the NullPointerException in a follow-up commit and redeploy
-
-**Code Fix Required:**
-\`\`\`java
-// Add null check before calling trim()
-String sanitizedUsername = (username != null) ? username.trim() : "";
-\`\`\`
-
-**Testing Strategy:**
-- Add unit tests for null username scenarios
-- Enhanced integration testing for user data edge cases`
-  },
-  checks: [
-    {
-      category: "APPLICATION HEALTH",
-      status: "ISSUES FOUND",
-      description: "Checked KPIs: found high error response rate, no change in latency or request rate",
-      severity: "error"
-    },
-    {
-      category: "DOWNSTREAM SERVICES",
-      status: "ISSUES FOUND",
-      description: "Checked all downstream dependencies: found issues in checkoutservice",
-      severity: "error"
-    },
-    {
-      category: "DEPLOYMENT CHANGE",
-      status: "ISSUES FOUND",
-      description: "Checked for recent deployment changes, new image causing issues.",
-      severity: "error"
-    },
-    {
-      category: "INFRASTRUCTURE",
-      status: "ALL GOOD",
-      description: "Checked node memory usage, no memory pressure issues found.",
-      severity: "success"
-    }
-  ],
-  timeline: [
-    {
-      time: "3 days ago",
-      type: "PR MERGED",
-      service: "checkoutservice",
-      title: "Better sanitation of user data during order processing",
-      description: "The NullPointerException occurs because user.getUsername() might be returning null, and calling .trim() on a null value throws the exception.",
-      severity: "info",
-      content: `
-## Code Analysis
-
-The following code change was introduced:
-
-\`\`\`java
-String username = user.getUsername();
-String sanitizedUsername = username.trim(); // This line causes NPE
-\`\`\`
-
-**Issue identified:** The method \`user.getUsername()\` can return \`null\`, but we're calling \`.trim()\` without null checking.
-
-### Recommended Fix:
-\`\`\`java
-String username = user.getUsername();
-String sanitizedUsername = (username != null) ? username.trim() : "";
-\`\`\`
-      `
-    },
-    {
-      time: "02:40:05 AM",
-      type: "APPLICATION DEPLOYMENT",
-      service: "webstore-checkoutservice",
-      title: "Deployment introduced a new image possibly causing errors.",
-      severity: "warning",
-      content: `## Deployment Details
-
-- **Image:** \`checkoutservice:v2.1.3\`
-- **Deployment Strategy:** \`Rolling Update\`
-- **Replicas:** 3 → 3 (no scaling change)
-
-<chart>type: line-dots title: Deployment Timeline description: Application deployment metrics showing error spike correlation explanation: This chart shows the direct correlation between the deployment at 02:40:05 AM and the subsequent error spike. Notice how the error rate remained stable until the new image was deployed, then spiked dramatically within 7 minutes.</chart>
-`
-    },
-    {
-      time: "02:47:10 AM",
-      type: "LOG ERRORS BEGAN",
-      service: "webstore-checkoutservice",
-      title: "Detected null pointer exception in checkoutservice logs.",
-      description: "Null pointer exception error logs.",
-      severity: "error",
-      hasChart: true,
-      chartType: "bar-stacked",
-      content: `
-## Error Log Analysis
-
-**Error Pattern Detected:**
-\`\`\`
-Exception in thread "main" java.lang.NullPointerException
-    at com.webstore.checkout.CheckoutService.processOrder(CheckoutService.java:143)
-    at com.webstore.checkout.CheckoutService.handleRequest(CheckoutService.java:89)
-\`\`\`
-
-### Error Frequency Analysis
-
-<chart>type: bar-stacked title: Error Distribution description: Breakdown of error types over time explanation: The stacked bar chart reveals that NullPointerException dominates the error landscape, accounting for 89% of all errors. The dramatic shift from normal error patterns to NPE-heavy distribution pinpoints the exact moment the faulty code was executed. This data correlation is crucial for rapid incident response.</chart>
-
-**Key Observations:**
-- NullPointerException accounts for 89% of errors
-- Error rate increased from 0.1% to 15.2%
-- Peak error time: 02:47-02:49 AM
-`
-    },
-    {
-      time: "02:47:28 AM",
-      type: "ERROR RATE SPIKED",
-      service: "webstore-checkoutservice",
-      title: "Error rate spiked for checkoutservice leading to other errors.",
-      severity: "error",
-      content: `
-## Service Impact Analysis
-
-### Affected Services:
-1. **checkoutservice** - Primary failure point
-2. **frontend** - Downstream impact
-3. **payment-service** - Secondary impact
-4. **inventory-service** - Timeout cascades
-
-<chart>type: area-step title: Error Rate Timeline description: Service error rates showing cascade effect explanation: This area chart illustrates the domino effect of service failures. Starting with checkoutservice at 02:47:28 AM, errors cascade through dependent services. The step pattern shows how circuit breakers and timeouts create distinct failure phases, helping teams understand service interdependencies.</chart>
-
-**Mitigation Actions Taken:**
-- Circuit breaker activated for checkout → payment calls
-- Increased timeout thresholds temporarily
-- Health check frequency doubled
-`
-    },
-    {
-      time: "02:49:05 AM",
-      type: "ERROR RATE INCREASED",
-      service: "webstore-frontend",
-      title: "Error rate spiked for webstore-frontend after low error rate.",
-      severity: "error",
-      content: `
-## Frontend Impact Assessment
-
-The frontend service experienced cascading failures due to checkout service errors.
-
-### Impact Metrics:
-- **User Sessions Affected:** 1,247 users
-- **Failed Transactions:** 89 checkout attempts
-- **Geographic Distribution:** Primarily US East Coast users
-
-<chart>type: radar title: Service Health Impact description: Multi-dimensional service health comparison explanation: The radar chart provides a holistic view of service health across multiple dimensions. Notice how the frontend service shows degraded performance in user experience metrics while maintaining acceptable infrastructure metrics. This multi-dimensional analysis helps prioritize remediation efforts.</chart>
-
-### User Experience Impact:
-- Checkout process failures
-- Payment processing delays  
-- Session timeout issues
-- Cart abandonment increase: +23%
-`
-    },
-    {
-      time: "03:04:14 AM",
-      type: "ALERT",
-      service: "webstore-frontend",
-      title: "High rate of error responses triggered alert.",
-      severity: "critical",
-      content: `
-## Critical Alert Details
-
-**Alert Triggered:** TooManyErrorResponses
-**Threshold Exceeded:** 15.2% error rate (threshold: 5%)
-**Duration:** 15 minutes sustained
-
-### Monitoring Dashboard
-<chart>type: crypto title: Error Rate Trend description: Real-time error monitoring showing alert trigger point explanation: This trend line clearly shows the moment alert thresholds were breached at 03:04:14 AM. The sustained elevation above the 5% threshold for 15 minutes triggered the automated incident response. The chart helps validate alert sensitivity and response timing for future optimizations.</chart>
-
-### Immediate Response Actions:
-1. ✅ On-call engineer paged
-2. ✅ Incident commander assigned  
-3. ✅ War room established
-4. 🔄 Rollback procedure initiated
-5. ⏳ Customer communication pending
-
-**Next Steps:**
-- Complete rollback to stable version
-- Implement additional null checks
-- Enhanced testing for user data edge cases
-`
-    }
-  ],
-  metrics: {
-    errorRate: 15.2,
-    affectedUsers: 1247,
-    impactDuration: "15 minutes",
-    servicesAffected: 4
-  }
-};
 
 
 const getTagColor = (tag: string): string => {
   const tagLower = tag.toLowerCase();
 
   const greenTags = ['active'];
-  const redTags = ['impacting', 'danger', 'bug', 'failure'];
+  const redTags = ['impacting', 'danger', 'bug', 'failure', 'critical'];
 
   if (greenTags.some(term => tagLower.includes(term))) {
     return 'bg-emerald-400/60 text-green-800 dark:bg-green-900/20 dark:text-emerald-400';
@@ -314,8 +71,113 @@ const getTagColor = (tag: string): string => {
 
 
 const TaskReport: React.FC = () => {
-  const [expandedTimeline, setExpandedTimeline] = useState<number | null>(null);
-  const [selectedCheck, setSelectedCheck] = useState<SystemCheck | null>(null);
+  const { taskId } = useParams<{ taskId: string }>();
+  const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSubTask, setSelectedSubTask] = useState<SubTask | null>(null);
+  const [showPromptDrawer, setShowPromptDrawer] = useState(false);
+  const [promptDetails, setPromptDetails] = useState<InvestigationTaskDetails | null>(null);
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Fetch task details from API
+  const fetchTaskDetails = useCallback(async () => {
+    if (!taskId) {
+      setError('No task ID provided');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const details = await getTaskDetails(taskId);
+      setTaskDetails(details);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching task details:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch task details');
+    } finally {
+      setLoading(false);
+    }
+  }, [taskId]);
+
+  useEffect(() => {
+    fetchTaskDetails();
+  }, [fetchTaskDetails]);
+
+  // Fetch prompt details from API
+  const fetchPromptDetails = useCallback(async () => {
+    if (!taskId) return;
+
+    try {
+      setPromptLoading(true);
+      const details = await getInvestigationTaskDetails(taskId);
+      setPromptDetails(details);
+    } catch (err) {
+      console.error('Error fetching prompt details:', err);
+    } finally {
+      setPromptLoading(false);
+    }
+  }, [taskId]);
+
+  const handleViewPrompt = () => {
+    setShowPromptDrawer(true);
+    if (!promptDetails) {
+      fetchPromptDetails();
+    }
+  };
+
+  const customStyle: CSSProperties = {
+    padding: '0.5rem',
+    borderRadius: '0.5rem',
+    background: 'transparent',
+    fontSize: '0.75rem'
+  };
+
+  const handleEditPrompt = () => {
+    if (promptDetails) {
+      setEditedPrompt(promptDetails.prompt);
+      setIsEditingPrompt(true);
+    }
+  };
+
+  const handleSavePrompt = () => {
+    setIsEditingPrompt(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingPrompt(false);
+    setEditedPrompt('');
+  };
+
+  const handleCopy = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy content:', err);
+    }
+  };
+
+  const isPromptModified = promptDetails && editedPrompt !== promptDetails.prompt;
+
+  // Helper functions
+  const getTotalIssues = () => {
+    if (!taskDetails) return 0;
+    return taskDetails.sub_tasks.filter(subTask => subTask.status > 0).length;
+  };
+
+  const getSubTaskStatus = (status: number): 'ISSUES FOUND' | 'ALL GOOD' => {
+    return status === 0 ? 'ALL GOOD' : 'ISSUES FOUND';
+  };
+
+  const getSubTaskSeverity = (status: number): 'success' | 'error' => {
+    return status === 0 ? 'success' : 'error';
+  };
 
   const getSeverityColor = (severity: 'critical' | 'error' | 'warning' | 'info' | 'success' | string): string => {
     switch (severity) {
@@ -336,35 +198,53 @@ const TaskReport: React.FC = () => {
     }
   };
 
-  const getTimelineIcon = (type: string) => {
-    switch (type) {
-      case 'PR MERGED': return <GitBranch className="w-4 h-4" />;
-      case 'APPLICATION DEPLOYMENT': return <Server className="w-4 h-4" />;
-      case 'LOG ERRORS BEGAN': return <Bug className="w-4 h-4" />;
-      case 'ERROR RATE SPIKED': return <TrendingUp className="w-4 h-4" />;
-      case 'ERROR RATE INCREASED': return <Activity className="w-4 h-4" />;
-      case 'ALERT': return <AlertTriangle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
+  const formatDuration = (totalSeconds: number): string => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    if (minutes === 0) {
+      return `${seconds}s`;
     }
+    return `${minutes}m ${seconds}s`;
   };
 
-  const getSeverityIndicatorStyles = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-300 dark:bg-red-900 border-red-500/40 text-red-900 dark:text-gray-200';
-      case 'error': return 'bg-rose-300 dark:bg-rose-900 border-rose-500/40 text-rose-900 dark:text-gray-200';
-      case 'warning': return 'bg-orange-300 dark:bg-orange-900 border-orange-500/40 text-orange-900 dark:text-gray-200';
-      case 'info': return 'bg-blue-300 dark:bg-blue-900 border-blue-500/40 text-blue-900 dark:text-gray-200';
-      case 'success': return 'bg-green-300 dark:bg-green-900 border-green-500/40 text-green-900 dark:text-gray-200';
-      default: return 'bg-gray-200 dark:bg-gray-700 border-gray-300/40 dark:border-gray-600';
-    }
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
-  const toggleTimelineExpansion = (index: number) => {
-    setExpandedTimeline(expandedTimeline === index ? null : index);
-  };
+
+  if (loading) {
+    return (
+      <div className="px-6 py-6 flex items-center justify-center h-[92vh]">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-2"></div>
+          Loading task details...
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !taskDetails) {
+    return (
+      <div className="px-6 py-6 flex items-center justify-center h-[92vh]">
+        <div className="text-center text-red-500">
+          <div className="mb-2">Error loading task details</div>
+          <div className="text-sm">{error || 'No task details available'}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="px-6 py-6 space-y-6 max-h-[92vh] overflow-y-auto
+    <div className="px-6 py-6 space-y-2 max-h-[92vh] overflow-y-auto
       [&::-webkit-scrollbar]:w-1.5 
       [&::-webkit-scrollbar-track]:bg-transparent 
       [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
@@ -378,7 +258,7 @@ const TaskReport: React.FC = () => {
             <AlertTriangle className="w-8 h-8 text-orange-600" />
             <div>
               <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Task Report</h1>
-              <h1 className="text-xs text-gray-500 dark:text-gray-400">{reportData.id}</h1>
+              <h1 className="text-xs text-gray-500 dark:text-gray-400">{taskDetails.task_id}</h1>
             </div>
           </div>
 
@@ -387,39 +267,43 @@ const TaskReport: React.FC = () => {
               <MessageSquare className="w-4 h-4" />
               Open Chat
             </Button>
-            <Button>
-              <Eye className="w-4 h-4 mr-2" />
-              View Postmortem
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={handleViewPrompt}
+            >
+              <Eye className="w-4 h-4" />
+              View Prompt
             </Button>
           </div>
         </div>
 
-        <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+        <Card className="bg-transparent dark:bg-transparent border-gray-200/70 dark:border-gray-700/30">
           <CardContent className="p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  {reportData.title}
+                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  {taskDetails.title}
                 </h2>
-                <p className="text-xs text-gray-600 dark:text-gray-300 mb-4">
-                  {reportData.summary}
+                <p className="text-xs text-gray-600 dark:text-gray-300 mb-4 truncate max-w-96">
+                  {taskDetails.summary}
                 </p>
                 <div className="flex items-center gap-1 text-xs">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-600 dark:text-gray-400">Duration: {reportData.duration}</span>
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-600 dark:text-gray-400">{formatDate(taskDetails.created_at)}</span>
                   </div>
                   <Badge className={getSeverityColor('error')}>
-                    {reportData.status}
+                    {taskDetails.status.toUpperCase()}
                   </Badge>
                   <Badge className={getSeverityColor('warning')}>
-                    {reportData.severity}
+                    {taskDetails.severity.toUpperCase()}
                   </Badge>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-1">
-                {reportData.tags.map((tag, index) => (
+                {taskDetails.tags.map((tag: string, index: number) => (
                   <div key={index} className={`${getTagColor(tag)} font-medium px-1.5 py-0.5 rounded-md text-xs`}>
                     {tag}
                   </div>
@@ -431,58 +315,45 @@ const TaskReport: React.FC = () => {
       </div>
 
       {/* Impact Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
-                <TrendingUp className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{reportData.metrics.errorRate}%</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+          <CardContent className="p-4 h-full flex items-end">
+            <div className="flex justify-between items-end w-full">
+              <div className=''>
+                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.impact.error_rate}%</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Error Rate</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/20">
-                <Globe className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{reportData.metrics.affectedUsers.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Affected Users</p>
+              <div className="p-2 rounded-lg w-fit bg-red-100 dark:bg-red-900/20">
+                <TrendingUp className="w-5 h-5 text-red-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+          <CardContent className="p-4 h-full flex items-end">
+            <div className="flex justify-between items-end w-full">
+              <div className=''>
+                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{formatDuration(taskDetails.duration)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Task Duration</p>
+              </div>
+              <div className="p-2 rounded-lg w-fit bg-blue-100 dark:bg-blue-900/20">
                 <Clock className="w-5 h-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{reportData.metrics.impactDuration}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Impact Duration</p>
-              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
-                <Server className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{reportData.metrics.servicesAffected}</p>
+
+        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+          <CardContent className="p-4 h-full flex items-end">
+            <div className="flex justify-between items-end w-full">
+
+              <div className=''>
+                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.impact.service_affected}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Services Affected</p>
+              </div>
+              <div className="p-2 rounded-lg w-fit bg-purple-100 dark:bg-purple-900/20">
+                <Server className="w-5 h-5 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -490,90 +361,137 @@ const TaskReport: React.FC = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
 
         {/* Root Cause Analysis */}
-        <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-purple-600 dark:text-blue-400">
-              <Sparkles className="w-5 h-5" />
-              {reportData.rootCause.title}
-            </CardTitle>
-          </CardHeader>
+        <Card className="bg-transparent dark:bg-gray-800/20 rounded-md border-gray-200/70 dark:border-gray-700/30 py-2">
           <CardContent className="space-y-4">
-            <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/30 rounded-lg p-4">
-              <p className="text-xs text-gray-700 dark:text-yellow-500">
-                {reportData.rootCause.theory}
-              </p>
-            </div>
+            <Accordion type="single" collapsible defaultValue="root-cause" className="w-full">
+              <AccordionItem value="root-cause" className="border-0">
+                <AccordionTrigger className="px-0 py-2 hover:no-underline">
+                  <div className='flex items-center gap-2 text-purple-600 dark:text-blue-400'>
+                    <SearchCode className="w-5 h-5" />
+                    <h4 className="font-medium uppercase ">Root Cause Details</h4>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-2">
+                  <div className="bg-gray-100 dark:bg-gray-800/20 border border-purple-200 dark:border-blue-800/60 rounded-lg p-4">
+                    <p className="text-xs text-gray-700 dark:text-yellow-500">
+                      <MarkdownContent content={taskDetails.summary} />
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             <div className="space-y-2">
-              <h4 className="font-medium text-gray-900 dark:text-gray-100">Suggested Remediation</h4>
-              <div className="text-xs text-gray-600 dark:text-gray-400 px-2">
-                <MarkdownContent content={reportData.rootCause.remediation} />
-              </div>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="remediation" className="border-0">
+                  <AccordionTrigger className="px-0 py-2 hover:no-underline">
+                    <div className='flex items-center justify-between w-full'>
+                      <div className='flex items-center gap-2 text-green-600 dark:text-green-400'>
+                        <Sparkles className="w-5 h-5" />
+                        <h4 className="font-medium uppercase ">Suggested Remediation</h4>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              className="mr-2 h-6 px-2 text-xs bg-green-600 hover:bg-green-700 text-white flex justify-between w-36"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Add resolve functionality here
+                              }}
+                            >
+                              <div className='flex items-center gap-1'>
+                                Resolve
+                              </div>
+                              <ArrowUpRight />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="px-2 py-1">Ask Agentkube to Resolve</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-0 pb-2">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 px-2">
+                      <MarkdownContent content={taskDetails.remediation} />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           </CardContent>
         </Card>
 
         {/* System Checks */}
-        <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+        <Card className="bg-transparent dark:bg-gray-800/20 rounded-md border-gray-200/70 dark:border-gray-700/30">
           <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-gray-600" />
+            <CardTitle className="flex items-center gap-2 uppercase text-sm">
+              <ClipboardCheck className="w-5 h-5" />
               What We've Checked
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {reportData.checks.map((check, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-500/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500/10 transition-colors"
-                onClick={() => setSelectedCheck(check)}
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {getStatusIcon(check.status)}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                        {check.category}
-                      </span>
-                      <Badge className={getSeverityColor(check.severity)} >
-                        {check.status}
-                      </Badge>
+            {taskDetails.sub_tasks.map((subTask: SubTask, index: number) => {
+              const status = getSubTaskStatus(subTask.status);
+              const severity = getSubTaskSeverity(subTask.status);
+
+              return (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-500/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500/10 transition-colors"
+                  onClick={() => setSelectedSubTask(subTask)}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {getStatusIcon(status)}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          {subTask.subject}
+                        </span>
+                        <Badge className={getSeverityColor(severity)} >
+                          {status}
+                        </Badge>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-72">
+                          {subTask.goal}
+                        </p>
+                      </div>
+
                     </div>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate">
-                      {check.description}
-                    </p>
                   </div>
+                  <ArrowUpRight className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
                 </div>
-                <ArrowRight className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       </div>
 
-      {/* System Check Details Drawer */}
+      {/* SubTask Details Drawer */}
       <SideDrawer
-        isOpen={selectedCheck !== null}
-        onClose={() => setSelectedCheck(null)}
-        offsetTop="-top-6"
+        isOpen={selectedSubTask !== null}
+        onClose={() => setSelectedSubTask(null)}
+        offsetTop="-top-2"
       >
-        {selectedCheck && (
+        {selectedSubTask && (
           <>
-            <DrawerHeader onClose={() => setSelectedCheck(null)}>
+            <DrawerHeader onClose={() => setSelectedSubTask(null)}>
               <div className="py-1">
                 <div className='flex items-center space-x-2'>
                   <div className="p-2">
-                    {getStatusIcon(selectedCheck.status)}
+                    {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
                   </div>
                   <div className='flex items-center gap-1'>
                     <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide">
-                      {selectedCheck.category}
+                      {selectedSubTask.reason}
                     </h3>
-                    <Badge className={getSeverityColor(selectedCheck.severity)} >
-                      {selectedCheck.status}
+                    <Badge className={getSeverityColor(getSubTaskSeverity(selectedSubTask.status))} >
+                      {getSubTaskStatus(selectedSubTask.status)}
                     </Badge>
                   </div>
                 </div>
@@ -583,80 +501,336 @@ const TaskReport: React.FC = () => {
             <DrawerContent>
               <div className="p-6 space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Check Details</h4>
+                  <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Goal</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {selectedCheck.description}
+                    {selectedSubTask.goal}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Status</h4>
+                  <h4 className="font-medium text-xs uppercase text-xs text-gray-900 dark:text-gray-500">Status</h4>
                   <div className="flex items-center gap-2">
-                    {getStatusIcon(selectedCheck.status)}
-                    <span className="text-sm">{selectedCheck.status}</span>
+                    {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
+                    <span className="text-xs">{getSubTaskStatus(selectedSubTask.status)}</span>
+                    <span className="text-xs text-gray-500">({selectedSubTask.status} issues found)</span>
                   </div>
                 </div>
 
+                {selectedSubTask.plan && selectedSubTask.plan.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-500">Plans</h4>
+                    <Accordion type="single" collapsible className="w-full">
+                      {selectedSubTask.plan.map((planItem, index) => (
+                        <AccordionItem key={index} value={`plan-${index}`} className="border rounded-lg mb-2">
+                          <AccordionTrigger className="px-3 py-2 hover:no-underline">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {planItem.tool_name}
+                              </Badge>
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {planItem.title}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-3 pb-3">
+                            <div className="text-xs text-gray-600 dark:text-gray-400 max-h-48 overflow-y-auto">
+                              <MarkdownContent content={planItem.output} />
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </div>
+                )}
+
+                <Separator />
                 <div className="space-y-2">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Severity Level</h4>
-                  <Badge className={getSeverityColor(selectedCheck.severity)}>
-                    {selectedCheck.severity.toUpperCase()}
-                  </Badge>
+                  <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Discovery</h4>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 max-h-64 overflow-y-auto">
+                    <MarkdownContent content={selectedSubTask.discovery} />
+                  </div>
                 </div>
-
-                {/* Additional detailed content based on check type */}
-                {selectedCheck.category === 'APPLICATION HEALTH' && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Recommended Actions</h4>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <li>• Monitor error rate trends</li>
-                      <li>• Check application logs for patterns</li>
-                      <li>• Verify load balancer configuration</li>
-                    </ul>
-                  </div>
-                )}
-
-                {selectedCheck.category === 'DOWNSTREAM SERVICES' && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Affected Services</h4>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <li>• checkoutservice - Primary issue</li>
-                      <li>• payment-service - Secondary impact</li>
-                      <li>• inventory-service - Timeout cascades</li>
-                    </ul>
-                  </div>
-                )}
-
-                {selectedCheck.category === 'DEPLOYMENT CHANGE' && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Deployment Details</h4>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      <p>• Image: checkoutservice:v2.1.3</p>
-                      <p>• Strategy: Rolling Update</p>
-                      <p>• Time: 02:40:05 AM</p>
-                      <p>• Correlation with errors: High</p>
-                    </div>
-                  </div>
-                )}
-
-                {selectedCheck.category === 'INFRASTRUCTURE' && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Infrastructure Metrics</h4>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      <p>• Node memory usage: Normal</p>
-                      <p>• CPU utilization: 45%</p>
-                      <p>• Network latency: Within limits</p>
-                      <p>• Disk I/O: Healthy</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </DrawerContent>
           </>
         )}
       </SideDrawer>
 
-      {/* Enhanced Timeline Section with Markdown and Charts */}
+      {/* Prompt Details Drawer */}
+      <SideDrawer
+        isOpen={showPromptDrawer}
+        onClose={() => setShowPromptDrawer(false)}
+        offsetTop="-top-2"
+      >
+        <DrawerHeader onClose={() => setShowPromptDrawer(false)}>
+          <div className="py-1">
+            <div className='flex items-center space-x-2'>
+              <div className="p-2">
+                <Eye className="w-4 h-4 text-blue-500" />
+              </div>
+              <div className='flex items-center gap-1'>
+                <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide">
+                  Investigation Prompt
+                </h3>
+              </div>
+            </div>
+          </div>
+        </DrawerHeader>
+
+        <DrawerContent>
+          <div className="p-6 space-y-4">
+            {promptLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
+                <span className="ml-2 text-sm text-gray-500">Loading prompt details...</span>
+              </div>
+            ) : promptDetails ? (
+              <>
+                <div className="flex justify-between">
+                  <div>
+                    <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Task ID</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                      {promptDetails.task_id}
+                    </p>
+                  </div>
+
+                  {promptDetails.model && (
+                    <div className="">
+                      <h4 className="font-medium text-right text-xs uppercase text-gray-900 dark:text-gray-500">Model</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                        {promptDetails.model}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Original Prompt</h4>
+                    <div className="flex items-center gap-2">
+                      {!isEditingPrompt && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={handleEditPrompt}
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {isEditingPrompt ? (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <textarea
+                          value={editedPrompt}
+                          onChange={(e) => setEditedPrompt(e.target.value)}
+                          className="w-full h-32 p-3 text-sm border rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter your investigation prompt..."
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleSavePrompt}
+                          className="h-7 px-3 text-xs"
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                          className="h-7 px-3 text-xs"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="bg-gray-800 dark:bg-gray-800/20 rounded-lg overflow-hidden border">
+                        <button
+                          onClick={() => handleCopy(promptDetails.prompt || '')}
+                          className="absolute top-2 right-2 p-2 rounded-lg bg-neutral-700/20 dark:bg-gray-500/10 hover:bg-gray-600 text-gray-200/60 hover:text-white z-10"
+                          aria-label="Copy prompt"
+                        >
+                          {copied ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                        <SyntaxHighlighter
+                          language="text"
+                          style={nord}
+                          customStyle={customStyle}
+                          wrapLines={true}
+                          showLineNumbers={false}
+                        >
+                          {promptDetails.prompt || 'No prompt available'}
+                        </SyntaxHighlighter>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {promptDetails.context && (
+                  <div className="space-y-2 border border-gray-200 dark:border-gray-800 rounded-lg">
+                    <div className='bg-gray-200 dark:bg-gray-700/20 p-1.5'>
+                      <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Context</h4>
+                    </div>
+                    <div className="p-2">
+                      <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                        <div className='flex justify-between'>
+                          <span>Cluster</span>
+                          {promptDetails.context.kubecontext && (
+                            <div className='flex items-center gap-1 dark:text-gray-400'>
+                              <span className="font-medium"><SiKubernetes className='h-4 w-4' /></span> {promptDetails.context.kubecontext}
+                            </div>
+                          )}
+                        </div>
+                        <div className='flex justify-between'>
+                          <span>Namespace</span>
+                          {promptDetails.context.namespace && (
+                            <div className='dark:text-gray-400 cursor-pointer text-blue-500 dark:hover:text-blue-400'>
+                              {promptDetails.context.namespace}
+                            </div>
+                          )}
+                        </div>
+
+
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+
+
+                {promptDetails.resource_context && promptDetails.resource_context.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Resource Context</h4>
+                    <div className="space-y-2">
+                      {promptDetails.resource_context.map((resource, index) => (
+                        <div key={index} className="bg-transparent rounded-lg border border-gray-200 dark:border-gray-800">
+                          <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                            <div className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                              {resource.resource_name}
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <button
+                              onClick={() => handleCopy(resource.resource_content)}
+                              className="absolute top-2 right-2 p-2 rounded-lg bg-neutral-700/20 dark:bg-gray-500/10 hover:bg-gray-600 text-gray-200/60 hover:text-white z-10"
+                              aria-label="Copy resource content"
+                            >
+                              {copied ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                            <div className="max-h-48 overflow-y-auto">
+                              <SyntaxHighlighter
+                                language="yaml"
+                                style={nord}
+                                customStyle={customStyle}
+                                wrapLines={true}
+                                showLineNumbers={true}
+                                lineNumberStyle={{
+                                  color: '#262625',
+                                }}
+                              >
+                                {resource.resource_content}
+                              </SyntaxHighlighter>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Always show Log Context section */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Log Context</h4>
+                  {promptDetails.log_context && promptDetails.log_context.length > 0 ? (
+                    <div className="space-y-2">
+                      {promptDetails.log_context.map((log, index) => (
+                        <div key={index} className="bg-transparent dark:bg-transparent rounded-lg border border-yellow-200 dark:border-yellow-800">
+                          <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                            <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                              {log.log_name}
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <button
+                              onClick={() => handleCopy(log.log_content)}
+                              className="absolute top-2 right-2 p-2 rounded-lg bg-neutral-700/80  hover:bg-gray-600 text-gray-200/60 hover:text-white z-10"
+                              aria-label="Copy log content"
+                            >
+                              {copied ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                            <SyntaxHighlighter
+                              language="text"
+                              style={nord}
+                              customStyle={customStyle}
+                              wrapLines={true}
+                              showLineNumbers={false}
+                            >
+                              {log.log_content}
+                            </SyntaxHighlighter>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                      <div className="text-center py-4">
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300">No log context provided</p>
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Log context will appear here if provided in the investigation request</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {promptDetails.created_at && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Created</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {formatDate(promptDetails.created_at)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Re-Investigate Task Button */}
+                {isPromptModified && (
+                  <div className="pt-4">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                      Re-Investigate Task
+                      <ArrowUpRight className="w-4 h-4 mr-2" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <Eye className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">No prompt details available</p>
+              </div>
+            )}
+          </div>
+        </DrawerContent>
+      </SideDrawer>
+
+      {/* Events Timeline Section */}
       <Card className="bg-transparent border-gray-200/70 dark:border-gray-700/30">
         <CardHeader className="pb-4">
           <CardTitle className="text-xs flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-2">
@@ -666,86 +840,17 @@ const TaskReport: React.FC = () => {
           <Separator className='dark:bg-gray-400/10 h-[2px] rounded-full' />
         </CardHeader>
         <CardContent>
-          <Timeline defaultValue={reportData.timeline.length} orientation="vertical">
-            {reportData.timeline.map((event, index) => (
-              <TimelineItem
-                key={index}
-                step={index + 1}
-                className="group-data-[orientation=vertical]/timeline:ms-8 pb-6 last:pb-0"
-              >
-                <TimelineHeader>
-                  <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-6 group-data-[orientation=vertical]/timeline:h-[calc(100%-1rem)] group-data-[orientation=vertical]/timeline:translate-y-4" />
-
-                  <TimelineIndicator className={`
-                    flex size-6 p-1 items-center justify-center border-2 group-data-[orientation=vertical]/timeline:-left-6
-                    ${getSeverityIndicatorStyles(event.severity)}
-                  `}>
-                    {getTimelineIcon(event.type)}
-                  </TimelineIndicator>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        {event.time}
-                      </span>
-                      <Badge className={getSeverityColor(event.severity)}>
-                        {event.type}
-                      </Badge>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {event.service}
-                      </span>
-                    </div>
-
-                    <TimelineTitle className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                      {event.title}
-                    </TimelineTitle>
-
-                    {/* Expandable content button */}
-                    {event.content && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleTimelineExpansion(index)}
-                        className="mt-2 p-1 h-auto text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-all duration-200 flex items-center gap-1"
-                      >
-                        <ArrowRight className={`w-3 h-3 transition-transform duration-200 ${expandedTimeline === index ? 'rotate-90' : ''}`} />
-                        {expandedTimeline === index ? 'Hide Details' : 'Show Detailed Analysis'}
-                      </Button>
-                    )}
-                  </div>
-                </TimelineHeader>
-
-                <TimelineContent>
-                  {event.description && !event.content && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      {event.description}
-                    </p>
-                  )}
-
-                  {/* Enhanced content with markdown and charts */}
-                  {event.content && (
-                    <div
-                      className={`rounded-lg transition-all duration-300 ease-in-out overflow-hidden ${expandedTimeline === index ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
-                        }`}
-                    >
-                      <div className={`transform transition-transform duration-300 ${expandedTimeline === index ? 'translate-y-0' : '-translate-y-4'
-                        }`}>
-                        <MarkdownContent content={event.content} />
-                      </div>
-                    </div>
-                  )}
-
-
-                  {/* Basic description for collapsed state */}
-                  {event.content && expandedTimeline !== index && event.description && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      {event.description}
-                    </p>
-                  )}
-                </TimelineContent>
-              </TimelineItem>
-            ))}
-          </Timeline>
+          {taskDetails.events && taskDetails.events.length > 0 ? (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Events will be displayed here when available.
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">No events recorded yet</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Events will appear here as they occur</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

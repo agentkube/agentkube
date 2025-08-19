@@ -1,269 +1,50 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, AlertTriangle, Shield, Bug, TrendingUp } from 'lucide-react';
+import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, TrendingUp, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-// TODO: Remove mock data when API integration is added
-interface Investigation {
-  id: string;
-  protocol: {
-    name: string;
-    steps: Array<{ id: string; name: string }>;
-  };
-  currentStepNumber: number;
-  createdAt: string;
-  progress: number;
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'CANCELED';
-  issuesFound: number;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
-  remediationMessage: string;
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { listTasks, getTaskDetails, deleteTask } from '@/api/task';
+import { TaskDetails } from '@/types/task';
+
+// Define sorting types
+type SortDirection = 'asc' | 'desc' | null;
+type SortField = 'title' | 'severity' | 'status' | 'duration' | 'created' | null;
+
+interface SortState {
+  field: SortField;
+  direction: SortDirection;
 }
 
-// TODO: Remove mock data when API integration is added - Updated with severity field
-const mockInvestigations: Investigation[] = [
-  {
-    id: '1',
-    protocol: {
-      name: 'Security Incident Response',
-      steps: [
-        { id: '1', name: 'Initial Assessment' },
-        { id: '2', name: 'Evidence Collection' },
-        { id: '3', name: 'Analysis' },
-        { id: '4', name: 'Report Generation' }
-      ]
-    },
-    currentStepNumber: 3,
-    createdAt: '2025-06-25T10:30:00Z',
-    progress: 75.0,
-    status: 'IN_PROGRESS',
-    issuesFound: 5,
-    severity: 'CRITICAL',
-    remediationMessage: 'Immediate action required to patch vulnerabilities'
-  },
-  {
-    id: '2',
-    protocol: {
-      name: 'Network Vulnerability Assessment',
-      steps: [
-        { id: '1', name: 'Scope Definition' },
-        { id: '2', name: 'Scanning' },
-        { id: '3', name: 'Verification' },
-        { id: '4', name: 'Documentation' }
-      ]
-    },
-    currentStepNumber: 4,
-    createdAt: '2025-06-24T14:15:00Z',
-    progress: 100.0,
-    status: 'COMPLETED',
-    issuesFound: 12,
-    severity: 'HIGH',
-    remediationMessage: 'All critical vulnerabilities have been patched successfully'
-  },
-  {
-    id: '3',
-    protocol: {
-      name: 'Malware Analysis Investigation',
-      steps: [
-        { id: '1', name: 'Sample Collection' },
-        { id: '2', name: 'Static Analysis' },
-        { id: '3', name: 'Dynamic Analysis' },
-        { id: '4', name: 'Report Creation' }
-      ]
-    },
-    currentStepNumber: 2,
-    createdAt: '2025-06-23T09:45:00Z',
-    progress: 50.0,
-    status: 'IN_PROGRESS',
-    issuesFound: 3,
-    severity: 'MEDIUM',
-    remediationMessage: 'Quarantine affected systems and update antivirus definitions'
-  },
-  {
-    id: '4',
-    protocol: {
-      name: 'Data Breach Investigation',
-      steps: [
-        { id: '1', name: 'Incident Verification' },
-        { id: '2', name: 'Impact Assessment' },
-        { id: '3', name: 'Containment' },
-        { id: '4', name: 'Recovery' }
-      ]
-    },
-    currentStepNumber: 1,
-    createdAt: '2025-06-22T16:20:00Z',
-    progress: 25.0,
-    status: 'CANCELED',
-    issuesFound: 0,
-    severity: 'UNKNOWN',
-    remediationMessage: 'Investigation canceled due to false positive alert'
-  },
-  {
-    id: '5',
-    protocol: {
-      name: 'Compliance Audit Investigation',
-      steps: [
-        { id: '1', name: 'Requirement Review' },
-        { id: '2', name: 'Evidence Gathering' },
-        { id: '3', name: 'Gap Analysis' },
-        { id: '4', name: 'Remediation Plan' }
-      ]
-    },
-    currentStepNumber: 4,
-    createdAt: '2025-06-21T11:10:00Z',
-    progress: 100.0,
-    status: 'COMPLETED',
-    issuesFound: 8,
-    severity: 'HIGH',
-    remediationMessage: 'Implement recommended controls to achieve compliance'
-  },
-  {
-    id: '6',
-    protocol: {
-      name: 'Insider Threat Investigation',
-      steps: [
-        { id: '1', name: 'Alert Triage' },
-        { id: '2', name: 'User Activity Analysis' },
-        { id: '3', name: 'Evidence Collection' },
-        { id: '4', name: 'Case Documentation' }
-      ]
-    },
-    currentStepNumber: 2,
-    createdAt: '2025-06-20T08:30:00Z',
-    progress: 40.0,
-    status: 'IN_PROGRESS',
-    issuesFound: 2,
-    severity: 'MEDIUM',
-    remediationMessage: 'Review user access permissions and implement monitoring'
-  },
-  {
-    id: '7',
-    protocol: {
-      name: 'Phishing Campaign Analysis',
-      steps: [
-        { id: '1', name: 'Email Analysis' },
-        { id: '2', name: 'URL Investigation' },
-        { id: '3', name: 'Infrastructure Mapping' },
-        { id: '4', name: 'IOC Documentation' }
-      ]
-    },
-    currentStepNumber: 4,
-    createdAt: '2025-06-19T15:45:00Z',
-    progress: 100.0,
-    status: 'COMPLETED',
-    issuesFound: 15,
-    severity: 'CRITICAL',
-    remediationMessage: 'Email security training required for all affected users'
-  },
-  {
-    id: '8',
-    protocol: {
-      name: 'DDoS Attack Investigation',
-      steps: [
-        { id: '1', name: 'Traffic Analysis' },
-        { id: '2', name: 'Source Identification' },
-        { id: '3', name: 'Mitigation Planning' },
-        { id: '4', name: 'Post-Incident Review' }
-      ]
-    },
-    currentStepNumber: 3,
-    createdAt: '2025-06-18T12:20:00Z',
-    progress: 75.0,
-    status: 'IN_PROGRESS',
-    issuesFound: 1,
-    severity: 'LOW',
-    remediationMessage: 'Activate DDoS protection and scale infrastructure'
-  },
-  {
-    id: '9',
-    protocol: {
-      name: 'Ransomware Incident Response',
-      steps: [
-        { id: '1', name: 'Containment' },
-        { id: '2', name: 'Assessment' },
-        { id: '3', name: 'Recovery Planning' },
-        { id: '4', name: 'Lessons Learned' }
-      ]
-    },
-    currentStepNumber: 1,
-    createdAt: '2025-06-17T09:15:00Z',
-    progress: 20.0,
-    status: 'CANCELED',
-    issuesFound: 0,
-    severity: 'UNKNOWN',
-    remediationMessage: 'Investigation stopped - backup recovery successful'
-  },
-  {
-    id: '10',
-    protocol: {
-      name: 'Cloud Security Assessment',
-      steps: [
-        { id: '1', name: 'Configuration Review' },
-        { id: '2', name: 'Access Control Audit' },
-        { id: '3', name: 'Data Protection Analysis' },
-        { id: '4', name: 'Compliance Validation' }
-      ]
-    },
-    currentStepNumber: 4,
-    createdAt: '2025-06-16T14:00:00Z',
-    progress: 100.0,
-    status: 'COMPLETED',
-    issuesFound: 6,
-    severity: 'MEDIUM',
-    remediationMessage: 'Update IAM policies and enable additional logging'
-  },
-  {
-    id: '11',
-    protocol: {
-      name: 'Mobile Device Forensics',
-      steps: [
-        { id: '1', name: 'Device Acquisition' },
-        { id: '2', name: 'Data Extraction' },
-        { id: '3', name: 'Analysis' },
-        { id: '4', name: 'Report Generation' }
-      ]
-    },
-    currentStepNumber: 2,
-    createdAt: '2025-06-15T11:30:00Z',
-    progress: 50.0,
-    status: 'IN_PROGRESS',
-    issuesFound: 4,
-    severity: 'HIGH',
-    remediationMessage: 'Implement mobile device management policies'
-  },
-  {
-    id: '12',
-    protocol: {
-      name: 'Web Application Security Review',
-      steps: [
-        { id: '1', name: 'Reconnaissance' },
-        { id: '2', name: 'Vulnerability Testing' },
-        { id: '3', name: 'Exploitation Attempts' },
-        { id: '4', name: 'Risk Assessment' }
-      ]
-    },
-    currentStepNumber: 3,
-    createdAt: '2025-06-14T16:45:00Z',
-    progress: 70.0,
-    status: 'IN_PROGRESS',
-    issuesFound: 9,
-    severity: 'HIGH',
-    remediationMessage: 'Apply security patches and implement input validation'
-  }
-];
+// Use TaskDetails directly from API
+type Task = TaskDetails;
 
 interface StatCardProps {
   count: number;
   label: string;
   timeframe: string;
-  delay: number;
   icon: React.ReactNode;
   color: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, delay, icon, color }) => (
+const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, icon, color }) => (
   <div
     style={{
       opacity: 1,
@@ -291,7 +72,6 @@ const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, delay, ico
     </div>
   </div>
 );
-
 
 interface PaginationProps {
   currentPage: number;
@@ -349,7 +129,7 @@ const Pagination: React.FC<PaginationProps> = ({
   return (
     <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 dark:bg-gray-800/10 rounded-lg">
       <div className="text-xs text-gray-500 dark:text-gray-400">
-        Showing {startItem} to {endItem} of {totalItems} investigations
+        Showing {startItem} to {endItem} of {totalItems} tasks
       </div>
 
       <div className="flex items-center gap-2">
@@ -429,171 +209,315 @@ const formatAge = (dateString: string) => {
   }
 };
 
+
 const Investigations: React.FC = () => {
-  // TODO: Replace with actual API call when available
-  const [investigations, setInvestigations] = useState<Investigation[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState('all');
-  const [summary, setSummary] = useState('');
 
   const navigate = useNavigate();
 
   // Search and pagination states
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(9); // Show 6 items per page
+  const [itemsPerPage] = useState(9);
 
-  // TODO: Replace with actual API integration
-  useEffect(() => {
-    const fetchInvestigations = async () => {
-      try {
-        // Simulate API call
-        setTimeout(() => {
-          setInvestigations(mockInvestigations);
-          setLoading(false);
-        }, 1000);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch investigations');
-        setLoading(false);
-      }
-    };
+  // Refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-    fetchInvestigations();
+  // Add sorting state
+  const [sort, setSort] = useState<SortState>({
+    field: null,
+    direction: null
+  });
+
+  // Delete confirmation dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    task: Task | null;
+  }>({
+    isOpen: false,
+    task: null
+  });
+
+  // Fetch tasks from API
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true);
+      const taskList = await listTasks(100); // Get up to 100 tasks
+      
+      setTasks(taskList);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
+      setTasks([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+
+  // Refresh all data
+  const refreshAllData = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchTasks();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchTasks]);
+
+  // Initial load
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   // Reset to page 1 when search or tab changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedTab]);
 
-  const getFilteredInvestigations = useMemo(() => {
-    let filtered = investigations;
+  const getFilteredTasks = useMemo(() => {
+    let filtered = tasks;
 
     // Filter by tab
     if (selectedTab !== 'all') {
       const statusMap: Record<string, string> = {
-        'completed': 'COMPLETED',
-        'ongoing': 'IN_PROGRESS',
-        'stopped': 'CANCELED'
+        'completed': 'completed',
+        'ongoing': 'processed',
+        'stopped': 'cancelled'
       };
-      filtered = filtered.filter(inv => inv.status === statusMap[selectedTab]);
+      filtered = filtered.filter(task => task.status === statusMap[selectedTab]);
     }
 
     // Filter by search query
     if (searchQuery.trim()) {
       const lowercaseQuery = searchQuery.toLowerCase();
-      filtered = filtered.filter(inv => {
-        const protocolName = inv.protocol.name.toLowerCase();
-        const status = inv.status.toLowerCase();
-        const severity = inv.severity.toLowerCase();
-        const stepNames = inv.protocol.steps.map(step => step.name.toLowerCase()).join(' ');
-        const remediationMessage = inv.remediationMessage.toLowerCase();
+      filtered = filtered.filter(task => {
+        const title = task.title.toLowerCase();
+        const status = task.status.toLowerCase();
+        const severity = task.severity.toLowerCase();
+        const tags = task.tags.join(' ').toLowerCase();
 
-        return protocolName.includes(lowercaseQuery) ||
+        return title.includes(lowercaseQuery) ||
           status.includes(lowercaseQuery) ||
           severity.includes(lowercaseQuery) ||
-          stepNames.includes(lowercaseQuery) ||
-          remediationMessage.includes(lowercaseQuery) ||
-          inv.id.toLowerCase().includes(lowercaseQuery);
+          tags.includes(lowercaseQuery) ||
+          task.task_id.toLowerCase().includes(lowercaseQuery);
       });
     }
 
     return filtered;
-  }, [investigations, selectedTab, searchQuery]);
+  }, [tasks, selectedTab, searchQuery]);
 
-  // Paginated investigations
-  const paginatedInvestigations = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return getFilteredInvestigations.slice(startIndex, endIndex);
-  }, [getFilteredInvestigations, currentPage, itemsPerPage]);
+  // Sort tasks based on sort state
+  const sortedTasks = useMemo(() => {
+    if (!sort.field || !sort.direction) {
+      return getFilteredTasks;
+    }
 
-  const totalPages = Math.ceil(getFilteredInvestigations.length / itemsPerPage);
+    return [...getFilteredTasks].sort((a, b) => {
+      const sortMultiplier = sort.direction === 'asc' ? 1 : -1;
 
-  const getPastWeekInvestigations = () => {
+      switch (sort.field) {
+        case 'title':
+          return (a.title || '').localeCompare(b.title || '') * sortMultiplier;
+
+        case 'severity': {
+          const severityOrder: Record<string, number> = {
+            'critical': 1,
+            'high': 2,
+            'medium': 3,
+            'low': 4
+          };
+          const orderA = severityOrder[a.severity] || 10;
+          const orderB = severityOrder[b.severity] || 10;
+          return (orderA - orderB) * sortMultiplier;
+        }
+
+        case 'status': {
+          const statusOrder: Record<string, number> = {
+            'processed': 1,
+            'completed': 2,
+            'cancelled': 3
+          };
+          const orderA = statusOrder[a.status] || 10;
+          const orderB = statusOrder[b.status] || 10;
+          return (orderA - orderB) * sortMultiplier;
+        }
+
+        case 'duration': {
+          const durationA = a.duration || 0;
+          const durationB = b.duration || 0;
+          return (durationA - durationB) * sortMultiplier;
+        }
+
+        case 'created': {
+          const timeA = new Date(a.created_at).getTime();
+          const timeB = new Date(b.created_at).getTime();
+          return (timeA - timeB) * sortMultiplier;
+        }
+
+        default:
+          return 0;
+      }
+    });
+  }, [getFilteredTasks, sort.field, sort.direction]);
+
+  const getPastWeekTasks = () => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    return investigations.filter(inv =>
-      new Date(inv.createdAt) >= oneWeekAgo
+    return tasks.filter(task =>
+      new Date(task.created_at) >= oneWeekAgo
     );
   };
 
-  const getCompletedInvestigations = () =>
-    investigations.filter(inv => inv.status === 'COMPLETED');
+  const getCompletedTasks = () =>
+    tasks.filter(task => task.status === 'completed');
 
-  const getOngoingInvestigations = () =>
-    investigations.filter(inv => inv.status === 'IN_PROGRESS');
+  const getOngoingTasks = () =>
+    tasks.filter(task => task.status === 'processed');
 
-  // TODO: Implement actual investigation creation logic
-  const handleCreateInvestigation = () => {
-    if (!summary.trim()) return;
-
-    console.log('Creating investigation with summary:', summary);
-    // API call would go here
-    setSummary('');
+  const handleNavigateToTask = (taskId: string) => {
+    navigate(`/dashboard/tasks/report/${taskId}`);
   };
 
-  const handleNavigateToInvestigate = (investigationId: string) => {
-    // TODO: Update route when investigation details page is implemented
-    console.log(`Navigating to investigation: ${investigationId}`);
-    // navigate(`/investigate/${investigationId}`);
-  };
-
-  const getStatusIcon = (status: Investigation['status']) => {
+  const getStatusIcon = (status: Task['status']) => {
     switch (status) {
-      case 'COMPLETED':
+      case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'IN_PROGRESS':
+      case 'processed':
         return <Clock className="w-4 h-4 text-blue-600" />;
-      case 'CANCELED':
-        return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'cancelled':
+        return <XCircle className="w-4 h-4 text-gray-600" />;
       default:
         return <AlertCircle className="w-4 h-4 text-gray-600" />;
     }
   };
 
-  const getStatusBadge = (status: Investigation['status']) => {
+  const getStatusBadge = (status: Task['status']) => {
     const statusConfig = {
-      'COMPLETED': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'IN_PROGRESS': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
-      'CANCELED': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+      'completed': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      'processed': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+      'cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
     };
 
     return (
       <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusConfig[status]}`}>
-        {status.replace('_', ' ')}
+        {status.replace('_', ' ').toUpperCase()}
       </span>
     );
   };
 
-  const getSeverityBadge = (severity: Investigation['severity']) => {
+  const getSeverityBadge = (severity: Task['severity']) => {
     const severityConfig = {
-      'CRITICAL': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
-      'HIGH': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300',
-      'MEDIUM': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 border-yellow-200',
-      'LOW': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'UNKNOWN': 'bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-400'
+      'critical': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+      'high': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300',
+      'medium': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 border-yellow-200',
+      'low': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
     };
 
     return (
       <span className={`px-2 py-1 rounded-md text-xs font-medium ${severityConfig[severity]}`}>
-        {severity}
+        {severity.toUpperCase()}
       </span>
     );
   };
 
-  const getIssuesSeverityColor = (issuesCount: number) => {
-    if (issuesCount === 0) return 'text-green-600 dark:text-green-400';
-    if (issuesCount <= 3) return 'text-yellow-600 dark:text-yellow-400';
-    if (issuesCount <= 8) return 'text-orange-600 dark:text-orange-400';
-    return 'text-red-600 dark:text-red-400';
+  // Handler functions for dropdown actions
+  const handleDeleteTask = (task: Task) => {
+    setDeleteDialog({
+      isOpen: true,
+      task: task
+    });
   };
 
-  const getIssuesIcon = (issuesCount: number) => {
-    if (issuesCount === 0) return <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />;
-    if (issuesCount <= 3) return <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />;
-    return <Bug className="w-4 h-4 text-red-600 dark:text-red-400" />;
+  const confirmDeleteTask = async () => {
+    if (!deleteDialog.task) return;
+
+    try {
+      // Call the delete task API
+      const response = await deleteTask(deleteDialog.task.task_id);
+      
+      if (response.status === 'success') {
+        // Remove the task from local state immediately for better UX
+        setTasks(prevTasks => prevTasks.filter(t => t.task_id !== deleteDialog.task!.task_id));
+        
+        toast(response.message || 'Task deleted successfully');
+      }
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      // Show error message to user
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete task';
+      toast.error(`Error deleting task: ${errorMessage}`);
+      
+      // Refresh data in case of error to ensure consistency
+      refreshAllData();
+    } finally {
+      // Close the dialog
+      setDeleteDialog({
+        isOpen: false,
+        task: null
+      });
+    }
+  };
+
+  const cancelDeleteTask = () => {
+    setDeleteDialog({
+      isOpen: false,
+      task: null
+    });
+  };
+
+  const handleViewTask = (task: Task) => {
+    handleNavigateToTask(task.task_id);
+  };
+
+  const handleReRunTask = (task: Task) => {
+    console.log('Re-run task:', task.task_id);
+    // TODO: Implement re-run task API call
+    // For now, just refresh the data
+    refreshAllData();
+  };
+
+  // Handle column sort click
+  const handleSort = (field: SortField) => {
+    setSort(prevSort => {
+      // If clicking the same field
+      if (prevSort.field === field) {
+        // Toggle direction: asc -> desc -> null -> asc
+        if (prevSort.direction === 'asc') {
+          return { field, direction: 'desc' };
+        } else if (prevSort.direction === 'desc') {
+          return { field: null, direction: null };
+        } else {
+          return { field, direction: 'asc' };
+        }
+      }
+      // If clicking a new field, default to ascending
+      return { field, direction: 'asc' };
+    });
+  };
+
+  // Render sort indicator
+  const renderSortIndicator = (field: SortField) => {
+    if (sort.field !== field) {
+      return <ArrowUpDown className="ml-1 h-4 w-4 inline opacity-10" />;
+    }
+
+    if (sort.direction === 'asc') {
+      return <ArrowUp className="ml-1 h-4 w-4 inline text-blue-500" />;
+    }
+
+    if (sort.direction === 'desc') {
+      return <ArrowDown className="ml-1 h-4 w-4 inline text-blue-500" />;
+    }
+
+    return null;
   };
 
   return (
@@ -607,36 +531,45 @@ const Investigations: React.FC = () => {
       [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
       <div className="p-6 mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Investigations</h1>
+          <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Tasks</h1>
+          
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            onClick={refreshAllData}
+            disabled={isRefreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 text-gray-600 dark:text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              Refresh
+            </span>
+          </Button>
         </div>
 
-        {/* Stats Cards and Chart */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 mb-8">
           <StatCard
-            count={getPastWeekInvestigations().length}
-            label="Investigations Past 7 Days"
+            count={getPastWeekTasks().length}
+            label="Tasks Past 7 Days"
             timeframe="Past Week"
-            delay={0.2}
             icon={<Clock className="w-6 h-6 text-blue-600" />}
             color="bg-blue-100 dark:bg-blue-900/20"
           />
           <StatCard
-            count={getCompletedInvestigations().length}
-            label="Complete Investigations"
+            count={getCompletedTasks().length}
+            label="Complete Tasks"
             timeframe="All time"
-            delay={0.4}
             icon={<CheckCircle className="w-6 h-6 text-green-600" />}
             color="bg-green-100 dark:bg-green-900/20"
           />
           <StatCard
-            count={getOngoingInvestigations().length}
-            label="Ongoing Investigations"
+            count={getOngoingTasks().length}
+            label="Ongoing Tasks"
             timeframe="All time"
-            delay={0.6}
             icon={<AlertCircle className="w-6 h-6 text-orange-600" />}
             color="bg-orange-100 dark:bg-orange-900/20"
           />
-          {/* <SeverityDistributionChart investigations={investigations} /> */}
         </div>
 
         {/* Tabs and Results */}
@@ -651,10 +584,10 @@ const Investigations: React.FC = () => {
                 {["all", "completed", "ongoing", "stopped"].map((tab) => (
                   <TabsTrigger key={tab} value={tab} className='text-xs'>
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    {tab === 'all' && ` (${investigations.length})`}
-                    {tab === 'completed' && ` (${getCompletedInvestigations().length})`}
-                    {tab === 'ongoing' && ` (${getOngoingInvestigations().length})`}
-                    {tab === 'stopped' && ` (${investigations.filter(inv => inv.status === 'CANCELED').length})`}
+                    {tab === 'all' && ` (${tasks.length})`}
+                    {tab === 'completed' && ` (${getCompletedTasks().length})`}
+                    {tab === 'ongoing' && ` (${getOngoingTasks().length})`}
+                    {tab === 'stopped' && ` (${tasks.filter((task: Task) => task.status === 'cancelled').length})`}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -665,7 +598,7 @@ const Investigations: React.FC = () => {
                   <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Search investigations by name, status, or severity..."
+                    placeholder="Search tasks by name, status, or severity..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8 border-gray-300 dark:border-gray-600/20"
@@ -678,97 +611,158 @@ const Investigations: React.FC = () => {
               {loading ? (
                 <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-2"></div>
-                  Loading investigations...
+                  Loading tasks...
                 </div>
               ) : error ? (
                 <div className="text-center text-red-500 py-8">{error}</div>
-              ) : getFilteredInvestigations.length === 0 ? (
+              ) : getFilteredTasks.length === 0 ? (
                 <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                   {searchQuery ? (
-                    <>No investigations found matching "{searchQuery}"</>
+                    <>No tasks found matching "{searchQuery}"</>
                   ) : (
-                    <>No investigations found for the selected filter</>
+                    <>No tasks found for the selected filter</>
                   )}
                 </div>
               ) : (
                 <>
-                  {/* Investigations Table using Shadcn components */}
+                  {/* Tasks Table using Shadcn components */}
                   <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
                     <div className="rounded-md border">
                       <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
                         <TableHeader>
                           <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                            <TableHead className="">Investigation</TableHead>
-                            <TableHead className="">Progress</TableHead>
-                            <TableHead className="text-center">Severity</TableHead>
-                            <TableHead className="text-center">Issues Found</TableHead>
-                            <TableHead className="">Remediation Message</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className='text-center'>Created</TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:text-blue-500"
+                              onClick={() => handleSort('title')}
+                            >
+                              Task {renderSortIndicator('title')}
+                            </TableHead>
+                            <TableHead 
+                              className="text-center cursor-pointer hover:text-blue-500"
+                              onClick={() => handleSort('severity')}
+                            >
+                              Severity {renderSortIndicator('severity')}
+                            </TableHead>
+                            <TableHead className="text-center">Tags</TableHead>
+                            <TableHead 
+                              className="text-center cursor-pointer hover:text-blue-500"
+                              onClick={() => handleSort('status')}
+                            >
+                              Status {renderSortIndicator('status')}
+                            </TableHead>
+                            <TableHead 
+                              className='text-center cursor-pointer hover:text-blue-500'
+                              onClick={() => handleSort('duration')}
+                            >
+                              Duration {renderSortIndicator('duration')}
+                            </TableHead>
+                            <TableHead 
+                              className='text-center cursor-pointer hover:text-blue-500'
+                              onClick={() => handleSort('created')}
+                            >
+                              Created {renderSortIndicator('created')}
+                            </TableHead>
+                            <TableHead className="w-[50px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {paginatedInvestigations.map((investigation) => (
+                          {sortedTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((task: Task) => (
                             <TableRow
-                              key={investigation.id}
+                              key={task.task_id}
                               className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
-                              onClick={() => handleNavigateToInvestigate(investigation.id)}
+                              onClick={() => handleNavigateToTask(task.task_id)}
                             >
                               <TableCell className="font-medium">
                                 <div className="flex items-center gap-3">
-                                  {getStatusIcon(investigation.status)}
+                                  {getStatusIcon(task.status)}
                                   <div>
-                                    <div className="hover:text-blue-500 hover:underline font-medium text-xs" onClick={() => navigate("/dashboard/tasks")}>
-                                      {investigation.protocol.name}
+                                    <div className="hover:text-blue-500 hover:underline font-medium text-xs">
+                                      {task.title}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                      ID: {investigation.id}
+                                      ID: {task.task_id}
                                     </div>
                                   </div>
                                 </div>
                               </TableCell>
 
-                              <TableCell>
-                                <div className="space-y-2">
-                                  <div className="flex justify-between text-xs">
-                                    <span>{investigation.progress.toFixed(1)}%</span>
-                                  </div>
-                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
-                                    <div
-                                      className="bg-blue-600 h-1 rounded-full transition-all duration-300"
-                                      style={{ width: `${investigation.progress}%` }}
-                                    />
-                                  </div>
-                                </div>
+                              <TableCell className="text-center">
+                                {getSeverityBadge(task.severity)}
                               </TableCell>
 
                               <TableCell className="text-center">
-                                {getSeverityBadge(investigation.severity)}
-                              </TableCell>
-
-                              <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  {getIssuesIcon(investigation.issuesFound)}
-                                  <span className={`font-semibold ${getIssuesSeverityColor(investigation.issuesFound)}`}>
-                                    {investigation.issuesFound}
-                                  </span>
-                                </div>
-                              </TableCell>
-
-                              <TableCell>
-                                <div className="max-w-xs">
-                                  <div className="text-xs text-gray-700 dark:text-gray-300 truncate" title={investigation.remediationMessage}>
-                                    {investigation.remediationMessage}
-                                  </div>
+                                <div className="flex flex-wrap gap-1 justify-center">
+                                  {task.tags.slice(0, 2).map((tag: string, index: number) => (
+                                    <span key={index} className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700/30 border border-gray-500/40 dark:border-gray-600/50  text-xs rounded">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {task.tags.length > 2 && (
+                                    <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700/30 border border-gray-500/40 dark:border-gray-600/50 text-xs rounded">
+                                      +{task.tags.length - 2}
+                                    </span>
+                                  )}
                                 </div>
                               </TableCell>
 
                               <TableCell className='w-[120px] text-center'>
-                                {getStatusBadge(investigation.status)}
+                                {getStatusBadge(task.status)}
                               </TableCell>
 
                               <TableCell className='text-center dark:text-gray-400'>
-                                {formatAge(investigation.createdAt)}
+                                {task.duration ? `${Math.floor(task.duration / 60)}m` : ''}
+                              </TableCell>
+
+                              <TableCell className='text-center dark:text-gray-400'>
+                                {formatAge(task.created_at)}
+                              </TableCell>
+
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                      }}
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                                    <DropdownMenuItem 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewTask(task);
+                                      }}
+                                      className='hover:text-gray-700 dark:hover:text-gray-500'
+                                    >
+                                      <FileText className="mr-2 h-4 w-4" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleReRunTask(task);
+                                      }}
+                                      className='hover:text-gray-700 dark:hover:text-gray-500'
+                                    >
+                                      <RotateCcw className="mr-2 h-4 w-4" />
+                                      Re-run Task
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteTask(task);
+                                      }}
+                                      className='hover:text-gray-700 dark:hover:text-gray-500 text-red-600 dark:text-red-400'
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </TableCell>
 
                             </TableRow>
@@ -779,11 +773,11 @@ const Investigations: React.FC = () => {
                   </Card>
 
                   {/* Pagination */}
-                  {totalPages > 1 && (
+                  {Math.ceil(sortedTasks.length / itemsPerPage) > 1 && (
                     <Pagination
                       currentPage={currentPage}
-                      totalPages={totalPages}
-                      totalItems={getFilteredInvestigations.length}
+                      totalPages={Math.ceil(sortedTasks.length / itemsPerPage)}
+                      totalItems={sortedTasks.length}
                       itemsPerPage={itemsPerPage}
                       onPageChange={setCurrentPage}
                     />
@@ -794,6 +788,28 @@ const Investigations: React.FC = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.isOpen} onOpenChange={(open) => !open && cancelDeleteTask()}>
+        <DialogContent className="sm:max-w-md dark:bg-[#0B0D13]/40 backdrop-blur-md">
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the task "{deleteDialog.task?.title}"?
+              <br /><br />
+              This action cannot be undone and will remove the task and all its associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDeleteTask}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteTask}>
+              Delete Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

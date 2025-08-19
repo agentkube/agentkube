@@ -12,6 +12,7 @@ import { TemplateParameter } from "../tools/templateparams.provisiondrawer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProvisioningProgress } from "../tools/provisioningprogress.provisiondrawer";
 import { Button } from "@/components/ui/button";
+import { AgentkubeBot } from "@/assets/icons";
 
 const defaultParameters: TaskCalls = {
   clusterName: 'my-eks-cluster',
@@ -303,8 +304,9 @@ export const AssistantMessage: React.FC<{
     <div className="w-full relative">
       <div className="bg-gray-300/30 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
         <div className="flex items-start">
-          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
-            <Sparkles className="h-4 w-4" />
+          <div className="dark:bg-gray-700/30 w-7 h-7 rounded-md overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
+            {/* <Sparkles className="h-4 w-4" /> */}
+            <AgentkubeBot className="h-5 w-5" />
           </div>
           <div className="flex-1 overflow-auto py-1">
             {/* Completed Thinking Timeline - shown as collapsible accordion after response is complete */}

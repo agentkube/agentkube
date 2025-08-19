@@ -199,7 +199,7 @@ const Footer: React.FC = () => {
             className='backdrop-blur-md cursor-pointer py-1 px-2 text-xs dark:text-gray-300 hover:bg-gray-800/50 flex items-center'
             onClick={() => setIsOpen(true)}
           >
-            <ScanSearch className='h-3' /> <span>Background Task</span>
+            <ScanSearch className='h-3' /> <span>Investigation Task</span>
           </div>
         </div>
         <div className="flex">

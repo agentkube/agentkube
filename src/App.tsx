@@ -123,7 +123,7 @@ function App() {
                           <Route path="cluster-report" element={<ClusterReport />} />
                           <Route path="runbooks" element={<Runbooks />} />
                           <Route path="investigations" element={<Investigation />} />
-                          <Route path="tasks" element={<TaskReport />} />
+                          <Route path="tasks/report/:taskId" element={<TaskReport />} />
 
                           <Route path="cost" element={<CostOverview />} />
                           <Route path="llm-comparison" element={<LLMComparison />} />

@@ -251,7 +251,7 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
     
       const content = String(children);
       if (!content.includes('\n')) {
-        return <code className="bg-gray-200 dark:bg-gray-800/80 text-green-400 px-1 py-0.5 rounded text-xs font-mono">{content}</code>;
+        return <code className="bg-gray-200 dark:bg-gray-800/80 text-gray-900 dark:text-green-400 px-1 py-0.5 rounded text-xs font-mono">{content}</code>;
       }
     
       const language = className?.replace('language-', '') || 'plaintext';
