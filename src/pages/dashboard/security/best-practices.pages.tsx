@@ -24,9 +24,12 @@ import { TrivyNotInstalled } from "@/components/custom";
 import { getTrivyStatus } from '@/api/scanner/security';
 import { kubeProxyRequest, getConfigAuditReportForResource } from '@/api/cluster';
 import { useCluster } from '@/contexts/clusterContext';
+import { useNamespace } from '@/contexts/useNamespace';
 import { SideDrawer, DrawerHeader, DrawerContent } from '@/components/ui/sidedrawer.custom';
 import MarkdownContent from "@/utils/markdown-formatter";
 import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { NamespaceSelector } from '@/components/custom';
 
 const SEVERITY_LEVELS = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 
@@ -41,6 +44,7 @@ const AuditReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { currentContext } = useCluster();
+  const { selectedNamespaces } = useNamespace();
   const [isTrivyInstalled, setIsTrivyInstalled] = useState(false);
   const navigate = useNavigate();
 
@@ -53,7 +57,6 @@ const AuditReport = () => {
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeverity, setSelectedSeverity] = useState<SeverityLevel | "all">("all");
-  const [selectedNamespace] = useState(FILTER_OPTIONS.namespaces);
   const [selectedLabels] = useState(FILTER_OPTIONS.labels);
 
   // Sorting states
@@ -177,11 +180,18 @@ const AuditReport = () => {
       // Extract resource info from metadata or report name
       const resourceName = report.metadata.labels?.['trivy-operator.resource.name'] || report.metadata.name;
       const resourceKind = report.metadata.labels?.['trivy-operator.resource.kind'] || 'Unknown';
+      const reportNamespace = report.metadata.labels?.['trivy-operator.resource.namespace'] || report.metadata.namespace;
+
+      // Filter by selected namespaces
+      if (selectedNamespaces.length > 0 && reportNamespace && !selectedNamespaces.includes(reportNamespace)) {
+        return false;
+      }
 
       const matchesSearch = searchQuery === "" ||
         report.metadata.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         resourceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        resourceKind.toLowerCase().includes(searchQuery.toLowerCase());
+        resourceKind.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (reportNamespace && reportNamespace.toLowerCase().includes(searchQuery.toLowerCase()));
 
       if (selectedSeverity === "all") {
         return matchesSearch;
@@ -240,7 +250,24 @@ const AuditReport = () => {
     }
 
     return filtered;
-  }, [configAuditReports, searchQuery, selectedSeverity, sortField, sortDirection]);
+  }, [configAuditReports, searchQuery, selectedSeverity, selectedNamespaces, sortField, sortDirection]);
+
+  // Calculate security metrics from all filtered reports
+  const securityMetrics = useMemo(() => {
+    let low = 0;
+    let medium = 0;
+    let high = 0;
+    let critical = 0;
+
+    filteredReports.forEach(report => {
+      low += report.report.summary.lowCount;
+      medium += report.report.summary.mediumCount;
+      high += report.report.summary.highCount;
+      critical += report.report.summary.criticalCount;
+    });
+
+    return { low, medium, high, critical };
+  }, [filteredReports]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -294,23 +321,6 @@ const AuditReport = () => {
       "
     >
 
-      {/* Development Preview Notice */}
-      <motion.div
-        variants={itemVariants}
-        className="mx-6 mt-6 mb-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg text-xs"
-      >
-        <div className="flex items-center gap-3">
-          <AlertCircle className="h-4 w-4 text-amber-500" />
-          <div>
-            <span className="font-medium text-amber-800 dark:text-amber-200">Development Preview</span>
-            <p className="text-amber-700 dark:text-amber-300 mt-1">
-              The Trivy Plugin is in active development and currently in development preview.
-              Features may be subject to change and some functionality may be limited.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
       <div className="grid grid-cols-3 gap-6 mb-32 dark:bg-transparent p-6 rounded-3xl">
         <motion.div variants={itemVariants} className="col-span-3">
           <div className="flex justify-between">
@@ -329,6 +339,54 @@ const AuditReport = () => {
 
 
         <motion.div variants={itemVariants} className="col-span-3 dark:bg-transparent rounded-2xl">
+          
+          {/* Security Metrics Cards */}
+          <div className="grid grid-cols-4 gap-1 mb-6">
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+              <CardContent className="py-2 flex flex-col h-full">
+                <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Critical</h2>
+                <div className="mt-auto">
+                  <p className="text-4xl font-light text-red-600 dark:text-red-400 mb-1">{securityMetrics.critical}</p>
+                  <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                    <div className="h-1 bg-red-500 dark:bg-red-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+              <CardContent className="py-2 flex flex-col h-full">
+                <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">High</h2>
+                <div className="mt-auto">
+                  <p className="text-4xl font-light text-orange-600 dark:text-orange-400 mb-1">{securityMetrics.high}</p>
+                  <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                    <div className="h-1 bg-orange-500 dark:bg-orange-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+              <CardContent className="py-2 flex flex-col h-full">
+                <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Medium</h2>
+                <div className="mt-auto">
+                  <p className="text-4xl font-light text-yellow-600 dark:text-yellow-400 mb-1">{securityMetrics.medium}</p>
+                  <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                    <div className="h-1 bg-yellow-500 dark:bg-yellow-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+              <CardContent className="py-2 flex flex-col h-full">
+                <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Low</h2>
+                <div className="mt-auto">
+                  <p className="text-4xl font-light text-blue-600 dark:text-blue-400 mb-1">{securityMetrics.low}</p>
+                  <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                    <div className="h-1 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="mb-4">
             <Input
@@ -340,25 +398,11 @@ const AuditReport = () => {
             />
           </div>
 
-          <div className="flex gap-4 mb-6">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-48">
+              <NamespaceSelector />
+            </div>
 
-            <Select value={selectedNamespace}>
-              <SelectTrigger className="w-32 border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
-                <SelectValue placeholder="Namespaces" />
-              </SelectTrigger>
-              <SelectContent className="dark:bg-[#0B0D13]">
-                <SelectItem value="all-namespaces">All Namespaces</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedLabels}>
-              <SelectTrigger className="w-32 border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
-                <SelectValue placeholder="Labels" />
-              </SelectTrigger>
-              <SelectContent className="dark:bg-[#0B0D13]">
-                <SelectItem value="all-labels">All Labels</SelectItem>
-              </SelectContent>
-            </Select>
 
             <Select
               value={selectedSeverity}
@@ -367,8 +411,8 @@ const AuditReport = () => {
               <SelectTrigger className="w-32 border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-[#0B0D13]">
-                <SelectItem value="all">All Severities</SelectItem>
+              <SelectContent className="dark:bg-[#0B0D13]/30 backdrop-blur-md">
+                <SelectItem value="all">All</SelectItem>
                 {SEVERITY_LEVELS.map((severity) => (
                   <SelectItem key={severity} value={severity}>
                     {severity}
