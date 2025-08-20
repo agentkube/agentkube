@@ -103,6 +103,10 @@ export interface AgentKubeConfig {
     customCommands: any[];
     experimentalFeatures: boolean;
   };
+  agents: {
+    denyList: string[];
+    webSearch: boolean;
+  };
 }
 
 export interface MCPServerConfig {

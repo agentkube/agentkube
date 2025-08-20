@@ -69,7 +69,7 @@ const advancedFeatures: FeatureItem[] = [
       {
         id: 'best-practices',
         icon: <ShieldCheck className="w-4 h-4" />,
-        label: 'Best Practices',
+        label: 'Audit Report',
         path: '/dashboard/security/best-practices'
       },
       {

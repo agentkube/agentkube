@@ -25,7 +25,7 @@ interface TableProps {
 }
 
 interface MarkdownContentProps {
-  content: string;
+  content: string | null | undefined;
 }
 
 // Chart component mapper
@@ -81,6 +81,10 @@ const ChartRenderer = ({ type, title, description, explanation, ...props }: any)
 };
 
 const MarkdownContent = ({ content }: MarkdownContentProps) => {
+  if (!content || typeof content !== 'string') {
+    return <span className="text-gray-500 dark:text-gray-400 text-sm">No content available</span>;
+  }
+  
   const processedContent = content.replace(/\\n/g, '\n');
 
   // Custom renderer for handling chart components

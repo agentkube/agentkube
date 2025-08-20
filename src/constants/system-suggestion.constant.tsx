@@ -63,8 +63,8 @@ export const SYSTEM_SUGGESTIONS = [
     link: '/dashboard/cost-management'
   },
   {
-    title: 'View Security Best Practices',
-    description: 'View Security Best Practices',
+    title: 'View Security Audit Report',
+    description: 'View Security Audit Report',
     icon: <File className="w-5 h-5" />,
     link: '/dashboard/security-best-practices'
   },
