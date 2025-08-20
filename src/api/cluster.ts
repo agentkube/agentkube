@@ -1,6 +1,7 @@
 import { KubeContext, KubeconfigUploadResponse, KubeconfigUploadRequest } from '@/types/cluster';
 import { OPERATOR_URL } from '@/config';
 import { ClusterReport } from '@/types/cluster-report';
+import { IndividualConfigAuditReport } from '@/types/trivy';
 
 
 export const getKubeContexts = async (): Promise<KubeContext[]> => {
@@ -148,4 +149,14 @@ export const getClusterReport = async (clusterName: string): Promise<ClusterRepo
   }
 
   return response.json();
+};
+
+export const getConfigAuditReportForResource = async (clusterName: string, reportName: string): Promise<IndividualConfigAuditReport> => {
+  const response = await kubeProxyRequest(
+    clusterName,
+    `apis/aquasecurity.github.io/v1alpha1/configauditreports/${reportName}`,
+    'GET'
+  );
+
+  return response as IndividualConfigAuditReport;
 };

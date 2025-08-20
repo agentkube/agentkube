@@ -259,3 +259,178 @@ export const getServerTools = async (serverName: string) => {
     throw error;
   }
 };
+
+/**
+ * Fetches the agent deny list
+ * @returns Promise with the agent deny list
+ */
+export const getAgentDenyList = async (): Promise<{ denyList: string[] }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/agents/denylist`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch agent deny list: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching agent deny list:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches the user rules content
+ * @returns Promise with the user rules content
+ */
+export const getUserRules = async (): Promise<{ content: string }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/rules/user`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user rules: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching user rules:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates the user rules content
+ * @param content The new user rules content
+ * @returns Promise with the update result
+ */
+export const updateUserRules = async (content: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/rules/user`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to update user rules: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error updating user rules:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches the cluster rules content
+ * @returns Promise with the cluster rules content
+ */
+export const getClusterRules = async (): Promise<{ content: string }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/rules/cluster`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch cluster rules: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching cluster rules:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates the cluster rules content
+ * @param content The new cluster rules content
+ * @returns Promise with the update result
+ */
+export const updateClusterRules = async (content: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/rules/cluster`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to update cluster rules: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error updating cluster rules:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches the kubeignore content
+ * @returns Promise with the kubeignore content
+ */
+export const getKubeignore = async (): Promise<{ content: string }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/kubeignore`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch kubeignore: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching kubeignore:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates the kubeignore content
+ * @param content The new kubeignore content
+ * @returns Promise with the update result
+ */
+export const updateKubeignore = async (content: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/kubeignore`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to update kubeignore: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error updating kubeignore:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches the agent web search setting from main config
+ * @returns Promise with the agent web search setting
+ */
+export const getAgentWebSearch = async (): Promise<{ webSearch: boolean }> => {
+  try {
+    const config = await getSettings();
+    return { webSearch: config.agents.webSearch };
+  } catch (error) {
+    console.error('Error fetching agent web search setting:', error);
+    throw error;
+  }
+};
