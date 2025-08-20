@@ -34,13 +34,14 @@ import {
   ArrowUpRight,
   Edit,
   Copy,
-  Check
+  Check,
+  Logs
 } from 'lucide-react';
 import MarkdownContent from '@/utils/markdown-formatter';
 import { SideDrawer, DrawerHeader, DrawerContent } from "@/components/ui/sidedrawer.custom";
 import { Separator } from '@/components/ui/separator';
 import { getTaskDetails, getInvestigationTaskDetails } from '@/api/task';
-import { TaskDetails, SubTask, InvestigationTaskDetails } from '@/types/task';
+import { TaskDetails, SubTask, InvestigationTaskDetails, ResourceContext } from '@/types/task';
 import { AgentkubeBot } from '@/assets/icons';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -238,6 +239,15 @@ const TaskReport: React.FC = () => {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const extractResourceContent = (resourceContentJson: string): string => {
+    try {
+      const parsed = JSON.parse(resourceContentJson);
+      return parsed.resourceContent || resourceContentJson;
+    } catch {
+      return resourceContentJson;
+    }
   };
 
 
@@ -737,19 +747,19 @@ const TaskReport: React.FC = () => {
                   <div className="space-y-2">
                     <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Resource Context</h4>
                     <div className="space-y-2">
-                      {promptDetails.resource_context.map((resource, index) => (
+                      {promptDetails.resource_context.map((resource: ResourceContext, index) => (
                         <div key={index} className="bg-transparent rounded-lg border border-gray-200 dark:border-gray-800">
                           <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value={`resource-${index}`} className="border-0">
                               <AccordionTrigger className="px-2 py-2 hover:no-underline">
-                                <div className="text-xs font-medium text-blue-700 dark:text-blue-400">
-                                  {resource.resource_name}
+                                <div className="flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-400">
+                                  <SiKubernetes className='h-4 w-4' /> {resource.resource_name}
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent className="px-2 pb-2">
                                 <div className="relative">
                                   <button
-                                    onClick={() => handleCopy(resource.resource_content)}
+                                    onClick={() => handleCopy(extractResourceContent(resource.resource_content))}
                                     className="absolute top-2 right-2 p-2 rounded-lg bg-neutral-700/20 dark:bg-gray-500/10 hover:bg-gray-600 text-gray-200/60 hover:text-white z-10"
                                     aria-label="Copy resource content"
                                   >
@@ -759,7 +769,12 @@ const TaskReport: React.FC = () => {
                                       <Copy className="w-3 h-3" />
                                     )}
                                   </button>
-                                  <div className="max-h-48 overflow-y-auto">
+                                  <div className="max-h-48 overflow-y-auto         rounded-b-lg shadow-lg
+                                    [&::-webkit-scrollbar]:w-1.5 
+                                    [&::-webkit-scrollbar-track]:bg-transparent 
+                                    [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+                                    [&::-webkit-scrollbar-thumb]:rounded-full
+                                    [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
                                     <SyntaxHighlighter
                                       language="yaml"
                                       style={nord}
@@ -770,7 +785,7 @@ const TaskReport: React.FC = () => {
                                         color: '#262625',
                                       }}
                                     >
-                                      {resource.resource_content}
+                                      {extractResourceContent(resource.resource_content)}
                                     </SyntaxHighlighter>
                                   </div>
                                 </div>
@@ -789,12 +804,12 @@ const TaskReport: React.FC = () => {
                   {promptDetails.log_context && promptDetails.log_context.length > 0 ? (
                     <div className="space-y-2">
                       {promptDetails.log_context.map((log, index) => (
-                        <div key={index} className="bg-transparent dark:bg-transparent rounded-lg border border-yellow-200 dark:border-yellow-800">
+                        <div key={index} className="bg-transparent dark:bg-transparent rounded-lg border border-gray-200 dark:border-gray-800">
                           <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value={`log-${index}`} className="border-0">
                               <AccordionTrigger className="px-3 py-2 hover:no-underline">
-                                <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
-                                  {log.log_name}
+                                <div className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                                  <Logs className='h-4 w-4' />  {log.log_name}
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent className="px-3 pb-3">
@@ -810,15 +825,22 @@ const TaskReport: React.FC = () => {
                                       <Copy className="w-3 h-3" />
                                     )}
                                   </button>
-                                  <SyntaxHighlighter
-                                    language="text"
-                                    style={nord}
-                                    customStyle={customStyle}
-                                    wrapLines={true}
-                                    showLineNumbers={false}
-                                  >
-                                    {log.log_content}
-                                  </SyntaxHighlighter>
+                                  <div className='max-h-48 overflow-y-auto rounded-b-lg shadow-lg
+                                [&::-webkit-scrollbar]:w-1.5 
+                                [&::-webkit-scrollbar-track]:bg-transparent 
+                                [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+                                [&::-webkit-scrollbar-thumb]:rounded-full
+                                [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'>
+                                    <SyntaxHighlighter
+                                      language="text"
+                                      style={nord}
+                                      customStyle={customStyle}
+                                      wrapLines={true}
+                                      showLineNumbers={false}
+                                    >
+                                      {log.log_content}
+                                    </SyntaxHighlighter>
+                                  </div>
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
