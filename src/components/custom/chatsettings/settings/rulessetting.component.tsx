@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, Save, X, UserCog, ClipboardList } from "lucide-react";
 import { SiKubernetes } from '@icons-pack/react-simple-icons';
 import { MinimalEditor } from '@/components/custom';
+import { getUserRules, updateUserRules, getClusterRules, updateClusterRules } from '@/api/settings';
 
 interface Rule {
   id: number;
@@ -19,7 +20,7 @@ interface ShowAddForm {
 
 interface AddRuleFormProps {
   type: RuleType;
-  onSave: (type: RuleType, content: string) => void;
+  onSave: (type: RuleType, content: string) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -27,8 +28,8 @@ interface RuleItemProps {
   rule: Rule;
   type: RuleType;
   onEdit: (rule: Rule) => void;
-  onDelete: (type: RuleType, id: number) => void;
-  onSaveEdit: (type: RuleType, id: number, content: string) => void;
+  onDelete: (type: RuleType, id: number) => Promise<void>;
+  onSaveEdit: (type: RuleType, id: number, content: string) => Promise<void>;
   isEditing: boolean;
   onCancelEdit: () => void;
 }
@@ -38,6 +39,41 @@ const RulesSetting: React.FC = () => {
   const [clusterRules, setClusterRules] = useState<Rule[]>([]);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [showAddForm, setShowAddForm] = useState<ShowAddForm>({ type: null, show: false });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadRules();
+  }, []);
+
+  const loadRules = async () => {
+    try {
+      setIsLoading(true);
+      const [userResponse, clusterResponse] = await Promise.allSettled([
+        getUserRules(),
+        getClusterRules()
+      ]);
+
+      if (userResponse.status === 'fulfilled' && userResponse.value.content) {
+        setUserRules([{
+          id: 1,
+          content: userResponse.value.content,
+          name: 'user_rules.md'
+        }]);
+      }
+
+      if (clusterResponse.status === 'fulfilled' && clusterResponse.value.content) {
+        setClusterRules([{
+          id: 1,
+          content: clusterResponse.value.content,
+          name: 'cluster_rules.md'
+        }]);
+      }
+    } catch (error) {
+      console.error('Failed to load rules:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Add new rule
   const handleAddRule = (type: RuleType): void => {
@@ -45,35 +81,51 @@ const RulesSetting: React.FC = () => {
   };
 
   // Save new rule
-  const handleSaveNewRule = (type: RuleType, content: string): void => {
-    const newRule: Rule = {
-      id: Date.now(),
-      content: content.trim(),
-      name: type === 'user' ? 'user_rules.md' : 'cluster_rules.md'
-    };
+  const handleSaveNewRule = async (type: RuleType, content: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+      
+      if (type === 'user') {
+        await updateUserRules(content.trim());
+        setUserRules([{
+          id: 1,
+          content: content.trim(),
+          name: 'user_rules.md'
+        }]);
+      } else {
+        await updateClusterRules(content.trim());
+        setClusterRules([{
+          id: 1,
+          content: content.trim(),
+          name: 'cluster_rules.md'
+        }]);
+      }
 
-    if (type === 'user') {
-      setUserRules([newRule]); // Only allow one user rule
-    } else {
-      setClusterRules([newRule]); // Only allow one cluster rule
+      setShowAddForm({ type: null, show: false });
+    } catch (error) {
+      console.error('Failed to save rule:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setShowAddForm({ type: null, show: false });
-
-    // TODO: Make API call to save rule
-    console.log('API Call - Save rule:', { type, rule: newRule });
   };
 
   // Delete rule
-  const handleDeleteRule = (type: RuleType, id: number): void => {
-    if (type === 'user') {
-      setUserRules(userRules.filter(rule => rule.id !== id));
-    } else {
-      setClusterRules(clusterRules.filter(rule => rule.id !== id));
+  const handleDeleteRule = async (type: RuleType, id: number): Promise<void> => {
+    try {
+      setIsLoading(true);
+      
+      if (type === 'user') {
+        await updateUserRules('');
+        setUserRules([]);
+      } else {
+        await updateClusterRules('');
+        setClusterRules([]);
+      }
+    } catch (error) {
+      console.error('Failed to delete rule:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    // TODO: Make API call to delete rule
-    console.log('API Call - Delete rule:', { type, id });
   };
 
   // Edit rule
@@ -82,30 +134,36 @@ const RulesSetting: React.FC = () => {
   };
 
   // Save edited rule
-  const handleSaveEdit = (type: RuleType, id: number, newContent: string): void => {
-    const updateRules = (rules: Rule[]): Rule[] =>
-      rules.map(rule =>
-        rule.id === id ? { ...rule, content: newContent.trim() } : rule
-      );
+  const handleSaveEdit = async (type: RuleType, id: number, newContent: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+      
+      if (type === 'user') {
+        await updateUserRules(newContent.trim());
+        setUserRules(userRules.map(rule =>
+          rule.id === id ? { ...rule, content: newContent.trim() } : rule
+        ));
+      } else {
+        await updateClusterRules(newContent.trim());
+        setClusterRules(clusterRules.map(rule =>
+          rule.id === id ? { ...rule, content: newContent.trim() } : rule
+        ));
+      }
 
-    if (type === 'user') {
-      setUserRules(updateRules(userRules));
-    } else {
-      setClusterRules(updateRules(clusterRules));
+      setEditingRule(null);
+    } catch (error) {
+      console.error('Failed to update rule:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setEditingRule(null);
-
-    // TODO: Make API call to update rule
-    console.log('API Call - Update rule:', { type, id, content: newContent });
   };
 
   const AddRuleForm: React.FC<AddRuleFormProps> = ({ type, onSave, onCancel }) => {
     const [content, setContent] = useState<string>('');
 
-    const handleSave = (): void => {
+    const handleSave = async (): Promise<void> => {
       if (content.trim()) {
-        onSave(type, content);
+        await onSave(type, content);
       }
     };
 
@@ -141,10 +199,10 @@ const RulesSetting: React.FC = () => {
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={!content.trim()}
+            disabled={!content.trim() || isLoading}
           >
             <Save className="w-4 h-4 mr-1" />
-            Save Rule
+            {isLoading ? 'Saving...' : 'Save Rule'}
           </Button>
         </div>
       </div>
@@ -162,9 +220,9 @@ const RulesSetting: React.FC = () => {
   }) => {
     const [editContent, setEditContent] = useState<string>(rule.content);
 
-    const handleSaveEdit = (): void => {
+    const handleSaveEdit = async (): Promise<void> => {
       if (editContent.trim()) {
-        onSaveEdit(type, rule.id, editContent);
+        await onSaveEdit(type, rule.id, editContent);
       }
     };
 
@@ -232,6 +290,7 @@ const RulesSetting: React.FC = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => onDelete(type, rule.id)}
+                  disabled={isLoading}
                   className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-l border-gray-400/50 dark:border-gray-700"
                 >
                   <Trash2 className="w-4 h-4" />

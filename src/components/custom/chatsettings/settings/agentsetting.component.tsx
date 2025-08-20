@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, Plus, Info, EllipsisVertical, Terminal, Files, Lightbulb, BotMessageSquare, Settings, Power } from "lucide-react";
+import { X, Plus, Info, EllipsisVertical, Terminal, Files, Lightbulb, BotMessageSquare, Settings, Power, Globe } from "lucide-react";
 import { Switch } from '@/components/ui/switch';
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
 import { SiHelm, SiKubernetes, SiArgo, SiPrometheus, SiTrivy, SiDatadog, SiGrafana, SiDocker } from '@icons-pack/react-simple-icons';
 import { Loki, SigNoz } from '@/assets/icons';
 import { ConfigDialog } from './toolconfigdialog.component';
+import { getAgentDenyList, getAgentWebSearch, patchConfig } from '@/api/settings';
 
 export interface Agent {
   id: string;
@@ -32,8 +33,10 @@ export interface ExtendedToolConfig {
 
 const AgentSetting: React.FC = () => {
   const [autoRun, setAutoRun] = useState<boolean>(true);
-  const [denyList, setDenyList] = useState<string[]>(['rm', 'kill', 'chmod']);
+  const [webSearch, setWebSearch] = useState<boolean>(false);
+  const [denyList, setDenyList] = useState<string[]>([]);
   const [newDenyCommand, setNewDenyCommand] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [configDialog, setConfigDialog] = useState<{ tool: Agent; isOpen: boolean }>({ tool: {} as Agent, isOpen: false });
   const [extendedToolsConfig, setExtendedToolsConfig] = useState<Record<string, ExtendedToolConfig>>({
     argocd: { id: 'argocd', enabled: false, config: {} },
@@ -46,6 +49,11 @@ const AgentSetting: React.FC = () => {
     alertmanager: { id: 'alertmanager', enabled: false, config: {} },
     signoz: { id: 'signoz', enabled: false, config: {} },
   });
+
+  useEffect(() => {
+    loadDenyList();
+    loadWebSearchSetting();
+  }, []);
 
   const builtInTools: Agent[] = [
     {
@@ -161,15 +169,70 @@ const AgentSetting: React.FC = () => {
     }
   ];
 
+  const loadDenyList = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getAgentDenyList();
+      setDenyList(response.denyList);
+    } catch (error) {
+      console.error('Failed to load deny list:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadWebSearchSetting = async () => {
+    try {
+      const response = await getAgentWebSearch();
+      setWebSearch(response.webSearch);
+    } catch (error) {
+      console.error('Failed to load web search setting:', error);
+    }
+  };
+
+  const updateWebSearchSetting = async (enabled: boolean) => {
+    try {
+      setIsLoading(true);
+      await patchConfig({
+        agents: { webSearch: enabled }
+      });
+      setWebSearch(enabled);
+    } catch (error) {
+      console.error('Failed to update web search setting:', error);
+      // Revert on error
+      loadWebSearchSetting();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateDenyList = async (newDenyList: string[]) => {
+    try {
+      setIsLoading(true);
+      await patchConfig({
+        agents: { denyList: newDenyList }
+      });
+      setDenyList(newDenyList);
+    } catch (error) {
+      console.error('Failed to update deny list:', error);
+      // Revert on error
+      loadDenyList();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAddDenyCommand = () => {
     if (newDenyCommand.trim() && !denyList.includes(newDenyCommand.trim())) {
-      setDenyList([...denyList, newDenyCommand.trim()]);
+      const updatedList = [...denyList, newDenyCommand.trim()];
+      updateDenyList(updatedList);
       setNewDenyCommand('');
     }
   };
 
   const handleRemoveDenyCommand = (command: string) => {
-    setDenyList(denyList.filter(cmd => cmd !== command));
+    const updatedList = denyList.filter(cmd => cmd !== command);
+    updateDenyList(updatedList);
   };
 
   const toggleExtendedTool = (toolId: string) => {
@@ -292,9 +355,23 @@ const AgentSetting: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <div className='pb-4 flex items-center space-x-2'>
-        <BotMessageSquare className='text-emerald-500' />
-        <h1 className='text-2xl font-medium'>Agent</h1>
+      <div className='pb-4 flex items-center justify-between'>
+        <div className='flex items-center space-x-2'>
+          <BotMessageSquare className='text-emerald-500' />
+          <h1 className='text-2xl font-medium'>Agent</h1>
+        </div>
+        <div className='flex items-center space-x-2'>
+          <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300">
+            <Globe className='h-4 w-4' />
+            Web Search
+          </label>
+          <Switch
+            id="web-search"
+            checked={webSearch}
+            onCheckedChange={updateWebSearchSetting}
+            disabled={isLoading}
+          />
+        </div>
       </div>
       <div className="space-y-6">
         <div className="bg-gray-200/50 dark:bg-gray-800/30 rounded-lg p-4 space-y-2">
@@ -329,16 +406,17 @@ const AgentSetting: React.FC = () => {
                   onChange={(e) => setNewDenyCommand(e.target.value)}
                   placeholder="Enter command"
                   className="flex-1 px-3 bg-gray-100 dark:bg-gray-800/10 border border-gray-300 dark:border-gray-600/50 rounded text-xs text-gray-800 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:border-gray-500 dark:focus:border-gray-500"
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddDenyCommand()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddDenyCommand()}
                 />
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleAddDenyCommand}
+                  disabled={isLoading}
                   className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300"
                 >
                   <Plus className="w-4 h-4" />
-                  Add
+                  {isLoading ? 'Adding...' : 'Add'}
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -353,6 +431,7 @@ const AgentSetting: React.FC = () => {
                       size="sm"
                       className="ml-1 p-0 h-4 w-4 dark:text-gray-400"
                       onClick={() => handleRemoveDenyCommand(command)}
+                      disabled={isLoading}
                     >
                       <X className="w-3 h-3" />
                     </Button>

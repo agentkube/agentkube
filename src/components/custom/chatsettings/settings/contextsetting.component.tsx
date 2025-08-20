@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Brain, Plus, Save, X, FileX, BookOpen, Info } from "lucide-react";
 import { MinimalEditor } from '@/components/custom';
+import { getKubeignore, updateKubeignore } from '@/api/settings';
 
 const ContextSetting = () => {
   const [showIgnoreForm, setShowIgnoreForm] = useState(false);
@@ -10,6 +11,11 @@ const ContextSetting = () => {
   const [docsContent, setDocsContent] = useState('');
   const [savedIgnoreRules, setSavedIgnoreRules] = useState('');
   const [savedDocs, setSavedDocs] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadKubeignore();
+  }, []);
 
   const kubeignoreTemplate = `# ---------------------------------------------------
 #  Ignore all objects in system or monitoring NS
@@ -71,13 +77,31 @@ Add your project documentation here...
 kubectl apply -f manifests/
 \`\`\``;
 
-  const handleSaveIgnoreRules = () => {
+  const loadKubeignore = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getKubeignore();
+      setSavedIgnoreRules(response.content);
+    } catch (error) {
+      console.error('Failed to load kubeignore:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveIgnoreRules = async () => {
     if (ignoreContent.trim()) {
-      setSavedIgnoreRules(ignoreContent);
-      setShowIgnoreForm(false);
-      setIgnoreContent('');
-      // TODO: Make API call to save ignore rules
-      console.log('API Call - Save ignore rules:', ignoreContent);
+      try {
+        setIsLoading(true);
+        await updateKubeignore(ignoreContent);
+        setSavedIgnoreRules(ignoreContent);
+        setShowIgnoreForm(false);
+        setIgnoreContent('');
+      } catch (error) {
+        console.error('Failed to save kubeignore:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -189,10 +213,10 @@ kubectl apply -f manifests/
                 <Button
                   size="sm"
                   onClick={handleSaveIgnoreRules}
-                  disabled={!ignoreContent.trim()}
+                  disabled={!ignoreContent.trim() || isLoading}
                 >
                   <Save className="w-4 h-4 mr-1" />
-                  Save .kubeignore
+                  {isLoading ? 'Saving...' : 'Save .kubeignore'}
                 </Button>
               </div>
             </div>
