@@ -24,6 +24,9 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
   const [openAIKey, setOpenAIKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
   const [googleKey, setGoogleKey] = useState('');
+  const [openaiEnabled, setOpenaiEnabled] = useState(false);
+  const [anthropicEnabled, setAnthropicEnabled] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
   const [azureEnabled, setAzureEnabled] = useState(false);
   const [azureBaseURL, setAzureBaseURL] = useState('');
   const [azureDeploymentName, setAzureDeploymentName] = useState('');
@@ -48,6 +51,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           if (externalConfig.openai?.apiKey) {
             try {
               setOpenAIKey(atob(externalConfig.openai.apiKey));
+              setOpenaiEnabled(true);
             } catch (e) {
               console.error('Failed to decode OpenAI key');
             }
@@ -56,6 +60,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           if (externalConfig.anthropic?.apiKey) {
             try {
               setAnthropicKey(atob(externalConfig.anthropic.apiKey));
+              setAnthropicEnabled(true);
             } catch (e) {
               console.error('Failed to decode Anthropic key');
             }
@@ -64,6 +69,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           if (externalConfig.google?.apiKey) {
             try {
               setGoogleKey(atob(externalConfig.google.apiKey));
+              setGoogleEnabled(true);
             } catch (e) {
               console.error('Failed to decode Google key');
             }
@@ -341,128 +347,158 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
     <div className="p-6 space-y-8">
       {/* OpenAI API Key Section */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-2xl font-medium text-black dark:text-white">OpenAI API Key</h3>
-          <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
-            You can put in <a onClick={() => openExternalUrl("https://platform.openai.com/settings/organization/api-keys")} className="text-blue-500 hover:underline">your OpenAI key</a> to use agentkube at public API costs. Note: this can cost more than pro and won't work for custom model features.
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-light text-black dark:text-white">OpenAI API Key</h3>
+            <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
+              You can put in <a onClick={() => openExternalUrl("https://platform.openai.com/settings/organization/api-keys")} className="text-blue-500 hover:underline cursor-pointer">your OpenAI key</a> to use agentkube at public API costs. Note: this can cost more than pro and won't work for custom model features.
+            </p>
+          </div>
+          <Switch
+            checked={openaiEnabled}
+            onCheckedChange={setOpenaiEnabled}
+          />
         </div>
         
-        <div className="flex gap-2">
-          <div className="relative flex-grow">
-            <Input
-              type={showingOpenAIKey ? "text" : "password"}
-              placeholder="Enter your OpenAI API Key"
-              value={openAIKey}
-              onChange={(e) => setOpenAIKey(e.target.value)}
-              className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
-            />
-            <button 
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              onClick={toggleOpenAIKeyVisibility}
-            >
-              {showingOpenAIKey ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-          <Button 
-            onClick={verifyOpenAIKey}
-            className=" text-white"
-          >
-            Verify <ArrowRight size={16} className="ml-1" />
-          </Button>
-        </div>
+        {openaiEnabled && (
+          <div className="space-y-4 pl-4 border-l-2 border-gray-300 dark:border-gray-700 mt-4">
+            <div className="flex gap-2">
+              <div className="relative flex-grow">
+                <Input
+                  type={showingOpenAIKey ? "text" : "password"}
+                  placeholder="Enter your OpenAI API Key"
+                  value={openAIKey}
+                  onChange={(e) => setOpenAIKey(e.target.value)}
+                  className="h-7 pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
+                />
+                <button 
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  onClick={toggleOpenAIKeyVisibility}
+                >
+                  {showingOpenAIKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <Button 
+                onClick={verifyOpenAIKey}
+                className=" text-white"
+              >
+                Verify <ArrowRight size={16} className="ml-1" />
+              </Button>
+            </div>
 
-        <div>
-          <Button 
-            variant="link" 
-            className="text-gray-500 dark:text-gray-400 p-0 h-auto text-sm"
-            onClick={() => setShowOpenAIBaseURL(!showOpenAIBaseURL)}
-          >
-            Override OpenAI Base URL (when using key) {showOpenAIBaseURL ? "↑" : "↓"}
-          </Button>
-          
-          {showOpenAIBaseURL && (
-            <Input
-              type="text"
-              placeholder="https://api.openai.com/v1"
-              value={openAIBaseURL}
-              onChange={(e) => setOpenAIBaseURL(e.target.value)}
-              className="mt-2 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
-            />
-          )}
-        </div>
+            <div>
+              <Button 
+                variant="link" 
+                className="text-gray-500 dark:text-gray-400 p-0 h-auto text-sm"
+                onClick={() => setShowOpenAIBaseURL(!showOpenAIBaseURL)}
+              >
+                Override OpenAI Base URL (when using key) {showOpenAIBaseURL ? "↑" : "↓"}
+              </Button>
+              
+              {showOpenAIBaseURL && (
+                <Input
+                  type="text"
+                  placeholder="https://api.openai.com/v1"
+                  value={openAIBaseURL}
+                  onChange={(e) => setOpenAIBaseURL(e.target.value)}
+                  className="h-7 mt-2 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="border-t border-gray-200 dark:border-gray-800/70 my-6"></div>
       
       {/* Anthropic API Key Section */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-2xl font-medium text-black dark:text-white">Anthropic API Key</h3>
-          <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
-            You can put in <a onClick={() => openExternalUrl("https://docs.anthropic.com/en/api/getting-started")} className="text-blue-500 hover:underline">your Anthropic key</a> to use Claude at cost. When enabled, this key will be used for all models beginning with "claude-".
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-light text-black dark:text-white">Anthropic API Key</h3>
+            <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
+              You can put in <a onClick={() => openExternalUrl("https://docs.anthropic.com/en/api/getting-started")} className="text-blue-500 hover:underline cursor-pointer">your Anthropic key</a> to use Claude at cost. When enabled, this key will be used for all models beginning with "claude-".
+            </p>
+          </div>
+          <Switch
+            checked={anthropicEnabled}
+            onCheckedChange={setAnthropicEnabled}
+          />
         </div>
         
-        <div className="flex gap-2">
-          <div className="relative flex-grow">
-            <Input
-              type={showingAnthropicKey ? "text" : "password"}
-              placeholder="Enter your Anthropic API Key"
-              value={anthropicKey}
-              onChange={(e) => setAnthropicKey(e.target.value)}
-              className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
-            />
-            <button 
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              onClick={toggleAnthropicKeyVisibility}
-            >
-              {showingAnthropicKey ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+        {anthropicEnabled && (
+          <div className="space-y-4 pl-4 border-l-2 border-gray-300 dark:border-gray-700 mt-4">
+            <div className="flex gap-2">
+              <div className="relative flex-grow">
+                <Input
+                  type={showingAnthropicKey ? "text" : "password"}
+                  placeholder="Enter your Anthropic API Key"
+                  value={anthropicKey}
+                  onChange={(e) => setAnthropicKey(e.target.value)}
+                  className="h-7 pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
+                />
+                <button 
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  onClick={toggleAnthropicKeyVisibility}
+                >
+                  {showingAnthropicKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <Button 
+                onClick={verifyAnthropicKey}
+                className=" text-white"
+              >
+                Verify <ArrowRight size={16} className="ml-1" />
+              </Button>
+            </div>
           </div>
-          <Button 
-            onClick={verifyAnthropicKey}
-            className=" text-white"
-          >
-            Verify <ArrowRight size={16} className="ml-1" />
-          </Button>
-        </div>
+        )}
       </div>
       
       <div className="border-t border-gray-200 dark:border-gray-800/70 my-6"></div>
       
       {/* Google API Key Section */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-2xl font-medium text-black dark:text-white">Google API Key</h3>
-          <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
-            You can put in <a onClick={() => openExternalUrl("https://aistudio.google.com/app/apikey")} className="text-blue-500 hover:underline">your Google AI Studio key</a> to use Google models at-cost.
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-light text-black dark:text-white">Google API Key</h3>
+            <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
+              You can put in <a onClick={() => openExternalUrl("https://aistudio.google.com/app/apikey")} className="text-blue-500 hover:underline cursor-pointer">your Google AI Studio key</a> to use Google models at-cost.
+            </p>
+          </div>
+          <Switch
+            checked={googleEnabled}
+            onCheckedChange={setGoogleEnabled}
+          />
         </div>
         
-        <div className="flex gap-2">
-          <div className="relative flex-grow">
-            <Input
-              type={showingGoogleKey ? "text" : "password"}
-              placeholder="Enter your Google AI Studio API Key"
-              value={googleKey}
-              onChange={(e) => setGoogleKey(e.target.value)}
-              className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
-            />
-            <button 
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              onClick={toggleGoogleKeyVisibility}
-            >
-              {showingGoogleKey ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+        {googleEnabled && (
+          <div className="space-y-4 pl-4 border-l-2 border-gray-300 dark:border-gray-700 mt-4">
+            <div className="flex gap-2">
+              <div className="relative flex-grow">
+                <Input
+                  type={showingGoogleKey ? "text" : "password"}
+                  placeholder="Enter your Google AI Studio API Key"
+                  value={googleKey}
+                  onChange={(e) => setGoogleKey(e.target.value)}
+                  className="h-7 pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
+                />
+                <button 
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  onClick={toggleGoogleKeyVisibility}
+                >
+                  {showingGoogleKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <Button 
+                onClick={verifyGoogleKey}
+                className=" text-white"
+              >
+                Verify <ArrowRight size={16} className="ml-1" />
+              </Button>
+            </div>
           </div>
-          <Button 
-            onClick={verifyGoogleKey}
-            className=" text-white"
-          >
-            Verify <ArrowRight size={16} className="ml-1" />
-          </Button>
-        </div>
+        )}
       </div>
       
       <div className="border-t border-gray-200 dark:border-gray-800/70 my-6"></div>
@@ -471,7 +507,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-2xl font-medium text-black dark:text-white">Azure API Key</h3>
+            <h3 className="text-2xl font-light text-black dark:text-white">Azure API Key</h3>
             <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
               Instead of OpenAI's API or pro, you can use agentkube at-cost through the Azure API.
             </p>
@@ -491,7 +527,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
                 placeholder="E.g. https://agentkube.openai.azure.com"
                 value={azureBaseURL}
                 onChange={(e) => setAzureBaseURL(e.target.value)}
-                className="bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
+                className="h-7 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
               />
             </div>
             
@@ -502,7 +538,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
                 placeholder="The deployment name you created in Azure"
                 value={azureDeploymentName}
                 onChange={(e) => setAzureDeploymentName(e.target.value)}
-                className="bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
+                className="h-7 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
               />
             </div>
             
@@ -514,7 +550,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
                   placeholder="Enter your Azure OpenAI API Key"
                   value={azureKey}
                   onChange={(e) => setAzureKey(e.target.value)}
-                  className="pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
+                  className="h-7 pr-10 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
                 />
                 <button 
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
