@@ -188,7 +188,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 							<div className='flex items-center text-gray-800 dark:text-gray-300 space-x-1'>
 								<ScanSearch className='h-4' />
 								<h3 className="text-xs font-medium">
-									Background Task
+									Investigation Task
 								</h3>
 							</div>
 

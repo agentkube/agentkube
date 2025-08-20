@@ -52,23 +52,24 @@ const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, icon, colo
     }}
     className="flex-1"
   >
-    <div className="flex-1 bg-gray-400/10 dark:bg-gray-800/20 rounded-md">
-      <div className="p-3">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`p-2 rounded-lg ${color}`}>
-            {icon}
-          </div>
-          <h2 className="text-4xl font-light text-gray-900 dark:text-gray-200">
+    <div className="flex-1 bg-gray-400/10 dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-md p-3 flex flex-col justify-end min-h-[150px]">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-5xl font-light text-gray-900 dark:text-gray-200">
             {count}
           </h2>
+          <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100">
+            {label}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {timeframe}
+          </p>
         </div>
-        <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {timeframe}
-        </p>
+        <div className={`p-2 rounded-lg ${color}`}>
+          {icon}
+        </div>
       </div>
+
     </div>
   </div>
 );
@@ -246,7 +247,7 @@ const Investigations: React.FC = () => {
     try {
       setLoading(true);
       const taskList = await listTasks(100); // Get up to 100 tasks
-      
+
       setTasks(taskList);
       setError(null);
     } catch (err) {
@@ -442,11 +443,11 @@ const Investigations: React.FC = () => {
     try {
       // Call the delete task API
       const response = await deleteTask(deleteDialog.task.task_id);
-      
+
       if (response.status === 'success') {
         // Remove the task from local state immediately for better UX
         setTasks(prevTasks => prevTasks.filter(t => t.task_id !== deleteDialog.task!.task_id));
-        
+
         toast(response.message || 'Task deleted successfully');
       }
     } catch (err) {
@@ -454,7 +455,7 @@ const Investigations: React.FC = () => {
       // Show error message to user
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete task';
       toast.error(`Error deleting task: ${errorMessage}`);
-      
+
       // Refresh data in case of error to ensure consistency
       refreshAllData();
     } finally {
@@ -532,7 +533,7 @@ const Investigations: React.FC = () => {
       <div className="p-6 mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Tasks</h1>
-          
+
           {/* Refresh Button */}
           <Button
             variant="outline"
@@ -631,32 +632,32 @@ const Investigations: React.FC = () => {
                       <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
                         <TableHeader>
                           <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                            <TableHead 
+                            <TableHead
                               className="cursor-pointer hover:text-blue-500"
                               onClick={() => handleSort('title')}
                             >
                               Task {renderSortIndicator('title')}
                             </TableHead>
-                            <TableHead 
+                            <TableHead
                               className="text-center cursor-pointer hover:text-blue-500"
                               onClick={() => handleSort('severity')}
                             >
                               Severity {renderSortIndicator('severity')}
                             </TableHead>
                             <TableHead className="text-center">Tags</TableHead>
-                            <TableHead 
+                            <TableHead
                               className="text-center cursor-pointer hover:text-blue-500"
                               onClick={() => handleSort('status')}
                             >
                               Status {renderSortIndicator('status')}
                             </TableHead>
-                            <TableHead 
+                            <TableHead
                               className='text-center cursor-pointer hover:text-blue-500'
                               onClick={() => handleSort('duration')}
                             >
                               Duration {renderSortIndicator('duration')}
                             </TableHead>
-                            <TableHead 
+                            <TableHead
                               className='text-center cursor-pointer hover:text-blue-500'
                               onClick={() => handleSort('created')}
                             >
@@ -731,7 +732,7 @@ const Investigations: React.FC = () => {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleViewTask(task);
@@ -741,7 +742,7 @@ const Investigations: React.FC = () => {
                                       <FileText className="mr-2 h-4 w-4" />
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleReRunTask(task);
@@ -751,7 +752,7 @@ const Investigations: React.FC = () => {
                                       <RotateCcw className="mr-2 h-4 w-4" />
                                       Re-run Task
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleDeleteTask(task);
