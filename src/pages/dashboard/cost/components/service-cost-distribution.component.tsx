@@ -276,7 +276,7 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6 flex justify-center items-center min-h-[200px]">
           <div className="flex flex-col items-center">
             <Loader2 className="h-8 w-8 animate-spin text-gray-500 mb-2" />
@@ -289,7 +289,7 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
 
   if (error) {
     return (
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30">
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -302,7 +302,7 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
 
   if (costData.services.length === 0) {
     return (
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <Alert>
             <AlertDescription>No service cost data available. Make sure OpenCost is properly installed in your cluster.</AlertDescription>
@@ -315,82 +315,119 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
   return (
     <div className="space-y-4">
       {/* Summary Card */}
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Service Cost Summary</h2>
+          <h2 className="text-sm uppercase font-light text-gray-700 dark:text-gray-300 mb-4">Summary</h2>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400">Total Cost</div>
-              <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.totalCost)}</div>
-            </div>
+          <div className="grid grid-cols-4 gap-1">
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+              <CardContent className="py-2 flex flex-col h-full">
+                <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Total Cost</h2>
+                <div className="mt-auto">
+                  <p className="text-5xl font-light text-gray-600 dark:text-gray-400 mb-1">${formatCost(costData.totalCost)}</p>
+                </div>
+              </CardContent>
+            </Card>
             
-            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                <Cpu className="h-3 w-3 text-blue-500 mr-1" />
-                CPU
-              </div>
-              <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.cpuCost)}</div>
-            </div>
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+              <CardContent className="py-2 flex flex-col h-full">
+                <div className="flex items-center gap-1 mb-auto">
+                  <Cpu className="h-3 w-3 text-blue-500" />
+                  <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">CPU</h2>
+                </div>
+                <div className="mt-auto">
+                  <p className="text-5xl font-light text-blue-600 dark:text-blue-400 mb-1">${formatCost(costData.cpuCost)}</p>
+                </div>
+              </CardContent>
+            </Card>
             
-            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                <Database className="h-3 w-3 text-indigo-500 mr-1" />
-                Memory
-              </div>
-              <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.ramCost)}</div>
-            </div>
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+              <CardContent className="py-2 flex flex-col h-full">
+                <div className="flex items-center gap-1 mb-auto">
+                  <Database className="h-3 w-3 text-indigo-500" />
+                  <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Memory</h2>
+                </div>
+                <div className="mt-auto">
+                  <p className="text-5xl font-light text-purple-600 dark:text-purple-400 mb-1">${formatCost(costData.ramCost)}</p>
+                </div>
+              </CardContent>
+            </Card>
             
             {costData.pvCost > 0 && (
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                  <HardDrive className="h-3 w-3 text-purple-500 mr-1" />
-                  Storage
-                </div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.pvCost)}</div>
-              </div>
+              <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                <CardContent className="py-2 flex flex-col h-full">
+                  <div className="flex items-center gap-1 mb-auto">
+                    <HardDrive className="h-3 w-3 text-purple-500" />
+                    <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Storage</h2>
+                  </div>
+                  <div className="mt-auto">
+                    <p className="text-5xl font-light text-orange-600 dark:text-orange-400 mb-1">${formatCost(costData.pvCost)}</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
             
             {costData.networkCost > 0 && (
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                  <Network className="h-3 w-3 text-green-500 mr-1" />
-                  Network
-                </div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.networkCost)}</div>
-              </div>
+              <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                <CardContent className="py-2 flex flex-col h-full">
+                  <div className="flex items-center gap-1 mb-auto">
+                    <Network className="h-3 w-3 text-green-500" />
+                    <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Network</h2>
+                  </div>
+                  <div className="mt-auto">
+                    <p className="text-5xl font-light text-green-600 dark:text-green-400 mb-1">${formatCost(costData.networkCost)}</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
             
             {costData.gpuCost > 0 && (
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                  <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
-                  </svg>
-                  GPU
-                </div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCost(costData.gpuCost)}</div>
-              </div>
+              <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                <CardContent className="py-2 flex flex-col h-full">
+                  <div className="flex items-center gap-1 mb-auto">
+                    <svg className="h-3 w-3 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                    </svg>
+                    <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">GPU</h2>
+                  </div>
+                  <div className="mt-auto">
+                    <p className="text-5xl font-light text-yellow-600 dark:text-yellow-400 mb-1">${formatCost(costData.gpuCost)}</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
             
-            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                <Gauge className={`h-3 w-3 ${getEfficiencyColor(costData.efficiency)} mr-1`} />
-                Efficiency
-              </div>
-              <div className={`text-lg font-bold ${getEfficiencyColor(costData.efficiency)}`}>
-                {formatEfficiency(costData.efficiency)}
-              </div>
-            </div>
+            <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+              <CardContent className="py-2 flex flex-col h-full">
+                <div className="flex items-center gap-1 mb-auto">
+                  <Gauge className={`h-3 w-3 ${getEfficiencyColor(costData.efficiency)}`} />
+                  <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Efficiency</h2>
+                </div>
+                <div className="mt-auto">
+                  <p className={`text-5xl font-light mb-1 ${getEfficiencyColor(costData.efficiency)}`}>
+                    {formatEfficiency(costData.efficiency)}
+                  </p>
+                  <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                    <div
+                      className={`h-1 rounded-[0.3rem] ${
+                        costData.efficiency < 0.20 ? 'bg-red-500' :
+                        costData.efficiency < 0.50 ? 'bg-amber-500' :
+                        costData.efficiency < 0.80 ? 'bg-blue-500' :
+                        'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(costData.efficiency * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>
       
       {/* Service Distribution Card */}
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Service Cost Distribution</h2>
-          
           <div className="space-y-5">
             {costData.services.map((service, idx) => (
               <div key={idx} className="space-y-2">

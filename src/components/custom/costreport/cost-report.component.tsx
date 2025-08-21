@@ -245,8 +245,8 @@ const CostOverviewReport = () => {
               
               {isOpenCostInstalled && (
                 <div className="mt-auto">
-                  <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white gap-2" onClick={() => navigate('/dashboard/cost')}>
-                    Details <ArrowRight className="h-4 w-4" />
+                  <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-gray-700 flex justify-between w-44 text-gray-800 dark:text-white gap-2" onClick={() => navigate('/dashboard/cost')}>
+                    Details <ArrowUpRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}

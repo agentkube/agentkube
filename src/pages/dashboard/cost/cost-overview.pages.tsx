@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Download,
-  RefreshCcw
+  RefreshCcw,
+  ChevronDown,
+  Check
 } from "lucide-react";
 import { useCluster } from '@/contexts/clusterContext';
 import NamespaceCostDistribution from './components/namespace-cost-distribution.component';
@@ -27,6 +35,8 @@ const CostOverview: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOpenCostInstalled, setIsOpenCostInstalled] = useState<boolean | null>(null);
   const [openCostStatus, setOpenCostStatus] = useState<any>(null);
+  const [refreshInterval, setRefreshInterval] = useState<string>('Off');
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if OpenCost is installed
   useEffect(() => {
@@ -86,6 +96,49 @@ const CostOverview: React.FC = () => {
     }
   };
 
+  const handleRefreshIntervalChange = useCallback((interval: string) => {
+    setRefreshInterval(interval);
+    
+    // Clear existing timer
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    // Set up new timer if not 'Off'
+    if (interval !== 'Off' && interval !== 'Auto') {
+      const intervalMs = parseIntervalToMs(interval);
+      refreshTimerRef.current = setInterval(() => {
+        handleRefresh();
+      }, intervalMs);
+    }
+  }, []);
+
+  const parseIntervalToMs = (interval: string): number => {
+    switch (interval) {
+      case '5s': return 5000;
+      case '10s': return 10000;
+      case '30s': return 30000;
+      case '1m': return 60000;
+      case '5m': return 300000;
+      case '15m': return 900000;
+      case '30m': return 1800000;
+      case '1h': return 3600000;
+      case '2h': return 7200000;
+      case '1d': return 86400000;
+      default: return 60000;
+    }
+  };
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+      }
+    };
+  }, []);
+
   // Show loading state
   if (loading && isOpenCostInstalled === null) {
     return (
@@ -105,8 +158,15 @@ const CostOverview: React.FC = () => {
   }
 
   return (
-    <div className="max-h-[92vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-400/30 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-400/50 dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="max-h-[92vh] 
+      overflow-y-auto
+      [&::-webkit-scrollbar]:w-1.5 
+      [&::-webkit-scrollbar-track]:bg-transparent 
+      [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+      [&::-webkit-scrollbar-thumb]:rounded-full
+      [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+    ">
+      <div className="p-6 mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Cost Overview</h1>
@@ -119,7 +179,7 @@ const CostOverview: React.FC = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Select defaultValue={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-32 dark:bg-gray-900 dark:text-white dark:border-gray-800/50">
+              <SelectTrigger className="w-32 dark:bg-transparent dark:text-white">
                 <SelectValue placeholder="Time Range" />
               </SelectTrigger>
               <SelectContent className="dark:bg-gray-900/20 backdrop-blur-md dark:text-white dark:border-gray-700">
@@ -134,15 +194,49 @@ const CostOverview: React.FC = () => {
               </SelectContent>
             </Select>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="flex items-center gap-1"
-              >
-                <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
+              {/* Refresh Button */}
+              <DropdownMenu>
+                <div className="flex items-center">
+                  <Button
+                    variant="outline"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-2 rounded-r-none border-r-0"
+                  >
+                    <RefreshCcw className={`h-4 w-4 text-gray-600 dark:text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      {refreshInterval}
+                    </span>
+                  </Button>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center px-2 rounded-l-none"
+                    >
+                      <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </div>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-20 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border border-gray-200 dark:border-gray-700/40"
+                >
+                  {['Off', 'Auto', '5s', '10s', '30s', '1m', '5m', '15m', '30m', '1h', '2h', '1d'].map((interval) => (
+                    <DropdownMenuItem
+                      key={interval}
+                      onClick={() => handleRefreshIntervalChange(interval)}
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer"
+                    >
+                      <span className="text-xs text-gray-700 dark:text-gray-300">
+                        {interval}
+                      </span>
+                      {refreshInterval === interval && (
+                        <Check className="h-4 w-4 text-blue-500" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="outline"
                 className="flex items-center gap-1"
@@ -160,7 +254,7 @@ const CostOverview: React.FC = () => {
         />
 
         <Tabs defaultValue="namespaces" className="w-full">
-          <TabsList className="bg-gray-100 dark:bg-gray-900/30 mb-4">
+          <TabsList className="text-sm bg-gray-100 dark:bg-transparent mb-4">
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="namespaces">Namespaces</TabsTrigger>
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="services">Services</TabsTrigger>
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="nodes">Nodes</TabsTrigger>

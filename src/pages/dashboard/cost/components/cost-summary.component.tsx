@@ -25,7 +25,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
 
   useEffect(() => {
     if (!currentContext) return;
-    
+
     try {
       const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
       if (savedConfig) {
@@ -40,7 +40,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
   }, [currentContext]);
 
 
-  
+
   const fetchClusterCostData = async () => {
     if (!currentContext?.name) {
       setLoading(false);
@@ -55,7 +55,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       // Define constants
       const OPENCOST_NAMESPACE = openCostConfig.namespace;
       const OPENCOST_SERVICE = openCostConfig.service;
-      
+
       // Build path and query parameters for daily trend data
       const trendPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
       const trendParams = new URLSearchParams({
@@ -71,7 +71,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       // Build path and query parameters for current cost data
       const currentPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
       const currentParams = new URLSearchParams({
-        window: timeRange,       
+        window: timeRange,
         aggregate: 'cluster', // aggregate by cluster
         includeIdle: 'true',  // include idle resources
         accumulate: 'true'    // accumulate for accurate current state
@@ -246,13 +246,6 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
     };
   };
 
-  // Helper to get the background color for the efficiency indicator
-  const getEfficiencyColor = (efficiency: number): string => {
-    if (efficiency > 75) return 'bg-green-500';
-    if (efficiency > 50) return 'bg-blue-500';
-    if (efficiency > 25) return 'bg-amber-500';
-    return 'bg-red-500';
-  };
 
   // Helper to get the text color for the efficiency value
   const getEfficiencyTextColor = (efficiency: number): string => {
@@ -269,7 +262,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6 flex justify-center items-center min-h-[200px]">
           <div className="flex flex-col items-center">
             <Loader2 className="h-8 w-8 animate-spin text-gray-500 mb-2" />
@@ -282,7 +275,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
 
   if (error) {
     return (
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30">
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -295,7 +288,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
 
   if (!costData) {
     return (
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <Alert>
             <AlertDescription>No cost data available. Make sure OpenCost is properly installed in your cluster.</AlertDescription>
@@ -310,143 +303,242 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
   const gpuCost = costData.resources.gpu ?? 0;
 
   return (
-    <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+    <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left column - Cost summary */}
-          <div className="space-y-4">
+          <div className="space-y-2">
 
-            <div className="space-y-2">
+
+
+            <div className="space-y-1">
               <div className="flex justify-between items-baseline">
-                <h1 className="text-gray-500/30 dark:text-gray-400/40 text-4xl font-[Anton] uppercase">Total Cost</h1>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                <div>
+                  <h1 className="text-3xl font-light"><span className='text-gray-500/30 dark:text-gray-400/40'>Total</span> Cost</h1>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {costData.window}
+                  </div>
+                </div>
+                <div className="text-4xl font-light text-gray-900 dark:text-white">
                   ${formatCurrency(costData.totalCost)}
                 </div>
               </div>
 
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {costData.window}
-              </div>
+
 
               <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Active</div>
-                  <div className="text-xl font-semibold text-green-600 dark:text-green-400">
-                    ${formatCurrency(costData.activeCost)}
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Idle</div>
-                  <div className="text-xl font-semibold text-gray-600 dark:text-gray-400">
-                    ${formatCurrency(costData.idleCost)}
-                  </div>
-                </div>
+                <Card className="bg-transparent dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-36">
+                  <CardContent className="py-2 flex flex-col h-full">
+                    <div className="flex items-center gap-1 mb-auto">
+                      <Database className="h-3 w-3 text-indigo-500" />
+                      <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Active</h2>
+                    </div>
+                    <div className="mt-auto">
+                      <p className="text-5xl font-light text-purple-600 dark:text-purple-400 mb-1">${formatCurrency(costData.activeCost)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-transparent dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-36">
+                  <CardContent className="py-2 flex flex-col h-full">
+                    <div className="flex items-center gap-1 mb-auto">
+                      <Database className="h-3 w-3 text-indigo-500" />
+                      <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Idle</h2>
+                    </div>
+                    <div className="mt-auto">
+                      <p className="text-5xl font-light text-purple-600 dark:text-purple-400 mb-1">${formatCurrency(costData.idleCost)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
+
             </div>
 
-            <div className="pt-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Efficiency Score</div>
-                <div className={`text-lg font-bold ${getEfficiencyTextColor(costData.efficiency)}`}>
-                  {costData.efficiency.toFixed(1)}%
-                </div>
-              </div>
-              <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full">
-                <div
-                  className={`h-2 ${getEfficiencyColor(costData.efficiency)} rounded-full`}
-                  style={{ width: `${Math.min(costData.efficiency, 100)}%` }}
-                ></div>
-              </div>
+            <div className="space-y-0">
+              <Card className="bg-transparent dark:bg-gray-700/10 rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-24">
+                <CardContent className="py-2 flex flex-col h-full">
+                  <div className="flex items-center gap-1 mb-auto">
+                    <Gauge className={`h-3 w-3 ${getEfficiencyTextColor(costData.efficiency).split(' ')[0]}`} />
+                    <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500">Efficiency</h2>
+                  </div>
+                  <div className="mt-48">
+                    <p className={`text-5xl font-light mb-1 ${getEfficiencyTextColor(costData.efficiency)}`}>
+                      {costData.efficiency.toFixed(1)}%
+                    </p>
+                    <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                      <div
+                        className={`h-1 rounded-[0.3rem] ${costData.efficiency > 75 ? 'bg-green-500' :
+                          costData.efficiency > 50 ? 'bg-blue-500' :
+                            costData.efficiency > 25 ? 'bg-amber-500' : 'bg-red-500'
+                          }`}
+                        style={{ width: `${Math.min(costData.efficiency, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="pt-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Cluster Breakdown</h3>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Cpu className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU</span>
-                  </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCurrency(costData.resources.cpu)}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {costData.resources.total > 0
-                      ? Math.round(costData.resources.cpu / costData.resources.total * 100)
-                      : 0}% of total
-                  </div>
-                </div>
 
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Database className="h-4 w-4 text-indigo-500" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Memory</span>
-                  </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCurrency(costData.resources.memory)}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {costData.resources.total > 0
-                      ? Math.round(costData.resources.memory / costData.resources.total * 100)
-                      : 0}% of total
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <HardDrive className="h-4 w-4 text-purple-500" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Storage</span>
-                  </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCurrency(costData.resources.storage)}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {costData.resources.total > 0
-                      ? Math.round(costData.resources.storage / costData.resources.total * 100)
-                      : 0}% of total
-                  </div>
-                </div>
-
-                {networkCost > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Network className="h-4 w-4 text-green-500" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Network</span>
-                    </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCurrency(networkCost)}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {costData.resources.total > 0
-                        ? Math.round((networkCost / costData.resources.total) * 100)
-                        : 0}% of total
-                    </div>
-                  </div>
-                )}
-
-                {gpuCost > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <svg className="h-4 w-4 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
-                      </svg>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">GPU</span>
-                    </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">${formatCurrency(gpuCost)}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {costData.resources.total > 0
-                        ? Math.round((gpuCost / costData.resources.total) * 100)
-                        : 0}% of total
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Right column - Cost trend */}
-          <div>
-            <h2 className="text-4xl font-[Anton] uppercase font-semibold text-gray-700/30 dark:text-gray-300/30 mb-4">Daily Cost Trend</h2>
-            {costData.daily.length > 0 ? (
-              <DailyCostTrend dailyCostData={costData.daily} />
-            ) : (
-              <div className="flex justify-center items-center h-64 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <p className="text-gray-500 dark:text-gray-400">No trend data available</p>
+          <div className='space-y-2'>
+            <div className="">
+              <h3 className="text-sm uppercase font-light text-gray-700 dark:text-gray-300 mb-3">Cluster Breakdown</h3>
+              <div className="grid grid-cols-3 gap-1">
+                <Card className="bg-transparent dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                  <CardContent className="py-2 flex flex-col h-full">
+                    <div className="flex items-center gap-1 mb-auto">
+                      <Cpu className="h-3 w-3 text-blue-500" />
+                      <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">CPU</h2>
+                    </div>
+                    <div className="mt-auto">
+                      <p className="text-5xl font-light text-blue-600 dark:text-blue-400 mb-1">${formatCurrency(costData.resources.cpu)}</p>
+                      <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                        <div
+                          className="h-1 rounded-[0.3rem] bg-blue-500"
+                          style={{
+                            width: `${costData.resources.total > 0
+                              ? Math.min((costData.resources.cpu / costData.resources.total) * 100, 100)
+                              : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {costData.resources.total > 0
+                          ? Math.round(costData.resources.cpu / costData.resources.total * 100)
+                          : 0}% of total
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-transparent dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                  <CardContent className="py-2 flex flex-col h-full">
+                    <div className="flex items-center gap-1 mb-auto">
+                      <Database className="h-3 w-3 text-indigo-500" />
+                      <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Memory</h2>
+                    </div>
+                    <div className="mt-auto">
+                      <p className="text-5xl font-light text-purple-600 dark:text-purple-400 mb-1">${formatCurrency(costData.resources.memory)}</p>
+                      <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                        <div
+                          className="h-1 rounded-[0.3rem] bg-purple-500"
+                          style={{
+                            width: `${costData.resources.total > 0
+                              ? Math.min((costData.resources.memory / costData.resources.total) * 100, 100)
+                              : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {costData.resources.total > 0
+                          ? Math.round(costData.resources.memory / costData.resources.total * 100)
+                          : 0}% of total
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-transparent dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                  <CardContent className="py-2 flex flex-col h-full">
+                    <div className="flex items-center gap-1 mb-auto">
+                      <HardDrive className="h-3 w-3 text-purple-500" />
+                      <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Storage</h2>
+                    </div>
+                    <div className="mt-auto">
+                      <p className="text-5xl font-light text-orange-600 dark:text-orange-400 mb-1">${formatCurrency(costData.resources.storage)}</p>
+                      <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                        <div
+                          className="h-1 rounded-[0.3rem] bg-orange-500"
+                          style={{
+                            width: `${costData.resources.total > 0
+                              ? Math.min((costData.resources.storage / costData.resources.total) * 100, 100)
+                              : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {costData.resources.total > 0
+                          ? Math.round(costData.resources.storage / costData.resources.total * 100)
+                          : 0}% of total
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {networkCost > 0 && (
+                  <Card className="bg-transparent dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                    <CardContent className="py-2 flex flex-col h-full">
+                      <div className="flex items-center gap-1 mb-auto">
+                        <Network className="h-3 w-3 text-green-500" />
+                        <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Network</h2>
+                      </div>
+                      <div className="mt-auto">
+                        <p className="text-5xl font-light text-green-600 dark:text-green-400 mb-1">${formatCurrency(networkCost)}</p>
+                        <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                          <div
+                            className="h-1 rounded-[0.3rem] bg-green-500"
+                            style={{
+                              width: `${costData.resources.total > 0
+                                ? Math.min((networkCost / costData.resources.total) * 100, 100)
+                                : 0}%`
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {costData.resources.total > 0
+                            ? Math.round((networkCost / costData.resources.total) * 100)
+                            : 0}% of total
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {gpuCost > 0 && (
+                  <Card className="bg-transparent dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+                    <CardContent className="py-2 flex flex-col h-full">
+                      <div className="flex items-center gap-1 mb-auto">
+                        <svg className="h-3 w-3 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
+                        </svg>
+                        <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">GPU</h2>
+                      </div>
+                      <div className="mt-auto">
+                        <p className="text-5xl font-light text-yellow-600 dark:text-yellow-400 mb-1">${formatCurrency(gpuCost)}</p>
+                        <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                          <div
+                            className="h-1 rounded-[0.3rem] bg-yellow-500"
+                            style={{
+                              width: `${costData.resources.total > 0
+                                ? Math.min((gpuCost / costData.resources.total) * 100, 100)
+                                : 0}%`
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {costData.resources.total > 0
+                            ? Math.round((gpuCost / costData.resources.total) * 100)
+                            : 0}% of total
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-            )}
+            </div>
+
+            <div>
+              <h2 className="text-sm uppercase mb-2"><span className='text-gray-700/30 dark:text-gray-300/30 '>Daily</span> Cost Trend</h2>
+              {costData.daily.length > 0 ? (
+                <DailyCostTrend dailyCostData={costData.daily} />
+              ) : (
+                <div className="flex justify-center items-center h-64 bg-transparent dark:bg-gray-700/10 border dark:border-gray-700/30 rounded-lg">
+                  <p className="text-gray-500 dark:text-gray-400">No trend data available</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
