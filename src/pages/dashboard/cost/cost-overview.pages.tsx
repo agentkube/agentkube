@@ -13,7 +13,8 @@ import {
   Download,
   RefreshCcw,
   ChevronDown,
-  Check
+  Check,
+  Settings
 } from "lucide-react";
 import { useCluster } from '@/contexts/clusterContext';
 import NamespaceCostDistribution from './components/namespace-cost-distribution.component';
@@ -22,6 +23,7 @@ import NodeCostDistribution from './components/node-cost-distribution.component'
 import CostSummary from './components/cost-summary.component';
 import PodCostDistribution from './components/pod-cost-distribution.component';
 import { OpenCostInstaller } from '@/components/custom';
+import ProxyConfigDialog from '@/components/custom/proxyconfigdialog/proxyconfigdialog.component';
 import DeploymentCostDistribution from './components/deployment-cost-distribution.component';
 import DaemonsetCostDistribution from './components/daemonset-cost-distribution.component';
 import StatefulsetCostDistribution from './components/statefulset-cost-distribution.component';
@@ -37,6 +39,14 @@ const CostOverview: React.FC = () => {
   const [openCostStatus, setOpenCostStatus] = useState<any>(null);
   const [refreshInterval, setRefreshInterval] = useState<string>('Off');
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [openCostConfig, setOpenCostConfig] = useState<{
+    namespace: string;
+    service: string;
+  }>({
+    namespace: 'opencost',
+    service: 'opencost:9090'
+  });
 
   // Check if OpenCost is installed
   useEffect(() => {
@@ -63,6 +73,47 @@ const CostOverview: React.FC = () => {
 
     checkOpenCostStatus();
   }, [currentContext]);
+
+  const loadOpenCostConfig = useCallback(() => {
+    if (!currentContext) return;
+
+    try {
+      const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig);
+        if (parsedConfig.externalConfig?.opencost) {
+          setOpenCostConfig(parsedConfig.externalConfig.opencost);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading saved OpenCost config:', err);
+    }
+  }, [currentContext]);
+
+  const handleSaveConfig = useCallback((config: { namespace: string; service: string }) => {
+    if (!currentContext) return;
+
+    setOpenCostConfig(config);
+    console.log('Saving OpenCost config:', config);
+    
+    try {
+      const configKey = `${currentContext.name}.openCostConfig`;
+      const configToSave = {
+        externalConfig: {
+          opencost: config
+        }
+      };
+      localStorage.setItem(configKey, JSON.stringify(configToSave));
+    } catch (err) {
+      console.error('Error saving OpenCost config:', err);
+    }
+  }, [currentContext]);
+
+  useEffect(() => {
+    if (currentContext) {
+      loadOpenCostConfig();
+    }
+  }, [currentContext, loadOpenCostConfig]);
 
 
 
@@ -177,7 +228,8 @@ const CostOverview: React.FC = () => {
               </p>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+ 
             <Select defaultValue={timeRange} onValueChange={setTimeRange}>
               <SelectTrigger className="w-32 dark:bg-transparent dark:text-white">
                 <SelectValue placeholder="Time Range" />
@@ -245,8 +297,26 @@ const CostOverview: React.FC = () => {
                 Export
               </Button>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsConfigDialogOpen(true)}
+              className="flex items-center gap-1"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+
+        <ProxyConfigDialog
+          isOpen={isConfigDialogOpen}
+          onClose={() => setIsConfigDialogOpen(false)}
+          onSave={handleSaveConfig}
+          defaultConfig={openCostConfig}
+          serviceName="OpenCost"
+          serviceDescription="Configure the OpenCost service connection details if it's installed in a different namespace or with a custom service name."
+          defaultNamespace="opencost"
+          defaultService="opencost:9090"
+        />
 
         <CostSummary
           timeRange={timeRange}

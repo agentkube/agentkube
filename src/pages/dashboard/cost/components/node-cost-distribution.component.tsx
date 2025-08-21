@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
 import { kubeProxyRequest } from '@/api/cluster';
 import { Card, CardContent } from "@/components/ui/card";
-import { Cpu, Database, HardDrive, Network, AlertCircle, Loader2, Gauge } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Cpu, Database, HardDrive, Network, AlertCircle, Loader2, Gauge, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { get, forEach, round, sortBy } from 'lodash';
 import { AggregatedNodeCost, OpenCostAllocationResponse } from '@/types/opencost';
@@ -10,6 +14,15 @@ import { AggregatedNodeCost, OpenCostAllocationResponse } from '@/types/opencost
 interface NodeCostDistributionProps {
   timeRange: string;
   onReload: () => Promise<void>;
+}
+
+// Define sorting types
+type SortDirection = 'asc' | 'desc' | null;
+type SortField = 'name' | 'instanceType' | 'totalCost' | 'percentage' | 'efficiency' | 'cpuCost' | 'ramCost' | 'pvCost' | 'networkCost' | 'gpuCost' | null;
+
+interface SortState {
+  field: SortField;
+  direction: SortDirection;
 }
 
 const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, onReload }) => {
@@ -23,6 +36,11 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
   const [openCostConfig, setOpenCostConfig] = useState({
     namespace: 'opencost',
     service: 'opencost:9090'
+  });
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sort, setSort] = useState<SortState>({
+    field: null,
+    direction: null
   });
 
   useEffect(() => {
@@ -199,6 +217,90 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
     
     fetchCostData();
   }, [currentContext]);
+
+  // Filter nodes based on search query
+  const filteredNodes = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return nodeCosts;
+    }
+
+    const lowercaseQuery = searchQuery.toLowerCase();
+    return nodeCosts.filter(node =>
+      node.name.toLowerCase().includes(lowercaseQuery) ||
+      node.instanceType.toLowerCase().includes(lowercaseQuery)
+    );
+  }, [nodeCosts, searchQuery]);
+
+  // Sort nodes based on sort state
+  const sortedNodes = useMemo(() => {
+    if (!sort.field || !sort.direction) {
+      return filteredNodes;
+    }
+
+    return [...filteredNodes].sort((a, b) => {
+      const sortMultiplier = sort.direction === 'asc' ? 1 : -1;
+
+      switch (sort.field) {
+        case 'name':
+          return a.name.localeCompare(b.name) * sortMultiplier;
+        case 'instanceType':
+          return a.instanceType.localeCompare(b.instanceType) * sortMultiplier;
+        case 'totalCost':
+          return (a.totalCost - b.totalCost) * sortMultiplier;
+        case 'percentage':
+          const percentageA = clusterTotalCost > 0 ? (a.totalCost / clusterTotalCost) * 100 : 0;
+          const percentageB = clusterTotalCost > 0 ? (b.totalCost / clusterTotalCost) * 100 : 0;
+          return (percentageA - percentageB) * sortMultiplier;
+        case 'efficiency':
+          return (a.totalEfficiency - b.totalEfficiency) * sortMultiplier;
+        case 'cpuCost':
+          return (a.cpuCost - b.cpuCost) * sortMultiplier;
+        case 'ramCost':
+          return (a.ramCost - b.ramCost) * sortMultiplier;
+        case 'pvCost':
+          return (a.pvCost - b.pvCost) * sortMultiplier;
+        case 'networkCost':
+          return (a.networkCost - b.networkCost) * sortMultiplier;
+        case 'gpuCost':
+          return (a.gpuCost - b.gpuCost) * sortMultiplier;
+        default:
+          return 0;
+      }
+    });
+  }, [filteredNodes, sort.field, sort.direction, clusterTotalCost]);
+
+  // Handle column sort click
+  const handleSort = (field: SortField) => {
+    setSort(prevSort => {
+      if (prevSort.field === field) {
+        if (prevSort.direction === 'asc') {
+          return { field, direction: 'desc' };
+        } else if (prevSort.direction === 'desc') {
+          return { field: null, direction: null };
+        } else {
+          return { field, direction: 'asc' };
+        }
+      }
+      return { field, direction: 'asc' };
+    });
+  };
+
+  // Render sort indicator
+  const renderSortIndicator = (field: SortField) => {
+    if (sort.field !== field) {
+      return <ArrowUpDown className="ml-1 h-4 w-4 inline opacity-10" />;
+    }
+
+    if (sort.direction === 'asc') {
+      return <ArrowUp className="ml-1 h-4 w-4 inline text-blue-500" />;
+    }
+
+    if (sort.direction === 'desc') {
+      return <ArrowDown className="ml-1 h-4 w-4 inline text-blue-500" />;
+    }
+
+    return null;
+  };
   
   // Get color based on percentage of total cost
   const getPercentageColor = (percentage: number): string => {
@@ -336,8 +438,8 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
   const totals = calculateTotals();
   
   return (
-    <div className="space-y-4">
-      {/* Summary Card */}
+    <div className="space-y-6">
+      {/* Summary Cards */}
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <h2 className="text-sm uppercase font-light text-gray-700 dark:text-gray-300 mb-4">Summary</h2>
@@ -447,129 +549,276 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
           </div>
         </CardContent>
       </Card>
-      
-      {/* Node Distribution Card */}
-      <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
-        <CardContent className="p-6">
-          <div className="space-y-5">
-            {nodeCosts.map((node) => {
-              // Calculate node's percentage of total cost
-              const percentage = clusterTotalCost > 0 ? (node.totalCost / clusterTotalCost) * 100 : 0;
-              
-              return (
-                <div key={node.name} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full ${getPercentageColor(percentage)} mr-2 opacity-80`}></div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{node.name}</span>
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 ml-5">
-                        <span className="mr-4">{node.instanceType}</span>
+
+      {/* Header with Search */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="w-96 mt-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search nodes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* No results message */}
+      {sortedNodes.length === 0 && searchQuery && (
+        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <AlertDescription>
+            No nodes matching "{searchQuery}"
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Nodes Table */}
+      {sortedNodes.length > 0 && (
+        <Card className="text-gray-800 dark:text-gray-300 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+          <div className="rounded-md border">
+            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+              <TableHeader>
+                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('name')}
+                  >
+                    Node Name {renderSortIndicator('name')}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500 w-[140px]"
+                    onClick={() => handleSort('instanceType')}
+                  >
+                    Instance Type {renderSortIndicator('instanceType')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('totalCost')}
+                  >
+                    Total Cost {renderSortIndicator('totalCost')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('percentage')}
+                  >
+                    Percentage {renderSortIndicator('percentage')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('efficiency')}
+                  >
+                    Efficiency {renderSortIndicator('efficiency')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('cpuCost')}
+                  >
+                    CPU {renderSortIndicator('cpuCost')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('ramCost')}
+                  >
+                    Memory {renderSortIndicator('ramCost')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('pvCost')}
+                  >
+                    Storage {renderSortIndicator('pvCost')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('networkCost')}
+                  >
+                    Network {renderSortIndicator('networkCost')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('gpuCost')}
+                  >
+                    GPU {renderSortIndicator('gpuCost')}
+                  </TableHead>
+                  <TableHead className="w-[50px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedNodes.map((node) => {
+                  const percentage = clusterTotalCost > 0 ? (node.totalCost / clusterTotalCost) * 100 : 0;
+                  
+                  return (
+                    <TableRow
+                      key={node.name}
+                      className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
+                    >
+                      <TableCell className="font-medium">
                         <div className="flex items-center">
-                          <Gauge className={`h-3 w-3 ${getEfficiencyColor(node.totalEfficiency)} mr-1`} />
+                          <div className={`w-3 h-3 rounded-full ${getPercentageColor(percentage)} mr-3 opacity-80`}></div>
+                          <span>{node.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{node.instanceType}</TableCell>
+                      <TableCell className="text-center font-bold">
+                        ${formatCost(node.totalCost)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="mx-auto">
+                          <span className="mr-4">{round(percentage, 1)}%</span>
+                          <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700/30 rounded-full">
+                            <div 
+                              className={`h-1 ${getPercentageColor(percentage)} rounded-full`}
+                              style={{ width: `${Math.min(percentage, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center">
+                          <Gauge className={`h-3 w-3 ${getEfficiencyColor(node.totalEfficiency)} mr-2`} />
                           <span className={`${getEfficiencyColor(node.totalEfficiency)}`}>
-                            Efficiency: {formatEfficiency(node.totalEfficiency)}
+                            {formatEfficiency(node.totalEfficiency)}
                           </span>
                         </div>
-                      </div>
-                    </div>
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">${formatCost(node.totalCost)}</span>
-                  </div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                    <div 
-                      className={`h-2 ${getPercentageColor(percentage)} rounded-full`}
-                      style={{ width: `${Math.min(percentage, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                      <Cpu className="h-3 w-3 text-blue-500 mr-1" />
-                      CPU: ${formatCost(node.cpuCost)}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                      <Database className="h-3 w-3 text-indigo-500 mr-1" />
-                      Memory: ${formatCost(node.ramCost)}
-                    </div>
-                    {node.pvCost > 0 && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                        <HardDrive className="h-3 w-3 text-purple-500 mr-1" />
-                        Storage: ${formatCost(node.pvCost)}
-                      </div>
-                    )}
-                    {node.networkCost > 0 && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                        <Network className="h-3 w-3 text-green-500 mr-1" />
-                        Network: ${formatCost(node.networkCost)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center">
+                          <Cpu className="h-3 w-3 text-blue-500 mr-1" />
+                          ${formatCost(node.cpuCost)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center">
+                          <Database className="h-3 w-3 text-indigo-500 mr-1" />
+                          ${formatCost(node.ramCost)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {node.pvCost > 0 ? (
+                          <div className="flex items-center justify-center">
+                            <HardDrive className="h-3 w-3 text-purple-500 mr-1" />
+                            ${formatCost(node.pvCost)}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {node.networkCost > 0 ? (
+                          <div className="flex items-center justify-center">
+                            <Network className="h-3 w-3 text-green-500 mr-1" />
+                            ${formatCost(node.networkCost)}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {node.gpuCost > 0 ? (
+                          <div className="flex items-center justify-center">
+                            <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                            </svg>
+                            ${formatCost(node.gpuCost)}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
+                            <DropdownMenuItem className="hover:text-gray-700 dark:hover:text-gray-500">
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask Agentkube
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
-          
-          {/* Idle costs if available */}
-          {idleCost && idleCost.totalCost > 0 && (
-            <div className="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-gray-400 mr-2 opacity-80"></div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Idle Resources</span>
-                </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">
-                  ${formatCost(idleCost.totalCost)}
-                </span>
+        </Card>
+      )}
+
+      {/* Idle costs section */}
+      {idleCost && idleCost.totalCost > 0 && (
+        <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-gray-400 mr-2 opacity-80"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Idle Resources</span>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              <span className="text-sm font-bold text-gray-900 dark:text-white">
+                ${formatCost(idleCost.totalCost)}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                <Cpu className="h-3 w-3 text-blue-500 mr-1" />
+                CPU: ${formatCost(idleCost.cpuCost)}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                <Database className="h-3 w-3 text-indigo-500 mr-1" />
+                Memory: ${formatCost(idleCost.ramCost)}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Unallocated costs section */}
+      {unallocatedCost && unallocatedCost.totalCost > 0 && (
+        <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2 opacity-80"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Unallocated Resources</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">
+                ${formatCost(unallocatedCost.totalCost)}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {unallocatedCost.cpuCost > 0 && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                   <Cpu className="h-3 w-3 text-blue-500 mr-1" />
-                  CPU: ${formatCost(idleCost.cpuCost)}
+                  CPU: ${formatCost(unallocatedCost.cpuCost)}
                 </div>
+              )}
+              {unallocatedCost.ramCost > 0 && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                   <Database className="h-3 w-3 text-indigo-500 mr-1" />
-                  Memory: ${formatCost(idleCost.ramCost)}
+                  Memory: ${formatCost(unallocatedCost.ramCost)}
                 </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Unallocated costs if available */}
-          {unallocatedCost && unallocatedCost.totalCost > 0 && (
-            <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2 opacity-80"></div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Unallocated Resources</span>
+              )}
+              {unallocatedCost.pvCost >= 0 && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                  <HardDrive className="h-3 w-3 text-purple-500 mr-1" />
+                  Storage: ${formatCost(unallocatedCost.pvCost)}
                 </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">
-                  ${formatCost(unallocatedCost.totalCost)}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                {unallocatedCost.cpuCost > 0 && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                    <Cpu className="h-3 w-3 text-blue-500 mr-1" />
-                    CPU: ${formatCost(unallocatedCost.cpuCost)}
-                  </div>
-                )}
-                {unallocatedCost.ramCost > 0 && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                    <Database className="h-3 w-3 text-indigo-500 mr-1" />
-                    Memory: ${formatCost(unallocatedCost.ramCost)}
-                  </div>
-                )}
-                {unallocatedCost.pvCost >= 0 && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                    <HardDrive className="h-3 w-3 text-purple-500 mr-1" />
-                    Storage: ${formatCost(unallocatedCost.pvCost)}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
