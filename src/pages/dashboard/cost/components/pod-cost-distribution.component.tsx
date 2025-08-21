@@ -545,8 +545,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
         </CardContent>
       </Card>
 
-      {/* Namespace Selector */}
-      <NamespaceSelector />
+
 
       {/* Header with Search */}
       <div className="flex items-center justify-between">
@@ -564,6 +563,9 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
             </div>
           </div>
         </div>
+
+        {/* Namespace Selector */}
+        <NamespaceSelector className='h-10 min-w-96' />
       </div>
 
       {/* No results message */}
@@ -682,7 +684,6 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
-                          <Server className="h-3 w-3 mr-1" />
                           <span 
                             className="cursor-pointer hover:underline text-blue-600 dark:text-blue-400"
                             onClick={() => navigate(`/dashboard/explore/nodes/${pod.nodeName}`)}
