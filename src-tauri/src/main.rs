@@ -29,7 +29,7 @@ fn get_orchestrator_binary_path() -> String {
         
         // Fallback
         _ => {
-            eprintln!("Unsupported platform: {}-{}", os, arch);
+            log::warn!("Unsupported platform: {}-{}, using fallback binary path", os, arch);
             if os == "windows" {
                 "bin\\orchestrator\\orchestrator.exe".to_string()
             } else {
@@ -61,7 +61,7 @@ fn get_operator_binary_path() -> String {
         
         // Fallback
         _ => {
-            eprintln!("Unsupported platform: {}-{}", os, arch);
+            log::warn!("Unsupported platform: {}-{}, using fallback binary path", os, arch);
             if os == "windows" {
                 "bin\\operator\\operator.exe".to_string()
             } else {
@@ -71,8 +71,49 @@ fn get_operator_binary_path() -> String {
     }
 }
 
-fn spawn_hidden_process(binary_path: &str) -> Result<std::process::Child, std::io::Error> {
+fn get_log_directory() -> std::path::PathBuf {
+    // Get platform-specific log directory that matches Tauri's location
+    if cfg!(target_os = "macos") {
+        dirs::home_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("Library")
+            .join("Logs")
+            .join("platform.agentkube.app")
+    } else if cfg!(target_os = "windows") {
+        dirs::config_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("platform.agentkube.app")
+            .join("logs")
+    } else {
+        // Linux
+        dirs::config_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("platform.agentkube.app")
+            .join("logs")
+    }
+}
+
+fn spawn_hidden_process(binary_path: &str, log_name: &str) -> Result<std::process::Child, std::io::Error> {
     let mut cmd = Command::new(binary_path);
+    
+    // Create log directory if it doesn't exist
+    let log_dir = get_log_directory();
+    if let Err(e) = std::fs::create_dir_all(&log_dir) {
+        log::warn!("Failed to create log directory: {}", e);
+    }
+    
+    // Set up log files for stdout and stderr
+    let stdout_log = log_dir.join(format!("{}.log", log_name));
+    let stderr_log = log_dir.join(format!("{}-error.log", log_name));
+    
+    let stdout_file = std::fs::File::create(&stdout_log)?;
+    let stderr_file = std::fs::File::create(&stderr_log)?;
+    
+    cmd.stdout(stdout_file);
+    cmd.stderr(stderr_file);
+    
+    log::info!("Binary logs will be written to: {} and {}", 
+               stdout_log.display(), stderr_log.display());
     
     #[cfg(windows)]
     {
@@ -85,50 +126,53 @@ fn spawn_hidden_process(binary_path: &str) -> Result<std::process::Child, std::i
 }
 
 fn main() {
+    // Initialize logging first
+    log::info!("Agentkube application starting...");
+    
     // Start the orchestrator binary
-    println!("Starting orchestrator...");
+    log::info!("Starting orchestrator...");
 
     // Get the appropriate binary path for this platform
     let orchestrator_path = get_orchestrator_binary_path();
-    println!("Using orchestrator binary: {}", orchestrator_path);
+    log::info!("Using orchestrator binary: {}", orchestrator_path);
 
     // Spawn orchestrator as a standalone process (hidden on Windows)
     let mut orchestrator_handle = None;
-    match spawn_hidden_process(&orchestrator_path) {
+    match spawn_hidden_process(&orchestrator_path, "orchestrator") {
         Ok(child) => {
-            println!("Orchestrator started with PID: {:?}", child.id());
+            log::info!("Orchestrator started with PID: {:?}", child.id());
             orchestrator_handle = Some(child);
         }
         Err(e) => {
-            eprintln!("Failed to start orchestrator: {}", e);
+            log::error!("Failed to start orchestrator: {}", e);
         }
     }
 
     // Give the orchestrator some time to initialize
-    println!("Waiting for orchestrator to initialize...");
+    log::info!("Waiting for orchestrator to initialize...");
     thread::sleep(Duration::from_millis(10000));
 
     // Start the operator binary next
-    println!("Starting operator...");
+    log::info!("Starting operator...");
 
     // Get the appropriate binary path for this platform
     let operator_path = get_operator_binary_path();
-    println!("Using operator binary: {}", operator_path);
+    log::info!("Using operator binary: {}", operator_path);
 
     // Spawn operator as a standalone process (hidden on Windows)
     let mut operator_handle = None;
-    match spawn_hidden_process(&operator_path) {
+    match spawn_hidden_process(&operator_path, "operator") {
         Ok(child) => {
-            println!("Operator started with PID: {:?}", child.id());
+            log::info!("Operator started with PID: {:?}", child.id());
             operator_handle = Some(child);
         }
         Err(e) => {
-            eprintln!("Failed to start operator: {}", e);
+            log::error!("Failed to start operator: {}", e);
         }
     }
 
     // Give the operator some time to initialize
-    println!("Waiting for operator to initialize...");
+    log::info!("Waiting for operator to initialize...");
     thread::sleep(Duration::from_millis(1000));
 
     // Setup cleanup on application exit
@@ -138,29 +182,36 @@ fn main() {
         original_hook(panic_info);
 
         // Clean up processes if needed
-        println!("Cleaning up external processes...");
+        log::error!("Application panic occurred: {}", panic_info);
+        log::info!("Cleaning up external processes...");
     }));
 
     // Then start the Tauri application
-    println!("Starting Tauri application...");
+    log::info!("Starting Tauri application...");
     app_lib::run();
 
     // This code will run when Tauri application exits
-    println!("Application exiting, cleaning up processes...");
+    log::info!("Application exiting, cleaning up processes...");
 
     // Clean up operator if it's still running
     if let Some(mut child) = operator_handle {
-        println!("Terminating operator process...");
+        log::info!("Terminating operator process...");
         if let Err(e) = child.kill() {
-            eprintln!("Failed to kill operator process: {}", e);
+            log::error!("Failed to kill operator process: {}", e);
+        } else {
+            log::info!("Operator process terminated successfully");
         }
     }
 
     // Clean up orchestrator if it's still running
     if let Some(mut child) = orchestrator_handle {
-        println!("Terminating orchestrator process...");
+        log::info!("Terminating orchestrator process...");
         if let Err(e) = child.kill() {
-            eprintln!("Failed to kill orchestrator process: {}", e);
+            log::error!("Failed to kill orchestrator process: {}", e);
+        } else {
+            log::info!("Orchestrator process terminated successfully");
         }
     }
+    
+    log::info!("Agentkube application shutdown complete");
 }

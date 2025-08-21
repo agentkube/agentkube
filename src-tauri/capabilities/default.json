@@ -60,6 +60,7 @@
     },
     "os:default",
     "shell:default",
+    "log:default",
     {
       "identifier": "shell:allow-execute",
       "allow": []

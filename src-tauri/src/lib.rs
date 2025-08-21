@@ -24,19 +24,31 @@ pub fn run() {
                 app.deep_link().register("agentkube")?;
             }
 
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // Enhanced logging configuration
+            app.handle().plugin(
+                tauri_plugin_log::Builder::new()
+                    .level(if cfg!(debug_assertions) {
+                        log::LevelFilter::Debug
+                    } else {
+                        log::LevelFilter::Info
+                    })
+                    .targets([
+                        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { 
+                            file_name: Some("agentkube".to_string()) 
+                        }),
+                        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+                    ])
+                    .build(),
+            )?;
+            
+            log::info!("Tauri application setup completed successfully");
             
             Ok(())
         })
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::Destroyed = event {
-                println!("Window destroyed, cleaning up resources...");
+                log::info!("Window destroyed, cleaning up resources...");
                 // The window is being destroyed, app will exit soon
             }
         })
@@ -44,10 +56,10 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|_app_handle, event| match event {
             RunEvent::Ready => {
-                println!("App is ready!");
+                log::info!("App is ready!");
             },
             RunEvent::Exit => {
-                println!("App is exiting...");
+                log::info!("App is exiting...");
                 
                 // Kill processes running on ports 4688 and 4689
                 #[cfg(target_os = "windows")]
@@ -70,7 +82,7 @@ pub fn run() {
                         .output();
                 }
                 
-                println!("Killed processes on ports 4688 and 4689");
+                log::info!("Killed processes on ports 4688 and 4689");
             },
             _ => {}
         });
