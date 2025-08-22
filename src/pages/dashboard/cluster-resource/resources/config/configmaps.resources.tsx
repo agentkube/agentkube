@@ -6,7 +6,7 @@ import { V1ConfigMap } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,9 @@ import { Trash } from "lucide-react";
 import { Trash2, Copy } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -81,6 +84,7 @@ const ConfigMaps: React.FC = () => {
   const [activeConfigMap, setActiveConfigMap] = useState<V1ConfigMap | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -105,6 +109,35 @@ const ConfigMaps: React.FC = () => {
     setActiveConfigMap(configMap);
     setSelectedConfigMaps(new Set([`${configMap.metadata?.namespace}/${configMap.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (configMap: V1ConfigMap) => {
+    try {
+      // Convert configMap to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        configMap,
+        'ConfigMap',
+        true, // namespaced
+        '',
+        'v1'
+      );
+      
+      // Add to chat context
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `ConfigMap "${configMap.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding configMap to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add ConfigMap to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleConfigMapClick = (e: React.MouseEvent, configMap: V1ConfigMap) => {
@@ -716,6 +749,13 @@ const ConfigMaps: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(configMap);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={handleViewConfigMap} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

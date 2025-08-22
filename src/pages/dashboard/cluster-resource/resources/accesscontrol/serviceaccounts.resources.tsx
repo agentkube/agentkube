@@ -5,7 +5,7 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,9 @@ import { Eye, Trash } from "lucide-react";
 import { Trash2, ExternalLink, Key } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for ServiceAccount
 interface ServiceAccountSecret {
@@ -75,6 +78,7 @@ const ServiceAccounts: React.FC = () => {
   const [activeServiceAccount, setActiveServiceAccount] = useState<V1ServiceAccount | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -208,6 +212,35 @@ const ServiceAccounts: React.FC = () => {
     setActiveServiceAccount(serviceAccount);
     setSelectedServiceAccounts(new Set([`${serviceAccount.metadata?.namespace}/${serviceAccount.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (serviceAccount: V1ServiceAccount) => {
+    try {
+      // Convert serviceAccount to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        serviceAccount,
+        'ServiceAccount',
+        true, // namespaced
+        '',
+        'v1'
+      );
+      
+      // Add to chat context
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `ServiceAccount "${serviceAccount.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding serviceAccount to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add ServiceAccount to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
 
@@ -826,6 +859,13 @@ const ServiceAccounts: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(serviceAccount);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewServiceAccountMenuItem(e, serviceAccount)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

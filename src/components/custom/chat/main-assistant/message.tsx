@@ -26,6 +26,7 @@ interface MessagesProps {
   onQuestionClick: (question: string) => void;
   suggestedQuestions: SuggestedQuestion[];
   elapsedTime?: number;
+  onRetry?: (userMessage: string) => void;
 }
 
 const Messages: React.FC<MessagesProps> = ({
@@ -35,7 +36,8 @@ const Messages: React.FC<MessagesProps> = ({
   isLoading,
   onQuestionClick,
   suggestedQuestions,
-  elapsedTime = 0
+  elapsedTime = 0,
+  onRetry
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +45,28 @@ const Messages: React.FC<MessagesProps> = ({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, currentResponse, currentToolCalls]);
+
+  // Helper function to find the preceding user message for an assistant message
+  const findUserMessageForAssistant = (assistantIndex: number): string | undefined => {
+    // Look backwards from the assistant message index to find the preceding user message
+    for (let i = assistantIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        return messages[i].content;
+      }
+    }
+    return undefined;
+  };
+
+  // Helper function to find the last user message (for streaming responses)
+  const findLastUserMessage = (): string | undefined => {
+    // Look backwards from the end to find the last user message
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        return messages[i].content;
+      }
+    }
+    return undefined;
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -78,6 +102,8 @@ const Messages: React.FC<MessagesProps> = ({
                 <AssistantMessage
                   content={message.content}
                   toolCalls={message.toolCalls}
+                  onRetry={onRetry}
+                  userMessage={findUserMessageForAssistant(index)}
                 />
               )}
             </div>
@@ -89,6 +115,8 @@ const Messages: React.FC<MessagesProps> = ({
               <AssistantMessage
                 content={currentResponse}
                 toolCalls={currentToolCalls}
+                onRetry={onRetry}
+                userMessage={findLastUserMessage()}
               />
             </div>
           )}

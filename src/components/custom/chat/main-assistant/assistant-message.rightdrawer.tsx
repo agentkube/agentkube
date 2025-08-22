@@ -25,9 +25,11 @@ interface TableProps {
 interface AssistantMessageProps {
   content: string;
   toolCalls?: ToolCall[];
+  onRetry?: (userMessage: string) => void;
+  userMessage?: string;
 }
 
-const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls = [] }) => {
+const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls = [], onRetry, userMessage }) => {
   return (
     <div className="w-full relative">
       <div className="bg-gray-300/30 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
@@ -197,7 +199,11 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
             */}
 
             {/* Use the new ResponseFeedback component */}
-            <ResponseFeedback content={content} />
+            <ResponseFeedback 
+              content={content} 
+              onRetry={onRetry}
+              userMessage={userMessage}
+            />
           </div>
         </div>
       </div>

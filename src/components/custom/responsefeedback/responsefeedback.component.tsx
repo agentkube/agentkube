@@ -1,15 +1,19 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Copy, ThumbsUp, ThumbsDown, Check } from 'lucide-react';
+import { Copy, ThumbsUp, ThumbsDown, Check, RotateCcw } from 'lucide-react';
 import { openExternalUrl } from '@/api/external';
 
 interface ResponseFeedbackProps {
   content: string;
   onFeedbackSubmit?: (feedback: string, isPositive: boolean) => void;
+  onRetry?: (userMessage: string) => void;
+  userMessage?: string;
 }
 
 const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({ 
   content, 
-  onFeedbackSubmit 
+  onFeedbackSubmit,
+  onRetry,
+  userMessage
 }) => {
   const [copied, setCopied] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -48,6 +52,12 @@ const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({
     }
     setShowFeedback(false);
     setFeedbackText('');
+  };
+
+  const handleRetry = () => {
+    if (onRetry && userMessage) {
+      onRetry(userMessage);
+    }
   };
 
   useEffect(() => {
@@ -111,6 +121,16 @@ const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({
           <Copy className="h-4 w-4 text-gray-500 dark:text-gray-600" />
         )}
       </button>
+
+      {onRetry && userMessage && (
+        <button
+          onClick={handleRetry}
+          className="p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+          title="Retry this message"
+        >
+          <RotateCcw className="h-4 w-4 text-gray-500 dark:text-gray-600" />
+        </button>
+      )}
 
       <button
         onClick={handleLike}

@@ -6,7 +6,7 @@ import { V1Deployment } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Pause, Play, Edit3, RefreshCw } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Pause, Play, Edit3, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +22,9 @@ import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogFooter, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogCancel, AlertDialogAction, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { createPortal } from 'react-dom';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -68,6 +71,7 @@ const Deployments: React.FC = () => {
   const [activeDeployment, setActiveDeployment] = useState<V1Deployment | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   // Add click handler for deployment selection with cmd/ctrl key
   const handleDeploymentClick = (e: React.MouseEvent, deployment: V1Deployment) => {
@@ -312,6 +316,35 @@ const Deployments: React.FC = () => {
     setActiveDeployment(deployment);
     setSelectedDeployments(new Set([`${deployment.metadata?.namespace}/${deployment.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (deployment: V1Deployment) => {
+    try {
+      // Convert deployment to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        deployment,
+        'Deployment',
+        true, // namespaced
+        'apps',
+        'v1'
+      );
+      
+      // Add to chat context
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Deployment "${deployment.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding deployment to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add deployment to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle delete action
@@ -834,6 +867,13 @@ const Deployments: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(deployment);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewDeployment(e, deployment)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

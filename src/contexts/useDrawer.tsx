@@ -1,11 +1,15 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import RightDrawer from '@/components/custom/chat/rightdrawer.components';
+import { EnrichedSearchResult } from '@/types/search';
 
 // Define the type for the context value
 interface DrawerContextType {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   toggleDrawer: () => void;
+  addResourceContext: (resource: EnrichedSearchResult) => void;
+  resourceContextToAdd: EnrichedSearchResult | null;
+  clearResourceContextToAdd: () => void;
 }
 
 // Create a more meaningful initial state with a noop function that doesn't just log
@@ -13,6 +17,9 @@ const initialState: DrawerContextType = {
   isOpen: false,
   setIsOpen: () => {}, // Empty function as placeholder
   toggleDrawer: () => {}, // Empty function as placeholder
+  addResourceContext: () => {},
+  resourceContextToAdd: null,
+  clearResourceContextToAdd: () => {},
 };
 
 const DrawerContext = createContext<DrawerContextType>(initialState);
@@ -31,6 +38,7 @@ interface DrawerProviderProps {
 
 export const DrawerProvider: React.FC<DrawerProviderProps> = ({ children }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [resourceContextToAdd, setResourceContextToAdd] = useState<EnrichedSearchResult | null>(null);
   
   // Use useCallback to memoize the function to prevent unnecessary rerenders
   const handleSetIsOpen = useCallback((open: boolean) => {
@@ -52,6 +60,21 @@ export const DrawerProvider: React.FC<DrawerProviderProps> = ({ children }) => {
     }
   }, [isOpen]);
 
+  // Add resource context function
+  const addResourceContext = useCallback((resource: EnrichedSearchResult) => {
+    try {
+      setResourceContextToAdd(resource);
+      // Don't automatically open the drawer, just set the context
+    } catch (error) {
+      console.error("Error adding resource context:", error);
+    }
+  }, []);
+
+  // Clear resource context function
+  const clearResourceContextToAdd = useCallback(() => {
+    setResourceContextToAdd(null);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Command+L (Mac) or Ctrl+L (Windows/Linux)
@@ -71,7 +94,14 @@ export const DrawerProvider: React.FC<DrawerProviderProps> = ({ children }) => {
   }, [toggleDrawer]);
 
   return (
-    <DrawerContext.Provider value={{ isOpen, setIsOpen: handleSetIsOpen, toggleDrawer }}>
+    <DrawerContext.Provider value={{ 
+      isOpen, 
+      setIsOpen: handleSetIsOpen, 
+      toggleDrawer,
+      addResourceContext,
+      resourceContextToAdd,
+      clearResourceContextToAdd 
+    }}>
       {children}
       <RightDrawer />
     </DrawerContext.Provider>

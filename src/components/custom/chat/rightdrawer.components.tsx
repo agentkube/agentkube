@@ -66,7 +66,7 @@ const mentionData = [
 
 
 const RightDrawer: React.FC = () => {
-  const { isOpen, setIsOpen } = useDrawer();
+  const { isOpen, setIsOpen, resourceContextToAdd, clearResourceContextToAdd } = useDrawer();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
   const [mentions, setMentions] = useState<string[]>([]);
@@ -121,6 +121,14 @@ const RightDrawer: React.FC = () => {
   useEffect(() => {
     console.log("Drawer isOpen state:", isOpen);
   }, [isOpen]);
+
+  // Handle incoming resource context
+  useEffect(() => {
+    if (resourceContextToAdd) {
+      handleAddContext(resourceContextToAdd);
+      clearResourceContextToAdd();
+    }
+  }, [resourceContextToAdd, clearResourceContextToAdd]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -366,6 +374,11 @@ const RightDrawer: React.FC = () => {
     setMentions(prev => [...prev, item.name]);
   };
 
+  const handleRetry = (userMessage: string) => {
+    // Set the input value to the user message but don't submit it
+    setInputValue(userMessage);
+  };
+
   // Early return only after mounted check to avoid hydration issues
   if (!drawerMounted || !isOpen) return null;
 
@@ -486,6 +499,7 @@ const RightDrawer: React.FC = () => {
                       onQuestionClick={handleQuestionClick}
                       suggestedQuestions={suggestedQuestions}
                       elapsedTime={elapsedTime}
+                      onRetry={handleRetry}
                     />
                   ) : (
                     <ChatSetting />

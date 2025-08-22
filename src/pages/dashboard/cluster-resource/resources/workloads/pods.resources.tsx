@@ -24,6 +24,8 @@ import { AlertDialog, AlertDialogHeader, AlertDialogCancel, AlertDialogFooter, A
 import { OPERATOR_URL } from '@/config';
 import { toast } from '@/hooks/use-toast';
 import { toast as sooner } from "sonner"
+import { useDrawer } from '@/contexts/useDrawer';
+import { podToEnrichedSearchResult } from '@/utils/pod-to-resource.utils';
 import BackgroundTaskDialog from '@/components/custom/backgroundtaskdialog/backgroundtaskdialog.component';
 import { useBackgroundTask } from '@/contexts/useBackgroundTask';
 import { SideDrawer } from '@/components/ui/sidedrawer.custom';
@@ -129,6 +131,7 @@ const Pods: React.FC = () => {
   const [showBackgroundTaskDialog, setShowBackgroundTaskDialog] = useState(false);
   const [backgroundTaskPod, setBackgroundTaskPod] = useState<V1Pod | null>(null);
   const { isOpen: isBackgroundTaskOpen, resourceName, resourceType, onClose: closeBackgroundTask, openWithResource } = useBackgroundTask();
+  const { addResourceContext } = useDrawer();
   
   // Telemetry drawer state
   const [isTelemetryDrawerOpen, setIsTelemetryDrawerOpen] = useState(false);
@@ -161,6 +164,29 @@ const Pods: React.FC = () => {
   const handleTelemetryPod = (pod: V1Pod) => {
     setTelemetryPod(pod);
     setIsTelemetryDrawerOpen(true);
+  };
+
+  const handleAskAI = (pod: V1Pod) => {
+    try {
+      // Convert pod to EnrichedSearchResult format
+      const resourceContext = podToEnrichedSearchResult(pod);
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Pod "${pod.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding pod to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add pod to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   const handlePodClick = (e: React.MouseEvent, pod: V1Pod) => {
@@ -1298,7 +1324,7 @@ const Pods: React.FC = () => {
                           <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
-                              toast({ title: "Ask AI", description: "Feature yet to be implemented" })
+                              handleAskAI(pod);
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask AI
