@@ -25,11 +25,11 @@ import { OPERATOR_URL } from '@/config';
 import { toast } from '@/hooks/use-toast';
 import { toast as sooner } from "sonner"
 import { useDrawer } from '@/contexts/useDrawer';
-import { podToEnrichedSearchResult } from '@/utils/pod-to-resource.utils';
 import BackgroundTaskDialog from '@/components/custom/backgroundtaskdialog/backgroundtaskdialog.component';
 import { useBackgroundTask } from '@/contexts/useBackgroundTask';
 import { SideDrawer } from '@/components/ui/sidedrawer.custom';
 import Telemetry from '@/components/custom/telemetry/telemetry.component';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -169,7 +169,13 @@ const Pods: React.FC = () => {
   const handleAskAI = (pod: V1Pod) => {
     try {
       // Convert pod to EnrichedSearchResult format
-      const resourceContext = podToEnrichedSearchResult(pod);
+      const resourceContext = resourceToEnrichedSearchResult(
+        pod,
+        'Pod',
+        true, // namespaced
+        '',
+        'v1'
+      );
       
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
