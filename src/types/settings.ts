@@ -35,6 +35,13 @@ export interface AgentKubeConfig {
     themeOptions: string[];
     fontSize: number;
     fontFamily: string;
+    themeConfig?: {
+      baseMode: 'light' | 'dark' | 'system';
+      customTheme?: any;
+      wallpaperPath?: string | null;
+      allowCustomWallpaper: boolean;
+    };
+    customThemes?: any[];
   };
   docs: {
     links: Array<{

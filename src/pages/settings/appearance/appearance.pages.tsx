@@ -8,23 +8,42 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme } from 'next-themes';
-import { EditorTheme, Wallpaper } from '@/components/custom';
+import { EditorTheme, Wallpaper, WallpaperSelector } from '@/components/custom';
+import { useCustomTheme } from '@/components/theme-provider';
+import { DEFAULT_THEMES, CustomTheme } from '@/types/theme';
 
 const Appearance = () => {
   // State for appearance settings
   const [fontFamily, setFontFamily] = useState('DM Sans');
   const [fontSize, setFontSize] = useState(14);
   const [colorMode, setColorMode] = useState('dark');
-  const [themeOptions, setThemeOptions] = useState<string[]>(['light', 'dark']);
 
   // UI state
-  const [selectedTheme, setSelectedTheme] = useState('aubergine');
-  const [isDark, setIsDark] = useState(true);
-  const { setTheme, theme } = useTheme()
+  const { setTheme, theme } = useTheme();
+  const { currentTheme, applyTheme } = useCustomTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const { toast } = useToast();
+
+  const fontOptions = [
+    { value: 'DM Sans', label: 'DM Sans (Default)', type: 'custom' },
+    { value: 'Inter', label: 'Inter', type: 'google' },
+    { value: 'Roboto', label: 'Roboto', type: 'google' },
+    { value: 'Poppins', label: 'Poppins', type: 'google' },
+    { value: 'Open Sans', label: 'Open Sans', type: 'google' },
+    { value: 'Lato', label: 'Lato', type: 'google' },
+    { value: 'Montserrat', label: 'Montserrat', type: 'google' },
+    { value: 'Source Sans Pro', label: 'Source Sans Pro', type: 'google' },
+    { value: 'system-ui', label: 'System UI', type: 'system' },
+    { value: '-apple-system', label: 'Apple System', type: 'system' },
+    { value: 'Segoe UI', label: 'Segoe UI', type: 'system' },
+    { value: 'Arial', label: 'Arial', type: 'system' },
+    { value: 'Helvetica', label: 'Helvetica', type: 'system' },
+    { value: 'Times New Roman', label: 'Times New Roman', type: 'system' },
+    { value: 'Georgia', label: 'Georgia', type: 'system' },
+    { value: 'Courier New', label: 'Courier New (Monospace)', type: 'system' }
+  ];
 
   // Fetch settings on component mount
   useEffect(() => {
@@ -34,13 +53,36 @@ const Appearance = () => {
         const settings = await getSettings();
 
         // Set state with appearance settings
-        setFontFamily(settings.appearance.fontFamily || 'DM Sans');
-        setFontSize(settings.appearance.fontSize || 14);
-        setColorMode(settings.appearance.colorMode || 'dark');
-        setThemeOptions(settings.appearance.themeOptions || ['light', 'dark']);
+        const fontFamily = settings.appearance?.fontFamily || 'DM Sans';
+        setFontFamily(fontFamily);
+        setFontSize(settings.appearance?.fontSize || 14);
+        setColorMode(settings.appearance?.colorMode || 'dark');
 
-        // Apply the color mode
-        applyColorMode(settings.appearance.colorMode);
+        // Load Google Font if the current font is a Google Font
+        const fontOption = fontOptions.find(f => f.value === fontFamily);
+        if (fontOption?.type === 'google') {
+          loadGoogleFont(fontFamily);
+        }
+
+        // Apply the current font
+        let appliedFontFamily = fontFamily;
+        if (fontOption?.type === 'system') {
+          if (fontFamily === 'system-ui') {
+            appliedFontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          } else if (fontFamily === '-apple-system') {
+            appliedFontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          } else if (fontFamily === 'Courier New') {
+            appliedFontFamily = '"Courier New", Courier, monospace';
+          } else if (fontFamily === 'Times New Roman') {
+            appliedFontFamily = '"Times New Roman", Times, serif';
+          } else {
+            appliedFontFamily = `"${fontFamily}", sans-serif`;
+          }
+        } else {
+          appliedFontFamily = `"${fontFamily}", sans-serif`;
+        }
+        
+        document.documentElement.style.setProperty('--font-family', appliedFontFamily);
       } catch (error) {
         console.error('Failed to load appearance settings:', error);
         toast({
@@ -56,40 +98,57 @@ const Appearance = () => {
     fetchSettings();
   }, [toast]);
 
-  // Apply color mode to document
-  const applyColorMode = (mode: string) => {
-    // Remove all theme classes
-    document.body.classList.remove('dark', 'light', 'notion-light', 'notion-dark', 'dark-emerald', 'dark-violet');
+  // Handle theme changes using our custom theme system
+  const handleThemeChange = async (themeId: string) => {
+    try {
+      setIsSaving(true);
+      setColorMode(themeId);
 
-    if (mode === 'dark') {
-      setTheme('dark');
-      setIsDark(true);
-      document.body.classList.add('dark');
-    } else if (mode === 'light') {
-      setTheme('light');
-      setIsDark(false);
-      document.body.classList.add('light');
-    } else if (mode === 'notion-light') {
-      setTheme('light');
-      setIsDark(false);
-      document.body.classList.add('notion-light');
-    } else if (mode === 'notion-dark') {
-      setTheme('dark');
-      setIsDark(true);
-      document.body.classList.add('notion-dark');
-    } else if (mode === 'dark-emerald') {
-      setTheme('dark');
-      setIsDark(true);
-      document.body.classList.add('dark-emerald');
-    } else if (mode === 'dark-violet') {
-      setTheme('dark');
-      setIsDark(true);
-      document.body.classList.add('dark-violet');
-    } else if (mode === 'system') {
-      setTheme('system');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDark(prefersDark);
-      document.body.classList.add(prefersDark ? 'dark' : 'light');
+      // Find the theme to apply
+      let themeToApply: CustomTheme | undefined;
+      
+      if (themeId === 'light') {
+        themeToApply = DEFAULT_THEMES.find(t => t.id === 'default-light');
+        setTheme('light');
+      } else if (themeId === 'dark') {
+        themeToApply = DEFAULT_THEMES.find(t => t.id === 'default-dark');
+        setTheme('dark');
+      } else if (themeId === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        themeToApply = DEFAULT_THEMES.find(t => t.id === (prefersDark ? 'default-dark' : 'default-light'));
+        setTheme('system');
+      } else {
+        // Find custom theme
+        themeToApply = DEFAULT_THEMES.find(t => t.id === themeId);
+        if (themeToApply) {
+          setTheme(themeToApply.baseMode);
+        }
+      }
+
+      if (themeToApply) {
+        applyTheme(themeToApply);
+      }
+
+      // Save to settings
+      const currentSettings = await getSettings();
+      await updateSettingsSection('appearance', {
+        ...currentSettings.appearance,
+        colorMode: themeId
+      });
+
+      toast({
+        title: "Theme updated",
+        description: `Theme has been updated to ${themeId}.`,
+      });
+    } catch (error) {
+      console.error('Failed to save theme:', error);
+      toast({
+        title: "Error saving theme",
+        description: "Could not save theme settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -99,49 +158,33 @@ const Appearance = () => {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
       const handleChange = (e: MediaQueryListEvent) => {
-        setIsDark(e.matches);
-        if (e.matches) {
-          document.body.classList.add('dark');
-          document.body.classList.remove('light');
-        } else {
-          document.body.classList.add('light');
-          document.body.classList.remove('dark');
+        const themeToApply = DEFAULT_THEMES.find(t => t.id === (e.matches ? 'default-dark' : 'default-light'));
+        if (themeToApply) {
+          applyTheme(themeToApply);
         }
       };
 
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [colorMode]);
+  }, [colorMode, applyTheme]);
 
-  // Save settings when color mode changes
-  const handleColorModeChange = async (mode: string) => {
-    try {
-      setIsSaving(true);
-      setColorMode(mode);
-      applyColorMode(mode);
 
-      const currentSettings = await getSettings();
-
-      await updateSettingsSection('appearance', {
-        ...currentSettings.appearance,
-        colorMode: mode
-      });
-
-      toast({
-        title: "Color mode updated",
-        description: `Theme has been updated to ${mode} mode.`,
-      });
-    } catch (error) {
-      console.error('Failed to save color mode:', error);
-      toast({
-        title: "Error saving settings",
-        description: "Could not save color mode settings. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
+  // Load Google Font dynamically
+  const loadGoogleFont = (fontName: string) => {
+    const fontId = `google-font-${fontName.replace(/\s+/g, '-').toLowerCase()}`;
+    
+    // Check if font is already loaded
+    if (document.getElementById(fontId)) {
+      return;
     }
+
+    // Create link element for Google Font
+    const link = document.createElement('link');
+    link.id = fontId;
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`;
+    document.head.appendChild(link);
   };
 
   // Handle font change
@@ -150,6 +193,14 @@ const Appearance = () => {
       setIsSaving(true);
       setFontFamily(font);
 
+      // Find font option to check its type
+      const fontOption = fontOptions.find(f => f.value === font);
+      
+      // Load Google Font if needed
+      if (fontOption?.type === 'google') {
+        loadGoogleFont(font);
+      }
+
       const currentSettings = await getSettings();
 
       await updateSettingsSection('appearance', {
@@ -157,8 +208,29 @@ const Appearance = () => {
         fontFamily: font
       });
 
-      // Apply font
-      document.documentElement.style.setProperty('--font-family', font);
+      // Apply font with fallbacks
+      let fontFamily = font;
+      if (fontOption?.type === 'system') {
+        // Add appropriate fallbacks for system fonts
+        if (font === 'system-ui') {
+          fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        } else if (font === '-apple-system') {
+          fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        } else if (font === 'Courier New') {
+          fontFamily = '"Courier New", Courier, monospace';
+        } else if (font === 'Times New Roman') {
+          fontFamily = '"Times New Roman", Times, serif';
+        } else {
+          fontFamily = `"${font}", sans-serif`;
+        }
+      } else if (fontOption?.type === 'google') {
+        fontFamily = `"${font}", sans-serif`;
+      } else {
+        // Custom fonts (like DM Sans)
+        fontFamily = `"${font}", sans-serif`;
+      }
+      
+      document.documentElement.style.setProperty('--font-family', fontFamily);
 
       toast({
         title: "Font updated",
@@ -221,13 +293,6 @@ const Appearance = () => {
     { id: 'mood-indigo', name: 'Mood Indigo', color: '#162854' },
   ];
 
-  const fontOptions = [
-    { value: 'DM Sans', label: 'DM Sans (Default)' },
-    // { value: 'Roboto', label: 'Roboto' },
-    // { value: 'Inter', label: 'Inter' },
-    // { value: 'Helvetica Neue', label: 'Helvetica Neue' },
-  ];
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
@@ -240,7 +305,12 @@ const Appearance = () => {
   return (
     <div className="p-4 space-y-8">
       <div>
-        <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Appearance</h1>
+        <div className='flex items-start gap-1'>
+          <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Appearance</h1>
+          <div className='bg-gray-200 dark:bg-gray-500/40 text-gray-800 dark:text-gray-400 px-0.5 text-xs uppercase'>
+            <span>Beta</span>
+          </div>
+        </div>
         <p className="text-gray-500 dark:text-gray-400">Customize how Agentkube looks and feels</p>
       </div>
 
@@ -259,10 +329,43 @@ const Appearance = () => {
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select font family" />
               </SelectTrigger>
-              <SelectContent className='dark:bg-gray-900/90 backdrop-blur-md'>
-                {fontOptions.map((font) => (
+              <SelectContent className='dark:bg-[#0B0D13]/40 backdrop-blur-md'>
+                {/* Custom Fonts */}
+                <div className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Custom Fonts
+                </div>
+                {fontOptions.filter(f => f.type === 'custom').map((font) => (
+                  <SelectItem key={font.value} value={font.value} className="font-dm-sans">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      {font.label}
+                    </span>
+                  </SelectItem>
+                ))}
+                
+                {/* Google Fonts */}
+                <div className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2">
+                  Google Fonts
+                </div>
+                {fontOptions.filter(f => f.type === 'google').map((font) => (
                   <SelectItem key={font.value} value={font.value}>
-                    {font.label}
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      {font.label}
+                    </span>
+                  </SelectItem>
+                ))}
+                
+                {/* System Fonts */}
+                <div className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2">
+                  System Fonts
+                </div>
+                {fontOptions.filter(f => f.type === 'system').map((font) => (
+                  <SelectItem key={font.value} value={font.value}>
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                      {font.label}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -301,7 +404,7 @@ const Appearance = () => {
               ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
               : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
-            onClick={() => handleColorModeChange('light')}
+            onClick={() => handleThemeChange('light')}
           >
             <div className="relative mb-2">
               <img src={LIGHTMODE} alt="Light Mode" className="w-full h-auto rounded-md" />
@@ -321,7 +424,7 @@ const Appearance = () => {
               ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
               : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
-            onClick={() => handleColorModeChange('dark')}
+            onClick={() => handleThemeChange('dark')}
           >
             <div className="relative mb-2">
               <img src={DARKMODE} alt="Dark Mode" className="w-full h-auto rounded-md" />
@@ -341,7 +444,7 @@ const Appearance = () => {
               ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
               : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
-            onClick={() => handleColorModeChange('system')}
+            onClick={() => handleThemeChange('system')}
           >
             <div className="relative mb-2">
               <img src={SYSTEMMODE} alt="System Mode" className="w-full h-auto rounded-md" />
@@ -357,7 +460,6 @@ const Appearance = () => {
         </div>
       </div>
 
-      {/* Theme variants - will be enabled in a future version */}
       {/* Theme variants */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
@@ -367,32 +469,34 @@ const Appearance = () => {
           Choose a color variation for your selected mode.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { id: 'notion-light', name: 'Notion Light', color: '#ffffff' },
-            { id: 'notion-dark', name: 'Notion Dark', color: '#191919' },
-            { id: 'dark-emerald', name: 'Dark Emerald', color: '#064e3b' },
-            { id: 'dark-violet', name: 'Dark Violet', color: '#4c1d95' },
-          ].map((theme) => (
+          {DEFAULT_THEMES.filter(t => t.id !== 'default-light' && t.id !== 'default-dark').map((themeVariant) => (
             <button
-              key={theme.id}
+              key={themeVariant.id}
               disabled={isSaving}
-              className={`flex items-center p-3 rounded border ${colorMode === theme.id
+              className={`flex items-center p-3 rounded border ${colorMode === themeVariant.id
                 ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
                 : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
-              onClick={() => handleColorModeChange(theme.id)}
+              onClick={() => handleThemeChange(themeVariant.id)}
             >
               <div
                 className="w-6 h-6 rounded-full mr-2"
-                style={{ backgroundColor: theme.color }}
+                style={{ 
+                  background: themeVariant.background.type === 'color' 
+                    ? themeVariant.background.value 
+                    : themeVariant.background.type === 'gradient'
+                    ? themeVariant.background.value
+                    : '#666666'
+                }}
               ></div>
-              <span className="text-sm">{theme.name}</span>
+              <span className="text-sm">{themeVariant.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <Wallpaper />
+      {/* Custom Wallpaper Section */}
+      <WallpaperSelector />
 
       <EditorTheme />
 
@@ -407,8 +511,7 @@ const Appearance = () => {
               await updateSettingsSection('appearance', {
                 fontFamily,
                 fontSize,
-                colorMode,
-                themeOptions
+                colorMode
               });
 
               toast({

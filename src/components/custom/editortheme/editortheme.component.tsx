@@ -65,7 +65,7 @@ spec:
               value={selectedTheme}
               onValueChange={handleThemeChange}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-8">
                 <SelectValue placeholder="Select editor theme" />
               </SelectTrigger>
               <SelectContent className='dark:bg-[#0B0D13]/50 backdrop-blur-md'>

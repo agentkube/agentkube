@@ -23,6 +23,7 @@ export { default as IssuesSection } from './clusterreport/issues-section.compone
 export { default as Provisioner } from './provisoner/provisioner.component';
 export { default as ProvisionDrawer } from './provisioningdrawer/provisioningdrawer.component';
 export { default as Wallpaper } from './wallpaper/wallpaper.component';
+export { default as WallpaperSelector } from './wallpaper-selector';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
 export { default as UninstallChartDialog } from './helmchartdialog/uninstallchartdialog.component';
@@ -76,3 +77,4 @@ export { default as MinimalEditor } from './minimaleditor/minimaleditor.componen
 export { default as NotificationDropdown } from './notificationdropdown/notificationdropdown.component';
 export { default as BackgroundTask } from './backgroundtaskdialog/backgroundtask.component';
 export { default as BackgroundTaskDialog } from './backgroundtaskdialog/backgroundtaskdialog.component';
+export { default as HITLDialog } from './hitldialog/hitldialog.component';
