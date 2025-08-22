@@ -134,8 +134,7 @@ export const DEFAULT_THEMES: CustomTheme[] = [
       input: '#f7f6f3',
       ring: '#37352f',
       drawerGradient: '#ffffff',
-    },
-    fontFamily: 'Roboto',
+    }
   },
   {
     id: 'notion-dark',
