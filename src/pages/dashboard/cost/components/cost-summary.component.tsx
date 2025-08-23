@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
 import { kubeProxyRequest } from '@/api/cluster';
-import { OpenCostAllocationResponse, ClusterCostSummary, DailyCost } from '@/types/opencost';
+import { ClusterCostSummary, DailyCost } from '@/types/opencost';
 import { Card, CardContent } from "@/components/ui/card";
 import { Cpu, Database, HardDrive, Network, AlertCircle, Loader2, Gauge } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -59,7 +59,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       // Build path and query parameters for daily trend data
       const trendPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
       const trendParams = new URLSearchParams({
-        window: '7d',          // 7 day window
+        window: timeRange,     // use dynamic timeRange
         aggregate: 'cluster',  // aggregate by cluster
         includeIdle: 'true',   // include idle resources
         step: '24h',           // daily intervals
@@ -81,14 +81,18 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
 
       // Fetch both trend data and current data in parallel
       const [trendResponse, currentResponse] = await Promise.all([
-        kubeProxyRequest(currentContext.name, trendFullPath, 'GET') as Promise<OpenCostAllocationResponse>,
-        kubeProxyRequest(currentContext.name, currentFullPath, 'GET') as Promise<OpenCostAllocationResponse>
+        kubeProxyRequest(currentContext.name, trendFullPath, 'GET'),
+        kubeProxyRequest(currentContext.name, currentFullPath, 'GET')
       ]);
+
+      // Handle different response structures - OpenCost might return data directly or nested
+      const trendData = trendResponse?.data || trendResponse;
+      const currentData = currentResponse?.data || currentResponse;
 
       // Transform and combine the data
       const transformedData = transformClusterCostData(
-        trendResponse.data,
-        currentResponse.data,
+        trendData,
+        currentData,
         currentContext.name
       );
 
@@ -116,12 +120,28 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
   // }, [onReload]);
 
   const transformClusterCostData = (
-    trendData: Record<string, any>[],
-    currentData: Record<string, any>[],
+    trendData: any,
+    currentData: any,
     clusterName: string
   ): ClusterCostSummary => {
+
+    // Handle different OpenCost response formats
+    let processedTrendData = trendData;
+    let processedCurrentData = currentData;
+
+    // OpenCost might return data directly as an object with timestamps as keys
+    if (trendData && typeof trendData === 'object' && !Array.isArray(trendData)) {
+      // Convert object to array of values
+      processedTrendData = Object.values(trendData);
+    }
+
+    if (currentData && typeof currentData === 'object' && !Array.isArray(currentData)) {
+      // Convert object to array of values
+      processedCurrentData = Object.values(currentData);
+    }
+
     // If no data is available, return empty data
-    if ((!trendData || trendData.length === 0) && (!currentData || currentData.length === 0)) {
+    if ((!processedTrendData || processedTrendData.length === 0) && (!processedCurrentData || processedCurrentData.length === 0)) {
       return createEmptyClusterCostSummary(clusterName);
     }
 
@@ -129,31 +149,43 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       // Process daily trend data
       const dailyDataPoints: DailyCost[] = [];
 
-      if (trendData && trendData.length > 0) {
+      if (processedTrendData && processedTrendData.length > 0) {
         // Process each daily data point
-        for (const dailyData of trendData) {
+        for (const dailyData of processedTrendData) {
+          
           // Skip empty data points
-          if (Object.keys(dailyData).length === 0) continue;
+          if (!dailyData || Object.keys(dailyData).length === 0) {
+            continue;
+          }
 
-          // Find the idle entry and the cluster entry
-          const idleEntry = dailyData['__idle__'];
+          // OpenCost cluster aggregation returns data with cluster name as key
           const clusterEntry = dailyData[clusterName];
+          
+          if (clusterEntry) {
+            // Extract date from window
+            const windowInfo = clusterEntry.window;
+            let date;
+            
+            if (windowInfo?.start) {
+              date = new Date(windowInfo.start);
+            } else {
+              date = new Date();
+            }
+            
+            const formattedDate = date.toISOString().split('T')[0];
 
-          // Skip if we don't have both entries
-          if (!idleEntry || !clusterEntry) continue;
+            // In cluster aggregation, there's no separate idle cost - it's all cluster cost
+            const totalCost = clusterEntry.totalCost || 0;
 
-          // Extract date from timestamp
-          const date = new Date(clusterEntry.window.start);
-          const formattedDate = date.toISOString().split('T')[0];
-
-          // Add to daily data points
-          dailyDataPoints.push({
-            date: formattedDate,
-            idleCost: idleEntry.totalCost || 0,
-            activeCost: clusterEntry.totalCost || 0,
-            totalCost: (idleEntry.totalCost || 0) + (clusterEntry.totalCost || 0),
-            cost: (idleEntry.totalCost || 0) + (clusterEntry.totalCost || 0)
-          });
+            // Add to daily data points
+            dailyDataPoints.push({
+              date: formattedDate,
+              idleCost: 0, // No separate idle cost in cluster aggregation
+              activeCost: totalCost,
+              totalCost: totalCost,
+              cost: totalCost
+            });
+          }
         }
 
         // Sort daily data points by date
@@ -171,21 +203,22 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       let gpuCost = 0;
       let efficiency = 0;
 
-      if (currentData && currentData.length > 0 && currentData[0]) {
-        const currentDataPoint = currentData[0];
-        const idleEntry = currentDataPoint['__idle__'];
+
+      if (processedCurrentData && processedCurrentData.length > 0 && processedCurrentData[0]) {
+        const currentDataPoint = processedCurrentData[0];
+        
         const clusterEntry = currentDataPoint[clusterName];
 
-        if (idleEntry && clusterEntry) {
-          // Extract costs from current data
-          totalIdleCost = idleEntry.totalCost || 0;
+        if (clusterEntry) {
+          // Extract costs from current data - no separate idle in cluster aggregation
+          totalIdleCost = 0; // No separate idle cost in cluster aggregation
           totalActiveCost = clusterEntry.totalCost || 0;
-          totalCost = totalIdleCost + totalActiveCost;
+          totalCost = totalActiveCost;
 
           // Extract resource costs
-          cpuCost = (idleEntry.cpuCost || 0) + (clusterEntry.cpuCost || 0);
-          memoryCost = (idleEntry.ramCost || 0) + (clusterEntry.ramCost || 0);
-          storageCost = (idleEntry.pvCost || 0) + (clusterEntry.pvCost || 0);
+          cpuCost = clusterEntry.cpuCost || 0;
+          memoryCost = clusterEntry.ramCost || 0;
+          storageCost = clusterEntry.pvCost || 0;
 
           // Calculate network costs (sum of all network-related costs)
           networkCost = (clusterEntry.networkCost || 0) +
@@ -194,12 +227,23 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
             (clusterEntry.networkInternetCost || 0);
 
           // Extract GPU costs
-          gpuCost = (idleEntry.gpuCost || 0) + (clusterEntry.gpuCost || 0);
+          gpuCost = clusterEntry.gpuCost || 0;
 
           // Extract efficiency (convert to percentage)
           efficiency = (clusterEntry.totalEfficiency || 0) * 100;
         }
       }
+
+      // Create window display text based on timeRange
+      const getWindowDisplayText = (timeRange: string): string => {
+        switch (timeRange) {
+          case '24h': return 'Last 24 hours';
+          case '48h': return 'Last 48 hours';
+          case '7d': return 'Last 7 days';
+          case '30d': return 'Last 30 days';
+          default: return `Last ${timeRange}`;
+        }
+      };
 
       // Create and return the cluster cost summary
       return {
@@ -207,7 +251,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
         totalCost,
         idleCost: totalIdleCost,
         activeCost: totalActiveCost,
-        window: "Last 48 hours",
+        window: getWindowDisplayText(timeRange),
         resources: {
           cpu: cpuCost,
           memory: memoryCost,
@@ -220,19 +264,28 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
         daily: dailyDataPoints
       };
     } catch (error) {
-      console.error("Error processing OpenCost cluster data:", error);
       return createEmptyClusterCostSummary(clusterName);
     }
   };
 
   // Helper to create empty cost summary when no data is available
   const createEmptyClusterCostSummary = (clusterName: string): ClusterCostSummary => {
+    const getWindowDisplayText = (timeRange: string): string => {
+      switch (timeRange) {
+        case '24h': return 'Last 24 hours';
+        case '48h': return 'Last 48 hours';
+        case '7d': return 'Last 7 days';
+        case '30d': return 'Last 30 days';
+        default: return `Last ${timeRange}`;
+      }
+    };
+
     return {
       clusterName,
       totalCost: 0,
       idleCost: 0,
       activeCost: 0,
-      window: "Last 48 hours",
+      window: getWindowDisplayText(timeRange),
       resources: {
         cpu: 0,
         memory: 0,
@@ -307,7 +360,7 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left column - Cost summary */}
-          <div className="space-y-2">
+          <div className="flex flex-col space-y-2">
 
 
 
@@ -353,20 +406,20 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
 
             </div>
 
-            <div className="space-y-0">
-              <Card className="bg-transparent dark:bg-gray-700/10 rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-24">
+            <div className="flex-1">
+              <Card className="bg-transparent dark:bg-gray-700/10 rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none h-full">
                 <CardContent className="py-2 flex flex-col h-full">
-                  <div className="flex items-center gap-1 mb-auto">
+                  <div className="flex items-center gap-1">
                     <Gauge className={`h-3 w-3 ${getEfficiencyTextColor(costData.efficiency).split(' ')[0]}`} />
                     <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500">Efficiency</h2>
                   </div>
-                  <div className="mt-48">
-                    <p className={`text-5xl font-light mb-1 ${getEfficiencyTextColor(costData.efficiency)}`}>
+                  <div className="flex-1 flex items-center justify-center flex-col">
+                    <p className={`text-6xl font-light mb-4 ${getEfficiencyTextColor(costData.efficiency)}`}>
                       {costData.efficiency.toFixed(1)}%
                     </p>
-                    <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-800/30 rounded-full">
                       <div
-                        className={`h-1 rounded-[0.3rem] ${costData.efficiency > 75 ? 'bg-green-500' :
+                        className={`h-2 rounded-full ${costData.efficiency > 75 ? 'bg-green-500' :
                           costData.efficiency > 50 ? 'bg-blue-500' :
                             costData.efficiency > 25 ? 'bg-amber-500' : 'bg-red-500'
                           }`}

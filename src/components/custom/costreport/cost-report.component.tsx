@@ -2,14 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Server, AlertCircle, Loader2, ArrowUpRight, Download } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, ArrowUpRight, Download, Cpu, Database, HardDrive, Network, Gauge, Zap } from "lucide-react";
 import { useCluster } from '@/contexts/clusterContext';
 import { getOpenCostStatus } from '@/api/cost';
 import { kubeProxyRequest } from '@/api/cluster';
 import { useNavigate } from 'react-router-dom';
+import { Progress } from '@/components/ui/progress';
+// OpenCost API Response Interface
+interface OpenCostClusterData {
+  name: string;
+  properties: {
+    cluster: string;
+  };
+  window: {
+    start: string;
+    end: string;
+  };
+  start: string;
+  end: string;
+  minutes: number;
+  cpuCores: number;
+  cpuCoreRequestAverage: number;
+  cpuCoreUsageAverage: number;
+  cpuCoreHours: number;
+  cpuCost: number;
+  cpuCostAdjustment: number;
+  cpuCostIdle: number;
+  cpuEfficiency: number;
+  gpuCount: number;
+  gpuHours: number;
+  gpuCost: number;
+  gpuCostAdjustment: number;
+  gpuCostIdle: number;
+  gpuEfficiency: number;
+  networkTransferBytes: number;
+  networkReceiveBytes: number;
+  networkCost: number;
+  networkCrossZoneCost: number;
+  networkCrossRegionCost: number;
+  networkInternetCost: number;
+  networkCostAdjustment: number;
+  loadBalancerCost: number;
+  loadBalancerCostAdjustment: number;
+  pvBytes: number;
+  pvByteHours: number;
+  pvCost: number;
+  pvs: null;
+  pvCostAdjustment: number;
+  ramBytes: number;
+  ramByteRequestAverage: number;
+  ramByteUsageAverage: number;
+  ramByteHours: number;
+  ramCost: number;
+  ramCostAdjustment: number;
+  ramCostIdle: number;
+  ramEfficiency: number;
+  externalCost: number;
+  sharedCost: number;
+  totalCost: number;
+  totalEfficiency: number;
+  lbAllocations: null;
+  gpuAllocation: null;
+}
+
 interface CostData {
-  monthlyCost: number;
-  changePercentage: number;
+  current: OpenCostClusterData | null;
   lastUpdated: Date | null;
 }
 
@@ -19,10 +76,8 @@ const CostOverviewReport = () => {
   const [isOpenCostInstalled, setIsOpenCostInstalled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clusterMetrics, setClusterMetrics] = useState({ pods: 0, namespaces: 0 });
   const [costData, setCostData] = useState<CostData>({
-    monthlyCost: 0,
-    changePercentage: 0,
+    current: null,
     lastUpdated: null
   });
 
@@ -38,9 +93,6 @@ const CostOverviewReport = () => {
         // Check if OpenCost is installed
         const statusData = await getOpenCostStatus(currentContext.name);
         setIsOpenCostInstalled(statusData.status.installed);
-
-        // Fetch basic cluster metrics regardless of OpenCost status
-        await fetchClusterMetrics();
 
         // If OpenCost is installed, fetch cost data
         if (statusData.status.installed) {
@@ -58,31 +110,17 @@ const CostOverviewReport = () => {
     checkOpenCostStatus();
   }, [currentContext]);
 
-  const fetchClusterMetrics = async () => {
-    if (!currentContext?.name) return;
+  // Set up interval for fetching cost data every 10 seconds
+  useEffect(() => {
+    if (!isOpenCostInstalled || !currentContext?.name) return;
 
-    try {
+    const interval = setInterval(async () => {
+      await fetchCostData();
+    }, 5000); // 5 seconds
 
-      const podsResponse = await kubeProxyRequest(
-        currentContext.name, 
-        'api/v1/pods?limit=1',
-        'GET'
-      );
+    return () => clearInterval(interval);
+  }, [isOpenCostInstalled, currentContext]);
 
-      const namespacesResponse = await kubeProxyRequest(
-        currentContext.name, 
-        'api/v1/namespaces?limit=1',
-        'GET'
-      );
-
-      setClusterMetrics({
-        pods: podsResponse.metadata?.remainingItemCount + 1 || 0,
-        namespaces: namespacesResponse.metadata?.remainingItemCount + 1 || 0
-      });
-    } catch (err) {
-      console.error('Error fetching cluster metrics:', err);
-    }
-  };
 
   const fetchCostData = async () => {
     if (!currentContext?.name || !isOpenCostInstalled) return;
@@ -92,60 +130,37 @@ const CostOverviewReport = () => {
       const OPENCOST_NAMESPACE = 'opencost';
       const OPENCOST_SERVICE = 'opencost:9090';
 
-      // Build path for monthly cost data
+      // Build path for 24h cost data
       const costPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
       const costParams = new URLSearchParams({
-        window: '7d',      
-        aggregate: 'cluster',  // aggregate by cluster
-        includeIdle: 'true',   // include idle resources
-        accumulate: 'true'     // accumulate costs
-      }).toString();
-
-      // Previous month for comparison
-      const prevCostPath = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
-      const prevCostParams = new URLSearchParams({
-        window: '60d',        
-        offset: '30d',         // offset by 30 days to get previous month
-        aggregate: 'cluster',  // aggregate by cluster
-        includeIdle: 'true',   // include idle resources
-        accumulate: 'true'     // accumulate costs
+        window: '24h',
+        aggregate: 'cluster',
+        includeIdle: 'true',
+        step: '1d',
+        accumulate: 'false'
       }).toString();
 
       const costFullPath = `${costPath}?${costParams}`;
-      const prevCostFullPath = `${prevCostPath}?${prevCostParams}`;
 
-      // Fetch both current month and previous month cost data
-      const [currentResponse, prevResponse] = await Promise.all([
-        kubeProxyRequest(currentContext.name, costFullPath, 'GET'),
-        kubeProxyRequest(currentContext.name, prevCostFullPath, 'GET')
-      ]);
+      // Fetch current 24h cost data
+      const currentResponse = await kubeProxyRequest(currentContext.name, costFullPath, 'GET');
 
-      // Extract data or use default values
-      let monthlyCost = 0;
-      let prevMonthCost = 0;
+      // Extract data directly from OpenCost API response
+      let currentClusterData: OpenCostClusterData | null = null;
       
-      if (currentResponse?.data && currentResponse.data.length > 0) {
-        const clusterData = currentResponse.data[0][currentContext.name];
-        const idleData = currentResponse.data[0]['__idle__'];
-        
-        monthlyCost = (clusterData?.totalCost || 0) + (idleData?.totalCost || 0);
-      }
+      // Handle current response
+      const currentData = currentResponse?.data || currentResponse;
+      console.log('OpenCost API Response:', currentResponse);
+      console.log('Current Data:', currentData);
+      console.log('Cluster Name:', currentContext.name);
       
-      if (prevResponse?.data && prevResponse.data.length > 0) {
-        const prevClusterData = prevResponse.data[0][currentContext.name];
-        const prevIdleData = prevResponse.data[0]['__idle__'];
-        
-        prevMonthCost = (prevClusterData?.totalCost || 0) + (prevIdleData?.totalCost || 0);
+      if (currentData && currentData.length > 0) {
+        currentClusterData = currentData[0][currentContext.name] || null;
+        console.log('Extracted Cluster Data:', currentClusterData);
       }
-
-      // Calculate percentage change
-      const changePercentage = prevMonthCost > 0 
-        ? ((monthlyCost - prevMonthCost) / prevMonthCost) * 100 
-        : 0;
 
       setCostData({
-        monthlyCost: monthlyCost,
-        changePercentage: changePercentage,
+        current: currentClusterData,
         lastUpdated: new Date()
       });
     } catch (err) {
@@ -198,24 +213,14 @@ const CostOverviewReport = () => {
           <TabsContent value="balance">
             <div className="flex flex-col h-full space-y-3">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-light text-gray-700 dark:text-gray-300">Monthly Spend</h2>
-                {isOpenCostInstalled ? (
-                  <span className={`px-2 py-0.5 ${costData.changePercentage >= 0 ? 'bg-green-500/20 text-green-500 dark:text-green-400' : 'bg-red-500/20 text-red-500 dark:text-red-400'} text-xs rounded-full`}>
-                    {costData.changePercentage >= 0 ? '+' : ''}{costData.changePercentage.toFixed(1)}%
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 bg-gray-500/20 text-gray-500 dark:text-gray-400 text-xs rounded-full">
-                    Not Available
-                  </span>
-                )}
+                <h2 className="text-sm font-light text-gray-700 dark:text-gray-300">Last 24h</h2>
               </div>
-              
+              {}
               <div className="text-5xl font-light text-gray-900 dark:text-white">
                 {isOpenCostInstalled ? (
                   <>
                     <span className="text-gray-500 dark:text-gray-400">$</span>
-                    {Math.round(costData.monthlyCost)}
-                    <span className="text-gray-500 dark:text-gray-400">.{Math.round((costData.monthlyCost % 1) * 100).toString().padStart(2, '0')}</span>
+                    <span>{(costData.current?.totalCost || 0).toFixed(2)}</span>
                   </>
                 ) : (
                   <span className="text-gray-500 dark:text-gray-400">Not Configured</span>
@@ -237,8 +242,8 @@ const CostOverviewReport = () => {
                 </div>
               </div> */}
               
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Running {clusterMetrics.pods} pods across {clusterMetrics.namespaces} namespaces.
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Cluster cost data from OpenCost
               </div>
               
               <div className="flex-grow"></div>
@@ -262,24 +267,116 @@ const CostOverviewReport = () => {
           </TabsContent>
           
           <TabsContent value="audience" className="mt-0">
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Resource Utilization</h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                {isOpenCostInstalled 
-                  ? "View detailed resource utilization and cost data on the Cost Overview page." 
-                  : "Install OpenCost to track resource utilization and costs."}
-              </p>
-              <div className="flex">
-                {isOpenCostInstalled ? (
-                  <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white gap-2" onClick={() => window.location.href = '/costs'}>
-                    View Details <ArrowRight className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={handleInstallOpenCost}>
-                    Install OpenCost <ArrowRight className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+            <div className="space-y-3">
+              {isOpenCostInstalled ? (
+                <>
+                  <h2 className="text-sm font-light text-gray-700 dark:text-gray-300 mb-3">Resource Breakdown (24h)</h2>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* CPU Cost */}
+                    <div className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Cpu className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs font-medium text-blue-700 dark:text-blue-300 uppercase">CPU</span>
+                      </div>
+                      <div className="text-lg font-light text-blue-800 dark:text-blue-100">
+                        ${(costData.current?.cpuCost || 0).toFixed(3)}
+                      </div>
+                    </div>
+
+                    {/* RAM Cost */}
+                    <div className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Database className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        <span className="text-xs font-medium text-purple-700 dark:text-purple-300 uppercase">RAM</span>
+                      </div>
+                      <div className="text-lg font-light text-purple-800 dark:text-purple-100">
+                        ${(costData.current?.ramCost || 0).toFixed(3)}
+                      </div>
+                    </div>
+
+                    {/* Storage Cost */}
+                    <div className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <HardDrive className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        <span className="text-xs font-medium text-orange-700 dark:text-orange-300 uppercase">Storage</span>
+                      </div>
+                      <div className="text-lg font-light text-orange-800 dark:text-orange-100">
+                        ${(costData.current?.pvCost || 0).toFixed(3)}
+                      </div>
+                    </div>
+
+                    {/* Network Cost */}
+                    <div className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Network className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-medium text-green-700 dark:text-green-300 uppercase">Network</span>
+                      </div>
+                      <div className="text-lg font-light text-green-800 dark:text-green-100">
+                        ${((costData.current?.networkCost || 0) + 
+                           (costData.current?.networkCrossZoneCost || 0) + 
+                           (costData.current?.networkCrossRegionCost || 0) + 
+                           (costData.current?.networkInternetCost || 0)).toFixed(3)}
+                      </div>
+                    </div>
+
+                    {/* GPU Cost - only show if > 0 */}
+                    {(costData.current?.gpuCost || 0) > 0 && (
+                      <div className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                          <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase">GPU</span>
+                        </div>
+                        <div className="text-lg font-light text-yellow-800 dark:text-yellow-100">
+                          ${(costData.current?.gpuCost || 0).toFixed(3)}
+                        </div>
+                      </div>
+                    )}
+  
+                    {/* Efficiency */}
+                    <div className={`${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/30' : 
+                      ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30' :
+                      ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30' : 
+                      'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30'} col-span-2 border rounded-lg p-3`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Gauge className={`h-4 w-4 ${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'text-green-600 dark:text-green-400' :
+                          ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'text-blue-600 dark:text-blue-400' :
+                          ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-600 dark:text-amber-400' : 
+                          'text-red-600 dark:text-red-400'}`} />
+                        <span className={`text-xs font-medium uppercase ${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'text-green-700 dark:text-green-300' :
+                          ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'text-blue-700 dark:text-blue-300' :
+                          ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-700 dark:text-amber-300' : 
+                          'text-red-700 dark:text-red-300'}`}>Efficiency</span>
+                      </div>
+                      <div className={`text-lg font-light ${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'text-green-800 dark:text-green-100' :
+                        ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'text-blue-800 dark:text-blue-100' :
+                        ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-800 dark:text-amber-100' : 
+                        'text-red-800 dark:text-red-100'}`}>
+                        {((costData.current?.totalEfficiency || 0) * 100).toFixed(1)}%
+                        <Progress className='h-1' value={(costData.current?.totalEfficiency || 0) * 100} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-gray-700 flex justify-between w-44 text-gray-800 dark:text-white gap-2" onClick={() => navigate('/dashboard/cost')}>
+                      Full Details <ArrowUpRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Resource Utilization</h2>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Install OpenCost to track resource utilization and costs.
+                  </p>
+                  <div className="flex">
+                    <Button variant="outline" onClick={handleInstallOpenCost}>
+                      Install OpenCost <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
           
