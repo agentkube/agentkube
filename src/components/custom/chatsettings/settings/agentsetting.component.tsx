@@ -39,6 +39,7 @@ const AgentSetting: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [configDialog, setConfigDialog] = useState<{ tool: Agent; isOpen: boolean }>({ tool: {} as Agent, isOpen: false });
   const [extendedToolsConfig, setExtendedToolsConfig] = useState<Record<string, ExtendedToolConfig>>({
+    docker: { id: 'docker', enabled: false, config: {} },
     argocd: { id: 'argocd', enabled: false, config: {} },
     prometheus: { id: 'prometheus', enabled: false, config: {} },
     trivy: { id: 'trivy', enabled: false, config: {} },
@@ -48,6 +49,7 @@ const AgentSetting: React.FC = () => {
     loki: { id: 'loki', enabled: false, config: {} },
     alertmanager: { id: 'alertmanager', enabled: false, config: {} },
     signoz: { id: 'signoz', enabled: false, config: {} },
+    opencost: { id: 'opencost', enabled: false, config: {} },
   });
 
   useEffect(() => {
@@ -93,7 +95,7 @@ const AgentSetting: React.FC = () => {
       description: 'Container platform for building, shipping, and running applications.',
       type: 'extended',
       icon: <SiDocker className='h-4 w-4' />,
-      enabled: extendedToolsConfig.argocd.enabled
+      enabled: extendedToolsConfig.docker.enabled
     },
     {
       id: 'argocd',
@@ -166,6 +168,14 @@ const AgentSetting: React.FC = () => {
       type: 'extended',
       icon: <SigNoz className='h-4 w-4' />, // Using Shield as placeholder
       enabled: extendedToolsConfig.signoz?.enabled || false
+    },
+    {
+      id: 'opencost',
+      name: 'OpenCost',
+      description: 'Real-time cost monitoring and optimization for Kubernetes.',
+      type: 'extended',
+      icon: <SiKubernetes className='h-4 w-4' />,
+      enabled: extendedToolsConfig.opencost?.enabled || false
     }
   ];
 

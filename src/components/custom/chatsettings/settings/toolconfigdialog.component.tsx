@@ -31,17 +31,74 @@ export const ConfigDialog: React.FC<{
 
   const renderConfigFields = () => {
     switch (tool.id) {
+      case 'docker':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="registry_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Registry URL <span className="text-gray-500">(optional - defaults to Docker Hub)</span>
+              </Label>
+              <Input
+                id="registry_url"
+                type="url"
+                placeholder="https://registry-1.docker.io"
+                value={config.registry_url || ''}
+                onChange={(e) => updateConfig('registry_url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="auth_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Auth URL <span className="text-gray-500">(optional - defaults to Docker Hub auth)</span>
+              </Label>
+              <Input
+                id="auth_url"
+                type="url"
+                placeholder="https://auth.docker.io"
+                value={config.auth_url || ''}
+                onChange={(e) => updateConfig('auth_url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Username <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Docker Hub username"
+                value={config.username || ''}
+                onChange={(e) => updateConfig('username', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password/PAT <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Personal Access Token"
+                value={config.password || ''}
+                onChange={(e) => updateConfig('password', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </>
+        );
       case 'argocd':
         return (
           <>
             <div className="space-y-2">
               <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Base URL
+                Base URL <span className="text-gray-500">(optional - for external ArgoCD)</span>
               </Label>
               <Input
                 id="base_url"
                 type="url"
-                placeholder="https://argocd.example.com"
+                placeholder="https://argocd.example.com (leave empty for internal)"
                 value={config.base_url || ''}
                 onChange={(e) => updateConfig('base_url', e.target.value)}
                 className="w-full"
@@ -67,14 +124,53 @@ export const ConfigDialog: React.FC<{
           <>
             <div className="space-y-2">
               <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Base URL
+                Base URL <span className="text-gray-500">(optional - for external Prometheus)</span>
               </Label>
               <Input
                 id="base_url"
                 type="url"
-                placeholder="https://prometheus.example.com"
+                placeholder="https://prometheus.example.com (leave empty for internal proxy)"
                 value={config.base_url || ''}
                 onChange={(e) => updateConfig('base_url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="namespace" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Namespace
+              </Label>
+              <Input
+                id="namespace"
+                type="text"
+                placeholder="monitoring"
+                value={config.namespace || ''}
+                onChange={(e) => updateConfig('namespace', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Service
+              </Label>
+              <Input
+                id="service"
+                type="text"
+                placeholder="prometheus-stack-kube-prom-prometheus:9090"
+                value={config.service || ''}
+                onChange={(e) => updateConfig('service', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api_token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                API Token <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="api_token"
+                type="password"
+                placeholder="For cloud/auth proxy"
+                value={config.api_token || ''}
+                onChange={(e) => updateConfig('api_token', e.target.value)}
                 className="w-full"
               />
             </div>
@@ -85,7 +181,7 @@ export const ConfigDialog: React.FC<{
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter username"
+                placeholder="Basic auth username"
                 value={config.username || ''}
                 onChange={(e) => updateConfig('username', e.target.value)}
                 className="w-full"
@@ -98,9 +194,255 @@ export const ConfigDialog: React.FC<{
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter password"
+                placeholder="Basic auth password"
                 value={config.password || ''}
                 onChange={(e) => updateConfig('password', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </>
+        );
+      case 'alertmanager':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Base URL
+              </Label>
+              <Input
+                id="base_url"
+                type="url"
+                placeholder="https://alertmanager.example.com"
+                value={config.base_url || ''}
+                onChange={(e) => updateConfig('base_url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api_token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                API Token <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="api_token"
+                type="password"
+                placeholder="API token"
+                value={config.api_token || ''}
+                onChange={(e) => updateConfig('api_token', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Username <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Username"
+                value={config.username || ''}
+                onChange={(e) => updateConfig('username', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Password"
+                value={config.password || ''}
+                onChange={(e) => updateConfig('password', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </>
+        );
+      case 'grafana':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Base URL
+              </Label>
+              <Input
+                id="base_url"
+                type="url"
+                placeholder="https://grafana.example.com"
+                value={config.base_url || ''}
+                onChange={(e) => updateConfig('base_url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api_key" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                API Key
+              </Label>
+              <Input
+                id="api_key"
+                type="password"
+                placeholder="Grafana API key"
+                value={config.api_key || ''}
+                onChange={(e) => updateConfig('api_key', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </>
+        );
+      case 'signoz':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Base URL
+              </Label>
+              <Input
+                id="base_url"
+                type="url"
+                placeholder="https://signoz.example.com"
+                value={config.base_url || ''}
+                onChange={(e) => updateConfig('base_url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api_key" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                API Key <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="api_key"
+                type="password"
+                placeholder="SigNoz API key"
+                value={config.api_key || ''}
+                onChange={(e) => updateConfig('api_key', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Username <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Username"
+                value={config.username || ''}
+                onChange={(e) => updateConfig('username', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Password"
+                value={config.password || ''}
+                onChange={(e) => updateConfig('password', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </>
+        );
+      case 'datadog':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="api_key" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                API Key
+              </Label>
+              <Input
+                id="api_key"
+                type="password"
+                placeholder="Datadog API key"
+                value={config.api_key || ''}
+                onChange={(e) => updateConfig('api_key', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="app_key" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                App Key
+              </Label>
+              <Input
+                id="app_key"
+                type="password"
+                placeholder="Datadog application key"
+                value={config.app_key || ''}
+                onChange={(e) => updateConfig('app_key', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="site" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Site <span className="text-gray-500">(optional - defaults to US1)</span>
+              </Label>
+              <Input
+                id="site"
+                type="text"
+                placeholder="datadoghq.com, datadoghq.eu, etc."
+                value={config.site || ''}
+                onChange={(e) => updateConfig('site', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </>
+        );
+      case 'opencost':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="base_url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Base URL <span className="text-gray-500">(optional - for external OpenCost)</span>
+              </Label>
+              <Input
+                id="base_url"
+                type="url"
+                placeholder="https://opencost.example.com (leave empty for internal proxy)"
+                value={config.base_url || ''}
+                onChange={(e) => updateConfig('base_url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="namespace" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Namespace
+              </Label>
+              <Input
+                id="namespace"
+                type="text"
+                placeholder="opencost"
+                value={config.namespace || ''}
+                onChange={(e) => updateConfig('namespace', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="server" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Server Address
+              </Label>
+              <Input
+                id="server"
+                type="text"
+                placeholder="service name or address"
+                value={config.server || ''}
+                onChange={(e) => updateConfig('server', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api_token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                API Token <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="api_token"
+                type="password"
+                placeholder="Authentication token if needed"
+                value={config.api_token || ''}
+                onChange={(e) => updateConfig('api_token', e.target.value)}
                 className="w-full"
               />
             </div>
@@ -123,7 +465,11 @@ export const ConfigDialog: React.FC<{
           </div>
         );
       default:
-        return null;
+        return (
+          <div className="text-center text-gray-500 py-4">
+            No configuration required for {tool.name}
+          </div>
+        );
     }
   };
 
