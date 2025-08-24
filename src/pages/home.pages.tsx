@@ -466,7 +466,7 @@ const HomePage: React.FC = () => {
                   className={`mt-4 flex items-center gap-2 
                   ${hasSelectedCluster
                       ? 'bg-blue-700 dark:bg-blue-800 hover:bg-blue-700 text-white'
-                      : 'bg-gray-300 hover:bg-gray-300 text-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-600'}`}
+                      : 'bg-gray-300 hover:bg-gray-300 text-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-600'}`}
                   onClick={handleMainConnect}
                   disabled={isContextsLoading || (!pinnedClusters.length && !availableClusters.length)}
                 >
@@ -566,7 +566,7 @@ const HomePage: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-2'}`}>
+          <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-1 max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'}`}>
             {filteredClusters.length > 0 ? (
               filteredClusters.map(cluster => (
                 <ClusterCard 
