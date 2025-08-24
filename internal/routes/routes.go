@@ -29,8 +29,11 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 	router.GET("/", handlers.HomeHandler)
 	router.GET("/ping", handlers.PingHandler)
 
-	// WebSocket route
+	// WebSocket routes
 	router.GET("/ws", handlers.WebSocketHandler)
+
+	// WebSocket multiplexer for advanced cluster operations
+	router.GET("/wsMultiplexer", handlers.WebSocketHandler)
 
 	// Base path setup if configured
 	var apiRoot *gin.RouterGroup
@@ -84,8 +87,12 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			// Parse kubeconfig endpoint
 			v1.POST("/parse-kubeconfig", handlers.ParseKubeConfigHandler)
 
-			// Keep the original proxy route as well for API compatibility
+			// Cluster API proxy routes - handles both HTTP and WebSocket
 			v1.Any("/clusters/:clusterName/*path", handlers.ProxyHandler)
+
+			// Direct WebSocket routes for cluster streaming APIs
+			v1.GET("/socket/clusters/:clusterName/ws", handlers.WebSocketHandler)
+			v1.GET("/socket/clusters/:clusterName/watch", handlers.WebSocketHandler)
 
 			// Search endpoint for cluster resources
 			v1.POST("/cluster/:clusterName/search", handlers.SearchResources)

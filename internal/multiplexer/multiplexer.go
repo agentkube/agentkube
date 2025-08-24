@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/agentkube/operator/pkg/auth"
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/logger"
 	"github.com/gorilla/websocket"
@@ -452,7 +453,29 @@ func (m *Multiplexer) HandleClientWebSocket(w http.ResponseWriter, r *http.Reque
 			continue
 		}
 
-		conn, err := m.getOrCreateConnection(msg, lockClientConn)
+		// Extract authentication token from cookies/headers if not provided in message
+		var token *string
+		if msg.Token != nil && *msg.Token != "" {
+			// Use token from message if provided
+			token = msg.Token
+		} else {
+			// Try to extract token from cookie for the cluster
+			if msg.ClusterID != "" {
+				tokenStr, err := auth.GetTokenFromCookie(r, msg.ClusterID)
+				if err != nil {
+					logger.Log(logger.LevelWarn, map[string]string{"clusterID": msg.ClusterID}, err, "no token found in cookies, trying headers")
+					// Fallback to headers
+					tokenStr, err = auth.GetTokenFromHeaders(r)
+					if err == nil {
+						token = &tokenStr
+					}
+				} else {
+					token = &tokenStr
+				}
+			}
+		}
+
+		conn, err := m.getOrCreateConnection(msg, lockClientConn, token)
 		if err != nil {
 			m.handleConnectionError(lockClientConn, msg, err)
 
@@ -492,7 +515,7 @@ func (m *Multiplexer) readClientMessage(clientConn *websocket.Conn) (Message, er
 }
 
 // getOrCreateConnection gets an existing connection or creates a new one if it doesn't exist.
-func (m *Multiplexer) getOrCreateConnection(msg Message, clientConn *WSConnLock) (*Connection, error) {
+func (m *Multiplexer) getOrCreateConnection(msg Message, clientConn *WSConnLock, token *string) (*Connection, error) {
 	connKey := m.createConnectionKey(msg.ClusterID, msg.Path, msg.UserID)
 
 	m.mutex.RLock()
@@ -502,7 +525,7 @@ func (m *Multiplexer) getOrCreateConnection(msg Message, clientConn *WSConnLock)
 	if !exists {
 		var err error
 
-		conn, err = m.establishClusterConnection(msg.ClusterID, msg.UserID, msg.Path, msg.Query, clientConn, msg.Token)
+		conn, err = m.establishClusterConnection(msg.ClusterID, msg.UserID, msg.Path, msg.Query, clientConn, token)
 		if err != nil {
 			logger.Log(
 				logger.LevelError,

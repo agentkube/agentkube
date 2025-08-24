@@ -10,11 +10,11 @@ import (
 
 // ContextStore is an interface for storing and retrieving contexts.
 type ContextStore interface {
-	AddContext(headlampContext *Context) error
+	AddContext(agentkubeContext *Context) error
 	GetContexts() ([]*Context, error)
 	GetContext(name string) (*Context, error)
 	RemoveContext(name string) error
-	AddContextWithKeyAndTTL(headlampContext *Context, key string, ttl time.Duration) error
+	AddContextWithKeyAndTTL(agentkubeContext *Context, key string, ttl time.Duration) error
 	UpdateTTL(key string, ttl time.Duration) error
 }
 
@@ -32,11 +32,11 @@ func NewContextStore() ContextStore {
 }
 
 // AddContext adds a context to the store.
-func (c *contextStore) AddContext(headlampContext *Context) error {
-	name := headlampContext.Name
+func (c *contextStore) AddContext(agentkubeContext *Context) error {
+	name := agentkubeContext.Name
 
-	if headlampContext.KubeContext != nil && headlampContext.KubeContext.Extensions != nil {
-		if info, ok := headlampContext.KubeContext.Extensions["headlamp_info"]; ok {
+	if agentkubeContext.KubeContext != nil && agentkubeContext.KubeContext.Extensions != nil {
+		if info, ok := agentkubeContext.KubeContext.Extensions["agentkube_info"]; ok {
 			// Convert the runtime.Unknown object to a byte slice
 			unknownBytes, err := json.Marshal(info)
 			if err != nil {
@@ -58,7 +58,7 @@ func (c *contextStore) AddContext(headlampContext *Context) error {
 		}
 	}
 
-	return c.cache.Set(context.Background(), name, headlampContext)
+	return c.cache.Set(context.Background(), name, agentkubeContext)
 }
 
 // GetContexts returns all contexts in the store.
@@ -93,8 +93,8 @@ func (c *contextStore) RemoveContext(name string) error {
 }
 
 // AddContextWithKeyAndTTL adds a context to the store with a ttl.
-func (c *contextStore) AddContextWithKeyAndTTL(headlampContext *Context, key string, ttl time.Duration) error {
-	return c.cache.SetWithTTL(context.Background(), key, headlampContext, ttl)
+func (c *contextStore) AddContextWithKeyAndTTL(agentkubeContext *Context, key string, ttl time.Duration) error {
+	return c.cache.SetWithTTL(context.Background(), key, agentkubeContext, ttl)
 }
 
 // UpdateTTL updates the ttl of a context.

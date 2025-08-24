@@ -2,3 +2,5 @@ dist
 .vscode
 .vs
 .env
+node_modules
+reference
