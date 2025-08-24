@@ -3,6 +3,7 @@ import * as SwitchPrimitives from "@radix-ui/react-switch"
 import { cn } from "@/lib/utils"
 import { Binoculars } from "lucide-react"
 import { AGENTKUBE } from "@/assets";
+import { getAgentReconMode, updateAgentReconMode } from "@/api/settings";
 
 const Root = SwitchPrimitives.Root as any;
 const Thumb = SwitchPrimitives.Thumb as any;
@@ -15,11 +16,36 @@ interface ReconModeSwitchProps extends React.ComponentPropsWithoutRef<typeof Roo
 const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps>(
   ({ className, onCheckedChange, ...props }, ref) => {
     const [isChecked, setIsChecked] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(false);
 
-    const handleCheckedChange = (checked: boolean) => {
-      setIsChecked(checked);
-      onCheckedChange?.(checked);
+    const handleCheckedChange = async (checked: boolean) => {
+      try {
+        setIsLoading(true);
+        await updateAgentReconMode(checked);
+        setIsChecked(checked);
+        onCheckedChange?.(checked);
+      } catch (error) {
+        console.error('Failed to update recon mode:', error);
+        // Revert on error
+        const currentSetting = await getAgentReconMode();
+        setIsChecked(currentSetting.recon);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
+    React.useEffect(() => {
+      const loadReconMode = async () => {
+        try {
+          const response = await getAgentReconMode();
+          setIsChecked(response.recon);
+        } catch (error) {
+          console.error('Failed to load recon mode:', error);
+        }
+      };
+      
+      loadReconMode();
+    }, []);
 
     React.useImperativeHandle(ref, () => ({
       click: () => {
@@ -36,9 +62,12 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
             isChecked
               ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
               : "bg-gray-300 dark:bg-gray-600/20",
+            isLoading && "opacity-50 cursor-not-allowed",
             className
           )}
+          checked={isChecked}
           onCheckedChange={handleCheckedChange}
+          disabled={isLoading}
           {...props}
           ref={ref}
         >

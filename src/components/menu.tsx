@@ -124,7 +124,6 @@ export function Menu() {
                     ref={reconSwitchRef}
                     onCheckedChange={(checked: boolean) => {
                       console.log('Recon mode:', checked ? 'enabled' : 'disabled');
-                      // Handle your recon mode logic here
                     }}
                   />
                 </div>

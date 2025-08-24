@@ -434,3 +434,33 @@ export const getAgentWebSearch = async (): Promise<{ webSearch: boolean }> => {
     throw error;
   }
 };
+
+/**
+ * Fetches the agent recon mode setting from main config
+ * @returns Promise with the agent recon mode setting
+ */
+export const getAgentReconMode = async (): Promise<{ recon: boolean }> => {
+  try {
+    const config = await getSettings();
+    return { recon: config.agents.recon };
+  } catch (error) {
+    console.error('Error fetching agent recon mode setting:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates the agent recon mode setting
+ * @param recon The new recon mode setting
+ * @returns Promise with the updated settings
+ */
+export const updateAgentReconMode = async (recon: boolean): Promise<AgentKubeConfig> => {
+  try {
+    return await patchConfig({
+      agents: { recon }
+    });
+  } catch (error) {
+    console.error('Error updating agent recon mode setting:', error);
+    throw error;
+  }
+};

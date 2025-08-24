@@ -113,6 +113,7 @@ export interface AgentKubeConfig {
   agents: {
     denyList: string[];
     webSearch: boolean;
+    recon: boolean;
   };
 }
 
