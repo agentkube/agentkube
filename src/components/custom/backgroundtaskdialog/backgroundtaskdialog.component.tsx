@@ -9,6 +9,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { LogsSelection } from '@/types/logs';
 import { submitInvestigationTask } from '@/api/task';
 import { InvestigationRequest, InvestigationResponse, ResourceContext, LogContext } from '@/types/task';
+import { useCluster } from '@/contexts/clusterContext';
 
 interface BackgroundTaskDialogProps {
 	isOpen: boolean;
@@ -35,6 +36,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 	const [contextLogs, setContextLogs] = useState<LogsSelection[]>([]);
+	const { currentContext } = useCluster();
 
 	useEffect(() => {
 		if (isOpen && inputRef.current) {
@@ -81,7 +83,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 				context: {
 					resource_name: resourceName,
 					resource_type: resourceType,
-					// Add kubecontext and namespace if available
+					kubecontext: currentContext?.name,
 				},
 				resource_context: resourceContext.length > 0 ? resourceContext : undefined,
 				log_context: logContext.length > 0 ? logContext : undefined,
