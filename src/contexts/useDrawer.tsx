@@ -10,6 +10,9 @@ interface DrawerContextType {
   addResourceContext: (resource: EnrichedSearchResult) => void;
   resourceContextToAdd: EnrichedSearchResult | null;
   clearResourceContextToAdd: () => void;
+  addStructuredContent: (content: string, title?: string) => void;
+  structuredContentToAdd: {content: string, title?: string} | null;
+  clearStructuredContentToAdd: () => void;
 }
 
 // Create a more meaningful initial state with a noop function that doesn't just log
@@ -20,6 +23,9 @@ const initialState: DrawerContextType = {
   addResourceContext: () => {},
   resourceContextToAdd: null,
   clearResourceContextToAdd: () => {},
+  addStructuredContent: () => {},
+  structuredContentToAdd: null,
+  clearStructuredContentToAdd: () => {},
 };
 
 const DrawerContext = createContext<DrawerContextType>(initialState);
@@ -39,6 +45,7 @@ interface DrawerProviderProps {
 export const DrawerProvider: React.FC<DrawerProviderProps> = ({ children }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [resourceContextToAdd, setResourceContextToAdd] = useState<EnrichedSearchResult | null>(null);
+  const [structuredContentToAdd, setStructuredContentToAdd] = useState<{content: string, title?: string} | null>(null);
   
   // Use useCallback to memoize the function to prevent unnecessary rerenders
   const handleSetIsOpen = useCallback((open: boolean) => {
@@ -75,6 +82,20 @@ export const DrawerProvider: React.FC<DrawerProviderProps> = ({ children }) => {
     setResourceContextToAdd(null);
   }, []);
 
+  // Add structured content function
+  const addStructuredContent = useCallback((content: string, title?: string) => {
+    try {
+      setStructuredContentToAdd({ content, title });
+    } catch (error) {
+      console.error("Error adding structured content:", error);
+    }
+  }, []);
+
+  // Clear structured content function
+  const clearStructuredContentToAdd = useCallback(() => {
+    setStructuredContentToAdd(null);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Command+L (Mac) or Ctrl+L (Windows/Linux)
@@ -100,7 +121,10 @@ export const DrawerProvider: React.FC<DrawerProviderProps> = ({ children }) => {
       toggleDrawer,
       addResourceContext,
       resourceContextToAdd,
-      clearResourceContextToAdd 
+      clearResourceContextToAdd,
+      addStructuredContent,
+      structuredContentToAdd,
+      clearStructuredContentToAdd 
     }}>
       {children}
       <RightDrawer />

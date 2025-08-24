@@ -30,6 +30,8 @@ import MarkdownContent from "@/utils/markdown-formatter";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { NamespaceSelector } from '@/components/custom';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from 'sonner';
 
 const SEVERITY_LEVELS = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 
@@ -47,6 +49,7 @@ const AuditReport = () => {
   const { selectedNamespaces } = useNamespace();
   const [isTrivyInstalled, setIsTrivyInstalled] = useState(false);
   const navigate = useNavigate();
+  const { addStructuredContent } = useDrawer();
 
   // For the details drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -274,6 +277,27 @@ const AuditReport = () => {
     setSelectedSeverity("all");
     setSortField(null);
     setSortDirection('asc');
+  };
+
+  const handleResolveClick = (check: TrivyConfigAuditCheck | any, report: TrivyConfigAuditReport) => {
+    const resourceName = report.metadata.labels?.['trivy-operator.resource.name'] || report.metadata.name;
+    const resourceKind = report.metadata.labels?.['trivy-operator.resource.kind'] || 'resource';
+    
+    const structuredContent = `**${check.title}** ${check.severity} ${check.success ? 'PASS' : 'FAIL'}
+
+${check.description}
+
+**Check ID:** ${check.checkID || check.id || 'N/A'}
+**Category:** ${check.category}
+
+**Messages:**
+${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
+
+**Resource:** ${resourceKind}/${resourceName}
+**Namespace:** ${report.metadata.labels?.['trivy-operator.resource.namespace'] || report.metadata.namespace || 'N/A'}`;
+
+    addStructuredContent(structuredContent, `${check.title.substring(0, 20)}...`);
+    toast.success('Security issue added to chat context');
   };
 
   if (loading) {
@@ -661,7 +685,15 @@ const AuditReport = () => {
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button className="w-24 flex justify-between">Resolve <ArrowUpRight/></Button>
+                                    <Button 
+                                      className="w-24 flex justify-between"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleResolveClick(check, selectedReportForDrawer);
+                                      }}
+                                    >
+                                      Resolve <ArrowUpRight/>
+                                    </Button>
                                   </TooltipTrigger>
                                   <TooltipContent className="p-1">
                                     <p>Ask Agentkube to Resolve</p>

@@ -43,6 +43,8 @@ import { Separator } from '@/components/ui/separator';
 import { getTaskDetails, getInvestigationTaskDetails } from '@/api/task';
 import { TaskDetails, SubTask, InvestigationTaskDetails, ResourceContext } from '@/types/task';
 import { AgentkubeBot } from '@/assets/icons';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from 'sonner';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { CSSProperties } from 'react';
@@ -73,6 +75,7 @@ const getTagColor = (tag: string): string => {
 
 const TaskReport: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
+  const { addStructuredContent } = useDrawer();
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -248,6 +251,28 @@ const TaskReport: React.FC = () => {
     } catch {
       return resourceContentJson;
     }
+  };
+
+  const handleResolveClick = () => {
+    if (!taskDetails) return;
+
+    const structuredContent = `**${taskDetails.title}**
+Severity: ${taskDetails.severity}
+Status: ${taskDetails.status}
+
+**Summary:**
+${taskDetails.summary}
+
+**Remediation:**
+${taskDetails.remediation || 'No specific remediation provided'}
+
+**Task ID:** ${taskDetails.task_id}
+**Duration:** ${formatDuration(taskDetails.duration)}
+**Services Affected:** ${taskDetails.impact?.service_affected ?? 0}
+**Error Rate:** ${taskDetails.impact?.error_rate ?? 0}%`;
+
+    addStructuredContent(structuredContent, `Task: ${taskDetails.title.substring(0, 15)}...`);
+    toast('Task details added to chat');
   };
 
 
@@ -431,7 +456,7 @@ const TaskReport: React.FC = () => {
                               className="mr-2 h-6 text-xs flex justify-between w-36 items-center rounded cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Add resolve functionality here
+                                handleResolveClick();
                               }}
                             >
                               <div className='flex items-center gap-1'>

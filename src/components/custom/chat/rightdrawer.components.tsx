@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare, Send, ArrowUp, ChevronLeft, Settings, MessageSquare } from "lucide-react";
+import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare, Send, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
@@ -13,7 +13,6 @@ import { chatStream, executeCommand, ToolCall } from '@/api/orchestrator.chat';
 import { useCluster } from '@/contexts/clusterContext';
 import UpgradeToProContainer from './upgradepro.component';
 import { useAuth } from '@/contexts/useAuth';
-import { AGENTKUBE } from '@/assets';
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +20,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { AgentkubeBot } from '@/assets/icons';
+import PromptContentDialog from '@/components/custom/promptcontentdialog/promptcontentdialog.component';
 
 interface SuggestedQuestion {
   question: string;
@@ -66,7 +66,7 @@ const mentionData = [
 
 
 const RightDrawer: React.FC = () => {
-  const { isOpen, setIsOpen, resourceContextToAdd, clearResourceContextToAdd } = useDrawer();
+  const { isOpen, setIsOpen, resourceContextToAdd, clearResourceContextToAdd, structuredContentToAdd, clearStructuredContentToAdd } = useDrawer();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
   const [mentions, setMentions] = useState<string[]>([]);
@@ -81,6 +81,11 @@ const RightDrawer: React.FC = () => {
   const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
   const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
   const [showChatSettings, setShowChatSettings] = useState<boolean>(false);
+  const [structuredContent, setStructuredContent] = useState<{content: string, title?: string}[]>([]);
+  
+  // Dialog states
+  const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
+  const [selectedContentForDialog, setSelectedContentForDialog] = useState<string | null>(null);
   const { currentContext } = useCluster();
   const { user } = useAuth();
 
@@ -129,6 +134,14 @@ const RightDrawer: React.FC = () => {
       clearResourceContextToAdd();
     }
   }, [resourceContextToAdd, clearResourceContextToAdd]);
+
+  // Handle incoming structured content
+  useEffect(() => {
+    if (structuredContentToAdd) {
+      handleAddStructuredContent(structuredContentToAdd.content, structuredContentToAdd.title);
+      clearStructuredContentToAdd();
+    }
+  }, [structuredContentToAdd, clearStructuredContentToAdd]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -200,13 +213,21 @@ const RightDrawer: React.FC = () => {
       return;
     }
 
+    // Combine input value with structured content
+    let combinedMessage = inputValue;
+    if (structuredContent.length > 0) {
+      const structuredContentText = structuredContent.map(item => item.content).join('\n\n');
+      combinedMessage = `${inputValue}\n\n${structuredContentText}`;
+    }
+
     const userMessage: ChatMessage = {
       role: 'user',
-      content: inputValue
+      content: combinedMessage
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    setStructuredContent([]);
     setIsLoading(true);
     setCurrentResponse('');
     setCurrentToolCalls([]);
@@ -225,7 +246,7 @@ const RightDrawer: React.FC = () => {
 
       await chatStream(
         {
-          message: inputValue,
+          message: combinedMessage,
           chat_history: getRecentChatHistory(messages),
           model: selectedModel,
           kubecontext: currentContext?.name,
@@ -367,6 +388,12 @@ const RightDrawer: React.FC = () => {
       ),
       resource
     ]);
+  };
+
+  const handleAddStructuredContent = (content: string, title?: string): void => {
+    // Add structured content to be used in chat
+    const newTitle = title || `Paste${structuredContent.length + 1}`;
+    setStructuredContent(prev => [...prev, { content, title: newTitle }]);
   };
 
   const handleMentionSelect = (item: any) => {
@@ -530,6 +557,36 @@ const RightDrawer: React.FC = () => {
 
                 {!showChatSettings && (
                   <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
+                    {structuredContent.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1">
+                        {structuredContent.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center text-xs text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-700/30 rounded px-1 py-2"
+                          >
+                            <div
+                              className="flex items-center cursor-pointer"
+                              onClick={() => {
+                                setSelectedContentForDialog(item.content);
+                                setIsPromptDialogOpen(true);
+                              }}
+                            >
+                              <FileText className="w-4 h-4" />
+                              <span className="ml-1">{item.title}</span>
+                            </div>
+                            <X
+                              size={12}
+                              className="ml-1 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setStructuredContent(prev => prev.filter((_, i) => i !== index));
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-center mb-2">
                       <ResourceContext onResourceSelect={handleAddContext} />
                       <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
@@ -601,6 +658,13 @@ const RightDrawer: React.FC = () => {
           </>
         )}
       </AnimatePresence>
+      
+      {/* Prompt Content Dialog */}
+      <PromptContentDialog
+        isOpen={isPromptDialogOpen}
+        onClose={() => setIsPromptDialogOpen(false)}
+        content={selectedContentForDialog}
+      />
     </TooltipProvider>
   );
 };
