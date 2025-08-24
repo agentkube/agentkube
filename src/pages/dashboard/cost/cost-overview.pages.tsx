@@ -59,7 +59,6 @@ const CostOverview: React.FC = () => {
       try {
         setLoading(true);
         const statusData = await getOpenCostStatus(currentContext.name);
-        console.log('OpenCost status:', statusData);
         setOpenCostStatus(statusData);
         setIsOpenCostInstalled(statusData.status.installed);
       } catch (err) {
