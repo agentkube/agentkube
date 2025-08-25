@@ -59,8 +59,8 @@ const CPU_GRADIENT: GradientConfig = {
   direction: 'vertical',
   colors: [
     { offset: 0, color: '#06b6d4', opacity: 0.8 },
-    { offset: 0.1, color: '#0891b2', opacity: 0.1 },
-    { offset: 1, color: '#0891b2', opacity: 0.1 },
+    { offset: 0.6, color: '#0891b2', opacity: 0 },
+    { offset: 1, color: '#0891b2', opacity: 0 },
   ],
 };
 
@@ -69,8 +69,8 @@ const MEMORY_GRADIENT: GradientConfig = {
   direction: 'vertical',
   colors: [
     { offset: 0, color: '#10b981', opacity: 0.8 },
-    { offset: 0.1, color: '#059669', opacity: 0.1 },
-    { offset: 1, color: '#059669', opacity: 0.1 },
+    { offset: 0.6, color: '#059669', opacity: 0 },
+    { offset: 1, color: '#059669', opacity: 0 },
   ],
 };
 

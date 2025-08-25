@@ -330,8 +330,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
           titleColor: themeColors.tooltipTextColor,
           bodyColor: themeColors.tooltipTextColor,
           borderColor: themeColors.gridColor,
-          borderWidth: 2,
-          cornerRadius: 8,
+          cornerRadius: 4,
           displayColors: true,
           padding: 12,
           titleFont: {
