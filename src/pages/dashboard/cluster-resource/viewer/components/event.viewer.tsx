@@ -89,7 +89,7 @@ const EventsViewer: React.FC<EventsViewerProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            className="h-8 flex items-center gap-1 bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+            className="h-8 flex items-center gap-1 bg-gray-50 dark:bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span>Refresh</span>
@@ -98,7 +98,7 @@ const EventsViewer: React.FC<EventsViewerProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            className="h-8 flex items-center gap-1 bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+            className="h-8 flex items-center gap-1 bg-gray-50 dark:bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50"
             onClick={() => setShowAll(!showAll)}
           >
             <Filter className="h-3.5 w-3.5" />

@@ -31,7 +31,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { NamespaceSelector } from '@/components/custom';
 import { useDrawer } from '@/contexts/useDrawer';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 const SEVERITY_LEVELS = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 
@@ -297,7 +297,10 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
 **Namespace:** ${report.metadata.labels?.['trivy-operator.resource.namespace'] || report.metadata.namespace || 'N/A'}`;
 
     addStructuredContent(structuredContent, `${check.title.substring(0, 20)}...`);
-    toast.success('Security issue added to chat context');
+    toast({
+      title: "Added to chat",
+      description: "Security issue added to chat context"
+    });
   };
 
   if (loading) {

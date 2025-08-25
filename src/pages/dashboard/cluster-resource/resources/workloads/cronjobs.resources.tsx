@@ -13,7 +13,7 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Play, Pause, Clock } from "lucide-react";
+import { Trash2, Play, Pause, Clock, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,9 @@ import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { V1CronJob } from '@kubernetes/client-node';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -67,6 +70,7 @@ const CronJobs: React.FC = () => {
   const [activeCronJob, setActiveCronJob] = useState<any | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   // Add click handler for CronJob selection with cmd/ctrl key
   const handleCronJobClick = (e: React.MouseEvent, cronJob: any) => {
@@ -107,6 +111,35 @@ const CronJobs: React.FC = () => {
     setActiveCronJob(cronJob);
     setSelectedCronJobs(new Set([`${cronJob.metadata?.namespace}/${cronJob.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (cronJob: V1CronJob) => {
+    try {
+      // Convert cronJob to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        cronJob,
+        'CronJob',
+        true, // namespaced
+        'batch',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `CronJob "${cronJob.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding cronJob to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add cronJob to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Add context menu handlers
@@ -897,6 +930,13 @@ const CronJobs: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleAskAI(cronJob);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask AI
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => handleViewCronJob(e, cronJob)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Eye className="mr-2 h-4 w-4" />
                               View

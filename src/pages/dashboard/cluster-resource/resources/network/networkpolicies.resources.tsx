@@ -20,9 +20,12 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Trash } from "lucide-react";
-import { Trash2, Eye } from "lucide-react";
+import { Trash2, Eye, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for NetworkPolicy (not directly exported from kubernetes-client-node)
 interface IPBlock {
@@ -135,6 +138,7 @@ const NetworkPolicies: React.FC = () => {
   const [activePolicy, setActivePolicy] = useState<V1NetworkPolicy | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   const handleViewNetworkPolicy = (e: React.MouseEvent, policy: V1NetworkPolicy) => {
     e.stopPropagation();
@@ -238,6 +242,35 @@ const NetworkPolicies: React.FC = () => {
   const handleDeleteClick = () => {
     setShowContextMenu(false);
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (policy: V1NetworkPolicy) => {
+    try {
+      // Convert network policy to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        policy,
+        'NetworkPolicy',
+        true, // namespaced
+        'networking.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `NetworkPolicy "${policy.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding network policy to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add network policy to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Perform actual deletion
@@ -968,6 +1001,13 @@ const NetworkPolicies: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(policy);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewNetworkPolicy(e, policy)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

@@ -13,7 +13,7 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw, Trash2, Play, XCircle } from "lucide-react";
+import { RefreshCw, Trash2, Play, XCircle, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,9 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 
 // Define sorting types
@@ -50,6 +53,7 @@ const Jobs: React.FC = () => {
   const [activeJob, setActiveJob] = useState<any | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -393,6 +397,35 @@ const Jobs: React.FC = () => {
     setActiveJob(job);
     setSelectedJobs(new Set([`${job.metadata?.namespace}/${job.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (job: any) => {
+    try {
+      // Convert job to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        job,
+        'Job',
+        true, // namespaced
+        'batch',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Job "${job.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding job to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add job to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Delete confirmation dialog
@@ -898,6 +931,13 @@ const Jobs: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleAskAI(job);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask AI
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => handleViewJob(e, job)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Eye className="mr-2 h-4 w-4" />
                               View

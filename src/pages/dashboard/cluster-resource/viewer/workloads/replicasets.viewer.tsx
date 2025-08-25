@@ -513,7 +513,7 @@ const ReplicaSetViewer: React.FC = () => {
                         <Badge
                           key={key}
                           variant="outline"
-                          className="bg-gray-100 dark:bg-gray-800 text-xs"
+                          className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-800"
                         >
                           {key}: {value}
                         </Badge>
@@ -591,7 +591,7 @@ const ReplicaSetViewer: React.FC = () => {
 
             {/* Volumes */}
             {replicaSetData.spec?.template?.spec?.volumes && replicaSetData.spec.template.spec.volumes.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Volumes</h2>
                 <div className="space-y-3">
                   {replicaSetData.spec.template.spec.volumes.map((volume, index) => (

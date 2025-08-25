@@ -19,10 +19,13 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Trash } from "lucide-react";
-import { Trash2, Eye, Star } from "lucide-react";
+import { Trash2, Eye, Star, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for IngressClass (not directly exported from kubernetes-client-node)
 interface IngressClassSpec {
@@ -72,6 +75,7 @@ const IngressClasses: React.FC = () => {
   const [activeIngressClass, setActiveIngressClass] = useState<V1IngressClass | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -102,6 +106,35 @@ const IngressClasses: React.FC = () => {
     e.stopPropagation();
     setActiveIngressClass(ingressClass);
     handleSetAsDefault();
+  };
+
+  const handleAskAI = (ingressClass: V1IngressClass) => {
+    try {
+      // Convert ingress class to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        ingressClass,
+        'IngressClass',
+        false, // cluster-scoped
+        'networking.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `IngressClass "${ingressClass.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding ingress class to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add ingress class to chat context",
+        variant: "destructive"
+      });
+    }
   };
   // Add click handler for IngressClass selection with cmd/ctrl key
   const handleIngressClassClick = (e: React.MouseEvent, ingressClass: V1IngressClass) => {
@@ -787,6 +820,13 @@ const IngressClasses: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(ingressClass);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={handleViewIngressClass} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

@@ -44,7 +44,7 @@ import { getTaskDetails, getInvestigationTaskDetails } from '@/api/task';
 import { TaskDetails, SubTask, InvestigationTaskDetails, ResourceContext } from '@/types/task';
 import { AgentkubeBot } from '@/assets/icons';
 import { useDrawer } from '@/contexts/useDrawer';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { CSSProperties } from 'react';
@@ -256,7 +256,8 @@ const TaskReport: React.FC = () => {
   const handleResolveClick = () => {
     if (!taskDetails) return;
 
-    const structuredContent = `**${taskDetails.title}**
+    const structuredContent = `**${taskDetails.title}**\n
+
 Severity: ${taskDetails.severity}
 Status: ${taskDetails.status}
 
@@ -272,7 +273,10 @@ ${taskDetails.remediation || 'No specific remediation provided'}
 **Error Rate:** ${taskDetails.impact?.error_rate ?? 0}%`;
 
     addStructuredContent(structuredContent, `Task: ${taskDetails.title.substring(0, 15)}...`);
-    toast('Task details added to chat');
+    toast({
+      title: "Added to Chat",
+      description: 'Task details added to chat'
+    });
   };
 
 

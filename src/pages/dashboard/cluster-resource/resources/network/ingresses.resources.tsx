@@ -21,9 +21,12 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Trash } from "lucide-react";
-import { Trash2, Eye } from "lucide-react";
+import { Trash2, Eye, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -50,6 +53,7 @@ const Ingresses: React.FC = () => {
   const [activeIngress, setActiveIngress] = useState<V1Ingress | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -152,6 +156,35 @@ const Ingresses: React.FC = () => {
     setActiveIngress(ingress);
     setSelectedIngresses(new Set([`${ingress.metadata?.namespace}/${ingress.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (ingress: V1Ingress) => {
+    try {
+      // Convert ingress to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        ingress,
+        'Ingress',
+        true, // namespaced
+        'networking.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Ingress "${ingress.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding ingress to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add ingress to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle view ingress details
@@ -786,6 +819,13 @@ const Ingresses: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(ingress);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={handleViewIngress} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

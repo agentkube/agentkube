@@ -20,9 +20,12 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Trash } from "lucide-react";
-import { Trash2, Eye } from "lucide-react";
+import { Trash2, Eye, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for Endpoints (not available in kubernetes-client-node)
 interface V1EndpointPort {
@@ -88,6 +91,7 @@ const Endpoints: React.FC = () => {
   const [activeEndpoint, setActiveEndpoint] = useState<V1Endpoints | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -189,6 +193,35 @@ const Endpoints: React.FC = () => {
     setActiveEndpoint(endpoint);
     setSelectedEndpoints(new Set([`${endpoint.metadata?.namespace}/${endpoint.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (endpoint: V1Endpoints) => {
+    try {
+      // Convert endpoint to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        endpoint,
+        'Endpoints',
+        true, // namespaced
+        '',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Endpoint "${endpoint.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding endpoint to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add endpoint to chat context",
+        variant: "destructive"
+      });
+    }
   };
   // Handle view endpoint details
   const handleViewEndpoint = () => {
@@ -808,6 +841,13 @@ const Endpoints: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(endpoint);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={handleViewEndpoint} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

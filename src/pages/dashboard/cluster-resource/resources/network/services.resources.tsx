@@ -6,7 +6,7 @@ import { V1Service } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,9 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -67,12 +70,42 @@ const Services: React.FC = () => {
   const [activeService, setActiveService] = useState<V1Service | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   const handleDeleteServiceMenuItem = (e: React.MouseEvent, service: V1Service) => {
     e.stopPropagation();
     setActiveService(service);
     setSelectedServices(new Set([`${service.metadata?.namespace}/${service.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (service: V1Service) => {
+    try {
+      // Convert service to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        service,
+        'Service',
+        true, // namespaced
+        '', // Services are in the core API group (empty string)
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Service "${service.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding service to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add service to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Add click handler for Service selection with cmd/ctrl key
@@ -795,6 +828,13 @@ const Services: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(service);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={handleViewService} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

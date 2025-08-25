@@ -484,7 +484,7 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
   // Loading state
   if (loading) {
     return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Job Pods</h2>
           <Button 
@@ -507,7 +507,7 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
   // Empty state
   if (pods.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Job Pods</h2>
           <Button 
@@ -530,7 +530,7 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
   const { succeeded, failed, running, pending, total } = getJobPodStats();
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-medium">Job Pods ({filteredPods.length})</h2>
         <Button 

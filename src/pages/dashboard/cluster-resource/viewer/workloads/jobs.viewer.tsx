@@ -676,7 +676,7 @@ const JobViewer: React.FC = () => {
                         <Badge
                           key={key}
                           variant="outline"
-                          className="bg-gray-100 dark:bg-gray-800 text-xs"
+                          className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-800"
                         >
                           {key}: {value}
                         </Badge>
@@ -705,7 +705,7 @@ const JobViewer: React.FC = () => {
                         {container.command && (
                           <div className="mt-2 text-sm">
                             <div className="font-medium mb-1">Command:</div>
-                            <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded block text-xs overflow-auto">
+                            <code className="bg-gray-100 dark:bg-gray-800/40 px-2 py-1 rounded block text-xs overflow-auto">
                               {container.command.join(' ')}
                             </code>
                           </div>
@@ -714,7 +714,7 @@ const JobViewer: React.FC = () => {
                         {container.args && container.args.length > 0 && (
                           <div className="mt-2 text-sm">
                             <div className="font-medium mb-1">Args:</div>
-                            <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded block text-xs overflow-auto">
+                            <code className="bg-gray-100 dark:bg-gray-800/40 px-2 py-1 rounded block text-xs overflow-auto">
                               {container.args.join(' ')}
                             </code>
                           </div>

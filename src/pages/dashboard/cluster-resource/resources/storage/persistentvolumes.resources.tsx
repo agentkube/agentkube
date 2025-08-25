@@ -13,7 +13,7 @@ import { calculateAge } from '@/utils/age';
 import { ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Copy } from "lucide-react";
+import { Trash2, Copy, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,9 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -127,6 +130,7 @@ const PersistentVolumes: React.FC = () => {
   const [activeVolume, setActiveVolume] = useState<V1PersistentVolume | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -236,6 +240,35 @@ const PersistentVolumes: React.FC = () => {
   const handleDeleteClick = () => {
     setShowContextMenu(false);
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (volume: V1PersistentVolume) => {
+    try {
+      // Convert persistent volume to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        volume,
+        'PersistentVolume',
+        false, // not namespaced
+        '',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `PersistentVolume "${volume.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding persistent volume to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add persistent volume to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Perform actual deletion
@@ -816,6 +849,13 @@ const PersistentVolumes: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(volume);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewVolume(e, volume)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

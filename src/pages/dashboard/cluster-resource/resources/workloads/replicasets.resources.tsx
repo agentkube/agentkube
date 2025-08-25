@@ -13,7 +13,7 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent, ScaleDialog } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Scale } from "lucide-react";
+import { Trash2, Scale, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,9 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -70,6 +73,7 @@ const ReplicaSets: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { addResourceContext } = useDrawer();
   // Add click handler for replicaSet selection with cmd/ctrl key
   const handleReplicaSetClick = (e: React.MouseEvent, replicaSet: any) => {
     const replicaSetKey = `${replicaSet.metadata?.namespace}/${replicaSet.metadata?.name}`;
@@ -290,6 +294,35 @@ const ReplicaSets: React.FC = () => {
     setActiveReplicaSet(replicaSet);
     setSelectedReplicaSets(new Set([`${replicaSet.metadata?.namespace}/${replicaSet.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (replicaSet: any) => {
+    try {
+      // Convert replicaSet to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        replicaSet,
+        'ReplicaSet',
+        true, // namespaced
+        'apps', // API group
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `ReplicaSet "${replicaSet.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding replicaSet to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add replicaSet to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Delete confirmation dialog
@@ -747,6 +780,13 @@ const ReplicaSets: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleAskAI(replicaSet);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask AI
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => handleViewReplicaSet(e, replicaSet)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Eye className="mr-2 h-4 w-4" />
                               View

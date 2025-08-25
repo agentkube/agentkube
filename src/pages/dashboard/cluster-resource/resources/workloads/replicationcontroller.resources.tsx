@@ -13,7 +13,7 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Scale } from "lucide-react";
+import { Trash2, Scale, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,9 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -42,6 +45,7 @@ const ReplicationControllers: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { addResourceContext } = useDrawer();
   // --- Start of Multi-select ---
   const [selectedReplicationControllers, setSelectedReplicationControllers] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -233,6 +237,35 @@ const ReplicationControllers: React.FC = () => {
     setActiveReplicationController(rc);
     setSelectedReplicationControllers(new Set([`${rc.metadata?.namespace}/${rc.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (rc: any) => {
+    try {
+      // Convert replicationController to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        rc,
+        'ReplicationController',
+        true, // namespaced
+        '', // ReplicationController is in the core API group (empty string)
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `ReplicationController "${rc.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding replicationController to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add replicationController to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle delete action
@@ -767,6 +800,13 @@ const ReplicationControllers: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(rc);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewReplicationController(e, rc)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View
