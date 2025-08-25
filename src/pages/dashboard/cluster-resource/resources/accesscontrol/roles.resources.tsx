@@ -19,11 +19,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Eye, Trash } from "lucide-react";
+import { Eye, Trash, Sparkles } from "lucide-react";
 import { Trash2, ExternalLink, Copy, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for PolicyRule and Role
 interface PolicyRule {
@@ -73,6 +76,7 @@ const Roles: React.FC = () => {
   const [activeRole, setActiveRole] = useState<V1Role | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -260,6 +264,35 @@ const Roles: React.FC = () => {
     setActiveRole(role);
     setSelectedRoles(new Set([`${role.metadata?.namespace}/${role.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (role: V1Role) => {
+    try {
+      // Convert role to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        role,
+        'Role',
+        true, // namespaced
+        'rbac.authorization.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Role "${role.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding role to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add role to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
 
@@ -920,6 +953,13 @@ const Roles: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(role);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewRoleMenuItem(e, role)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

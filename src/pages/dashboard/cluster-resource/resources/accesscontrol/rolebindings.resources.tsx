@@ -19,11 +19,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Eye, Trash } from "lucide-react";
+import { Eye, Trash, Sparkles } from "lucide-react";
 import { Trash2, ExternalLink, Copy, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 // Define types for Subject and RoleBinding
 interface Subject {
   kind: string;
@@ -78,6 +81,7 @@ const RoleBindings: React.FC = () => {
   const [activeRoleBinding, setActiveRoleBinding] = useState<V1RoleBinding | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -267,6 +271,35 @@ const RoleBindings: React.FC = () => {
     setActiveRoleBinding(binding);
     setSelectedRoleBindings(new Set([`${binding.metadata?.namespace}/${binding.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (binding: V1RoleBinding) => {
+    try {
+      // Convert rolebinding to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        binding,
+        'RoleBinding',
+        true, // namespaced
+        'rbac.authorization.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `RoleBinding "${binding.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding rolebinding to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add rolebinding to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle delete action
@@ -904,6 +937,13 @@ const RoleBindings: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(binding);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewRoleBindingMenuItem(e, binding)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View
