@@ -1,0 +1,1 @@
+export { VisualChart, type VisualChartProps, type ChartType, type ChartSeries, type ChartDataPoint, type GradientConfig, type ChartTheme } from './chart.component';

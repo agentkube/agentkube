@@ -7,6 +7,7 @@ import { DrawerHeader, DrawerContent } from '@/components/ui/sidedrawer.custom';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Tracing from './tracing.component';
+import Metrics from './metrics.component';
 
 interface TelemetryProps {
   resourceName: string;
@@ -66,20 +67,20 @@ const Telemetry: React.FC<TelemetryProps> = ({ resourceName, namespace, kind, on
               {kind}
             </h2>
             <span className="font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-600 cursor-pointer">
-              {resourceName} 
+              {resourceName}
             </span>
             {copied ? (
               <CheckCheck className='h-4 w-4 ml-1 text-green-500' />
             ) : (
-              <CopyIcon 
-                className='h-4 w-4 ml-1 text-gray-600 dark:text-gray-500 cursor-pointer hover:text-blue-500' 
+              <CopyIcon
+                className='h-4 w-4 ml-1 text-gray-600 dark:text-gray-500 cursor-pointer hover:text-blue-500'
                 onClick={handleCopyResourceName}
               />
             )}
 
           </div>
           <div className="flex items-center gap-2">
-            <span 
+            <span
               className="text-xs text-blue-500 dark:text-blue-500 cursor-pointer hover:underline"
               onClick={handleNamespaceClick}
             >
@@ -95,7 +96,8 @@ const Telemetry: React.FC<TelemetryProps> = ({ resourceName, namespace, kind, on
             <div className="px-4 py-2 flex items-center justify-between">
               <TabsList className="dark:bg-transparent text-sm">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
+                <TabsTrigger value="Metrics">Metrics</TabsTrigger>
+                <TabsTrigger value="traces">Traces</TabsTrigger>
                 <TabsTrigger value="requests">Requests</TabsTrigger>
                 <TabsTrigger value="errors">Errors</TabsTrigger>
                 <TabsTrigger value="duration">Duration</TabsTrigger>
@@ -263,7 +265,11 @@ const Telemetry: React.FC<TelemetryProps> = ({ resourceName, namespace, kind, on
                 </div>
               </TabsContent>
 
-              <TabsContent value="telemetry" className="mt-4 px-1">
+              <TabsContent value="Metrics" className="mt-4">
+                <Metrics resourceName={resourceName} namespace={namespace} kind={kind} />
+              </TabsContent>
+
+              <TabsContent value="traces" className="mt-4 px-1">
                 <Tracing resourceName={resourceName} namespace={namespace} />
               </TabsContent>
 
