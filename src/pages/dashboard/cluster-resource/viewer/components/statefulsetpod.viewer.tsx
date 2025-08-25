@@ -598,7 +598,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
   // Loading state
   if (loading) {
     return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">StatefulSet Pods</h2>
           <Button 
@@ -621,7 +621,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
   // Error state
   if (error) {
     return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">StatefulSet Pods</h2>
           <Button 
@@ -646,7 +646,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
   // Empty state
   if (pods.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">StatefulSet Pods</h2>
           <Button 
@@ -666,7 +666,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <h2 className="text-lg font-medium">StatefulSet Pods ({filteredPods.length})</h2>
         <Button 

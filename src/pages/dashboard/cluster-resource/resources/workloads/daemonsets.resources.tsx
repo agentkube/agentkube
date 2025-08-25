@@ -14,7 +14,7 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, RefreshCw } from "lucide-react";
+import { Trash2, RefreshCw, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,9 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -67,6 +70,7 @@ const DaemonSets: React.FC = () => {
   const [activeDaemonSet, setActiveDaemonSet] = useState<V1DaemonSet | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   const handleDaemonSetClick = (e: React.MouseEvent, daemonSet: V1DaemonSet) => {
     const daemonSetKey = `${daemonSet.metadata?.namespace}/${daemonSet.metadata?.name}`;
@@ -372,6 +376,32 @@ const DaemonSets: React.FC = () => {
     setActiveDaemonSet(daemonSet);
     setSelectedDaemonSets(new Set([`${daemonSet.metadata?.namespace}/${daemonSet.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (daemonSet: V1DaemonSet) => {
+    try {
+      const resourceContext = resourceToEnrichedSearchResult(
+        daemonSet,
+        'DaemonSet',
+        true,
+        'apps',
+        'v1'
+      );
+      
+      addResourceContext(resourceContext);
+      
+      toast({
+        title: "Added to Chat",
+        description: `DaemonSet "${daemonSet.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding daemonset to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add daemonset to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Add sorting state
@@ -726,6 +756,13 @@ const DaemonSets: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(daemonSet);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewDaemonSet(e, daemonSet)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

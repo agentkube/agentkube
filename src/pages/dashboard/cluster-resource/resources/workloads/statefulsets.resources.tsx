@@ -14,9 +14,19 @@ import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent, ScaleDialog } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, RefreshCw, Scale, Pause, Play } from "lucide-react";
+import { Trash2, RefreshCw, Scale, Pause, Play, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Eye, Trash } from "lucide-react";
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -46,6 +56,7 @@ const StatefulSets: React.FC = () => {
   const [activeStatefulSet, setActiveStatefulSet] = useState<V1StatefulSet | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -365,6 +376,46 @@ const StatefulSets: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
     );
+  };
+
+  const handleViewStatefulSet = (e: React.MouseEvent, statefulSet: V1StatefulSet) => {
+    e.stopPropagation();
+    if (statefulSet.metadata?.name && statefulSet.metadata?.namespace) {
+      navigate(`/dashboard/explore/statefulsets/${statefulSet.metadata.namespace}/${statefulSet.metadata.name}`);
+    }
+  };
+
+  const handleDeleteStatefulSet = (e: React.MouseEvent, statefulSet: V1StatefulSet) => {
+    e.stopPropagation();
+    setActiveStatefulSet(statefulSet);
+    setSelectedStatefulSets(new Set([`${statefulSet.metadata?.namespace}/${statefulSet.metadata?.name}`]));
+    setShowDeleteDialog(true);
+  };
+
+  const handleAskAI = (statefulSet: V1StatefulSet) => {
+    try {
+      const resourceContext = resourceToEnrichedSearchResult(
+        statefulSet,
+        'StatefulSet',
+        true,
+        'apps',
+        'v1'
+      );
+      
+      addResourceContext(resourceContext);
+      
+      toast({
+        title: "Added to Chat",
+        description: `StatefulSet "${statefulSet.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding statefulset to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add statefulset to chat context",
+        variant: "destructive"
+      });
+    }
   };
   // --- End of Multi-select ---
 
@@ -738,16 +789,37 @@ const StatefulSets: React.FC = () => {
                       {calculateAge(statefulSet.metadata?.creationTimestamp?.toString())}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Implement actions menu if needed
-                        }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(statefulSet);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleViewStatefulSet(e, statefulSet)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteStatefulSet(e, statefulSet)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -221,7 +221,7 @@ const StatefulSetViewer: React.FC = () => {
     }
 
     return (
-      <Alert className="mb-6 bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-yellow-800">
+      <Alert className="mb-6 bg-gray-50 dark:bg-transparent border border-gray-200 dark:border-yellow-800">
         {icon}
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{description}</AlertDescription>
@@ -488,7 +488,7 @@ const StatefulSetViewer: React.FC = () => {
             />
 
             {/* StatefulSet Specific Features */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">StatefulSet Configuration</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -551,7 +551,7 @@ const StatefulSetViewer: React.FC = () => {
 
             {/* Volume Claim Templates */}
             {statefulSetData.spec?.volumeClaimTemplates && statefulSetData.spec.volumeClaimTemplates.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Volume Claim Templates</h2>
                 <div className="space-y-3">
                   {statefulSetData.spec.volumeClaimTemplates.map((template, index) => (
@@ -582,7 +582,7 @@ const StatefulSetViewer: React.FC = () => {
             )}
 
             {/* Pod Template */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Pod Template</h2>
               <div className="space-y-4">
                 {/* Template Labels */}
