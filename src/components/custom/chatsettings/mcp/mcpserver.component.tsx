@@ -104,8 +104,7 @@ const MCPServer = ({ onAddManually, onAddFromMarketplace }: MCPServerProps) => {
           <div className="flex justify-center space-x-3">
             <Button
               onClick={onAddManually}
-              variant="outline"
-              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 h-7"
             >
               Add Manually
             </Button>

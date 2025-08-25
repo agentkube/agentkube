@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Search, ChevronDown, HelpCircle, Clock, LaptopMinimal } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -8,101 +8,66 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SiClaude, SiDask, SiFigma, SiGithub, SiGitlab, SiGoogledrive, SiGooglemaps, SiPostgresql, SiPuppeteer, SiSlack } from '@icons-pack/react-simple-icons';
-import { AWS_PROVIDER } from '@/assets/providers';
+import { SiClaude } from '@icons-pack/react-simple-icons';
+import { MCPTool, MCPMarketplace, MCP_MARKETPLACE_URL } from '@/constants/mcp-marketplace.constant';
+import { getMCPIcon } from '@/utils/mcp-icon-map.utils';
 import AddMCPConfig from './addmcpconfig.component';
+import AddMCPManualDialog from './addmcpmanualdialog.component';
 import MCPServer from '../mcp/mcpserver.component';
-
-interface MCPTool {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactElement;
-  iconBg: string;
-  type?: 'Local' | 'Remote';
-}
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 const MCPSetting = () => {
   const [currentView, setCurrentView] = useState<'main' | 'marketplace'>('main');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState<MCPTool | null>(null);
+  const [showManualDialog, setShowManualDialog] = useState(false);
+  const [mcpTools, setMcpTools] = useState<MCPTool[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const mcpTools: MCPTool[] = [
-    {
-      id: 'puppeteer',
-      name: 'Puppeteer',
-      description: 'Enables browser automation and web scraping with Puppeteer, allowing LLMs to interact wi...',
-      icon: <SiPuppeteer className='h-4 w-4' />,
-      iconBg: 'bg-blue-500',
-      type: 'Local'
-    },
-    {
-      id: 'postgresql',
-      name: 'PostgreSQL',
-      description: 'Provides read-only access to PostgreSQL databases, enabling LLMs to inspect database s...',
-      icon: <SiPostgresql className='h-4 w-4' />,
-      iconBg: 'bg-emerald-500',
-      type: 'Local'
-    },
-    {
-      id: 'github',
-      name: 'GitHub',
-      description: 'Integrates with the GitHub API, enabling repository management, file operations, issue trac...',
-      icon: <SiGithub className='h-4 w-4' />,
-      iconBg: 'bg-neutral-400',
-      type: 'Local'
-    },
-    {
-      id: 'figma',
-      name: 'Figma AI Bridge',
-      description: 'Offers tools to view, comment on, and analyze Figma designs, ensuring precise implementa...',
-      icon: <SiFigma className='h-4 w-4' />,
-      iconBg: 'bg-emerald-600',
-      type: 'Local'
-    },
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Enables AI assistants to interact with Slack workspaces, providing tools for messaging, cha...',
-      icon: <SiSlack className='h-4 w-4' />,
-      iconBg: 'bg-emerald-500'
-    },
-    {
-      id: 'gitlab',
-      name: 'GitLab',
-      description: 'Enables comprehensive GitLab project management including file operations, issue trackin...',
-      icon: <SiGitlab className='h-4 w-4' />,
-      iconBg: 'bg-orange-600'
-    },
-    {
-      id: 'time',
-      name: 'Time',
-      description: 'Provides time and timezone conversion capabilities using IANA timezone names, with auto...',
-      icon: <Clock className='h-4 w-4' />,
-      iconBg: 'bg-cyan-500'
-    },
-    {
-      id: 'googlemaps',
-      name: 'Google Maps',
-      description: 'Location services, directions, and place details',
-      icon: <SiGooglemaps className='h-4 w-4' />,
-      iconBg: 'bg-purple-500'
-    },
-    {
-      id: 'aws',
-      name: 'AWS Knowledge Base',
-      description: 'Retrieves information from AWS Knowledge Base using Bedrock Agent Runtime, supporting...',
-      icon: <img src={AWS_PROVIDER} className='h-4' />,
-      iconBg: 'bg-neutral-200'
-    },
-    {
-      id: 'googledrive',
-      name: 'Google Drive',
-      description: 'File access and search capabilities for Google Drive',
-      icon: <SiGoogledrive className='h-4 w-4' />,
-      iconBg: 'bg-red-400'
-    }
-  ];
+  useEffect(() => {
+    const fetchMarketplaceData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(MCP_MARKETPLACE_URL);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: MCPMarketplace = await response.json();
+        
+        const transformedTools: MCPTool[] = data.servers.map(server => {
+          const iconData = getMCPIcon(server.slug);
+          return {
+            id: server.slug,
+            name: server.name,
+            description: server.description,
+            icon: iconData.icon,
+            iconBg: iconData.iconBg,
+            type: server.configuration.command ? 'Local' : 'Remote',
+            category: server.category,
+            tags: server.tags,
+            creator: server.creator,
+            repository: server.repository,
+            configuration: server.configuration
+          };
+        });
+        
+        setMcpTools(transformedTools);
+      } catch (error) {
+        console.error('Error fetching marketplace data:', error);
+        // Fallback to empty array if fetch fails
+        setMcpTools([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMarketplaceData();
+  }, []);
 
   const filteredTools = mcpTools.filter(tool =>
     tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -114,8 +79,7 @@ const MCPSetting = () => {
   };
 
   const handleAddManually = () => {
-    // Handle manual add logic here
-    console.log('Add manually clicked');
+    setShowManualDialog(true);
   };
 
   const handleBackToMain = () => {
@@ -151,7 +115,13 @@ const MCPSetting = () => {
 
         {/* MCP Tools List */}
         <div className='rounded-lg border dark:border-gray-700/50'>
-          {filteredTools.map((tool) => (
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100 mx-auto"></div>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading marketplace...</p>
+            </div>
+          ) : filteredTools.length > 0 ? (
+            filteredTools.map((tool) => (
             <div
               key={tool.id}
               className="bg-gray-500/10 dark:bg-gray-800/30 first:rounded-t-lg last:rounded-b-lg p-4 hover:bg-gray-500/20  dark:hover:bg-gray-800/50 transition-colors border-b dark:border-gray-700/50 last:border-b-0"
@@ -164,18 +134,13 @@ const MCPSetting = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <h4 className="dark:text-white font-medium text-sm">{tool.name}</h4>
-                      {tool.type && (
-                        <span className="px-1 py-0.5 bg-gray-500/40 bg-gray-700/10 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 text-xs rounded flex items-center space-x-1">
-                          <LaptopMinimal className='text-blue-500 h-3 w-3' />
-
-                          <span>{tool.type}</span>
-                        </span>
-                      )}
                     </div>
                     <p className="text-gray-700 dark:text-gray-400 text-xs w-96 truncate">{tool.description}</p>
                   </div>
                 </div>
-                <Button
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
                   variant="outline"
                   size="sm"
                   className="bg-black dark:bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
@@ -183,9 +148,19 @@ const MCPSetting = () => {
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className='p-1' side='bottom'>
+                    <p>Add {tool.name}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
-          ))}
+            ))
+          ) : (
+            <div className="p-8 text-center">
+              <p className="text-gray-600 dark:text-gray-400">No MCP tools found{searchQuery && ` matching "${searchQuery}"`}</p>
+            </div>
+          )}
         </div>
         {showAddDialog && (
           <AddMCPConfig
@@ -202,7 +177,8 @@ const MCPSetting = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -221,7 +197,7 @@ const MCPSetting = () => {
                 <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 dark:bg-[#0B0D13]/60 backdrop-blur-sm">
+            <DropdownMenuContent align="end" className="w-48 dark:bg-[#0B0D13]/60 backdrop-blur-sm ">
               <DropdownMenuItem onClick={handleAddManually}>
                 Add Manually
               </DropdownMenuItem>
@@ -256,7 +232,19 @@ const MCPSetting = () => {
           </Button>
         </div>
       </div> */}
-    </div>
+
+      {/* Manual Dialog - Only in Main View */}
+      {showManualDialog && (
+        <AddMCPManualDialog
+          onClose={() => setShowManualDialog(false)}
+          onSave={(config) => {
+            console.log('Saving manual MCP config:', config);
+            setShowManualDialog(false);
+          }}
+        />
+      )}
+      </div>
+    </TooltipProvider>
   );
 };
 

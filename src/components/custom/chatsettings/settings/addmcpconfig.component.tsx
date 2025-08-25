@@ -1,38 +1,45 @@
 import React, { useState } from 'react';
 import MonacoEditor, { OnMount } from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
 import { shikiToMonaco } from '@shikijs/monaco';
 import { createHighlighter } from 'shiki';
 import { themeSlugs } from '@/constants/theme.constants';
 import { Button } from "@/components/ui/button";
-import { Computer, X } from "lucide-react";
+import { X } from "lucide-react";
+import { updateMcpConfig, getMcpConfig } from '@/api/settings';
+import { toast } from '@/hooks/use-toast';
+import { MCPTool } from '@/constants/mcp-marketplace.constant';
 
 interface AddMCPConfigProps {
   onClose: () => void;
   onSave: (config: any) => void;
-  tool: {
-    id: string;
-    name: string;
-    description: string;
-    icon: React.ReactElement;
-    iconBg: string;
-    type?: string;
-  };
+  tool: MCPTool;
 }
 
 const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) => {
-  const [jsonConfig, setJsonConfig] = useState(`{
-  "mcpServers": {
-    "${tool.name}": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-${tool.id}"
-      ],
-      "env": {}
+  const [loading, setLoading] = useState(false);
+  
+  const generateInitialConfig = () => {
+    if (tool.configuration) {
+      return JSON.stringify({
+        mcpServers: {
+          [tool.id]: tool.configuration
+        }
+      }, null, 2);
     }
-  }
-}`);
+    
+    // Fallback for tools without configuration
+    return JSON.stringify({
+      mcpServers: {
+        [tool.id]: {
+          command: "npx",
+          args: ["-y", `@modelcontextprotocol/server-${tool.id}`],
+          env: {}
+        }
+      }
+    }, null, 2);
+  };
+  
+  const [jsonConfig, setJsonConfig] = useState(generateInitialConfig());
 
   // Get theme from localStorage
   const [editorTheme] = useState<string>(() => {
@@ -40,7 +47,7 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
     return cached || 'github-dark';
   });
 
-  const handleEditorDidMount: OnMount = async (editor, monaco) => {
+  const handleEditorDidMount: OnMount = async (_, monaco) => {
     const highlighter = await createHighlighter({
       themes: themeSlugs,
       langs: ['json', 'yaml', 'typescript', 'javascript', 'go', 'rust', 'nginx', 'python', 'java'],
@@ -53,12 +60,42 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
     monaco.editor.setTheme(editorTheme);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setLoading(true);
     try {
-      const config = JSON.parse(jsonConfig);
-      onSave(config);
+      const parsedConfig = JSON.parse(jsonConfig);
+      
+      // Get current MCP config
+      const currentMcpConfig = await getMcpConfig();
+      
+      // Merge the new server configuration
+      const updatedMcpConfig = {
+        ...currentMcpConfig,
+        mcpServers: {
+          ...currentMcpConfig.mcpServers,
+          ...parsedConfig.mcpServers
+        }
+      };
+      
+      // Update the MCP configuration
+      await updateMcpConfig(updatedMcpConfig);
+      
+      toast({
+        title: "MCP Server Added",
+        description: `${tool.name} has been successfully configured.`,
+        variant: "success"
+      });
+      
+      onSave(updatedMcpConfig);
     } catch (error) {
-      console.error('Invalid JSON:', error);
+      console.error('Error saving MCP config:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save MCP configuration",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,10 +116,9 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
             </div>
             <div className='flex items-center space-x-2'>
               <h3 className="text-lg font-semibold dark:text-white">{tool.name}</h3>
-              {tool.type && (
-                <div className='flex items-center bg-gray-500/20 px-2 space-x-1 rounded-md text-gray-500 dark:text-blue-400'>
-                  <Computer className='h-3 w-3' /> 
-                  <span className="text-sm">{tool.type}</span>
+              {tool.creator && (
+                <div className='text-xs flex items-center bg-gray-500/20 px-2 space-x-1 rounded-md text-gray-500 dark:text-gray-400'>
+                  {tool.creator}
                 </div>
               )}
             </div>
@@ -98,10 +134,7 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
         {/* Content */}
         <div className="px-4">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Please copy the configuration JSON from the MCP server's{' '}
-            <span className="underline">introduction page</span>{' '}
-            (preferably use <strong>NPX</strong> or <strong>UVX</strong> configuration) 
-            and paste it into the input field.
+            {tool.description}
           </p>
           
           <div className="relative">
@@ -129,7 +162,7 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
                   quickSuggestions: true,
                   formatOnPaste: true,
                   formatOnType: true,
-                  wordWrap: 'on'
+                  wordWrap: 'on',
                 }}
               />
             </div>
@@ -150,9 +183,10 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
             </Button>
             <Button 
               onClick={handleSave}
+              disabled={loading}
               className="dark:bg-white dark:text-black dark:hover:bg-gray-200"
             >
-              Confirm
+              {loading ? 'Adding...' : 'Confirm'}
             </Button>
           </div>
         </div>
