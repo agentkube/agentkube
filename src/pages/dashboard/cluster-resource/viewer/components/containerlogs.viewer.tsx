@@ -28,6 +28,8 @@ import {
 import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from '@/hooks/use-toast';
 
 interface ContainerLogsProps {
   podName: string;
@@ -65,6 +67,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   containers,
   onAddToChat
 }) => {
+  const { addStructuredContent } = useDrawer();
   const [selectedContainer, setSelectedContainer] = useState<string>(containers[0] || '');
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [rawLogs, setRawLogs] = useState<string>('');
@@ -502,9 +505,28 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
 
   // Handle adding selected text to chat
   const handleAddToChat = () => {
-    if (selectedText && onAddToChat) {
-      const wrappedText = `\`\`\`\n${selectedText}\n\`\`\``;
-      onAddToChat(wrappedText);
+    if (selectedText) {
+      const structuredContent = `**Container Logs** ${podName}/${selectedContainer}
+
+\`\`\`
+${selectedText}
+\`\`\`
+
+**Pod:** ${podName}
+**Namespace:** ${namespace}
+**Container:** ${selectedContainer}`;
+
+      addStructuredContent(structuredContent, `Logs: ${podName}/${selectedContainer}`);
+      toast({
+        title: "Added to Chat",
+        description: "Selected log content added to chat context"
+      });
+
+      // Also call the original onAddToChat if provided for backward compatibility
+      if (onAddToChat) {
+        const wrappedText = `\`\`\`\n${selectedText}\n\`\`\``;
+        onAddToChat(wrappedText);
+      }
       
       // Clear selection
       window.getSelection()?.removeAllRanges();

@@ -39,10 +39,8 @@ spec:
         memory: "128Mi"
         cpu: "500m"`;
 
-  // Dummy functions for the preview editor
+  // Dummy function for the preview editor
   const handleDummyChange = () => { };
-  const handleDummySetQuestion = () => { };
-  const handleDummyChatSubmit = () => { };
 
   const handleThemeChange = (theme: string) => {
     setSelectedTheme(theme);
@@ -87,8 +85,6 @@ spec:
               value={dummyYamlContent}
               onChange={handleDummyChange}
               theme={selectedTheme}
-              setQuestion={handleDummySetQuestion}
-              handleChatSubmit={handleDummyChatSubmit}
             />
           </div>
         </div>

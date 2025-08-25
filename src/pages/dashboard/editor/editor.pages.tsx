@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CustomMonacoEditor, ChatPanel, SecurityReport, EditorDiff } from '@/components/custom';
+import { CustomMonacoEditor, SecurityReport, EditorDiff } from '@/components/custom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sun, Moon, Save, ArrowLeft, GripVertical, Wand2, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { jsonToYaml, yamlToJson } from '@/utils/yaml';
 import { updateResource } from '@/api/internal/resources';
-import { ChatMessage } from '@/types/chat';
 // import { chatStream } from '@/api/orchestrator.chat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { scanConfig } from '@/api/scanner/security'; // Add this import
 import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report';
-import { completionStream, ToolCall } from '@/api/orchestrator.chat';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +19,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { Blur } from '@/assets/icons';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 
 interface AIEditorProps {
   // The resource data
@@ -57,6 +57,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
   onBack
 }) => {
   const navigate = useNavigate();
+  const { addResourceContext } = useDrawer();
   // State for editor
   const [yamlContent, setYamlContent] = useState<string>('');
   const [originalContent, setOriginalContent] = useState<string>('');
@@ -72,14 +73,6 @@ const AIEditor: React.FC<AIEditorProps> = ({
   // State for sidebar visibility
   const [showSidebar, setShowSidebar] = useState<boolean>(false);
 
-  // State for chat
-  const [question, setQuestion] = useState<string>('');
-  const [chatResponse, setChatResponse] = useState<string>('');
-  const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const chatResponseRef = useRef<string>('');
-  // Add this state in AIEditor
-  const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-4o-mini");
 
   // State for layout
   const [editorWidth, setEditorWidth] = useState<string>('100%');
@@ -194,70 +187,36 @@ const AIEditor: React.FC<AIEditorProps> = ({
     }
   }, [showSidebar]);
 
-  // Handle chat submission
-  const handleChatSubmit = async (e: React.FormEvent | React.KeyboardEvent) => {
-    e.preventDefault();
-    if (!question.trim() || isChatLoading) return;
-
-    setIsChatLoading(true);
-    chatResponseRef.current = '';
-    setChatResponse('');
-
-    // Add user message to chat history
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: question
-    };
-    setChatHistory(prev => [...prev, userMessage]);
-
+  // Handle adding resource context when code is selected
+  const handleAddResourceContext = useCallback(() => {
     try {
-      await completionStream(
-        {
-          message: question,
-          model: selectedModel,
-          kubecontext: currentContext?.name,
-          files: [{
-            resource_name: `${resourceType}/${resourceName}`,
-            resource_content: yamlContent
-          }]
-        },
-        {
-          onStart: (messageId, messageUuid) => {
-            console.log(`Started streaming: ${messageId}`);
-          },
-          onContent: (index, text) => {
-            chatResponseRef.current += text;
-            setChatResponse(chatResponseRef.current);
-          },
-          onToolCall: (toolCall) => {
-            // Handle tool calls if needed
-            console.log('Tool call:', toolCall);
-          },
-          onComplete: (reason) => {
-            // Add assistant message to chat history
-            const assistantMessage: ChatMessage = {
-              role: 'assistant',
-              content: chatResponseRef.current
-            };
-            setChatHistory(prev => [...prev, assistantMessage]);
-            setIsChatLoading(false);
-            setQuestion('');
-            setChatResponse('');
-            console.log(`Completed streaming: ${reason}`);
-          },
-          onError: (error) => {
-            console.error('Chat error:', error);
-            setChatResponse('Error: Failed to get response');
-            setIsChatLoading(false);
-          }
-        }
+      // Convert the current resourceData to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        resourceData,
+        kind,
+        namespace ? true : false, // namespaced
+        apiGroup,
+        apiVersion
       );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `${kind} "${resourceName}" has been added to chat context`
+      });
     } catch (error) {
-      console.error('Chat error:', error);
-      setChatResponse('Error: Failed to start chat');
-      setIsChatLoading(false);
+      console.error('Error adding resource to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add resource to chat context",
+        variant: "destructive"
+      });
     }
-  };
+  }, [resourceData, kind, namespace, apiGroup, apiVersion, resourceName, addResourceContext]);
+
 
 
   // Improved resizer logic with better hover handling
@@ -399,8 +358,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
                   value={yamlContent}
                   onChange={handleEditorChange}
                   theme={editorTheme}
-                  setQuestion={setQuestion}
-                  handleChatSubmit={handleChatSubmit}
+                  onCodeSelection={handleAddResourceContext}
                 />
               </div>
             </div>
@@ -451,18 +409,15 @@ const AIEditor: React.FC<AIEditorProps> = ({
                       <TabsTrigger value="history" className="flex-1">History</TabsTrigger>
                     </TabsList>
 
-                    {/* Chat Panel */}
+                    {/* Chat Panel - Now handled by main right drawer */}
                     <TabsContent value="chat" className="h-[78vh] w-full">
-                      <ChatPanel
-                        question={question}
-                        setQuestion={setQuestion}
-                        chatResponse={chatResponse}
-                        isChatLoading={isChatLoading}
-                        chatHistory={chatHistory}
-                        selectedModel={selectedModel}
-                        onModelChange={setSelectedModel}
-                        handleChatSubmit={handleChatSubmit}
-                      />
+                      <div className="bg-gray-100 dark:bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg p-6 h-full w-full flex items-center justify-center">
+                        <div className="text-center">
+                          <Wand2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">AI Assistant</h3>
+                          <p className="text-gray-500 dark:text-gray-400 mt-2">Use Cmd+L to open the main AI assistant, or select code and use Cmd+K to ask about it</p>
+                        </div>
+                      </div>
                     </TabsContent>
 
                     {/* Placeholder for other tabs */}

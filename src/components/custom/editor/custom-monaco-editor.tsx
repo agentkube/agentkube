@@ -4,13 +4,13 @@ import * as monaco from 'monaco-editor';
 import { shikiToMonaco } from '@shikijs/monaco';
 import { createHighlighter, Highlighter } from 'shiki';
 import { themeSlugs } from '@/constants/theme.constants';
+import { useDrawer } from '@/contexts/useDrawer';
 
 interface CustomMonacoEditorProps {
   value: string;
   onChange: (value: string | undefined) => void;
   theme: string;
-  setQuestion: (text: string) => void;
-  handleChatSubmit: (e: React.FormEvent | React.KeyboardEvent) => void;
+  onCodeSelection?: () => void; // Optional callback for when code is selected
 }
 
 let highlighterInstance: Highlighter | null = null;
@@ -36,9 +36,9 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   value,
   onChange,
   theme,
-  setQuestion,
-  handleChatSubmit,
+  onCodeSelection,
 }) => {
+  const { addStructuredContent, setIsOpen } = useDrawer();
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const widgetRef = useRef<HTMLDivElement | null>(null);
   const copilotWidgetRef = useRef<HTMLDivElement | null>(null);
@@ -140,9 +140,9 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   };
 
   const handleCopilotSubmit = async (prompt: string) => {
-    // Here you would typically make an API call to get suggestions
-    // For now, we'll just simulate it
-    console.log('Copilot prompt:', prompt);
+    // Add the prompt as structured content to the main drawer
+    addStructuredContent(prompt, 'Editor Query');
+    setIsOpen(true);
     hideCopilotWidget();
   };
 
@@ -209,11 +209,14 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
     const buttons = widget.querySelectorAll('button');
     buttons[0]?.addEventListener('click', () => {
       const wrappedText = wrapWithCodeBlock(selectedText);
-      setQuestion(wrappedText);
-      handleChatSubmit({
-        preventDefault: () => {},
-        stopPropagation: () => {},
-      } as React.FormEvent);
+      addStructuredContent(wrappedText, 'Code Selection');
+      
+      // Call the optional callback for adding resource context (for existing resources)
+      if (onCodeSelection) {
+        onCodeSelection();
+      }
+      
+      setIsOpen(true);
     });
 
     buttons[1]?.addEventListener('click', () => {
@@ -270,11 +273,14 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
           const selectedText = editor.getModel()?.getValueInRange(selection) || '';
           if (selectedText) {
             const wrappedText = wrapWithCodeBlock(selectedText);
-            setQuestion(wrappedText);
-            handleChatSubmit({
-              preventDefault: () => {},
-              stopPropagation: () => {},
-            } as React.FormEvent);
+            addStructuredContent(wrappedText, 'Code Selection');
+            
+            // Call the optional callback for adding resource context (for existing resources)
+            if (onCodeSelection) {
+              onCodeSelection();
+            }
+            
+            setIsOpen(true);
           }
         }
       }

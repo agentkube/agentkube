@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CustomMonacoEditor, ChatPanel, SecurityReport, GuiResourceEditor } from '@/components/custom';
+import { CustomMonacoEditor, SecurityReport, GuiResourceEditor } from '@/components/custom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { jsonToYaml, yamlToJson } from '@/utils/yaml';
-import { ChatMessage } from '@/types/chat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
@@ -24,7 +23,6 @@ import { MisconfigurationReport } from '@/types/scanner/misconfiguration-report'
 import { scanConfig } from '@/api/scanner/security';
 import { ResourceTemplate } from '@/components/custom';
 import { kubeProxyRequest } from '@/api/cluster';
-import { completionStream, ToolCall } from '@/api/orchestrator.chat';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -59,7 +57,6 @@ const AIResourceEditor: React.FC = () => {
   const [securityReport, setSecurityReport] = useState<MisconfigurationReport | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isTemplateLoading, setIsTemplateLoading] = useState<boolean>(false);
-  const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-4o-mini");
   // State for managing multiple resource tabs
   const [resourceTabs, setResourceTabs] = useState<ResourceTab[]>([
     {
@@ -85,12 +82,6 @@ const AIResourceEditor: React.FC = () => {
   // State for sidebar visibility
   const [showSidebar, setShowSidebar] = useState<boolean>(false);
 
-  // State for chat
-  const [question, setQuestion] = useState<string>('');
-  const [chatResponse, setChatResponse] = useState<string>('');
-  const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const chatResponseRef = useRef<string>('');
 
   // State for layout
   const [editorWidth, setEditorWidth] = useState<string>('100%');
@@ -431,71 +422,6 @@ const AIResourceEditor: React.FC = () => {
     }
   };
 
-  // Handle chat submission
-  const handleChatSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
-    e.preventDefault();
-    if (!question.trim() || isChatLoading) return;
-
-    setIsChatLoading(true);
-    chatResponseRef.current = '';
-    setChatResponse('');
-
-    // Add user message to chat history
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: question
-    };
-    setChatHistory(prev => [...prev, userMessage]);
-
-    try {
-      const activeTab = getActiveTab();
-
-      await completionStream(
-        {
-          message: question,
-          model: selectedModel,
-          kubecontext: currentContext?.name,
-          files: activeTab.content ? [{
-            resource_name: `${activeTab.resourceType || 'resource'}/${activeTab.name}`,
-            resource_content: activeTab.content
-          }] : undefined
-        },
-        {
-          onStart: (messageId, messageUuid) => {
-            console.log(`Started streaming: ${messageId}`);
-          },
-          onContent: (index, text) => {
-            chatResponseRef.current += text;
-            setChatResponse(chatResponseRef.current);
-          },
-          onToolCall: (toolCall) => {
-            console.log('Tool call:', toolCall);
-          },
-          onComplete: (reason) => {
-            // Add assistant message to chat history
-            const assistantMessage: ChatMessage = {
-              role: 'assistant',
-              content: chatResponseRef.current
-            };
-            setChatHistory(prev => [...prev, assistantMessage]);
-            setIsChatLoading(false);
-            setQuestion('');
-            setChatResponse('');
-            console.log(`Completed streaming: ${reason}`);
-          },
-          onError: (error) => {
-            console.error('Chat error:', error);
-            setChatResponse('Error: Failed to get response');
-            setIsChatLoading(false);
-          }
-        }
-      );
-    } catch (error) {
-      console.error('Chat error:', error);
-      setChatResponse('Error: Failed to start chat');
-      setIsChatLoading(false);
-    }
-  };
 
   const handleGuiUpdate = (yaml: string): void => {
     // Extract metadata from the updated YAML
@@ -702,8 +628,6 @@ const AIResourceEditor: React.FC = () => {
                   value={getActiveTab().content}
                   onChange={handleEditorChange}
                   theme={editorTheme}
-                  setQuestion={setQuestion}
-                  handleChatSubmit={handleChatSubmit}
                 />
               </div>
             </div>
@@ -746,8 +670,8 @@ const AIResourceEditor: React.FC = () => {
                 className="border-l border-gray-200 dark:border-gray-800 h-full flex-grow overflow-hidden"
               >
                 <div className="p-4 h-full w-full overflow-hidden flex flex-col">
-                  <Tabs defaultValue="chat" className="w-full h-full flex flex-col">
-                    <TabsList className="mb-2 w-full flex-shrink-0">
+                  <Tabs defaultValue="chat" className="w-full h-full flex flex-col ">
+                    <TabsList className="mb-2 w-full flex-shrink-0 text-sm dark:bg-transparent">
                       <TabsTrigger value="chat" className="flex-1">
                         <Wand2 className="h-4 w-4 mr-2" /> Chat
                       </TabsTrigger>
@@ -762,18 +686,15 @@ const AIResourceEditor: React.FC = () => {
                       </TabsTrigger>
                     </TabsList>
 
-                    {/* Chat Panel */}
+                    {/* Chat Panel - Now handled by main right drawer */}
                     <TabsContent value="chat" className="flex-1 w-full overflow-hidden">
-                      <ChatPanel
-                        question={question}
-                        setQuestion={setQuestion}
-                        chatResponse={chatResponse}
-                        isChatLoading={isChatLoading}
-                        chatHistory={chatHistory}
-                        selectedModel={selectedModel}
-                        onModelChange={setSelectedModel}
-                        handleChatSubmit={handleChatSubmit}
-                      />
+                      <div className="bg-gray-100 dark:bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg p-6 h-full w-full flex items-center justify-center">
+                        <div className="text-center">
+                          <Wand2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">AI Assistant</h3>
+                          <p className="text-gray-500 dark:text-gray-400 mt-2">Use Cmd+L to open the main AI assistant, or select code and use Cmd+K to ask about it</p>
+                        </div>
+                      </div>
                     </TabsContent>
 
                     {/* Security Panel */}
