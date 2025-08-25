@@ -4,12 +4,40 @@ import * as monaco from 'monaco-editor';
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, FileText, CheckCircle, AlertCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { yamlToJson, jsonToYaml } from '@/utils/yaml';
+import { shikiToMonaco } from '@shikijs/monaco';
+import { createHighlighter, Highlighter } from 'shiki';
+import { themeSlugs, Themes } from '@/constants/theme.constants';
 
 interface DiffStats {
   added: number;
   removed: number;
   unchanged: number;
 }
+
+let highlighterInstance: Highlighter | null = null;
+let highlighterPromise: Promise<Highlighter> | null = null;
+
+const getHighlighter = async (): Promise<Highlighter> => {
+  if (highlighterInstance) {
+    return highlighterInstance;
+  }
+  
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighter({
+      themes: themeSlugs,
+      langs: ['yaml', 'typescript', 'javascript', 'json', 'go', 'rust', 'nginx', 'python', 'java'],
+    });
+  }
+  
+  highlighterInstance = await highlighterPromise;
+  return highlighterInstance;
+};
+
+// Helper function to determine if a theme is dark
+const isDarkTheme = (themeName: string): boolean => {
+  const themeConfig = Themes.find(t => t.name === themeName);
+  return themeConfig?.type === 'dark' || false;
+};
 
 interface MonacoDiffEditorProps {
   // Original YAML content
@@ -18,8 +46,8 @@ interface MonacoDiffEditorProps {
   currentContent: string;
   // Language of the content (yaml, json, etc.)
   language?: string;
-  // Editor theme
-  theme?: 'vs-dark' | 'light';
+  // Editor theme (should match shiki theme names)
+  theme?: string;
   // Whether to format content before comparison
   formatBeforeCompare?: boolean;
   // Whether to show inline diffs
@@ -33,7 +61,7 @@ const MonacoDiffEditor: React.FC<MonacoDiffEditorProps> = ({
   originalContent,
   currentContent,
   language = 'yaml',
-  theme = 'vs-dark',
+  theme = 'github-dark',
   formatBeforeCompare = true,
   renderSideBySide = true,
   onApplyChanges,
@@ -45,20 +73,26 @@ const MonacoDiffEditor: React.FC<MonacoDiffEditorProps> = ({
   const [diffStats, setDiffStats] = useState<DiffStats>({ added: 0, removed: 0, unchanged: 0 });
   const [hasDifferences, setHasDifferences] = useState(false);
   const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
+  const listenerRef = useRef<monaco.IDisposable | null>(null);
 
   // Format content if needed
   useEffect(() => {
     const processContent = () => {
       if (formatBeforeCompare && language === 'yaml') {
         try {
-          // Format YAML for consistent comparison
-          const formattedOriginal = jsonToYaml(yamlToJson(originalContent));
-          const formattedCurrent = jsonToYaml(yamlToJson(currentContent));
+          // Test if both YAML strings are valid before formatting
+          const originalJson = yamlToJson(originalContent);
+          const currentJson = yamlToJson(currentContent);
+          
+          // If we get here, both are valid - format them
+          const formattedOriginal = jsonToYaml(originalJson);
+          const formattedCurrent = jsonToYaml(currentJson);
           
           setProcessedOriginal(formattedOriginal);
           setProcessedCurrent(formattedCurrent);
         } catch (error) {
-          console.error("Error formatting YAML:", error);
+          console.error("Error formatting YAML, using original content:", error);
+          // Use original content if either fails to parse
           setProcessedOriginal(originalContent);
           setProcessedCurrent(currentContent);
         }
@@ -116,27 +150,77 @@ const MonacoDiffEditor: React.FC<MonacoDiffEditorProps> = ({
   };
 
   // Handle editor mount
-  const handleEditorDidMount = (editor: monaco.editor.IStandaloneDiffEditor) => {
+  const handleEditorDidMount = async (editor: monaco.editor.IStandaloneDiffEditor, monacoInstance: any) => {
     diffEditorRef.current = editor;
     
+    try {
+      const highlighter = await getHighlighter();
+      
+      // Register Shiki themes with Monaco
+      shikiToMonaco(highlighter, monacoInstance);
+      
+      // Activate the requested theme
+      monacoInstance.editor.setTheme(theme);
+    } catch (error) {
+      console.error('Error setting up shiki themes:', error);
+      // Fallback to built-in Monaco themes
+      try {
+        monacoInstance.editor.setTheme(isDarkTheme(theme) ? 'vs-dark' : 'vs');
+      } catch (themeError) {
+        console.error('Error setting fallback theme:', themeError);
+      }
+    }
+    
     // Calculate initial diff stats
-    calculateDiffStats(editor);
+    setTimeout(() => {
+      calculateDiffStats(editor);
+    }, 100);
     
     // Set up listeners for diff changes
     const originalModel = editor.getOriginalEditor().getModel();
     const modifiedModel = editor.getModifiedEditor().getModel();
     
     if (originalModel && modifiedModel) {
+      // Clean up previous listener
+      if (listenerRef.current) {
+        listenerRef.current.dispose();
+      }
+      
       // Listen for model content changes
       const listener = modifiedModel.onDidChangeContent(() => {
-        calculateDiffStats(editor);
+        setTimeout(() => {
+          if (diffEditorRef.current) {
+            calculateDiffStats(diffEditorRef.current);
+          }
+        }, 50);
       });
       
-      return () => {
-        listener.dispose();
-      };
+      listenerRef.current = listener;
     }
   };
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      // Clean up listener
+      if (listenerRef.current) {
+        try {
+          listenerRef.current.dispose();
+        } catch (error) {
+          console.error('Error disposing listener:', error);
+        }
+      }
+      
+      // Clean up editor
+      if (diffEditorRef.current) {
+        try {
+          diffEditorRef.current.dispose();
+        } catch (error) {
+          console.error('Error disposing editor:', error);
+        }
+      }
+    };
+  }, []);
 
   // Toggle between side-by-side and inline diff views
   const toggleDiffView = () => {
@@ -168,11 +252,11 @@ const MonacoDiffEditor: React.FC<MonacoDiffEditorProps> = ({
   };
 
   return (
-    <div className={`border rounded-lg overflow-hidden ${theme === 'vs-dark' ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}`}>
+    <div className={`border rounded-lg overflow-hidden ${isDarkTheme(theme) ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}`}>
       {/* Header */}
-      <div className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'vs-dark' ? 'bg-[#252526] border-[#3c3c3c]' : 'bg-gray-50 border-gray-200'}`}>
+      <div className={`px-4 py-2 border-b flex justify-between items-center ${isDarkTheme(theme) ? 'bg-[#252526] border-[#3c3c3c]' : 'bg-gray-50 border-gray-200'}`}>
         <div className="flex items-center">
-          <FileText className={`h-4 w-4 mr-2 ${theme === 'vs-dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+          <FileText className={`h-4 w-4 mr-2 ${isDarkTheme(theme) ? 'text-gray-400' : 'text-gray-500'}`} />
           <span className="font-medium">Changes</span>
         </div>
         
@@ -220,7 +304,7 @@ const MonacoDiffEditor: React.FC<MonacoDiffEditorProps> = ({
       </div>
       
       {/* Statistics */}
-      <div className={`px-4 py-2 border-b flex items-center space-x-4 text-sm ${theme === 'vs-dark' ? 'bg-[#2d2d2d] border-[#3c3c3c]' : 'bg-gray-50 border-gray-200'}`}>
+      <div className={`px-4 py-2 border-b flex items-center space-x-4 text-sm ${isDarkTheme(theme) ? 'bg-[#2d2d2d] border-[#3c3c3c]' : 'bg-gray-50 border-gray-200'}`}>
         <div className="flex items-center">
           <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
           <span>{diffStats.added} addition{diffStats.added !== 1 ? 's' : ''}</span>
@@ -230,14 +314,14 @@ const MonacoDiffEditor: React.FC<MonacoDiffEditorProps> = ({
           <span>{diffStats.removed} deletion{diffStats.removed !== 1 ? 's' : ''}</span>
         </div>
         <div className="flex items-center">
-          <span className={`inline-block w-3 h-3 rounded-full mr-2 ${theme === 'vs-dark' ? 'bg-gray-600' : 'bg-gray-300'}`}></span>
+          <span className={`inline-block w-3 h-3 rounded-full mr-2 ${isDarkTheme(theme) ? 'bg-gray-600' : 'bg-gray-300'}`}></span>
           <span>{diffStats.unchanged} unchanged</span>
         </div>
       </div>
       
       {/* Actions */}
       {hasDifferences && (
-        <div className={`px-4 py-2 border-b flex justify-end space-x-2 ${theme === 'vs-dark' ? 'bg-blue-900/10 border-[#3c3c3c]' : 'bg-blue-50 border-gray-200'}`}>
+        <div className={`px-4 py-2 border-b flex justify-end space-x-2 ${isDarkTheme(theme) ? 'bg-blue-900/10 border-[#3c3c3c]' : 'bg-blue-50 border-gray-200'}`}>
           {onResetChanges && (
             <Button
               variant="outline"
