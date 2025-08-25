@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { SiGrafana, SiDatadog, SiNewrelic, SiPrometheus } from '@icons-pack/react-simple-icons';
 import { SigNoz } from '@/assets/icons';
-import { Check, ArrowUpRight, TriangleAlert, TrendingUp, Server, Network, Settings, ListTree, RefreshCw, ChevronDown } from 'lucide-react';
+import { Check, ArrowUpRight, TriangleAlert, TrendingUp, Server, Network, Settings, Cpu, RefreshCw, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +47,9 @@ const MonitoringOverview = () => {
   const [totalPods, setTotalPods] = useState<number>(0);
   const [failedDeployments, setFailedDeployments] = useState<number>(0);
   const [apiServerSuccessRate, setApiServerSuccessRate] = useState<number>(0);
+  const [cpuUsagePercent, setCpuUsagePercent] = useState<number>(0);
+  const [totalCpuCores, setTotalCpuCores] = useState<number>(0);
+  const [topCpuPods, setTopCpuPods] = useState<Array<{ name: string, namespace: string, cpuUsage: number }>>([]);
   const navigate = useNavigate();
 
 
@@ -411,6 +414,51 @@ const MonitoringOverview = () => {
     }
   }, [currentContext, monitoringConfig]);
 
+  const fetchContainerCpuMetrics = useCallback(async () => {
+    if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
+
+    try {
+      const basePath = `api/v1/namespaces/${monitoringConfig.namespace}/services/${monitoringConfig.service}/proxy/api/v1/query`;
+
+      // 1. CPU Usage Percentage (current usage vs limits)
+      const cpuUsageQuery = '100 * sum(rate(container_cpu_usage_seconds_total{image!=""}[5m])) / sum(kube_pod_container_resource_limits{resource="cpu"})';
+      const cpuUsageParams = new URLSearchParams({ query: cpuUsageQuery });
+      const cpuUsageResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${cpuUsageParams}`, 'GET');
+
+      if (cpuUsageResponse.status === 'success' && cpuUsageResponse.data?.result?.length > 0) {
+        const percent = parseFloat(cpuUsageResponse.data.result[0].value[1]);
+        setCpuUsagePercent(percent);
+      }
+
+      // 2. Total CPU Cores Used
+      const totalCpuQuery = 'sum(rate(container_cpu_usage_seconds_total{image!=""}[5m]))';
+      const totalCpuParams = new URLSearchParams({ query: totalCpuQuery });
+      const totalCpuResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${totalCpuParams}`, 'GET');
+
+      if (totalCpuResponse.status === 'success' && totalCpuResponse.data?.result?.length > 0) {
+        const totalCores = parseFloat(totalCpuResponse.data.result[0].value[1]);
+        setTotalCpuCores(totalCores);
+      }
+
+      // 3. Top 5 CPU consuming pods
+      const topCpuPodsQuery = 'topk(5, sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{image!=""}[5m])))';
+      const topCpuPodsParams = new URLSearchParams({ query: topCpuPodsQuery });
+      const topCpuPodsResponse = await kubeProxyRequest(currentContext.name, `${basePath}?${topCpuPodsParams}`, 'GET');
+
+      if (topCpuPodsResponse.status === 'success' && topCpuPodsResponse.data?.result?.length > 0) {
+        const pods = topCpuPodsResponse.data.result.map((item: any) => ({
+          name: item.metric.pod,
+          namespace: item.metric.namespace,
+          cpuUsage: parseFloat(item.value[1])
+        }));
+        setTopCpuPods(pods);
+      }
+
+    } catch (err) {
+      console.error('Error fetching container CPU metrics:', err);
+    }
+  }, [currentContext, monitoringConfig]);
+
   // Add this new function after the fetchPodsAndDeploymentsMetrics function:
   const fetchApiServerMetrics = useCallback(async () => {
     if (!currentContext || !monitoringConfig.namespace || !monitoringConfig.service) return;
@@ -443,8 +491,9 @@ const MonitoringOverview = () => {
       fetchRequestMetrics();
       fetchPodsAndDeploymentsMetrics();
       fetchApiServerMetrics();
+      fetchContainerCpuMetrics();
     }
-  }, [currentContext?.name, monitoringConfig, fetchMetadata, fetchTargets, fetchPrometheusMetrics, fetchCpuMetrics, fetchMemoryMetrics, fetchRequestMetrics, fetchPodsAndDeploymentsMetrics, fetchApiServerMetrics]);
+  }, [currentContext?.name, monitoringConfig, fetchMetadata, fetchTargets, fetchPrometheusMetrics, fetchCpuMetrics, fetchMemoryMetrics, fetchRequestMetrics, fetchPodsAndDeploymentsMetrics, fetchApiServerMetrics, fetchContainerCpuMetrics]);
 
   useEffect(() => {
     if (currentContext && monitoringConfig.namespace && monitoringConfig.service) {
@@ -504,14 +553,15 @@ const MonitoringOverview = () => {
         fetchMemoryMetrics(),
         fetchRequestMetrics(),
         fetchPodsAndDeploymentsMetrics(),
-        fetchApiServerMetrics()
+        fetchApiServerMetrics(),
+        fetchContainerCpuMetrics()
       ]);
     } catch (error) {
       console.error('Error refreshing metrics:', error);
     } finally {
       setIsRefreshing(false);
     }
-  }, [fetchMetadata, fetchTargets, fetchPrometheusMetrics, fetchCpuMetrics, fetchMemoryMetrics, fetchRequestMetrics, fetchPodsAndDeploymentsMetrics, fetchApiServerMetrics]);
+  }, [fetchMetadata, fetchTargets, fetchPrometheusMetrics, fetchCpuMetrics, fetchMemoryMetrics, fetchRequestMetrics, fetchPodsAndDeploymentsMetrics, fetchApiServerMetrics, fetchContainerCpuMetrics]);
 
   const handleRefreshIntervalChange = useCallback((interval: string) => {
     setRefreshInterval(interval);
@@ -869,50 +919,45 @@ const MonitoringOverview = () => {
             </Button>
           </div>
 
-          {/* Distributed Tracing Insights - 1 col 4 row */}
-          <div className="bg-gray-800/10 dark:bg-slate-700/30 rounded-lg p-4 col-span-1 row-span-4 relative overflow-hidden flex flex-col">
-            <div className="relative z-10 flex-1">
-              <div className='text-gray-800 dark:text-gray-400 flex justify-between items-start'>
-                <div className="text-xs uppercase">
-                  Traces
+          {/* Container CPU Usage - 1 col 4 row */}
+          <div className="flex flex-col bg-gray-800/10 dark:bg-slate-700/30  rounded-lg p-4 col-span-1 row-span-4">
+            <div className="flex-1">
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-4 flex justify-between items-center">
+                CONTAINER CPU USAGE
+                <div className=" w-6 h-6 flex items-center justify-center">
+                  <div className="text-blue-600 dark:text-blue-500 text-xs">
+                    <Cpu />
+                  </div>
                 </div>
-                <ListTree />
               </div>
-
-              <div className="flex gap-1 mt-4">
-                <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+              <div className="text-5xl font-light dark:text-white mb-4">{cpuUsagePercent.toFixed(1)}%</div>
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">{totalCpuCores.toFixed(2)} cores used</div>
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <div className="w-full bg-gray-700 rounded-full h-1">
+                  <div
+                    className="bg-blue-500 h-1 rounded-full"
+                    style={{ width: `${Math.min(cpuUsagePercent, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+              <div className="text-gray-800 dark:text-gray-400 text-xs mb-4">TOP CPU CONSUMERS</div>
+              {/* Top CPU consuming pods */}
+              <div className="space-y-2">
+                {topCpuPods.map((pod, index) => (
+                  <div key={index} onClick={() => navigate(`/dashboard/explore/pods/${pod.namespace}/${pod.name}`)} className="flex justify-between group items-center bg-gray-200/60 dark:bg-gray-700/30 hover:dark:bg-gray-600/30 rounded p-2">
+                    <span className="text-xs text-gray-700 dark:text-gray-300 truncate group-hover:text-blue-500 cursor-pointer pr-1">{pod.name}</span>
+                    <span className="text-xs dark:text-white">{(pod.cpuUsage * 1000).toFixed(0)}m</span>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="space-y-3 mb-2 px-2">
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-800 dark:text-gray-300">Spans/min</span>
-                <span className="text-sm dark:text-white">15.2K</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-800 dark:text-gray-300">Avg Duration</span>
-                <span className="text-sm text-green-600 tdark:text-green-400">247ms</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-800 dark:text-gray-300">Error Traces</span>
-                <span className="text-sm text-red-400">0.3%</span>
-              </div>
-            </div>
 
-            {/* View Traces Button */}
+
             <Button className='flex justify-between'>
-              Drilldown Traces
+              Drilldown CPU Usage
               <ArrowUpRight />
             </Button>
-
-            {/* Abstract trace visualization */}
-            <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
-              <div className="absolute top-8 right-8 w-16 h-16 border border-purple-400 rounded"></div>
-              <div className="absolute top-12 right-12 w-8 h-8 border border-blue-400 rounded transform rotate-45"></div>
-              <div className="absolute top-6 right-16 w-4 h-4 bg-purple-400 rounded-full"></div>
-            </div>
           </div>
 
 
