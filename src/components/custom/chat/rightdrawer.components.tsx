@@ -562,10 +562,10 @@ const RightDrawer: React.FC = () => {
                         {structuredContent.map((item, index) => (
                           <div
                             key={index}
-                            className="flex items-center text-xs text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-700/30 rounded px-1 py-2"
+                            className="flex items-center max-w-52 text-xs text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-700/30 rounded px-1 py-2"
                           >
                             <div
-                              className="flex items-center cursor-pointer"
+                              className="flex items-center cursor-pointer truncate max-w-44"
                               onClick={() => {
                                 setSelectedContentForDialog(item.content);
                                 setIsPromptDialogOpen(true);
