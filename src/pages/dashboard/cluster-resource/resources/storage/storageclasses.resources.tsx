@@ -12,7 +12,7 @@ import { calculateAge } from '@/utils/age';
 import { ErrorComponent } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Copy, Star } from "lucide-react";
+import { Trash2, Copy, Star, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,9 @@ import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -48,6 +51,7 @@ const StorageClasses: React.FC = () => {
   const [activeStorageClass, setActiveStorageClass] = useState<any | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -343,6 +347,36 @@ const StorageClasses: React.FC = () => {
       },
       body: JSON.stringify(patch),
     });
+  };
+
+  // Handle Ask AI
+  const handleAskAI = (storageClass: any) => {
+    try {
+      // Convert storage class to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        storageClass,
+        'storageclasses',
+        false, // not namespaced
+        'storage.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `StorageClass "${storageClass.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding storage class to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add storage class to chat context",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle delete action
@@ -873,6 +907,13 @@ const StorageClasses: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(storageClass);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewStorageClass(e, storageClass)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

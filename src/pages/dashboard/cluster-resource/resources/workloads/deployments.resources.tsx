@@ -323,7 +323,7 @@ const Deployments: React.FC = () => {
       // Convert deployment to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         deployment,
-        'Deployment',
+        'deployments',
         true, // namespaced
         'apps',
         'v1'

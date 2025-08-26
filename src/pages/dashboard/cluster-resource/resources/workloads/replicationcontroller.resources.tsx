@@ -244,7 +244,7 @@ const ReplicationControllers: React.FC = () => {
       // Convert replicationController to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         rc,
-        'ReplicationController',
+        'replicationcontrollers',
         true, // namespaced
         '', // ReplicationController is in the core API group (empty string)
         'v1'

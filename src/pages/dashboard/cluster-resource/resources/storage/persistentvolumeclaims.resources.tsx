@@ -242,7 +242,7 @@ const PersistentVolumeClaims: React.FC = () => {
       // Convert persistent volume claim to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         pvc,
-        'PersistentVolumeClaim',
+        'persistentvolumeclaims',
         true, // namespaced
         '',
         'v1'

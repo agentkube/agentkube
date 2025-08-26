@@ -219,7 +219,7 @@ const ServiceAccounts: React.FC = () => {
       // Convert serviceAccount to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         serviceAccount,
-        'ServiceAccount',
+        'serviceaccounts',
         true, // namespaced
         '',
         'v1'

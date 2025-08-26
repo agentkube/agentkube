@@ -396,7 +396,7 @@ const StatefulSets: React.FC = () => {
     try {
       const resourceContext = resourceToEnrichedSearchResult(
         statefulSet,
-        'StatefulSet',
+        'statefulsets',
         true,
         'apps',
         'v1'

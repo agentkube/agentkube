@@ -163,7 +163,7 @@ const Ingresses: React.FC = () => {
       // Convert ingress to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         ingress,
-        'Ingress',
+        'ingresses',
         true, // namespaced
         'networking.k8s.io',
         'v1'

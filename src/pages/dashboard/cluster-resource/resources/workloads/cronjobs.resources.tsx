@@ -118,7 +118,7 @@ const CronJobs: React.FC = () => {
       // Convert cronJob to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         cronJob,
-        'CronJob',
+        'cronjobs',
         true, // namespaced
         'batch',
         'v1'

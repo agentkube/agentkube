@@ -247,7 +247,7 @@ const PersistentVolumes: React.FC = () => {
       // Convert persistent volume to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         volume,
-        'PersistentVolume',
+        'persistentvolumes',
         false, // not namespaced
         '',
         'v1'

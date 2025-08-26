@@ -116,7 +116,7 @@ const ConfigMaps: React.FC = () => {
       // Convert configMap to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         configMap,
-        'ConfigMap',
+        'configmaps',
         true, // namespaced
         '',
         'v1'

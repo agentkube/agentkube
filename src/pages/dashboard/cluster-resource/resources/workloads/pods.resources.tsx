@@ -171,7 +171,7 @@ const Pods: React.FC = () => {
       // Convert pod to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         pod,
-        'Pod',
+        'pods',
         true, // namespaced
         '',
         'v1'

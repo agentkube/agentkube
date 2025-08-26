@@ -53,7 +53,13 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
       
       // Convert the resource to YAML format using the existing utility
       if (result.length > 0) {
-        return jsonToYaml(result[0]);
+        // Ensure the resource has kind and apiVersion for complete YAML
+        const completeResource = {
+          kind: resource.resourceType,
+          apiVersion: resource.group ? `${resource.group}/${resource.version}` : resource.version,
+          ...result[0]
+        };
+        return jsonToYaml(completeResource);
       }
       
       return '';

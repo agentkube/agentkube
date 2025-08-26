@@ -404,7 +404,7 @@ const Jobs: React.FC = () => {
       // Convert job to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         job,
-        'Job',
+        'jobs',
         true, // namespaced
         'batch',
         'v1'

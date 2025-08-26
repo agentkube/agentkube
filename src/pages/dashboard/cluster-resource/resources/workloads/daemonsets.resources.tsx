@@ -382,7 +382,7 @@ const DaemonSets: React.FC = () => {
     try {
       const resourceContext = resourceToEnrichedSearchResult(
         daemonSet,
-        'DaemonSet',
+        'daemonsets',
         true,
         'apps',
         'v1'

@@ -271,7 +271,7 @@ const Roles: React.FC = () => {
       // Convert role to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         role,
-        'Role',
+        'roles',
         true, // namespaced
         'rbac.authorization.k8s.io',
         'v1'

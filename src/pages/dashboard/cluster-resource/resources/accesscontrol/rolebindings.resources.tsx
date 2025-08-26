@@ -278,7 +278,7 @@ const RoleBindings: React.FC = () => {
       // Convert rolebinding to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         binding,
-        'RoleBinding',
+        'rolebindings',
         true, // namespaced
         'rbac.authorization.k8s.io',
         'v1'

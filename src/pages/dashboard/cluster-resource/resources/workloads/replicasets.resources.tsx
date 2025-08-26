@@ -301,7 +301,7 @@ const ReplicaSets: React.FC = () => {
       // Convert replicaSet to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         replicaSet,
-        'ReplicaSet',
+        'replicasets',
         true, // namespaced
         'apps', // API group
         'v1'

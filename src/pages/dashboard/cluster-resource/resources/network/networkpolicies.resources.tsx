@@ -249,7 +249,7 @@ const NetworkPolicies: React.FC = () => {
       // Convert network policy to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         policy,
-        'NetworkPolicy',
+        'networkpolicies',
         true, // namespaced
         'networking.k8s.io',
         'v1'

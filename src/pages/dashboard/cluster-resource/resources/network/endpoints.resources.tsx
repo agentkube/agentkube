@@ -200,7 +200,7 @@ const Endpoints: React.FC = () => {
       // Convert endpoint to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         endpoint,
-        'Endpoints',
+        'endpoints',
         true, // namespaced
         '',
         'v1'

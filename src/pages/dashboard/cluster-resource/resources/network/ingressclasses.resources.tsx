@@ -113,7 +113,7 @@ const IngressClasses: React.FC = () => {
       // Convert ingress class to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         ingressClass,
-        'IngressClass',
+        'ingressclasses',
         false, // cluster-scoped
         'networking.k8s.io',
         'v1'

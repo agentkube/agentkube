@@ -4,7 +4,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash2 } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,9 @@ import { Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 // Define types for PolicyRule and ClusterRole
 interface PolicyRule {
   apiGroups: string[];
@@ -94,6 +97,7 @@ const ClusterRoles: React.FC = () => {
   const [activeClusterRole, setActiveClusterRole] = useState<V1ClusterRole | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   // Add click handler for ClusterRole selection with cmd/ctrl key
   const handleClusterRoleClick = (e: React.MouseEvent, clusterRole: V1ClusterRole) => {
@@ -177,6 +181,35 @@ const ClusterRoles: React.FC = () => {
     setShowContextMenu(false);
     if (activeClusterRole) {
       handleClusterRoleDetails(activeClusterRole);
+    }
+  };
+
+  const handleAskAI = (clusterRole: V1ClusterRole) => {
+    try {
+      // Convert cluster role to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        clusterRole,
+        'clusterroles',
+        false, // cluster-scoped
+        'rbac.authorization.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `ClusterRole "${clusterRole.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding cluster role to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add cluster role to chat context",
+        variant: "destructive"
+      });
     }
   };
 
@@ -863,6 +896,13 @@ const ClusterRoles: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(clusterRole);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewClusterRoleMenuItem(e, clusterRole)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

@@ -18,10 +18,13 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Trash, Eye } from "lucide-react";
-import { Trash2, ExternalLink, Copy, UserPlus } from "lucide-react";
+import { Trash2, ExternalLink, Copy, UserPlus, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 // Define types for Subject and ClusterRoleBinding
 interface Subject {
   kind: string;
@@ -74,6 +77,7 @@ const ClusterRoleBindings: React.FC = () => {
   const [activeBinding, setActiveBinding] = useState<V1ClusterRoleBinding | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { addResourceContext } = useDrawer();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -242,6 +246,35 @@ const ClusterRoleBindings: React.FC = () => {
     } catch (error) {
       console.error('Failed to clone ClusterRoleBinding:', error);
       setError(error instanceof Error ? error.message : 'Failed to clone ClusterRoleBinding');
+    }
+  };
+
+  const handleAskAI = (binding: V1ClusterRoleBinding) => {
+    try {
+      // Convert binding to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        binding,
+        'clusterrolebindings',
+        false, // cluster-scoped
+        'rbac.authorization.k8s.io',
+        'v1'
+      );
+      
+      // Add to chat context
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `ClusterRoleBinding "${binding.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding cluster role binding to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add cluster role binding to chat context",
+        variant: "destructive"
+      });
     }
   };
 
@@ -632,7 +665,7 @@ const ClusterRoleBindings: React.FC = () => {
               {kindSubjects.slice(0, 2).map((subject, index) => (
                 <div key={index} className="flex items-center">
                   {subject.namespace && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {subject.namespace}/
                     </span>
                   )}
@@ -708,7 +741,7 @@ const ClusterRoleBindings: React.FC = () => {
         {Object.entries(countByKind).map(([kind, count]) => (
           <span
             key={kind}
-            className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+            className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-transparent border border-gray-500/40 dark:border-gray-700/40 dark:text-gray-300"
           >
             {count} {kind}{count > 1 ? 's' : ''}
           </span>
@@ -849,6 +882,13 @@ const ClusterRoleBindings: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(binding);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewBindingMenuItem(e, binding)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

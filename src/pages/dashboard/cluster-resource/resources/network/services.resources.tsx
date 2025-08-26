@@ -84,7 +84,7 @@ const Services: React.FC = () => {
       // Convert service to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         service,
-        'Service',
+        'services',
         true, // namespaced
         '', // Services are in the core API group (empty string)
         'v1'
