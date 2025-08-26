@@ -492,7 +492,7 @@ const NamespaceViewer: React.FC = () => {
             />
 
             {/* Resource Counts */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Resource Counts</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <ResourceCountCard
@@ -530,7 +530,7 @@ const NamespaceViewer: React.FC = () => {
 
             {/* Namespace Settings */}
             {(namespaceData.spec || hasResourceQuotas(namespaceData) || hasLimitRanges(namespaceData)) && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Namespace Settings</h2>
 
                 {namespaceData.spec?.finalizers && namespaceData.spec.finalizers.length > 0 && (
@@ -581,7 +581,7 @@ const NamespaceViewer: React.FC = () => {
             )}
 
             {/* Recent Events */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium">Recent Events</h2>
                 <Button
@@ -688,7 +688,7 @@ const ResourceCountCard: React.FC<ResourceCountCardProps> = ({ type, count, name
           <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
         </div>;
       default:
-        return <div className="h-8 w-8 bg-gray-100 dark:bg-gray-900/30 rounded-full flex items-center justify-center">
+        return <div className="h-8 w-8 bg-gray-100 dark:bg-transparent rounded-full flex items-center justify-center">
           <Package className="h-4 w-4 text-gray-600 dark:text-gray-400" />
         </div>;
     }

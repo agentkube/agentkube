@@ -342,7 +342,7 @@ const NetworkPolicyViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* NetworkPolicy Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Filter className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Policy Type</h3>
@@ -355,7 +355,7 @@ const NetworkPolicyViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Pod Selector</h3>
@@ -373,7 +373,7 @@ const NetworkPolicyViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Network className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Rules</h3>
@@ -410,7 +410,7 @@ const NetworkPolicyViewer: React.FC = () => {
             />
 
             {/* Pod Selector Details */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Pod Selector</h2>
               <div className="space-y-4">
                 <div>
@@ -449,7 +449,7 @@ const NetworkPolicyViewer: React.FC = () => {
             </div>
 
             {/* Ingress Rules */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Ingress Rules</h2>
               {!networkPolicyData.spec?.ingress || networkPolicyData.spec.ingress.length === 0 ? (
                 <Alert>
@@ -558,7 +558,7 @@ const NetworkPolicyViewer: React.FC = () => {
             </div>
 
             {/* Egress Rules */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Egress Rules</h2>
               {!networkPolicyData.spec?.egress || networkPolicyData.spec.egress.length === 0 ? (
                 <Alert>
@@ -667,7 +667,7 @@ const NetworkPolicyViewer: React.FC = () => {
             </div>
 
             {/* Network Policy Visualization */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Policy Impact Summary</h2>
               <div className="space-y-3">
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">

@@ -342,7 +342,7 @@ const IngressClassViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* IngressClass Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Network className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Controller</h3>
@@ -355,7 +355,7 @@ const IngressClassViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Server className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Parameters</h3>
@@ -377,7 +377,7 @@ const IngressClassViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Link2 className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Default</h3>
@@ -413,7 +413,7 @@ const IngressClassViewer: React.FC = () => {
 
             {/* IngressClass Parameters Details */}
             {ingressClassData.spec?.parameters && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Parameters Configuration</h2>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -461,7 +461,7 @@ const IngressClassViewer: React.FC = () => {
             )}
 
             {/* Controller Information */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Controller Information</h2>
               <div className="space-y-4">
                 <div>

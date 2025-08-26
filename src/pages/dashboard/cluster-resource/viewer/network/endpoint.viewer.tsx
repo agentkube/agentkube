@@ -294,7 +294,7 @@ const EndpointViewer: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="bg-white dark:bg-gray-900/30 p-4">
+          <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Network className="h-4 w-4 text-blue-500" />
               <h3 className="text-sm font-medium">Total Addresses</h3>
@@ -305,7 +305,7 @@ const EndpointViewer: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="bg-white dark:bg-gray-900/30 p-4">
+          <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Radio className="h-4 w-4 text-green-500" />
               <h3 className="text-sm font-medium">Total Ports</h3>
@@ -316,7 +316,7 @@ const EndpointViewer: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="bg-white dark:bg-gray-900/30 p-4">
+          <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Layers className="h-4 w-4 text-purple-500" />
               <h3 className="text-sm font-medium">Subsets</h3>
@@ -356,7 +356,7 @@ const EndpointViewer: React.FC = () => {
             />
 
             {endpointData.subsets?.map((subset, index) => (
-              <Card key={index} className="bg-white dark:bg-gray-900/30 p-4">
+              <Card key={index} className="bg-white dark:bg-transparent p-4">
                 <h3 className="text-lg font-medium mb-4">Subset {index + 1}</h3>
 
                 <div className="space-y-4">

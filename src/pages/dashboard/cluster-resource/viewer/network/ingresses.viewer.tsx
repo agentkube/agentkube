@@ -288,7 +288,7 @@ const IngressViewer: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-white dark:bg-gray-900/30 p-4">
+          <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Globe className="h-4 w-4 text-blue-500" />
               <h3 className="text-sm font-medium">Rules</h3>
@@ -299,7 +299,7 @@ const IngressViewer: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="bg-white dark:bg-gray-900/30 p-4">
+          <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Shield className="h-4 w-4 text-green-500" />
               <h3 className="text-sm font-medium">TLS</h3>
@@ -310,7 +310,7 @@ const IngressViewer: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="bg-white dark:bg-gray-900/30 p-4">
+          <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Router className="h-4 w-4 text-purple-500" />
               <h3 className="text-sm font-medium">Class</h3>
@@ -321,7 +321,7 @@ const IngressViewer: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="bg-white dark:bg-gray-900/30 p-4">
+          <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Server className="h-4 w-4 text-orange-500" />
               <h3 className="text-sm font-medium">Load Balancer</h3>
@@ -367,7 +367,7 @@ const IngressViewer: React.FC = () => {
 
             {/* Rules */}
             {ingressData.spec?.rules && ingressData.spec.rules.length > 0 && (
-              <Card className="bg-white dark:bg-gray-900/30 p-4">
+              <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
                 <h3 className="text-lg font-medium mb-4">Rules</h3>
                 <div className="space-y-4">
                   {ingressData.spec.rules.map((rule, index) => (
@@ -399,7 +399,7 @@ const IngressViewer: React.FC = () => {
 
             {/* TLS Config */}
             {ingressData.spec?.tls && ingressData.spec.tls.length > 0 && (
-              <Card className="bg-white dark:bg-gray-900/30 p-4">
+              <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
                 <h3 className="text-lg font-medium mb-4">TLS Configuration</h3>
                 <div className="space-y-4">
                   {ingressData.spec.tls.map((tls, index) => (
@@ -427,7 +427,7 @@ const IngressViewer: React.FC = () => {
             )}
 
             {ingressData.metadata?.annotations && Object.keys(ingressData.metadata.annotations).length > 0 && (
-              <Card className="bg-white dark:bg-gray-900/30 p-4">
+              <Card className="bg-white dark:bg-transparent border dark:border-gray-700/40 p-4">
                 <h3 className="text-lg font-medium mb-4">Annotations</h3>
                 <div className="space-y-2">
                   {Object.entries(ingressData.metadata.annotations).map(([key, value]) => (
