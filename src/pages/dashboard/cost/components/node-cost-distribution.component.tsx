@@ -10,6 +10,8 @@ import { Cpu, Database, HardDrive, Network, AlertCircle, Loader2, Gauge, Search,
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { get, forEach, round, sortBy } from 'lodash';
 import { AggregatedNodeCost, OpenCostAllocationResponse } from '@/types/opencost';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from '@/hooks/use-toast';
 
 interface NodeCostDistributionProps {
   timeRange: string;
@@ -27,6 +29,7 @@ interface SortState {
 
 const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, onReload }) => {
   const { currentContext } = useCluster();
+  const { addStructuredContent } = useDrawer();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [nodeCosts, setNodeCosts] = useState<AggregatedNodeCost[]>([]);
@@ -326,6 +329,37 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
   // Format cost with 2 decimal places
   const formatCost = (cost: number): string => {
     return cost.toFixed(2);
+  };
+
+  const handleAskAi = (node: AggregatedNodeCost) => {
+    const percentage = clusterTotalCost > 0 ? (node.totalCost / clusterTotalCost) * 100 : 0;
+    
+    const structuredContent = `**${node.name} Node Cost Analysis**
+
+**Node:** ${node.name}
+**Instance Type:** ${node.instanceType}
+**Total Cost:** $${formatCost(node.totalCost)} (${round(percentage, 1)}% of cluster total)
+**Efficiency:** ${formatEfficiency(node.totalEfficiency)}
+
+**Resource Breakdown:**
+• CPU Cost: $${formatCost(node.cpuCost)}
+• Memory Cost: $${formatCost(node.ramCost)}
+• Storage Cost: $${formatCost(node.pvCost)}
+${node.networkCost > 0 ? `• Network Cost: $${formatCost(node.networkCost)}` : ''}
+${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
+
+**Resource Utilization:**
+• CPU Efficiency: ${formatEfficiency(node.cpuEfficiency)}
+• Memory Efficiency: ${formatEfficiency(node.ramEfficiency)}
+
+**Time Range:** ${timeRange}
+**Cluster:** ${currentContext?.name || 'Unknown'}`;
+
+    addStructuredContent(structuredContent, `${node.name} Node Analysis`);
+    toast({
+      title: "Added to Chat",
+      description: `${node.name} node cost data added to chat context`
+    });
   };
   
   if (loading) {
@@ -740,7 +774,10 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem className="hover:text-gray-700 dark:hover:text-gray-500">
+                            <DropdownMenuItem 
+                              className="hover:text-gray-700 dark:hover:text-gray-500"
+                              onClick={() => handleAskAi(node)}
+                            >
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask Agentkube
                             </DropdownMenuItem>

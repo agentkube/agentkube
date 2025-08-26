@@ -13,6 +13,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { round } from 'lodash';
 import { useNavigate } from 'react-router-dom';
 import { NamespaceSelector } from '@/components/custom';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -53,6 +55,7 @@ const StatefulsetCostDistribution: React.FC<StatefulsetCostDistributionProps> = 
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const navigate = useNavigate();
+  const { addStructuredContent } = useDrawer();
   const [costData, setCostData] = useState<StatefulsetCostSummary>({
     statefulsets: [],
     totalCost: 0,
@@ -387,6 +390,32 @@ const StatefulsetCostDistribution: React.FC<StatefulsetCostDistributionProps> = 
   // Format currency values consistently
   const formatCost = (value: number): string => {
     return value.toFixed(2);
+  };
+
+  const handleAskAi = (statefulset: StatefulsetCost) => {
+    const structuredContent = `**${statefulset.name} StatefulSet Cost Analysis**
+
+**StatefulSet:** ${statefulset.name}
+**Namespace:** ${statefulset.namespace}
+**Controller Kind:** ${statefulset.controllerKind}
+**Total Cost:** $${formatCost(statefulset.cost)} (${round(statefulset.percentage, 1)}% of total)
+**Efficiency:** ${round(statefulset.efficiency, 1)}%
+
+**Resource Breakdown:**
+• CPU: $${formatCost(statefulset.resources.cpu)}
+• Memory: $${formatCost(statefulset.resources.memory)}
+• Storage: $${formatCost(statefulset.resources.storage)}
+${statefulset.resources.network ? `• Network: $${formatCost(statefulset.resources.network)}` : ''}
+${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)}` : ''}
+
+**Time Range:** ${timeRange}
+**Cluster:** ${currentContext?.name || 'Unknown'}`;
+
+    addStructuredContent(structuredContent, `${statefulset.name} StatefulSet Analysis`);
+    toast({
+      title: "Added to Chat",
+      description: `${statefulset.name} statefulset cost data added to chat context`
+    });
   };
 
   if (loading) {
@@ -750,7 +779,10 @@ const StatefulsetCostDistribution: React.FC<StatefulsetCostDistributionProps> = 
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem className="hover:text-gray-700 dark:hover:text-gray-500">
+                            <DropdownMenuItem 
+                              className="hover:text-gray-700 dark:hover:text-gray-500"
+                              onClick={() => handleAskAi(statefulset)}
+                            >
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask Agentkube
                             </DropdownMenuItem>

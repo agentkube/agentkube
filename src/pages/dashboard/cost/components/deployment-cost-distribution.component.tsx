@@ -13,6 +13,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { round } from 'lodash';
 import { useNavigate } from 'react-router-dom';
 import { NamespaceSelector } from '@/components/custom';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -53,6 +55,7 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const navigate = useNavigate();
+  const { addStructuredContent } = useDrawer();
   const [costData, setCostData] = useState<DeploymentCostSummary>({
     deployments: [],
     totalCost: 0,
@@ -388,6 +391,32 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
   // Format currency values consistently
   const formatCost = (value: number): string => {
     return value.toFixed(2);
+  };
+
+  const handleAskAi = (deployment: DeploymentCost) => {
+    const structuredContent = `**${deployment.name} Deployment Cost Analysis**
+
+**Deployment:** ${deployment.name}
+**Namespace:** ${deployment.namespace}
+**Controller Kind:** ${deployment.controllerKind}
+**Total Cost:** $${formatCost(deployment.cost)} (${round(deployment.percentage, 1)}% of total)
+**Efficiency:** ${round(deployment.efficiency, 1)}%
+
+**Resource Breakdown:**
+• CPU: $${formatCost(deployment.resources.cpu)}
+• Memory: $${formatCost(deployment.resources.memory)}
+• Storage: $${formatCost(deployment.resources.storage)}
+${deployment.resources.network ? `• Network: $${formatCost(deployment.resources.network)}` : ''}
+${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}` : ''}
+
+**Time Range:** ${timeRange}
+**Cluster:** ${currentContext?.name || 'Unknown'}`;
+
+    addStructuredContent(structuredContent, `${deployment.name} Deployment Analysis`);
+    toast({
+      title: "Added to Chat",
+      description: `${deployment.name} deployment cost data added to chat context`
+    });
   };
 
   if (loading) {
@@ -751,7 +780,10 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem className="hover:text-gray-700 dark:hover:text-gray-500">
+                            <DropdownMenuItem 
+                              className="hover:text-gray-700 dark:hover:text-gray-500"
+                              onClick={() => handleAskAi(deployment)}
+                            >
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask Agentkube
                             </DropdownMenuItem>

@@ -13,6 +13,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { get, round } from 'lodash';
 import { useNavigate } from 'react-router-dom';
 import { NamespaceSelector } from '@/components/custom';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from '@/hooks/use-toast';
 interface ResourceCost {
   cpu: number;
   memory: number;
@@ -61,6 +63,7 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const navigate = useNavigate();
+  const { addStructuredContent } = useDrawer();
   const [costData, setCostData] = useState<PodCostSummary>({
     pods: [],
     totalCost: 0,
@@ -388,6 +391,32 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
   // Format currency values consistently
   const formatCost = (value: number): string => {
     return value.toFixed(5);
+  };
+
+  const handleAskAi = (pod: PodCost) => {
+    const structuredContent = `**${pod.name} Pod Cost Analysis**
+
+**Pod:** ${pod.name}
+**Namespace:** ${pod.namespace}
+**Node:** ${pod.nodeName}
+**Total Cost:** $${formatCost(pod.cost)} (${round(pod.percentage, 1)}% of total)
+**Efficiency:** ${round(pod.efficiency, 1)}%
+
+**Resource Breakdown:**
+• CPU: $${formatCost(pod.resources.cpu)}
+• Memory: $${formatCost(pod.resources.memory)}
+• Storage: $${formatCost(pod.resources.storage)}
+${pod.resources.network ? `• Network: $${formatCost(pod.resources.network)}` : ''}
+${pod.resources.gpu ? `• GPU: $${formatCost(pod.resources.gpu)}` : ''}
+
+**Time Range:** ${timeRange}
+**Cluster:** ${currentContext?.name || 'Unknown'}`;
+
+    addStructuredContent(structuredContent, `${pod.name} Pod Analysis`);
+    toast({
+      title: "Added to Chat",
+      description: `${pod.name} pod cost data added to chat context`
+    });
   };
 
   if (loading) {
@@ -769,7 +798,10 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem className="hover:text-gray-700 dark:hover:text-gray-500">
+                            <DropdownMenuItem 
+                              className="hover:text-gray-700 dark:hover:text-gray-500"
+                              onClick={() => handleAskAi(pod)}
+                            >
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask Agentkube
                             </DropdownMenuItem>

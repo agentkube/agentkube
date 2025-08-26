@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Cpu, Database, HardDrive, Network, Gauge, AlertCircle, Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { get, forEach, round, sortBy } from 'lodash';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from '@/hooks/use-toast';
 
 interface ServiceCostSummary {
   services: ServiceCost[];
@@ -39,6 +41,7 @@ interface SortState {
 
 const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeRange, onReload }) => {
   const { currentContext } = useCluster();
+  const { addStructuredContent } = useDrawer();
   const [costData, setCostData] = useState<ServiceCostSummary>({
     services: [],
     idleCost: 0,
@@ -373,6 +376,32 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
   // Format cost with 2 decimal places
   const formatCost = (cost: number): string => {
     return cost.toFixed(2);
+  };
+
+  const handleAskAi = (service: ServiceCost) => {
+    const structuredContent = `**${service.name} Service Cost Analysis**
+
+**Service:** ${service.name}
+**Namespace:** ${service.namespace}
+**Total Cost:** $${formatCost(service.cost)} (${round(service.percentage, 1)}% of total)
+**Efficiency:** ${round(service.efficiency, 1)}%
+${service.controller ? `**Controller:** ${service.controllerKind || 'Controller'}: ${service.controller}` : ''}
+
+**Resource Breakdown:**
+• CPU: $${formatCost(service.resources.cpu)}
+• Memory: $${formatCost(service.resources.memory)}
+• Storage: $${formatCost(service.resources.storage)}
+${service.resources.network ? `• Network: $${formatCost(service.resources.network)}` : ''}
+${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
+
+**Time Range:** ${timeRange}
+**Cluster:** ${currentContext?.name || 'Unknown'}`;
+
+    addStructuredContent(structuredContent, `${service.name} Service Analysis`);
+    toast({
+      title: "Added to Chat",
+      description: `${service.name} service cost data added to chat context`
+    });
   };
 
   if (loading) {
@@ -724,7 +753,10 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem className="hover:text-gray-700 dark:hover:text-gray-500">
+                            <DropdownMenuItem 
+                              className="hover:text-gray-700 dark:hover:text-gray-500"
+                              onClick={() => handleAskAi(service)}
+                            >
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask Agentkube
                             </DropdownMenuItem>

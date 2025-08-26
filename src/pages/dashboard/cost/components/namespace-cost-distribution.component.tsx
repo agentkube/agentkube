@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Cpu, Database, HardDrive, Network, AlertCircle, Loader2, Gauge, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { get, round } from 'lodash';
+import { useDrawer } from '@/contexts/useDrawer';
+import { toast } from '@/hooks/use-toast';
 
 interface ResourceCost {
   cpu: number;
@@ -55,6 +57,7 @@ interface SortState {
 
 const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ timeRange, onReload }) => {
   const { currentContext } = useCluster();
+  const { addStructuredContent } = useDrawer();
   const [costData, setCostData] = useState<NamespaceCostSummary>({
     namespaces: [],
     totalCost: 0,
@@ -368,6 +371,29 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
   // Format currency values consistently
   const formatCost = (value: number): string => {
     return value.toFixed(2);
+  };
+
+  const handleAskAi = (namespace: NamespaceCost) => {
+    const structuredContent = `**${namespace.name} Namespace Cost Analysis**
+
+**Total Cost:** $${formatCost(namespace.cost)} (${round(namespace.percentage, 1)}% of total)
+**Efficiency:** ${round(namespace.efficiency, 1)}%
+
+**Resource Breakdown:**
+• CPU: $${formatCost(namespace.resources.cpu)}
+• Memory: $${formatCost(namespace.resources.memory)}
+• Storage: $${formatCost(namespace.resources.storage)}
+${namespace.resources.network ? `• Network: $${formatCost(namespace.resources.network)}` : ''}
+${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` : ''}
+
+**Time Range:** ${timeRange}
+**Cluster:** ${currentContext?.name || 'Unknown'}`;
+
+    addStructuredContent(structuredContent, `${namespace.name} Cost Analysis`);
+    toast({
+      title: "Added to Chat",
+      description: `${namespace.name} namespace cost data added to chat context`
+    });
   };
 
   if (loading) {
@@ -709,7 +735,10 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem className="hover:text-gray-700 dark:hover:text-gray-500">
+                            <DropdownMenuItem 
+                              className="hover:text-gray-700 dark:hover:text-gray-500"
+                              onClick={() => handleAskAi(namespace)}
+                            >
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask Agentkube
                             </DropdownMenuItem>
