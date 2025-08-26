@@ -85,7 +85,10 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
     return <span className="text-gray-500 dark:text-gray-400 text-sm">No content available</span>;
   }
   
-  const processedContent = content.replace(/\\n/g, '\n');
+  const processedContent = content
+    .replace(/\\n/g, '\n')
+    // Convert single-quoted text to backticks for inline code
+    .replace(/'([^']+)'/g, '`$1`');
 
   // Custom renderer for handling chart components
   const components = {
@@ -126,7 +129,7 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
         }
       }
       
-      return <p className="text-xs text-gray-700 dark:text-gray-300 mb-4">{children}</p>;
+      return <p className="text-gray-700 dark:text-gray-300 mb-4">{children}</p>;
     },
     ul: ({ children }: any) => (
       <ul className="list-disc list-outside space-y-2 mb-4 ml-4">{children}</ul>

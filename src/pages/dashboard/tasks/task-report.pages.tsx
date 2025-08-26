@@ -20,14 +20,11 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  ArrowRight,
   TrendingUp,
   Server,
   Eye,
   MessageSquare,
   Calendar,
-  Globe,
-  Settings,
   Sparkles,
   ClipboardCheck,
   SearchCode,
@@ -35,14 +32,14 @@ import {
   Edit,
   Copy,
   Check,
-  Logs
+  Logs,
+  Wrench
 } from 'lucide-react';
 import MarkdownContent from '@/utils/markdown-formatter';
 import { SideDrawer, DrawerHeader, DrawerContent } from "@/components/ui/sidedrawer.custom";
 import { Separator } from '@/components/ui/separator';
 import { getTaskDetails, getInvestigationTaskDetails } from '@/api/task';
 import { TaskDetails, SubTask, InvestigationTaskDetails, ResourceContext } from '@/types/task';
-import { AgentkubeBot } from '@/assets/icons';
 import { useDrawer } from '@/contexts/useDrawer';
 import { toast } from '@/hooks/use-toast';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
@@ -111,9 +108,9 @@ const TaskReport: React.FC = () => {
   // Polling effect
   useEffect(() => {
     fetchTaskDetails();
-    
+
     let intervalId: NodeJS.Timeout;
-    
+
     const startPolling = () => {
       intervalId = setInterval(() => {
         if (taskDetails?.status !== 'completed' && taskDetails?.status !== 'cancelled') {
@@ -270,7 +267,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
 **Task ID:** ${taskDetails.task_id}
 **Duration:** ${formatDuration(taskDetails.duration)}
 **Services Affected:** ${taskDetails.impact?.service_affected ?? 0}
-**Error Rate:** ${taskDetails.impact?.error_rate ?? 0}%`;
+**Impacted Since:** ${taskDetails.impact?.impacted_since ?? 0}`;
 
     addStructuredContent(structuredContent, `Task: ${taskDetails.title.substring(0, 15)}...`);
     toast({
@@ -366,8 +363,8 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                     {tag}
                   </div>
                 )) || (
-                  <span className="text-xs text-gray-500">No tags</span>
-                )}
+                    <span className="text-xs text-gray-500">No tags</span>
+                  )}
               </div>
             </div>
           </CardContent>
@@ -380,8 +377,8 @@ ${taskDetails.remediation || 'No specific remediation provided'}
           <CardContent className="p-4 h-full flex items-end">
             <div className="flex justify-between items-end w-full">
               <div className=''>
-                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.impact?.error_rate ?? 0}%</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Error Rate</p>
+                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.impact?.impacted_since ?? 0}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Impacted Since</p>
               </div>
               <div className="p-2 rounded-lg w-fit bg-red-100 dark:bg-red-900/20">
                 <TrendingUp className="w-5 h-5 text-red-600" />
@@ -503,27 +500,30 @@ ${taskDetails.remediation || 'No specific remediation provided'}
               return (
                 <div
                   key={index}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-500/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500/10 transition-colors"
+                  className=" gap-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-500/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500/10 transition-colors"
                   onClick={() => setSelectedSubTask(subTask)}
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {getStatusIcon(status)}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                          {subTask.subject || 'Unknown'}
-                        </span>
-                        <Badge className={getSeverityColor(severity)} >
-                          {status}
-                        </Badge>
-                
-                      </div>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-72">
-                          {subTask.goal || 'No goal specified'}
-                        </p>
+                  <div className="flex justify-between items-center gap-2 min-w-0 flex-1">
+                    <div className='flex items-center gap-1'>
+
+                      {getStatusIcon(status)}
+
+                      <Badge className={getSeverityColor(severity)} >
+                        {status}
+                      </Badge>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+                  </div>
+                  <div className="min-w-0 flex-1 mt-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 tracking-wide">
+                        {subTask.subject || 'Unknown'}
+                      </span>
+
+
                     </div>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+
                 </div>
               );
             }) : (
@@ -548,16 +548,14 @@ ${taskDetails.remediation || 'No specific remediation provided'}
             <DrawerHeader onClose={() => setSelectedSubTask(null)}>
               <div className="py-1">
                 <div className='flex items-center space-x-2'>
-                  <div className="p-2">
+                  <div className="p-1">
                     {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
                   </div>
-                  <div className='flex items-center gap-1'>
-                    <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide">
+                  <div className='flex items-center gap-0.5'>
+                    <h3 className="font-medium text-md text-gray-800 dark:text-gray-200 tracking-wide">
                       {selectedSubTask.reason}
                     </h3>
-                    <Badge className={getSeverityColor(getSubTaskSeverity(selectedSubTask.status))} >
-                      {getSubTaskStatus(selectedSubTask.status)}
-                    </Badge>
+
                   </div>
                 </div>
               </div>
@@ -583,35 +581,84 @@ ${taskDetails.remediation || 'No specific remediation provided'}
 
                 {selectedSubTask.plan && selectedSubTask.plan.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-500">Plans</h4>
-                    <Accordion type="single" collapsible className="w-full">
+                    <h4 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-500">Tool Calls</h4>
+                    <div className="">
                       {selectedSubTask.plan.map((planItem, index) => (
-                        <AccordionItem key={index} value={`plan-${index}`} className="border rounded-lg mb-2">
-                          <AccordionTrigger className="px-3 py-2 hover:no-underline">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">
-                                {planItem.tool_name}
-                              </Badge>
-                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                {planItem.title}
-                              </span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-3 pb-3">
-                            <div className="text-xs text-gray-600 dark:text-gray-400 max-h-48 overflow-y-auto">
-                              <MarkdownContent content={planItem.output || ''} />
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
+                        <div key={index} className="border-x border-t last:border-b border-gray-400/20 dark:border-gray-800/50 rounded-none overflow-hidden">
+                          <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem value={`plan-${index}`} className="border-0">
+                              <AccordionTrigger className="px-2 py-2 hover:no-underline bg-gray-200 dark:bg-transparent">
+                                <div className="flex items-center gap-2">
+                                  <Wrench className="h-4 w-4" />
+                                  <span className="text-sm space-x-1 flex items-center">
+                                    <span>{planItem.tool_name}</span>
+                                  </span>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="bg-gray-100 dark:bg-transparent">
+                                {/* Parameters section */}
+                                {planItem.arguments && (
+                                  <div className="p-2 space-y-1">
+                                    <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                                      Parameters
+                                    </h4>
+                                    <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
+                                      <SyntaxHighlighter
+                                        language="json"
+                                        style={nord}
+                                        customStyle={customStyle}
+                                        wrapLines={true}
+                                        showLineNumbers={false}
+                                      >
+                                        {JSON.stringify(JSON.parse(planItem.arguments), null, 2)}
+                                      </SyntaxHighlighter>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Output section */}
+                                {planItem.output && (
+                                  <div className="p-2 pt-0 space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                                        Output
+                                      </h4>
+                                      <button
+                                        onClick={() => handleCopy(planItem.output)}
+                                        className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors"
+                                        title="Copy output"
+                                      >
+                                        {copied ? (
+                                          <Check className="h-3 w-3 text-green-500" />
+                                        ) : (
+                                          <Copy className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                        )}
+                                      </button>
+                                    </div>
+                                    <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
+                                      <SyntaxHighlighter
+                                        language="bash"
+                                        style={nord}
+                                        customStyle={customStyle}
+                                        wrapLines={true}
+                                        showLineNumbers={false}
+                                      >
+                                        {planItem.output}
+                                      </SyntaxHighlighter>
+                                    </div>
+                                  </div>
+                                )}
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        </div>
                       ))}
-                    </Accordion>
+                    </div>
                   </div>
                 )}
-
-                <Separator />
                 <div className="space-y-2">
                   <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Discovery</h4>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 max-h-64 overflow-y-auto">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
                     <MarkdownContent content={selectedSubTask.discovery || ''} />
                   </div>
                 </div>
@@ -949,9 +996,6 @@ ${taskDetails.remediation || 'No specific remediation provided'}
         <div className="flex gap-3">
           <Button >
             Export Report
-          </Button>
-          <Button>
-            Create Postmortem
           </Button>
         </div>
       </div>
