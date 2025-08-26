@@ -28,9 +28,15 @@ const resourceTypeToKind: Record<string, string> = {
   'daemonsets': 'DaemonSet',
   'statefulsets': 'StatefulSet',
   'storageclasses': 'StorageClass',
+  'jobs': 'Job',
+  'cronjobs': 'CronJob',
+  'configmaps': 'ConfigMap',
+  'endpoints': 'Endpoints',
+  'ingresses': 'Ingress',
+  'ingressclasses': 'IngressClass',
+  'networkpolicies': 'NetworkPolicy',
   // Add more mappings as needed
 };
-
 /**
  * Converts any Kubernetes resource to an EnrichedSearchResult format
  * that can be used with the ResourceContext component
