@@ -50,7 +50,7 @@ const PromptContentDialog: React.FC<PromptContentDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl dark:bg-[#0B0D13]/50 backdrop-blur-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between px-6">
             <DialogTitle className="text-xs flex items-end">
               <div className="dark:bg-gray-700/30 w-7 h-7 rounded-md overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
                 <AgentkubeBot className="h-5 w-5" />
@@ -70,9 +70,9 @@ const PromptContentDialog: React.FC<PromptContentDialogProps> = ({
   
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="bg-gray-50 dark:bg-gray-800/20 rounded-lg border">
-            <div className="text-sm text-gray-700 dark:text-gray-300 max-h-64 overflow-y-auto overflow-y-auto 
+        <div className="space-y-4 max-w-xl mx-auto">
+          <div className="bg-gray-50 dark:bg-gray-800/20 rounded-lg border ">
+            <div className="text-sm text-gray-700 dark:text-gray-300 max-h-64 overflow-y-auto
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 

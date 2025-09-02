@@ -711,7 +711,14 @@ const Investigations: React.FC = () => {
                               </TableCell>
 
                               <TableCell className='text-center dark:text-gray-400'>
-                                {task.duration ? `${Math.floor(task.duration / 60)}m` : ''}
+                                {task.duration ? (() => {
+                                  const minutes = Math.floor(task.duration / 60);
+                                  const seconds = task.duration % 60;
+                                  if (minutes > 0) {
+                                    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+                                  }
+                                  return `${seconds}s`;
+                                })() : ''}
                               </TableCell>
 
                               <TableCell className='text-center dark:text-gray-400'>
