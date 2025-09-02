@@ -543,7 +543,7 @@ const AIResourceEditor: React.FC = () => {
               onClick={handleSave}
               disabled={isSaving}
             >
-              {isSaving ? 'Creating...' : <><Save className="h-4 w-4 mr-2" /> Create Resource</>}
+              {isSaving ? 'Creating...' : <><Plus className="h-4 w-4 mr-2" /> Create Resource</>}
             </Button>
           </div>
         </div>
