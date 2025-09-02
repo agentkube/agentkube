@@ -290,7 +290,12 @@ ${taskDetails.remediation || 'No specific remediation provided'}
           </div>
 
           <div className="flex gap-2">
-            <Button className="flex items-center gap-2">
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleResolveClick();
+              }}
+              className="flex items-center gap-2 w-36 flex justify-between">
               Open Chat
               <ArrowUpRight className="w-4 h-4" />
             </Button>
