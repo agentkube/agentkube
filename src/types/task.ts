@@ -43,13 +43,14 @@ export interface InvestigationStatus {
 export interface Impact {
   impact_duration: number;
   service_affected: string | null;
-  error_rate: number;
+  impacted_since: number;
 }
 
 export interface SubTaskPlan {
   tool_name: string;
   output: string;
-  title: string;
+  arguments: string;
+  call_id: string;
 }
 
 export interface SubTask {

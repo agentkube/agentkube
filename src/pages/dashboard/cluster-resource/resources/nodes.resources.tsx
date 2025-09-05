@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MoreVertical, Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash, Server } from "lucide-react";
+import { MoreVertical, Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash, Server, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getNodes } from '@/api/internal/resources';
@@ -17,6 +17,9 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { OPERATOR_URL } from '@/config';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 interface UnitToggleProps {
   activeUnit: 'MiB' | 'GiB';
@@ -130,6 +133,7 @@ const Nodes: React.FC = () => {
   const [memoryUnit, setMemoryUnit] = useState<'MiB' | 'GiB'>('GiB');
   const [diskUnit, setDiskUnit] = useState<'MiB' | 'GiB'>('GiB');
   const { currentContext } = useCluster();
+  const { addResourceContext } = useDrawer();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sort, setSort] = useState<SortState>({
@@ -508,6 +512,35 @@ const Nodes: React.FC = () => {
     navigate(`/dashboard/explore/nodes/${node.name}`);
   };
 
+  const handleAskAI = (node: EnhancedNodeInfo) => {
+    try {
+      // Convert node to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        node.raw,
+        'nodes',
+        false, // not namespaced (cluster-scoped)
+        '',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Node "${node.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding node to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add node to chat context",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getDisplayValue = (value: string, type: 'memory' | 'disk') => {
     const unit = type === 'memory' ? memoryUnit : diskUnit;
     return convertUnit(value.endsWith('Ki') ? value : value + 'Ki', unit);
@@ -748,6 +781,13 @@ const Nodes: React.FC = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleAskAI(node);
+                        }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Ask AI
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleNodeDetails(node)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                           <Eye className="mr-2 h-4 w-4" />
                           View

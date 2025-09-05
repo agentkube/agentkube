@@ -5,7 +5,7 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown, Trash, Eye, Plus, LayoutList, Table2, List } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronRight, ChevronDown, Trash, Eye, Plus, LayoutList, Table2, List, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for Custom Resources
 interface CustomResourceDefinition {
@@ -114,6 +114,7 @@ const CustomResources: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { addResourceContext } = useDrawer();
   const [crds, setCRDs] = useState<CustomResourceDefinition[]>([]);
   const [customResources, setCustomResources] = useState<CustomResource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -449,6 +450,42 @@ const CustomResources: React.FC = () => {
     });
   };
 
+  const handleAskAI = (resource: CustomResource) => {
+    try {
+      // Find the CRD for this resource to get proper API details
+      const crd = crds.find(c => c.spec.group === activeGroup && c.spec.names.kind === activeCRD);
+      
+      if (!crd) {
+        throw new Error('Could not find CRD definition');
+      }
+      
+      // Convert resource to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        resource,
+        crd.spec.names.plural,
+        crd.spec.scope === 'Namespaced', // namespaced
+        crd.spec.group,
+        crd.spec.versions.find(v => v.storage)?.name || crd.spec.versions[0]?.name || 'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `${activeCRD} "${resource.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding custom resource to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add custom resource to chat context",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Function to handle resource deletion
   const handleDeleteResource = async (resource: CustomResource) => {
     if (!resource.metadata?.name || !currentContext) {
@@ -771,9 +808,16 @@ const CustomResources: React.FC = () => {
                       <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300">
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
+                          handleAskAI(resource);
+                        }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Ask AI
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
                           handleResourceDetails(resource);
                         }}>
-                          <Eye /> View
+                          <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={(e) => {

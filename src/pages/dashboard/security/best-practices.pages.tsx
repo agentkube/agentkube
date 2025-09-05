@@ -504,37 +504,73 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                         className="cursor-pointer hover:text-blue-500"
                         onClick={() => handleSort('critical')}
                       >
-                        <div className="flex items-center gap-1">
-                          CRITICAL
-                          {getSortIcon('critical')}
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                CRITICAL
+                                {getSortIcon('critical')}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-1">
+                              <p>Critical severity of vulnerabilities</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableHead>
                       <TableHead 
                         className="cursor-pointer hover:text-blue-500"
                         onClick={() => handleSort('high')}
                       >
-                        <div className="flex items-center gap-1">
-                          HIGH
-                          {getSortIcon('high')}
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                HIGH
+                                {getSortIcon('high')}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-1">
+                              <p>High severity of vulnerabilities</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableHead>
                       <TableHead 
                         className="cursor-pointer hover:text-blue-500"
                         onClick={() => handleSort('medium')}
                       >
-                        <div className="flex items-center gap-1">
-                          MEDIUM
-                          {getSortIcon('medium')}
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                MEDIUM
+                                {getSortIcon('medium')}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-1">
+                              <p>Medium severity of vulnerabilities</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableHead>
                       <TableHead 
                         className="cursor-pointer hover:text-blue-500"
                         onClick={() => handleSort('low')}
                       >
-                        <div className="flex items-center gap-1">
-                          LOW
-                          {getSortIcon('low')}
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                LOW
+                                {getSortIcon('low')}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-1">
+                              <p>Low severity of vulnerabilities</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableHead>
                     </TableRow>
                   </TableHeader>

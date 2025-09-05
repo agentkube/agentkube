@@ -5,7 +5,7 @@ import { V1Namespace } from '@kubernetes/client-node';
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Trash, Edit } from "lucide-react";
+import { Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Trash, Edit, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +17,9 @@ import {
 import { calculateAge } from '@/utils/age';
 import { DeletionDialog, ErrorComponent } from '@/components/custom';
 import { useNavigate } from 'react-router-dom';
+import { useDrawer } from '@/contexts/useDrawer';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { toast } from '@/hooks/use-toast';
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
 type SortField = 'name' | 'status' | 'age' | 'labels' | null;
@@ -29,6 +32,7 @@ interface SortState {
 const Namespaces: React.FC = () => {
   const { currentContext } = useCluster();
   const navigate = useNavigate();
+  const { addResourceContext } = useDrawer();
   const [namespaces, setNamespaces] = useState<V1Namespace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -229,6 +233,35 @@ const Namespaces: React.FC = () => {
     // Implement edit functionality
   };
 
+  const handleAskAI = (namespace: V1Namespace) => {
+    try {
+      // Convert namespace to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        namespace,
+        'namespaces',
+        false, // not namespaced (cluster-scoped)
+        '',
+        'v1'
+      );
+      
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+      
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Namespace "${namespace.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding namespace to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add namespace to chat context",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -362,6 +395,13 @@ const Namespaces: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(namespace);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleViewNamespace(namespace)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View
