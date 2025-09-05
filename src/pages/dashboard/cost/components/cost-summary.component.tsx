@@ -99,8 +99,8 @@ const CostSummary: React.FC<CostSummaryProps> = ({ timeRange, onReload }) => {
       setCostData(transformedData);
     } catch (err) {
       console.error("Error fetching OpenCost data:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch cost data");
-      setCostData(null);
+      setCostData(createEmptyClusterCostSummary(currentContext.name));
+      setError(null);
     } finally {
       setLoading(false);
     }

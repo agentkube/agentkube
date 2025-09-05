@@ -212,7 +212,11 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
         setClusterTotalCost(totalCost);
       } catch (err) {
         console.error("Error fetching OpenCost data:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch cost data");
+        setNodeCosts([]);
+        setIdleCost(null);
+        setUnallocatedCost(null);
+        setClusterTotalCost(0);
+        setError(null);
       } finally {
         setLoading(false);
       }

@@ -117,7 +117,18 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
         setCostData(transformedData);
       } catch (err) {
         console.error("Error fetching OpenCost service data:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch service cost data");
+        setCostData({
+          services: [],
+          idleCost: 0,
+          totalCost: 0,
+          cpuCost: 0,
+          ramCost: 0,
+          pvCost: 0,
+          networkCost: 0,
+          gpuCost: 0,
+          efficiency: 0
+        });
+        setError(null);
       } finally {
         setLoading(false);
       }

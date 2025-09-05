@@ -137,7 +137,17 @@ const PodCostDistribution: React.FC<PodCostDistributionProps> = ({ timeRange, on
         setCostData(transformedData);
       } catch (err) {
         console.error("Error fetching OpenCost pod data:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch pod cost data");
+        setCostData({
+          pods: [],
+          totalCost: 0,
+          cpuCost: 0,
+          ramCost: 0,
+          pvCost: 0,
+          networkCost: 0,
+          gpuCost: 0,
+          efficiency: 0
+        });
+        setError(null);
       } finally {
         setLoading(false);
       }
