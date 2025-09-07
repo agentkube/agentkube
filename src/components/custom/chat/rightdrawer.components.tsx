@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, X, Search, Sparkles, Trash2, BotMessageSquare, Send, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText } from "lucide-react";
+import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
@@ -11,7 +11,7 @@ import { drawerVariants, backdropVariants } from '@/utils/styles.utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatStream, executeCommand, ToolCall } from '@/api/orchestrator.chat';
 import { useCluster } from '@/contexts/clusterContext';
-import UpgradeToProContainer from './upgradepro.component';
+import SignInContainer from './upgradepro.component';
 import { useAuth } from '@/contexts/useAuth';
 import {
   Tooltip,
@@ -196,9 +196,9 @@ const RightDrawer: React.FC = () => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
-    // Check if user is on free version and block the request
-    if (!user || !user.isLicensed || user.subscription.status !== 'active') {
-      // Add a message indicating they need to upgrade
+    // Check if user is authenticated and block the request if not
+    if (!user || !user.isAuthenticated) {
+      // Add a message indicating they need to sign in
       setMessages(prev => [...prev,
       {
         role: 'user',
@@ -206,23 +206,16 @@ const RightDrawer: React.FC = () => {
       },
       {
         role: 'assistant',
-        content: '**Upgrade Required** \n\nThis feature requires a Pro subscription. Please upgrade to continue using the AI assistant.'
+        content: '**Sign In Required** \n\nThis feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.'
       }
       ]);
       setInputValue('');
       return;
     }
 
-    // Combine input value with structured content
-    let combinedMessage = inputValue;
-    if (structuredContent.length > 0) {
-      const structuredContentText = structuredContent.map(item => item.content).join('\n\n');
-      combinedMessage = `${inputValue}\n\n${structuredContentText}`;
-    }
-
     const userMessage: ChatMessage = {
       role: 'user',
-      content: combinedMessage
+      content: inputValue
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -244,13 +237,21 @@ const RightDrawer: React.FC = () => {
         resource_content: file.resourceContent || ''
       }));
 
+      // Add structured content as files
+      const structuredContentFiles = structuredContent.map((item, index) => ({
+        resource_name: `structured_content_${item.title || `item_${index + 1}`}`,
+        resource_content: item.content
+      }));
+
+      const allFiles = [...formattedFiles, ...structuredContentFiles];
+
       await chatStream(
         {
-          message: combinedMessage,
+          message: inputValue,
           chat_history: getRecentChatHistory(messages),
           model: selectedModel,
           kubecontext: currentContext?.name,
-          files: formattedFiles.length > 0 ? formattedFiles : undefined,
+          files: allFiles.length > 0 ? allFiles : undefined,
         },
         {
           onStart: (messageId, messageUuid) => {
@@ -552,7 +553,7 @@ const RightDrawer: React.FC = () => {
                 )}
 
 
-                {!showChatSettings && <UpgradeToProContainer />}
+                {!showChatSettings && <SignInContainer />}
 
 
                 {!showChatSettings && (

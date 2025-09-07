@@ -1,37 +1,50 @@
-// useAuth.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { validateLicense, getLicenseKeyLocal, storeLicenseKeyLocal, updateLicenseKeyLocal, removeLicenseKeyLocal } from '@/api/subscription';
-import { ValidateLicenseResponse } from '@/types/subscription';
+import { 
+  getOAuth2Status, 
+  initiateOAuth2Login,
+  handleOAuth2Callback,
+  logoutOAuth2,
+  refreshOAuth2Tokens,
+  getOAuth2Config,
+  openOAuth2AuthUrl,
+  getUserProfile
+} from '@/api/auth';
 
 interface UserInfo {
+  id: string;
+  supabaseId?: string;
   email: string;
-  subscription: {
-    product_name: string;
-    status: string;
-    created_at: string;
-  };
-  isLicensed: boolean;
-  customer_name?: string;
-  customer_email?: string;
-  license_key?: string;
-  instance_id?: string;
+  name: string;
+  isAuthenticated: boolean;
+  usage_count?: number;
+  usage_limit?: number | null;
+  subscription?: any;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface LoginSession {
+  sessionId: string;
+  authUrl: string;
+  expiresIn: number;
 }
 
 interface AuthContextType {
   user: UserInfo | null;
   loading: boolean;
-  setUser: React.Dispatch<React.SetStateAction<UserInfo | null>>;
-  updateUserLicenseInfo: (licenseInfo: {
-    customer_name: string;
-    customer_email: string;
-    product_name: string;
-    license_key: string;
-    instance_id: string;
-    created_at: string;
-    status: string;
-  }) => void;
+  loginSession: LoginSession | null;
+  oauth2Enabled: boolean;
+  
+  // OAuth2 methods
+  initiateLogin: () => Promise<LoginSession>;
+  handleManualCallback: (authCode: string) => Promise<boolean>;
+  refreshTokens: () => Promise<boolean>;
   logout: () => Promise<void>;
+  loadUserProfile: () => Promise<void>;
+  
+  // Legacy compatibility (for gradual migration)
+  setUser: React.Dispatch<React.SetStateAction<UserInfo | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,199 +67,300 @@ const getUserInfoFromSession = (): UserInfo | null => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loginSession, setLoginSession] = useState<LoginSession | null>(null);
+  const [oauth2Enabled, setOauth2Enabled] = useState(false);
   const { toast } = useToast();
 
+  // Store polling interval and timeout refs so we can clear them
+  const pollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const pollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Check OAuth2 configuration and authentication status on mount
   useEffect(() => {
-    const loadUserFromAPI = async () => {
+    const initializeAuth = async () => {
       try {
         setLoading(true);
         
+        // Check if OAuth2 is enabled
+        const config = await getOAuth2Config();
+        setOauth2Enabled(config.oauth2_enabled);
+        
+        if (!config.oauth2_enabled) {
+          console.log('OAuth2 is not enabled, using legacy auth');
+          setLoading(false);
+          return;
+        }
+
         // Try to load user info from session storage first (for UI persistence)
         const sessionUser = getUserInfoFromSession();
         if (sessionUser) {
           setUser(sessionUser);
         }
+
+        // Check current authentication status
+        const authStatus = await getOAuth2Status();
         
-        // Try to get the license key from the backend
-        const licenseResponse = await getLicenseKeyLocal();
-        
-        if (licenseResponse.success && licenseResponse.license_key) {
-          const licenseKey = licenseResponse.license_key;
+        if (authStatus.authenticated && authStatus.user_info?.email) {
+          // User is authenticated via OAuth2
+          const userInfo: UserInfo = {
+            id: authStatus.user_info.id,
+            email: authStatus.user_info.email,
+            name: authStatus.user_info.name || 'Unknown User',
+            isAuthenticated: true
+          };
           
-          // If we have user info with an instance ID, use it to validate
-          let instanceId = sessionUser?.instance_id;
+          setUser(userInfo);
+          storeUserInfoInSession(userInfo);
           
+          // Load full user profile data
           try {
-            // Validate the license with LemonSqueezy
-            const response = await validateLicense(licenseKey, instanceId) as ValidateLicenseResponse;
-            
-            if (response.valid) {
-              // Create or update user info based on license response
-              const userInfo: UserInfo = {
-                email: response.meta.customer_email,
-                isLicensed: response.license_key.status === 'active',
-                customer_name: response.meta.customer_name,
-                customer_email: response.meta.customer_email,
-                license_key: licenseKey,
-                instance_id: response.instance?.id,
-                subscription: {
-                  product_name: response.license_key.status === 'active' ? response.meta.product_name : 'Free',
-                  status: response.license_key.status,
-                  created_at: response.license_key.created_at
-                }
-              };
-              
-              setUser(userInfo);
-              storeUserInfoInSession(userInfo);
-              
-              // Show license status notification if needed
-              if (response.license_key.status !== 'active') {
-                toast({
-                  title: "License Inactive",
-                  description: "Your license is currently inactive. Please reactivate to access premium features.",
-                  variant: "destructive",
-                });
-              }
-            } else {
-              // Invalid license, but we might still have status information
-              if (response.license_key && sessionUser) {
-                // Keep session user but update with the actual status from LemonSqueezy
-                const updatedUser = {
-                  ...sessionUser,
-                  isLicensed: false,
-                  subscription: {
-                    ...sessionUser.subscription,
-                    status: response.license_key.status,
-                    product_name: 'Free'
-                  }
-                };
-                setUser(updatedUser);
-                storeUserInfoInSession(updatedUser);
-              } else {
-                setUser(null);
-                storeUserInfoInSession(null);
-              }
-              
-              // Remove invalid license from backend
-              await removeLicenseKeyLocal();
-            }
+            await loadFullUserProfile();
           } catch (error) {
-            console.error('Error validating license:', error);
-            
-            // On validation error, keep user with existing status
-            if (sessionUser) {
-              const updatedUser = {
-                ...sessionUser,
-                isLicensed: false,
-                subscription: {
-                  ...sessionUser.subscription,
-                  product_name: 'Free'
-                  // Keep the existing status from the session
-                }
-              };
-              setUser(updatedUser);
-              storeUserInfoInSession(updatedUser);
-            }
+            console.log('Could not load full user profile:', error);
           }
         } else if (sessionUser) {
-          // No license in backend but we have session user, keep with existing status
+          // OAuth2 not authenticated but we have session user data
           const updatedUser = {
             ...sessionUser,
-            isLicensed: false,
-            subscription: {
-              ...sessionUser.subscription,
-              product_name: 'Free'
-              // Keep the existing status from the session
-            }
+            isAuthenticated: false
           };
           setUser(updatedUser);
           storeUserInfoInSession(updatedUser);
+        } else {
+          // No authentication and no session data
+          setUser(null);
+          storeUserInfoInSession(null);
         }
         
-        setLoading(false);
       } catch (error) {
-        console.error('Error loading license from API:', error);
+        console.error('Error initializing auth:', error);
         
-        // Fall back to session storage on API error
+        // Fall back to session storage on error
         const sessionUser = getUserInfoFromSession();
         if (sessionUser) {
-          const updatedUser = {
+          setUser({
             ...sessionUser,
-            isLicensed: false,
-            subscription: {
-              ...sessionUser.subscription,
-              product_name: 'Free'
-              // Keep the existing status from the session
-            }
-          };
-          setUser(updatedUser);
+            isAuthenticated: false
+          });
         }
         
         toast({
-          title: "Error loading license",
-          description: "Could not connect to the license server. Using offline mode.",
+          title: "Authentication Error",
+          description: "Could not verify authentication status. Using offline mode.",
           variant: "destructive",
         });
+      } finally {
         setLoading(false);
       }
     };
 
-    loadUserFromAPI();
+    initializeAuth();
   }, [toast]);
 
-  const updateUserLicenseInfo = async (licenseInfo: {
-    customer_name: string;
-    customer_email: string;
-    product_name: string;
-    license_key: string;
-    instance_id: string;
-    created_at: string;
-    status: string;
-  }) => {
-    const updatedUser = {
-      email: licenseInfo.customer_email,
-      isLicensed: licenseInfo.status === 'active',
-      customer_name: licenseInfo.customer_name,
-      customer_email: licenseInfo.customer_email,
-      license_key: licenseInfo.license_key,
-      instance_id: licenseInfo.instance_id,
-      subscription: {
-        product_name: licenseInfo.status === 'active' ? licenseInfo.product_name : 'Free',
-        status: licenseInfo.status,
-        created_at: licenseInfo.created_at
-      }
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      clearPolling();
     };
-    
-    setUser(updatedUser);
-    storeUserInfoInSession(updatedUser);
-    
+  }, []);
+
+  // Initiate OAuth2 login flow
+  const initiateLogin = async (): Promise<LoginSession> => {
     try {
-      // Store the license key in the backend
-      const licenseExists = await has_license_key();
-      if (licenseExists) {
-        await updateLicenseKeyLocal(licenseInfo.license_key);
-      } else {
-        await storeLicenseKeyLocal(licenseInfo.license_key);
+      const response = await initiateOAuth2Login(true); // Open browser automatically
+      
+      if (!response.success || !response.auth_url || !response.session_id) {
+        throw new Error(response.message || 'Failed to initiate login');
       }
+      
+      const session: LoginSession = {
+        sessionId: response.session_id,
+        authUrl: response.auth_url,
+        expiresIn: response.expires_in || 300
+      };
+      
+      setLoginSession(session);
+      
+      // Try to open the authorization URL once, but don't fail if it doesn't work
+      try {
+        await openOAuth2AuthUrl(response.auth_url);
+      } catch (browserError) {
+        console.log('Browser did not open automatically, user can use manual URL');
+      }
+      
+      // Start polling for authentication status
+      startAuthStatusPolling();
+      
+      return session;
+      
     } catch (error) {
-      console.error('Failed to save license to backend:', error);
+      console.error('Error initiating login:', error);
       toast({
-        title: "Warning",
-        description: "Your license was activated but couldn't be saved to the server. Some features may be limited.",
+        title: "Login Error",
+        description: "Failed to start the login process. Please try again.",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
+  // Handle manual authorization code entry (fallback)
+  const handleManualCallback = async (authCode: string): Promise<boolean> => {
+    try {
+      if (!loginSession) {
+        throw new Error('No active login session');
+      }
+      
+      const response = await handleOAuth2Callback(loginSession.sessionId, authCode);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Authentication failed');
+      }
+      
+      // Update user info from the callback response
+      if (response.user) {
+        const userInfo: UserInfo = {
+          id: response.user.id,
+          email: response.user.email,
+          name: response.user.name,
+          isAuthenticated: true,
+          subscription: {
+            product_name: 'OAuth2 User',
+            status: 'active',
+            created_at: new Date().toISOString()
+          }
+        };
+        
+        setUser(userInfo);
+        storeUserInfoInSession(userInfo);
+      }
+      
+      // Clear login session
+      setLoginSession(null);
+      
+      toast({
+        title: "Login Successful",
+        description: `Welcome, ${response.user?.name || 'User'}!`,
+      });
+      
+      return true;
+      
+    } catch (error) {
+      console.error('Error handling manual callback:', error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to complete authentication. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Refresh OAuth2 tokens
+  const refreshTokens = async (): Promise<boolean> => {
+    try {
+      const response = await refreshOAuth2Tokens(false);
+      
+      if (!response.success) {
+        console.log('Token refresh not needed or failed:', response.message);
+        return false;
+      }
+      
+      // Check authentication status after refresh
+      const authStatus = await getOAuth2Status();
+      
+      if (authStatus.authenticated && authStatus.user_info?.email) {
+        const userInfo: UserInfo = {
+          id: authStatus.user_info.id,
+          email: authStatus.user_info.email,
+          name: authStatus.user_info.name || 'Unknown User',
+          isAuthenticated: true,
+          subscription: user?.subscription || {
+            product_name: 'OAuth2 User',
+            status: 'active',
+            created_at: new Date().toISOString()
+          }
+        };
+        
+        setUser(userInfo);
+        storeUserInfoInSession(userInfo);
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('Error refreshing tokens:', error);
+      return false;
+    }
+  };
+
+  // Load full user profile data
+  const loadFullUserProfile = async (): Promise<void> => {
+    try {
+      const profile = await getUserProfile();
+      
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        
+        const fullUserInfo: UserInfo = {
+          ...prevUser,
+          supabaseId: profile.supabaseId,
+          usage_count: profile.usage_count,
+          usage_limit: profile.usage_limit,
+          subscription: profile.subscription,
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt
+        };
+        
+        storeUserInfoInSession(fullUserInfo);
+        return fullUserInfo;
+      });
+      
+    } catch (error) {
+      console.error('Error loading full user profile:', error);
+      throw error;
+    }
+  };
+
+  // Public method to load user profile
+  const loadUserProfile = async (): Promise<void> => {
+    if (!user?.isAuthenticated) {
+      throw new Error('User not authenticated');
+    }
+    
+    await loadFullUserProfile();
+  };
+
+  // Clear polling intervals
+  const clearPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
+  };
+
+  // OAuth2 logout
   const logout = async (): Promise<void> => {
     try {
       setLoading(true);
-    
-      // Remove license from backend
-      await removeLicenseKeyLocal();
+      
+      // Clear any active polling first
+      clearPolling();
+      
+      if (oauth2Enabled) {
+        // OAuth2 logout
+        await logoutOAuth2();
+      }
       
       // Clear session storage
       sessionStorage.removeItem('userInfo');
+      
+      // Clear login session
+      setLoginSession(null);
       
       setUser(null);
       
@@ -254,7 +368,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
-    
+      
     } catch (error) {
       console.error('Logout failed:', error);
       toast({
@@ -267,8 +381,67 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Poll for authentication status during login flow
+  const startAuthStatusPolling = () => {
+    // Clear any existing polling first
+    clearPolling();
+    
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const authStatus = await getOAuth2Status();
+        
+        if (authStatus.authenticated && authStatus.user_info?.email) {
+          // User successfully authenticated
+          const userInfo: UserInfo = {
+            id: authStatus.user_info.id,
+            email: authStatus.user_info.email,
+            name: authStatus.user_info.name || 'Unknown User',
+            isAuthenticated: true,
+            subscription: {
+              product_name: 'OAuth2 User',
+              status: 'active',
+              created_at: new Date().toISOString()
+            }
+          };
+          
+          setUser(userInfo);
+          storeUserInfoInSession(userInfo);
+          setLoginSession(null);
+          
+          toast({
+            title: "Login Successful",
+            description: `Welcome, ${userInfo.name}!`,
+          });
+          
+          // Clear polling after successful authentication
+          clearPolling();
+        }
+        
+      } catch (error) {
+        console.error('Error polling auth status:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+    
+    // Stop polling after 5 minutes
+    pollTimeoutRef.current = setTimeout(() => {
+      clearPolling();
+      setLoginSession(null);
+    }, 300000);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, setUser, updateUserLicenseInfo, logout }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      loginSession,
+      oauth2Enabled,
+      initiateLogin,
+      handleManualCallback,
+      refreshTokens,
+      logout,
+      loadUserProfile,
+      setUser // For legacy compatibility
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -280,14 +453,4 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-// Helper function to check if license key exists
-const has_license_key = async (): Promise<boolean> => {
-  try {
-    const response = await getLicenseKeyLocal();
-    return response.success && !!response.license_key;
-  } catch (error) {
-    return false;
-  }
 };

@@ -464,3 +464,19 @@ export const updateAgentReconMode = async (recon: boolean): Promise<AgentKubeCon
     throw error;
   }
 };
+
+/**
+ * Updates the usage analytics setting
+ * @param usageAnalytics The new usage analytics setting
+ * @returns Promise with the updated settings
+ */
+export const updateUsageAnalytics = async (usageAnalytics: boolean): Promise<AgentKubeConfig> => {
+  try {
+    return await patchConfig({
+      general: { usageAnalytics }
+    });
+  } catch (error) {
+    console.error('Error updating usage analytics setting:', error);
+    throw error;
+  }
+};

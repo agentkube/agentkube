@@ -423,7 +423,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const isLicensed = user?.isLicensed || false;
+  const isLicensed = user?.isAuthenticated || false;
   const navigate = useNavigate();
 
   const selectedModelId = selectedModel.includes('/')

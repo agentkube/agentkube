@@ -1,183 +1,78 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  posthogCapture, 
-  posthogCaptureAnonymous, 
-  posthogCapturePageView, 
-  posthogCaptureScreenView,
-  posthogCaptureWebVitals,
-  posthogCaptureAppStarted,
-  posthogCaptureAppClosed
-} from '@/api/analytics/posthog';
-import { useAuth } from './useAuth';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { sendEvent } from '@/api/analytics/posthog';
+import { getSettings } from '@/api/settings';
 
 // Define the context type
-interface PostHogContextType {
-  analyticsEnabled: boolean;
-  setAnalyticsEnabled: (enabled: boolean) => void;
-  captureEvent: (event: string, properties?: Record<string, any>) => Promise<{ status: string }>;
-  captureAnonymousEvent: (event: string, properties?: Record<string, any>) => Promise<{ status: string }>;
-  capturePageView: (url?: string, properties?: Record<string, any>) => Promise<{ status: string }>;
-  captureScreenView: (screenName: string, properties?: Record<string, any>) => Promise<{ status: string }>;
-  captureWebVitals: (metrics?: Record<string, any>) => Promise<{ status: string }>;
-  captureAppStarted: (properties?: Record<string, any>) => Promise<{ status: string }>;
-  captureAppClosed: (properties?: Record<string, any>) => Promise<{ status: string }>;
+interface AnalyticsContextType {
+  captureEvent: (event: string, properties?: Record<string, any>) => Promise<{ success: boolean; message: string }>;
+  isAnalyticsEnabled: boolean;
 }
 
 // Create the context with default values
-const PostHogContext = createContext<PostHogContextType>({
-  analyticsEnabled: true,
-  setAnalyticsEnabled: () => {},
-  captureEvent: async () => ({ status: 'Disabled' }),
-  captureAnonymousEvent: async () => ({ status: 'Disabled' }),
-  capturePageView: async () => ({ status: 'Disabled' }),
-  captureScreenView: async () => ({ status: 'Disabled' }),
-  captureWebVitals: async () => ({ status: 'Disabled' }),
-  captureAppStarted: async () => ({ status: 'Disabled' }),
-  captureAppClosed: async () => ({ status: 'Disabled' })
+const AnalyticsContext = createContext<AnalyticsContextType>({
+  captureEvent: async () => ({ success: false, message: 'Analytics not available' }),
+  isAnalyticsEnabled: true
 });
 
 // Props for the provider component
-interface PostHogProviderProps {
+interface AnalyticsProviderProps {
   children: ReactNode;
-  initialAnalyticsEnabled?: boolean;
 }
 
-// PostHog Provider component
-export const PostHogProvider: React.FC<PostHogProviderProps> = ({ 
-  children, 
-  initialAnalyticsEnabled = true 
-}) => {
-  // State to track whether analytics is enabled
-  const [analyticsEnabled, setAnalyticsEnabled] = useState<boolean>(initialAnalyticsEnabled);
-  const { user } = useAuth();
+// Analytics Provider component
+export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }) => {
+  const [isAnalyticsEnabled, setIsAnalyticsEnabled] = useState<boolean>(true);
   
-  // Load analytics preference from localStorage on mount
+  // Load analytics setting on mount
   useEffect(() => {
-    const storedPreference = localStorage.getItem('analytics_enabled');
+    const loadAnalyticsSettings = async () => {
+      try {
+        const settings = await getSettings();
+        setIsAnalyticsEnabled(settings.general?.usageAnalytics ?? true);
+      } catch (error) {
+        console.error('Error loading analytics settings:', error);
+        setIsAnalyticsEnabled(true);
+      }
+    };
     
-    if (storedPreference !== null) {
-      setAnalyticsEnabled(storedPreference === 'true');
-    }
+    loadAnalyticsSettings();
   }, []);
   
-  // Save preference to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('analytics_enabled', analyticsEnabled.toString());
-  }, [analyticsEnabled]);
-  
-  // Capture app_started event on initial mount
-  useEffect(() => {
-    if (!user) return;
-    const currentUrl = (typeof window !== 'undefined' ? window.location.href : '');
-    
-    if (user.isLicensed) {
-      posthogCapture("user_session", {
-        "is_licensed": true,
-        "email": user.email,
-        "plan": user.subscription.product_name,
-        "name": user.customer_name,
-        $current_url: currentUrl.replace("http://localhost:5422/#", ""),
-        $lib: "desktop"
-      });
-    } else {
-      posthogCapture("user_session", {
-        "is_licensed": false,
-        $current_url: currentUrl,
-        $lib: "desktop"
-      });
+  // Wrapper function that checks if analytics is enabled before sending
+  const captureEvent = async (
+    event: string, 
+    properties?: Record<string, any>
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      if (!isAnalyticsEnabled) {
+        return { success: false, message: 'Analytics disabled in settings' };
+      }
+      
+      // Send the event if analytics is enabled
+      return await sendEvent(event, properties);
+    } catch (error) {
+      console.error('Error sending analytics event:', error);
+      return { 
+        success: false, 
+        message: `Error sending event: ${error instanceof Error ? error.message : String(error)}` 
+      };
     }
-        
-  }, [analyticsEnabled, user]);
-  
-  // Wrapper for capture that respects the enabled setting
-  const captureEvent = async (event: string, properties?: Record<string, any>) => {
-    if (!analyticsEnabled) {
-      return { status: 'Disabled' };
-    }
-    
-    // Always allow app_started events even if analytics is toggled during session
-    if (event === 'app_started') {
-      return posthogCapture(event, properties);
-    }
-    
-    return posthogCapture(event, properties);
-  };
-  
-  // Wrapper for anonymous capture that respects the enabled setting
-  const captureAnonymousEvent = async (event: string, properties?: Record<string, any>) => {
-    if (!analyticsEnabled) {
-      return { status: 'Disabled' };
-    }
-    
-    return posthogCaptureAnonymous(event, properties);
-  };
-  
-  // Wrapper for page view capture that respects the enabled setting
-  const capturePageView = async (url?: string, properties?: Record<string, any>) => {
-    if (!analyticsEnabled) {
-      return { status: 'Disabled' };
-    }
-    
-    return posthogCapturePageView(url, properties);
-  };
-  
-  // Wrapper for screen view capture that respects the enabled setting
-  const captureScreenView = async (screenName: string, properties?: Record<string, any>) => {
-    if (!analyticsEnabled) {
-      return { status: 'Disabled' };
-    }
-    
-    return posthogCaptureScreenView(screenName, properties);
-  };
-  
-  // Wrapper for web vitals capture that respects the enabled setting
-  const captureWebVitals = async (metrics?: Record<string, any>) => {
-    if (!analyticsEnabled) {
-      return { status: 'Disabled' };
-    }
-    
-    return posthogCaptureWebVitals(metrics);
-  };
-  
-  // Wrapper for app started capture that respects the enabled setting
-  const captureAppStarted = async (properties?: Record<string, any>) => {
-    if (!analyticsEnabled) {
-      return { status: 'Disabled' };
-    }
-    
-    return posthogCaptureAppStarted(properties);
-  };
-  
-  // Wrapper for app closed capture that respects the enabled setting
-  const captureAppClosed = async (properties?: Record<string, any>) => {
-    if (!analyticsEnabled) {
-      return { status: 'Disabled' };
-    }
-    
-    return posthogCaptureAppClosed(properties);
   };
   
   // Provide the context value
-  const contextValue: PostHogContextType = {
-    analyticsEnabled,
-    setAnalyticsEnabled,
+  const contextValue: AnalyticsContextType = {
     captureEvent,
-    captureAnonymousEvent,
-    capturePageView,
-    captureScreenView,
-    captureWebVitals,
-    captureAppStarted,
-    captureAppClosed
+    isAnalyticsEnabled
   };
   
   return (
-    <PostHogContext.Provider value={contextValue}>
+    <AnalyticsContext.Provider value={contextValue}>
       {children}
-    </PostHogContext.Provider>
+    </AnalyticsContext.Provider>
   );
 };
 
-// Custom hook to use the PostHog context
-export const usePostHog = () => useContext(PostHogContext);
+// Custom hook to use the Analytics context
+export const useAnalytics = () => useContext(AnalyticsContext);
 
-export default PostHogContext;
+export default AnalyticsContext;

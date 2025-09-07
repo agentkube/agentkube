@@ -30,36 +30,102 @@ import { RemediationConfiguration } from '@/components/custom';
 import { getProviderIcon } from '@/utils/providerIconMap';
 import { openExternalUrl } from '@/api/external';
 
-// MAX Mode Banner Component
-const UpgradePro = () => {
+// Sign In Banner Component
+const SignInBanner = ({ user }: { user: any }) => {
+  const navigate = useNavigate();
+
+  if (user?.isAuthenticated) {
+    // Check if user is close to usage limit (80% or more)
+    const usagePercentage = user.usage_limit ? (user.usage_count / user.usage_limit) * 100 : 0;
+    const isCloseToLimit = usagePercentage >= 80;
+
+    if (isCloseToLimit) {
+      return (
+        <div className="bg-orange-100/100 dark:bg-orange-800/40 rounded-lg px-4 py-2 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <Sparkles className='h-5 text-orange-500' />
+                <span className="text-gray-800 dark:text-white font-medium">Credits Running Low</span>
+              </div>
+            </div>
+            <Button
+              onClick={() => openExternalUrl("https://agentkube.com/pricing")}
+              size="sm"
+            >
+              <Rocket />
+              Upgrade Now
+            </Button>
+          </div>
+          <div className="mt-1">
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              You've used {user.usage_count} of {user.usage_limit} credits. Upgrade to continue with unlimited usage.
+            </p>
+            <p onClick={() => openExternalUrl("https://agentkube.com/pricing")} className="flex items-center text-orange-400 text-sm mt-1 hover:text-orange-300 cursor-pointer">
+              <span>
+                Upgrade for unlimited access
+              </span>
+              <ArrowUpRight className='h-5' />
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-gray-100/100 dark:bg-gray-800/40 rounded-lg px-4 py-2 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <Sparkles className='h-5 text-blue-500' />
+              <span className="text-gray-800 dark:text-white font-medium">Free Credits Active</span>
+            </div>
+          </div>
+          <Button
+            onClick={() => openExternalUrl("https://agentkube.com/pricing")}
+            size="sm"
+          >
+            <Rocket />
+            Upgrade to Pro
+          </Button>
+        </div>
+        <div className="mt-1">
+          <p className="text-gray-600 dark:text-gray-300 text-sm">
+            You have access to all models with your free credits. Upgrade for additional features.
+          </p>
+          <p onClick={() => openExternalUrl("https://agentkube.com/pricing")} className="flex items-center text-blue-400 text-sm mt-1 hover:text-blue-300 cursor-pointer">
+            <span>
+              Billed at API pricing
+            </span>
+            <ArrowUpRight className='h-5' />
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gray-100/100 dark:bg-gray-800/40 rounded-lg px-4 py-2 mb-6">
+    <div className="bg-blue-100/100 dark:bg-blue-500/5 rounded-lg px-4 py-2 mb-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <Sparkles className='h-5 text-blue-500' />
-            <span className="text-gray-800 dark:text-white font-medium">Upgrade to Pro</span>
+            <div className="">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Sign in to access all models with free credits included.
+              </p>
+            </div>
           </div>
         </div>
         <Button
-          onClick={() => openExternalUrl("https://agentkube.com/pricing")} 
-          size="sm"
+          onClick={() => navigate('/settings/account')}
+          className='min-w-36 flex justify-between'
         >
           <Rocket />
-          Upgrade
+          Sign In
         </Button>
       </div>
-      <div className="mt-1">
-        <p className="text-gray-600 dark:text-gray-300 text-sm">
-          Access premium models and bring your own API keys with Pro.
-        </p>
-        <p onClick={() => openExternalUrl("https://agentkube.com/pricing")}  className="flex items-center text-blue-400 text-sm mt-1 hover:text-blue-300 cursor-pointer">
-          <span>
-            Billed at API pricing 
-          </span>
-          <ArrowUpRight className='h-5' />
-        </p>
-      </div>
+
     </div>
   );
 };
@@ -68,7 +134,7 @@ const ModelConfiguration = () => {
   const { models, toggleModel, addModel, removeModel } = useModels();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isPremiumUser = user?.isLicensed || false;
+  const isPremiumUser = user?.isAuthenticated || false;
 
   const [showAddInput, setShowAddInput] = useState(false);
   const [newModelName, setNewModelName] = useState('');
@@ -81,9 +147,9 @@ const ModelConfiguration = () => {
   // Filter models based on search term
   const filteredModels = useMemo(() => {
     if (!searchTerm.trim()) return models;
-    
+
     const search = searchTerm.toLowerCase().trim();
-    return models.filter(model => 
+    return models.filter(model =>
       model.name.toLowerCase().includes(search) ||
       model.provider.toLowerCase().includes(search)
     );
@@ -177,7 +243,7 @@ const ModelConfiguration = () => {
 
                 <span className="text-sm w-full ml-2 text-gray-500/80 dark:text-gray-400/60 flex justify-between items-center">
                   <span>{model.name}</span>
-                  <span className="ml-2 text-xs px-1.5 py-0.5 bg-gray-300/30 dark:bg-green-500/10 text-gray-800 dark:text-green-500 rounded-[0.3rem]">Pro Plan</span>
+                  <span className="ml-2 text-xs px-1.5 py-0.5 bg-gray-300/30 dark:bg-blue-500/10 text-gray-800 dark:text-blue-500 rounded-[0.3rem]">Sign In Required</span>
                 </span>
 
                 {model.isCustom && (
@@ -193,7 +259,7 @@ const ModelConfiguration = () => {
               </div>
             </TooltipTrigger>
             <TooltipContent className="bg-gray-100 dark:bg-gray-800/20 text-gray-800 dark:text-gray-100 backdrop-blur-sm">
-              <p>Only available in Pro Plan. <a onClick={() => navigate('/settings/account')} className="text-blue-500 hover:text-blue-600">Upgrade Now</a></p>
+              <p>Sign in required to access this model. <a onClick={() => navigate('/settings/account')} className="text-blue-500 hover:text-blue-600">Sign In Now</a></p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -242,8 +308,8 @@ const ModelConfiguration = () => {
         </p>
       </div>
 
-      {/* MAX Mode Banner */}
-      <UpgradePro />
+      {/* Sign In Banner */}
+      <SignInBanner user={user} />
 
       {/* Search Input */}
       <div className="relative">

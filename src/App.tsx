@@ -91,13 +91,13 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as SoonerToaster } from "./components/ui/sooner";
 import { AuthProvider } from "./contexts/useAuth";
 import { ModelsProvider } from "./contexts/useModel";
-import { PostHogProvider } from "./contexts/useAnalytics";
+import { AnalyticsProvider } from "./contexts/useAnalytics";
 
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <AuthProvider>
-        <PostHogProvider>
+        <AnalyticsProvider>
           <ModelsProvider>
             <ClusterProvider>
               <DrawerProvider>
@@ -284,7 +284,7 @@ function App() {
               </DrawerProvider>
             </ClusterProvider>
           </ModelsProvider>
-        </PostHogProvider>
+        </AnalyticsProvider>
       </AuthProvider>
     </ThemeProvider>
   )

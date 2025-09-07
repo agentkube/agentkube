@@ -27,8 +27,8 @@ export { default as WallpaperSelector } from './wallpaper-selector';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';
 export { default as UninstallChartDialog } from './helmchartdialog/uninstallchartdialog.component';
-export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
-export { default as ReactivateLicenseKey } from './licensekey/reactivatelicensekey.component';
+// export { default as LicenseKeyDialog } from './licensekey/licensekey.component';
+// export { default as ReactivateLicenseKey } from './licensekey/reactivatelicensekey.component';
 
 export { default as AddResourceLogsPicker } from './resourcelogspicker/resourcelogpicker.component';
 

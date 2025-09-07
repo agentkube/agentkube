@@ -8,12 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getSettings, patchConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
-import { usePostHog } from '@/contexts/useAnalytics';
+import { useAnalytics } from '@/contexts/useAnalytics';
 import { useCluster } from '@/contexts/clusterContext';
 
 const GeneralSettings: React.FC = () => {
   const { toast } = useToast();
-  const { analyticsEnabled, setAnalyticsEnabled } = usePostHog();
+  const { captureEvent } = useAnalytics();
   const { fullWidth, setFullWidth } = useCluster();
 
   // State for settings
@@ -41,14 +41,9 @@ const GeneralSettings: React.FC = () => {
         setAutoUpdate(settings.general?.autoUpdate);
         setKubectlPath(settings.general?.kubectlPath ?? '');
 
-        // Set usageAnalytics and sync with PostHog
+        // Set usageAnalytics from settings
         const analyticsValue = settings.general?.usageAnalytics;
         setUsageAnalytics(analyticsValue);
-
-        // Sync PostHog state with settings - only if we have a defined value
-        if (analyticsValue !== undefined) {
-          setAnalyticsEnabled(analyticsValue);
-        }
 
         // Check actual autostart status from Tauri
         const autoStartEnabled = await isEnabled();
@@ -71,15 +66,8 @@ const GeneralSettings: React.FC = () => {
     };
 
     fetchSettings();
-  }, [toast, setAnalyticsEnabled]);
+  }, [toast]);
 
-  // Sync state when PostHog analyticsEnabled changes externally
-  useEffect(() => {
-    // Only update if we've already loaded initial settings
-    if (!isLoading && usageAnalytics !== analyticsEnabled) {
-      setUsageAnalytics(analyticsEnabled);
-    }
-  }, [analyticsEnabled, isLoading, usageAnalytics]);
 
   // Handle language change
   const handleLanguageChange = (lang: string) => {
@@ -109,11 +97,41 @@ const GeneralSettings: React.FC = () => {
     }
   };
 
-  // Handle analytics toggle with PostHog sync
-  const handleAnalyticsChange = (checked: boolean) => {
-    setUsageAnalytics(checked);
-    // Also update PostHog context
-    setAnalyticsEnabled(checked);
+  // Handle analytics toggle - update immediately like other settings
+  const handleAnalyticsChange = async (checked: boolean) => {
+    try {
+      setIsSaving(true);
+      
+      // Update the backend immediately
+      await patchConfig({
+        general: { usageAnalytics: checked }
+      });
+      
+      // Update local state
+      setUsageAnalytics(checked);
+      
+      // Track the settings change
+      await captureEvent('analytics_setting_changed', {
+        analytics_enabled: checked
+      });
+      
+      toast({
+        title: "Analytics setting updated",
+        description: `Usage analytics ${checked ? 'enabled' : 'disabled'} successfully.`,
+      });
+    } catch (error) {
+      console.error('Failed to update analytics setting:', error);
+      toast({
+        title: "Error updating analytics",
+        description: "Could not update the analytics setting. Please try again.",
+        variant: "destructive",
+      });
+      // Revert the UI state
+      const settings = await getSettings();
+      setUsageAnalytics(settings.general?.usageAnalytics);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Handle settings save
@@ -147,6 +165,12 @@ const GeneralSettings: React.FC = () => {
       // Only send patch request if there are any changes
       if (Object.keys(configPatch).length > 0) {
         await patchConfig(configPatch);
+        
+        // Track settings change event
+        await captureEvent('settings_changed', {
+          sections: Object.keys(configPatch),
+          analytics_enabled: usageAnalytics
+        });
       }
 
       toast({
@@ -269,6 +293,7 @@ const GeneralSettings: React.FC = () => {
             id="send-analytics"
             checked={!!usageAnalytics}
             onCheckedChange={handleAnalyticsChange}
+            disabled={isSaving}
           />
         </div>
 

@@ -1,23 +1,54 @@
-import React, { useState } from 'react';
-import { User, CreditCard, Settings, LogOut, ChevronRight, Loader2, Settings2, Lock, CreditCardIcon, Key } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, LogOut, Loader2, Settings2, CreditCardIcon, Shield, Copy, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LicenseKeyDialog } from '@/components/custom';
 import { openExternalUrl } from '@/api/external';
 import { useAuth } from '@/contexts/useAuth';
-import ReactivateLicense from '@/components/custom/licensekey/reactivatelicensekey.component';
+import { useAnalytics } from '@/contexts/useAnalytics';
 
 const Account = () => {
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authCode, setAuthCode] = useState('');
   const { toast } = useToast();
-  const { user, loading, logout } = useAuth();
+  const { captureEvent, isAnalyticsEnabled } = useAnalytics();
+  const {
+    user,
+    loading,
+    loginSession,
+    initiateLogin,
+    handleManualCallback,
+    logout,
+    loadUserProfile
+  } = useAuth();
+
+  // Fetch latest user profile when user visits the page
+  useEffect(() => {
+    if (user?.isAuthenticated) {
+      loadUserProfile().catch(error => {
+        console.error('Failed to load user profile:', error);
+      });
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
+      
+      // Send logout event if analytics is enabled
+      if (isAnalyticsEnabled) {
+        await captureEvent('user_logout', {
+          user_id: user?.id,
+          email: user?.email
+        });
+      }
+      
       await logout();
     } catch (error) {
       console.error('Logout failed:', error);
@@ -27,12 +58,79 @@ const Account = () => {
     }
   };
 
-  const handleLicenseSuccess = () => {
-    // Refresh UI after successful license activation
-    toast({
-      title: "License Activated",
-      description: "Your license has been activated successfully. Refreshing your account details...",
-    });
+  const handleLogin = async () => {
+    try {
+      setIsLoggingIn(true);
+      await initiateLogin();
+
+      toast({
+        title: "Opening Browser",
+        description: "Browser opening for authentication. If it doesn't open, use the manual URL below.",
+      });
+
+      // Show manual code entry dialog
+      setIsLoginDialogOpen(true);
+
+    } catch (error) {
+      console.error('Login failed:', error);
+      setIsLoggingIn(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied",
+        description: "URL copied to clipboard",
+      });
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: "Copy Failed",
+        description: "Unable to copy URL to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const truncateUrl = (url: string, maxLength: number = 50) => {
+    if (url.length <= maxLength) return url;
+    return url.substring(0, maxLength) + '...';
+  };
+
+  const handleManualCodeEntry = async () => {
+    try {
+      setIsLoggingIn(true);
+
+      if (!authCode.trim()) {
+        toast({
+          title: "Invalid Code",
+          description: "Please enter the authorization code from your browser.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const success = await handleManualCallback(authCode);
+
+      if (success) {
+        // Send signin event if analytics is enabled
+        if (isAnalyticsEnabled) {
+          await captureEvent('user_signin', {
+            method: 'manual_callback'
+          });
+        }
+        
+        setIsLoginDialogOpen(false);
+        setAuthCode('');
+      }
+
+    } catch (error) {
+      console.error('Manual callback failed:', error);
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   if (loading) {
@@ -44,48 +142,61 @@ const Account = () => {
     );
   }
 
-  // If not licensed, only show the license activation card
-  if (!user?.isLicensed) {
+
+  // If not authenticated, show login interface
+  if (!user?.isAuthenticated) {
     return (
       <div className="p-6 mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-semibold dark:text-white mb-2">Account</h1>
+          <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Account</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Please activate your license to view account details
+            Manage your account settings and preferences
           </p>
         </div>
 
-        {/* License Activation Card */}
-        <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-700/30 shadow-sm">
+        {/* OAuth2 Login Card */}
+        <Card className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-700/30 shadow-sm">
           <CardContent className="p-6">
-            <div className="flex items-start">
-              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full mr-4">
-                <Lock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="flex items-end">
+              <div className="bg-blue-100 dark:bg-blue-900/20 p-10 rounded-lg mr-4">
+                <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-medium dark:text-white mb-1">License Activation Required</h2>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-                  Please activate your license to access your account information and subscription details
-                </p>
-
-                <div className="flex flex-wrap gap-3 mt-6">
-                  <LicenseKeyDialog onSuccess={handleLicenseSuccess} />
-
-                  {user?.license_key && (
-                    <ReactivateLicense
-                      variant="outline"
-                      className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
-                      onSuccess={handleLicenseSuccess}
-                    />
-                  )}
-
+                <p className='p-2 text-xs dark:text-gray-400/60'>Sign in to access free ai credits and access to all premium models.</p>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={handleLogin}
+                    disabled={isLoggingIn}
+                    className="text-white min-w-44 flex justify-between"
+                  >
+                    {isLoggingIn ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Opening Browser...
+                      </>
+                    ) : (
+                      <>
+                        Sign In
+                        <Shield className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
 
                   <Button
                     variant="outline"
-                    onClick={() => openExternalUrl("https://agentkube.com/pricing")}
-                    className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30">
+                    onClick={() => {
+                      // Send pricing event if analytics is enabled
+                      if (isAnalyticsEnabled) {
+                        captureEvent('pricing_viewed', {
+                          source: 'account_page'
+                        });
+                      }
+                      openExternalUrl("https://agentkube.com/pricing");
+                    }}
+                    className="text-white min-w-44 flex justify-between"
+                  >
                     <CreditCardIcon className="h-4 w-4 mr-2" />
-                    Buy Subscription
+                    View Pricing
                   </Button>
                 </div>
               </div>
@@ -93,9 +204,98 @@ const Account = () => {
           </CardContent>
         </Card>
 
+        {/* Manual Code Entry Dialog */}
+        <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
+          <DialogContent className="sm:max-w-lg bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-md">
+            <DialogHeader>
+              <DialogTitle className='text-center'>Complete Authentication</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <p className="text-gray-700 dark:text-gray-300 text-sm text-center">
+                {loginSession ? (
+                  <>Complete authentication in your browser, then paste the authorization code below.</>
+                ) : (
+                  <>Complete the sign in process in your browser and enter the authorization code below.</>
+                )}
+              </p>
+
+              {loginSession && (
+                <div className="bg-gray-50 dark:bg-gray-700/20 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Authentication URL:</span>
+                    <Button
+                      // variant="ghost"
+                      size="sm"
+                      onClick={() => openExternalUrl(loginSession.authUrl)}
+                      className="h-6 min-w-36 flex justify-between px-2 text-xs"
+                    >
+                      Open
+                      <ArrowUpRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white dark:bg-gray-800/20 rounded border px-2 py-1">
+                    <code className="text-xs text-gray-600 dark:text-gray-300 flex-1 truncate">
+                      {truncateUrl(loginSession.authUrl)}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(loginSession.authUrl)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 text-center">
+                <Label htmlFor="auth-code">Authorization Code</Label>
+                <Input
+                  id="auth-code"
+                  placeholder="Enter authorization code from browser"
+                  value={authCode}
+                  onChange={(e) => setAuthCode(e.target.value)}
+                  disabled={isLoggingIn}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsLoginDialogOpen(false);
+                  setAuthCode('');
+                  setIsLoggingIn(false);
+                }}
+                disabled={isLoggingIn}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleManualCodeEntry}
+                disabled={isLoggingIn || !authCode.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Complete Sign In
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Logout Confirmation Dialog */}
         <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-          <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm">
+          <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-[#0B0D13]/50 backdrop-blur-xl">
             <DialogHeader>
               <DialogTitle>Confirm Logout</DialogTitle>
             </DialogHeader>
@@ -137,9 +337,9 @@ const Account = () => {
     );
   }
 
-  // Show full account details once licensed
+  // Show full account details once authenticated
   return (
-    <div className="p-6 mx-auto space-y-8">
+    <div className="p-6 mx-auto space-y-4">
       <div>
         <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Account</h1>
         <p className="text-gray-500 dark:text-gray-400">
@@ -148,129 +348,104 @@ const Account = () => {
       </div>
 
       {/* Profile Information */}
-      <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-700/30 shadow-sm">
+      <Card className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-700/30 shadow-sm">
         <CardContent className="p-6">
-          <div className="flex items-start">
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full mr-4">
+          <div className="flex items-end">
+            <div className="bg-blue-100 dark:bg-blue-900/20 p-10 rounded-lg mr-4">
               <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-medium dark:text-white mb-1">Profile Information</h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-                Manage your personal details
-              </p>
-
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-900 dark:text-gray-500">You are currently logged in as {user?.customer_email || user?.email || 'N/A'}</p>
-                  {user?.customer_name && (
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">License registered to: {user.customer_name}</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-gray-900 dark:text-gray-300">
+                    {user.name}
+                  </p>
+                  {user.subscription?.plan && (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                      user.subscription.plan === 'free' 
+                        ? 'bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-200'
+                        : user.subscription.plan === 'developer'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
+                        : user.subscription.plan === 'startup'
+                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200'
+                        : 'bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-200'
+                    }`}>
+                      {user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1)}
+                    </span>
                   )}
                 </div>
+                <p className="text-xs text-gray-900 dark:text-gray-400">
+                  {user.email}
+                </p>
+
               </div>
 
-              <div className="mt-6 flex space-x-4">
-                {user?.subscription?.status !== 'active' && (
-                  <ReactivateLicense
-                    variant="default"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onSuccess={handleLicenseSuccess}
-                  />
-                )}
-
+              <div className="mt-2 flex flex-wrap gap-2">
                 <Button
                   variant="outline"
-                  className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                  className="min-w-44 flex justify-between "
                   onClick={() => {
                     openExternalUrl("https://account.agentkube.com/settings");
                     toast({
-                      title: "Edit Profile",
-                      description: "Opening settings page...",
+                      title: "Manage Account",
+                      description: "Opening account management page...",
                     });
                   }}
                 >
-                  Manage
+                  Manage Account
                   <Settings2 className="ml-2 h-4 w-4" />
                 </Button>
-                {/* TODO to be implemented, replace existing license key */}
-
-                {user?.license_key && (
-                  <ReactivateLicense
-                    variant="outline"
-                    className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
-                    onSuccess={handleLicenseSuccess}
-                  />
-                )}
+                <Button
+                  variant="outline"
+                  className="flex items-center min-w-56 justify-between"
+                  onClick={() => {
+                    openExternalUrl("https://account.agentkube.com/settings?tab=subscriptions");
+                    toast({
+                      title: "Manage Subscription",
+                      description: "Opening subscription management page...",
+                    });
+                  }}
+                >
+                  Manage Subscription
+                  <ArrowUpRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => setIsLogoutDialogOpen(true)}
+                  className="min-w-44 flex justify-between hover:bg-red-700 text-white"
+                >
+                  Logout
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Subscription Information */}
-      <Card className="bg-transparent dark:bg-transparent border-gray-200 dark:border-gray-700/30 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-start">
-            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full mr-4">
-              <CreditCard className="h-6 w-6 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-medium dark:text-white mb-1">Subscription</h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-                Manage your subscription plan and billing
+      {/* Usage Information */}
+      <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none ">
+        <CardContent className="p-4 flex flex-col h-full">
+          <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Usage</h2>
+          <div className="mt-20">
+            <div className="flex items-baseline gap-2">
+              <p className="text-5xl font-light text-blue-600 dark:text-blue-400 mb-1">
+                {user.usage_count || 0}
               </p>
-
-              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/20 rounded-lg mb-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-gray-900 dark:text-white font-medium">
-                      {user?.subscription?.product_name}
-                    </span>
-                    <div className="flex items-center mt-1">
-                      <span className={`text-xs px-2 py-1 rounded-[0.2rem] ${user?.subscription?.status === 'active'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                        }`}>
-                        {user?.subscription?.status === 'active' ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
+              <div>
+                <p className="text-sm text-gray-800 dark:text-gray-400">
+                  / {user.usage_limit || '∞'} requests
+                </p>
               </div>
-
-
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
-                  onClick={() => {
-                    openExternalUrl("https://account.agentkube.com/settings");
-                    toast({
-                      title: "Manage Subscription",
-                      description: "Opening settings page...",
-                    });
-                  }}
-                >
-                  Manage Subscription
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="flex items-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/30"
-                  onClick={() => {
-                    openExternalUrl("https://account.agentkube.com/settings");
-                    toast({
-                      title: "Billing History",
-                      description: "Opening settings page...",
-                    });
-                  }}
-                >
-                  Billing History
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
+            </div>
+            <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+              <div
+                className="h-1 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]"
+                style={{ 
+                  width: user.usage_limit 
+                    ? `${Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)}%`
+                    : '0%'
+                }}
+              ></div>
             </div>
           </div>
         </CardContent>
@@ -278,7 +453,7 @@ const Account = () => {
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-gray-900/50 backdrop-blur-sm">
+        <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-[#0B0D13]/40 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>Confirm Logout</DialogTitle>
           </DialogHeader>
@@ -296,7 +471,6 @@ const Account = () => {
               Cancel
             </Button>
             <Button
-              variant="destructive"
               onClick={handleLogout}
               disabled={isLoggingOut}
               className="bg-red-600 hover:bg-red-700"
