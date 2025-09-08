@@ -10,6 +10,7 @@ import { LogsSelection } from '@/types/logs';
 import { submitInvestigationTask } from '@/api/task';
 import { InvestigationRequest, InvestigationResponse, ResourceContext, LogContext } from '@/types/task';
 import { useCluster } from '@/contexts/clusterContext';
+import { useNavigate } from 'react-router-dom';
 
 interface BackgroundTaskDialogProps {
 	isOpen: boolean;
@@ -37,6 +38,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 	const [contextLogs, setContextLogs] = useState<LogsSelection[]>([]);
 	const { currentContext } = useCluster();
+	const navigate = useNavigate();
 
 	useEffect(() => {
 		if (isOpen && inputRef.current) {
@@ -98,7 +100,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 					label: "View Task",
 					onClick: () => {
 						// Navigate to task details
-						window.location.href = `/tasks/${response.task_id}`;
+						navigate(`/dashboard/tasks/report/${response.task_id}`);
 					},
 				},
 				cancel: {
