@@ -72,16 +72,17 @@ const AgentSetting: React.FC = () => {
 
     try {
       const response = await getClusterConfig(currentContext.name);
-      if (response.config) {
+      if (response) {
         // Update extended tools config based on cluster configuration
         setExtendedToolsConfig(prev => {
           const updated = { ...prev };
           Object.keys(prev).forEach(toolId => {
-            if (response.config[toolId]) {
+            if (response[toolId]) {
+              const { enabled, ...config } = response[toolId];
               updated[toolId] = {
                 ...prev[toolId],
-                enabled: true,
-                config: response.config[toolId]
+                enabled: enabled || false,
+                config: config
               };
             }
           });
@@ -282,14 +283,60 @@ const AgentSetting: React.FC = () => {
     updateDenyList(updatedList);
   };
 
-  const toggleExtendedTool = (toolId: string) => {
-    setExtendedToolsConfig(prev => ({
-      ...prev,
-      [toolId]: {
-        ...prev[toolId],
-        enabled: !prev[toolId].enabled
+  const toggleExtendedTool = async (toolId: string) => {
+    if (!currentContext?.name) {
+      toast({
+        title: "Error",
+        description: "No cluster context available for tool configuration",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const newEnabledState = !extendedToolsConfig[toolId].enabled;
+      
+      if (newEnabledState) {
+        // If enabling, update cluster config with enabled state and existing config
+        await updateClusterConfig(currentContext.name, {
+          [toolId]: {
+            ...extendedToolsConfig[toolId].config,
+            enabled: true
+          }
+        });
+      } else {
+        // If disabling, update cluster config to set enabled to false
+        await updateClusterConfig(currentContext.name, {
+          [toolId]: {
+            ...extendedToolsConfig[toolId].config,
+            enabled: false
+          }
+        });
       }
-    }));
+
+      // Update local state
+      setExtendedToolsConfig(prev => ({
+        ...prev,
+        [toolId]: {
+          ...prev[toolId],
+          enabled: newEnabledState
+        }
+      }));
+
+      toast({
+        title: newEnabledState ? "Tool Enabled" : "Tool Disabled",
+        description: `${extendedTools.find(t => t.id === toolId)?.name} ${newEnabledState ? 'enabled' : 'disabled'} for cluster ${currentContext.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${extendedToolsConfig[toolId].enabled ? 'disable' : 'enable'} tool`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const openConfigDialog = (tool: Agent) => {
@@ -315,9 +362,12 @@ const AgentSetting: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Update the cluster configuration with the tool config
+      // Update the cluster configuration with the tool config and enabled state
       await updateClusterConfig(currentContext.name, {
-        [toolId]: config
+        [toolId]: {
+          ...config,
+          enabled: true
+        }
       });
       
       // Update local state
