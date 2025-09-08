@@ -235,7 +235,7 @@ kubectl apply -f manifests/
       </div>
 
       {/* Add Docs */}
-      <div>
+      {/* <div>
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
           Add Docs
         </h3>
@@ -316,7 +316,7 @@ kubectl apply -f manifests/
             </Button>
           ) : null}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
