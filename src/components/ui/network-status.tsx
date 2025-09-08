@@ -13,8 +13,8 @@ export const NetworkStatus: React.FC = () => {
   // When offline, show "No Internet" with WiFi off icon
   return (
     <div className="flex items-center space-x-2 px-2 py-1 rounded-md">
-      <WifiOff className="h-4 w-4 text-red-600 dark:text-red-400" />
-      <span className="text-xs font-medium text-red-700 dark:text-red-300">
+      <WifiOff className="h-4 w-4 text-red-600 dark:text-red-500" />
+      <span className="text-xs font-medium text-red-700 dark:text-red-500">
         No Internet
       </span>
     </div>

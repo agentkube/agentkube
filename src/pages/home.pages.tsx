@@ -15,6 +15,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
 import { DeleteContextDialog, ProvisionDrawer } from '@/components/custom';
 import { useTheme } from 'next-themes';
+import { toast } from '@/hooks/use-toast';
 
 // Interface for our cluster UI data
 interface ClusterItem {
@@ -475,7 +476,13 @@ const HomePage: React.FC = () => {
                 </Button>
                 <Button
                   className="mt-4 bg-blue-600 hover:bg-blue-700 flex items-center gap-2 text-black dark:text-black bg-[#54C895] dark:bg-[#54C895] dark:hover:bg-[#0E9F6E]"
-                  onClick={() => setIsProvisionDrawerOpen(true)}
+                  onClick={() =>{ 
+                    toast({
+                      title: "COMING SOON",
+                      description: `The provisioning feature is yet to be implemented`,
+                    })  
+                    // setIsProvisionDrawerOpen(true)
+                  }}
                 >
                   <AlignVerticalJustifyEnd size={16} />
                   Provision
