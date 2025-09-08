@@ -28,9 +28,12 @@ import DeploymentCostDistribution from './components/deployment-cost-distributio
 import DaemonsetCostDistribution from './components/daemonset-cost-distribution.component';
 import StatefulsetCostDistribution from './components/statefulset-cost-distribution.component';
 import { getOpenCostStatus } from '@/api/cost';
+import { getClusterConfig, updateClusterConfig } from '@/api/settings';
+import { useToast } from '@/hooks/use-toast';
 
 const CostOverview: React.FC = () => {
   const { currentContext } = useCluster();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<string>("7d");
@@ -73,29 +76,63 @@ const CostOverview: React.FC = () => {
     checkOpenCostStatus();
   }, [currentContext]);
 
-  const loadOpenCostConfig = useCallback(() => {
+  const loadOpenCostConfig = useCallback(async () => {
     if (!currentContext) return;
 
     try {
-      const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
-      if (savedConfig) {
-        const parsedConfig = JSON.parse(savedConfig);
-        if (parsedConfig.externalConfig?.opencost) {
-          setOpenCostConfig(parsedConfig.externalConfig.opencost);
+      let config = null;
+      
+      // First try to load from cluster configuration
+      try {
+        const clusterConfig = await getClusterConfig(currentContext.name);
+        if (clusterConfig.opencost) {
+          // Map service_address back to service for backwards compatibility
+          config = {
+            namespace: clusterConfig.opencost.namespace,
+            service: clusterConfig.opencost.service_address || clusterConfig.opencost.service
+          };
+        }
+      } catch (clusterErr) {
+        // If cluster config fails, fallback to localStorage
+        const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
+        if (savedConfig) {
+          const parsedConfig = JSON.parse(savedConfig);
+          if (parsedConfig.externalConfig?.opencost) {
+            config = parsedConfig.externalConfig.opencost;
+          }
         }
       }
-    } catch (err) {
-      console.error('Error loading saved OpenCost config:', err);
-    }
-  }, [currentContext]);
 
-  const handleSaveConfig = useCallback((config: { namespace: string; service: string }) => {
+      if (config) {
+        setOpenCostConfig(config);
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to load OpenCost configuration",
+        variant: "destructive",
+      });
+    }
+  }, [currentContext, toast]);
+
+  const handleSaveConfig = useCallback(async (config: { namespace: string; service: string }) => {
     if (!currentContext) return;
 
     setOpenCostConfig(config);
-    console.log('Saving OpenCost config:', config);
     
     try {
+      // Map service to service_address for cluster configuration
+      const clusterConfig = {
+        namespace: config.namespace,
+        service_address: config.service
+      };
+
+      // Save to cluster configuration
+      await updateClusterConfig(currentContext.name, {
+        opencost: clusterConfig
+      });
+
+      // Also save to localStorage for caching
       const configKey = `${currentContext.name}.openCostConfig`;
       const configToSave = {
         externalConfig: {
@@ -103,10 +140,19 @@ const CostOverview: React.FC = () => {
         }
       };
       localStorage.setItem(configKey, JSON.stringify(configToSave));
+
+      toast({
+        title: "Configuration Saved",
+        description: `OpenCost configured for cluster ${currentContext.name}`,
+      });
     } catch (err) {
-      console.error('Error saving OpenCost config:', err);
+      toast({
+        title: "Error",
+        description: "Failed to save OpenCost configuration",
+        variant: "destructive",
+      });
     }
-  }, [currentContext]);
+  }, [currentContext, toast]);
 
   useEffect(() => {
     if (currentContext) {

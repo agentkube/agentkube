@@ -13,6 +13,8 @@ import { Line, ResponsiveContainer, Tooltip, Area, AreaChart, XAxis } from 'rech
 import { ProxyConfigDialog } from '@/components/custom';
 import { kubeProxyRequest } from '@/api/cluster';
 import { useCluster } from '@/contexts/clusterContext';
+import { getClusterConfig, updateClusterConfig } from '@/api/settings';
+import { useToast } from '@/hooks/use-toast';
 import {
   ChartTooltip,
 } from "@/components/ui/chart";
@@ -26,6 +28,7 @@ interface DataSource {
 
 const MonitoringOverview = () => {
   const { currentContext } = useCluster();
+  const { toast } = useToast();
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState<boolean>(false);
   const [targets, setTargets] = useState<any>(null);
   const [metadata, setMetadata] = useState<any>({});
@@ -71,10 +74,35 @@ const MonitoringOverview = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const loadMonitoringConfig = useCallback(() => {
+  const loadMonitoringConfig = useCallback(async () => {
     if (!currentContext) return;
 
     try {
+      // First try to load from cluster configuration
+      try {
+        const clusterConfig = await getClusterConfig(currentContext.name);
+        if (clusterConfig.config?.prometheus) {
+          const prometheusConfig = clusterConfig.config.prometheus;
+          const monitoringConfig = {
+            namespace: prometheusConfig.namespace || 'monitoring',
+            service: prometheusConfig.service_address || prometheusConfig.service || 'prometheus:9090'
+          };
+          setMonitoringConfig(monitoringConfig);
+          
+          // Also update localStorage to keep it in sync
+          const configToSave = {
+            externalConfig: {
+              monitoring: monitoringConfig
+            }
+          };
+          localStorage.setItem(`${currentContext.name}.monitoringConfig`, JSON.stringify(configToSave));
+          return;
+        }
+      } catch (clusterError) {
+        console.log('No cluster config found, falling back to localStorage:', clusterError);
+      }
+
+      // Fallback to localStorage if cluster config not available
       const savedConfig = localStorage.getItem(`${currentContext.name}.monitoringConfig`);
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
@@ -83,17 +111,27 @@ const MonitoringOverview = () => {
         }
       }
     } catch (err) {
-      console.error('Error loading saved monitoring config:', err);
+      console.error('Error loading monitoring config:', err);
     }
   }, [currentContext]);
 
-  const handleSaveConfig = (config: { namespace: string; service: string }) => {
+  const handleSaveConfig = async (config: { namespace: string; service: string }) => {
     if (!currentContext) return;
 
     setMonitoringConfig(config);
-    console.log('Saving monitoring config:', config);
 
     try {
+      // Save to cluster configuration (service maps to service_address)
+      const prometheusConfig = {
+        namespace: config.namespace,
+        service_address: config.service,
+      };
+
+      await updateClusterConfig(currentContext.name, {
+        prometheus: prometheusConfig
+      });
+
+      // Also save to localStorage for caching
       const configKey = `${currentContext.name}.monitoringConfig`;
       const configToSave = {
         externalConfig: {
@@ -101,8 +139,31 @@ const MonitoringOverview = () => {
         }
       };
       localStorage.setItem(configKey, JSON.stringify(configToSave));
+
+      toast({
+        title: "Configuration Saved",
+        description: `Prometheus configuration saved for cluster ${currentContext.name}`,
+      });
     } catch (err) {
       console.error('Error saving monitoring config:', err);
+      toast({
+        title: "Error",
+        description: "Failed to save Prometheus configuration",
+        variant: "destructive",
+      });
+
+      // Still save to localStorage as fallback
+      try {
+        const configKey = `${currentContext.name}.monitoringConfig`;
+        const configToSave = {
+          externalConfig: {
+            monitoring: config
+          }
+        };
+        localStorage.setItem(configKey, JSON.stringify(configToSave));
+      } catch (localErr) {
+        console.error('Error saving to localStorage:', localErr);
+      }
     }
   };
 

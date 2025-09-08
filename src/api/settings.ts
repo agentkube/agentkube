@@ -480,3 +480,81 @@ export const updateUsageAnalytics = async (usageAnalytics: boolean): Promise<Age
     throw error;
   }
 };
+
+/**
+ * Fetches all additional cluster configurations
+ * @returns Promise with all additional cluster configurations
+ */
+export const getAllClusters = async () => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/clusters`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch clusters: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching clusters:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches additional configuration for a specific cluster
+ * @param clusterName Name of the cluster
+ * @returns Promise with the additional cluster configuration
+ */
+export const getClusterConfig = async (clusterName: string) => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/clusters/${clusterName}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Cluster '${clusterName}' configuration not found`);
+      }
+      throw new Error(`Failed to fetch cluster config: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error fetching cluster config for ${clusterName}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Updates or creates additional configuration for a specific cluster
+ * @param clusterName Name of the cluster
+ * @param config Additional configuration object for the cluster
+ * @returns Promise with the update result
+ */
+export const updateClusterConfig = async (
+  clusterName: string, 
+  config: Record<string, any>
+): Promise<{ success: boolean; message: string; cluster_name: string }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/clusters/${clusterName}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        cluster_name: clusterName,
+        config
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to update cluster config: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error updating cluster config for ${clusterName}:`, error);
+    throw error;
+  }
+};

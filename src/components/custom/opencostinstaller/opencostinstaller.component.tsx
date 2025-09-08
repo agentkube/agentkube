@@ -11,6 +11,8 @@ import KUBERNETES from '@/assets/kubernetes.svg';
 import ProxyConfigDialog from '../proxyconfigdialog/proxyconfigdialog.component';
 import { openExternalUrl } from '@/api/external';
 import { useCluster } from '@/contexts/clusterContext';
+import { getClusterConfig, updateClusterConfig } from '@/api/settings';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface OpenCostInstallerProps {
@@ -20,6 +22,7 @@ interface OpenCostInstallerProps {
 
 const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstall }) => {
   const { currentContext } = useCluster();
+  const { toast } = useToast();
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const [selectedCloudProvider, setSelectedCloudProvider] = useState("aws");
   const [activeTab, setActiveTab] = useState("options");
@@ -34,33 +37,85 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
     service: 'opencost:9090'
   });
 
-  const handleSaveConfig = (config: { namespace: string; service: string }) => {
+  const handleSaveConfig = async (config: { namespace: string; service: string }) => {
     if (!currentContext) return;
 
     setOpenCostConfig(config);
-    console.log('Saving OpenCost config:', config);
-    localStorage.setItem(`${currentContext.name}.openCostConfig`, JSON.stringify({
-      externalConfig: {
-        opencost: config
-      }
-    }));
+    
+    try {
+      // Map service to service_address for cluster configuration
+      const clusterConfig = {
+        namespace: config.namespace,
+        service_address: config.service
+      };
+
+      // Save to cluster configuration
+      await updateClusterConfig(currentContext.name, {
+        opencost: clusterConfig
+      });
+
+      // Also save to localStorage for caching
+      localStorage.setItem(`${currentContext.name}.openCostConfig`, JSON.stringify({
+        externalConfig: {
+          opencost: config
+        }
+      }));
+
+      toast({
+        title: "Configuration Saved",
+        description: `OpenCost configured for cluster ${currentContext.name}`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to save OpenCost configuration",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {
-    if (!currentContext) return;
+    const loadOpenCostConfig = async () => {
+      if (!currentContext) return;
 
-    try {
-      const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
-      if (savedConfig) {
-        const parsedConfig = JSON.parse(savedConfig);
-        if (parsedConfig.externalConfig?.opencost) {
-          setOpenCostConfig(parsedConfig.externalConfig.opencost);
+      try {
+        let config = null;
+        
+        // First try to load from cluster configuration
+        try {
+          const clusterConfig = await getClusterConfig(currentContext.name);
+          if (clusterConfig.opencost) {
+            // Map service_address back to service for backwards compatibility
+            config = {
+              namespace: clusterConfig.opencost.namespace,
+              service: clusterConfig.opencost.service_address || clusterConfig.opencost.service
+            };
+          }
+        } catch (clusterErr) {
+          // If cluster config fails, fallback to localStorage
+          const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
+          if (savedConfig) {
+            const parsedConfig = JSON.parse(savedConfig);
+            if (parsedConfig.externalConfig?.opencost) {
+              config = parsedConfig.externalConfig.opencost;
+            }
+          }
         }
+
+        if (config) {
+          setOpenCostConfig(config);
+        }
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to load OpenCost configuration",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      console.error('Error loading saved config:', err);
-    }
-  }, [currentContext]);
+    };
+
+    loadOpenCostConfig();
+  }, [currentContext, toast]);
 
   const handleInstallClick = () => {
     setIsInstallDialogOpen(true);

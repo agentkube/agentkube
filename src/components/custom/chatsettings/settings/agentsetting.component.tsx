@@ -12,7 +12,9 @@ import {
 import { SiHelm, SiKubernetes, SiArgo, SiPrometheus, SiTrivy, SiDatadog, SiGrafana, SiDocker } from '@icons-pack/react-simple-icons';
 import { Loki, SigNoz } from '@/assets/icons';
 import { ConfigDialog } from './toolconfigdialog.component';
-import { getAgentDenyList, getAgentWebSearch, patchConfig } from '@/api/settings';
+import { getAgentDenyList, getAgentWebSearch, patchConfig, getClusterConfig, updateClusterConfig } from '@/api/settings';
+import { useCluster } from '@/contexts/clusterContext';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Agent {
   id: string;
@@ -32,6 +34,8 @@ export interface ExtendedToolConfig {
 
 
 const AgentSetting: React.FC = () => {
+  const { currentContext } = useCluster();
+  const { toast } = useToast();
   const [autoRun, setAutoRun] = useState<boolean>(true);
   const [webSearch, setWebSearch] = useState<boolean>(false);
   const [denyList, setDenyList] = useState<string[]>([]);
@@ -56,6 +60,39 @@ const AgentSetting: React.FC = () => {
     loadDenyList();
     loadWebSearchSetting();
   }, []);
+
+  useEffect(() => {
+    if (currentContext) {
+      loadClusterToolConfigs();
+    }
+  }, [currentContext]);
+
+  const loadClusterToolConfigs = async () => {
+    if (!currentContext?.name) return;
+
+    try {
+      const response = await getClusterConfig(currentContext.name);
+      if (response.config) {
+        // Update extended tools config based on cluster configuration
+        setExtendedToolsConfig(prev => {
+          const updated = { ...prev };
+          Object.keys(prev).forEach(toolId => {
+            if (response.config[toolId]) {
+              updated[toolId] = {
+                ...prev[toolId],
+                enabled: true,
+                config: response.config[toolId]
+              };
+            }
+          });
+          return updated;
+        });
+      }
+    } catch (error) {
+      // Cluster config might not exist yet, which is fine
+      // No need to show error toast for missing config
+    }
+  };
 
   const builtInTools: Agent[] = [
     {
@@ -263,15 +300,49 @@ const AgentSetting: React.FC = () => {
     setConfigDialog({ tool: {} as Agent, isOpen: false });
   };
 
-  const saveToolConfig = (config: Record<string, any>) => {
+  const saveToolConfig = async (config: Record<string, any>) => {
     const toolId = configDialog.tool.id;
-    setExtendedToolsConfig(prev => ({
-      ...prev,
-      [toolId]: {
-        ...prev[toolId],
-        config
-      }
-    }));
+    
+    if (!currentContext?.name) {
+      toast({
+        title: "Error",
+        description: "No cluster context available for tool configuration",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Update the cluster configuration with the tool config
+      await updateClusterConfig(currentContext.name, {
+        [toolId]: config
+      });
+      
+      // Update local state
+      setExtendedToolsConfig(prev => ({
+        ...prev,
+        [toolId]: {
+          ...prev[toolId],
+          config,
+          enabled: true
+        }
+      }));
+      
+      toast({
+        title: "Configuration Saved",
+        description: `${configDialog.tool.name} configured for cluster ${currentContext.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to save ${configDialog.tool.name} configuration`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderToolSection = (tools: Agent[], title: string, isExtended = false) => (
