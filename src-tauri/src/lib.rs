@@ -1,9 +1,21 @@
-use tauri::RunEvent;
+use tauri::{RunEvent, Manager};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+mod network_monitor;
+mod network_commands;
+
+use network_monitor::NetworkMonitor;
+use network_commands::{NetworkMonitorState, get_network_status, start_network_monitoring};
 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            get_network_status,
+            start_network_monitoring
+        ])
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -23,6 +35,11 @@ pub fn run() {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 app.deep_link().register("agentkube")?;
             }
+
+            // Initialize network monitor
+            let network_monitor = NetworkMonitor::new(app.handle().clone());
+            let network_monitor_state: NetworkMonitorState = Arc::new(Mutex::new(network_monitor));
+            app.manage(network_monitor_state);
 
             // Enhanced logging configuration
             app.handle().plugin(

@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ReconModeSwitch } from "./ui/reconmode";
+import { NetworkStatus } from "./ui/network-status";
 import RECONGIF from '@/assets/recon.gif'
 import { Button } from "./ui/button";
 
@@ -116,6 +117,9 @@ export function Menu() {
 
         {/* Right-side controls */}
         <div className="flex items-center space-x-2 undraggable">
+          {/* Network Status */}
+          <NetworkStatus />
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
