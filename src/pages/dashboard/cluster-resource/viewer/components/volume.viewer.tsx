@@ -87,7 +87,7 @@ const VolumeViewer: React.FC<VolumeViewerProps> = ({ volumes }) => {
               <div className="font-medium text-sm mb-1">Items:</div>
               <div className="space-y-1 ml-2">
                 {volume.configMap.items.map((item, idx) => (
-                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800/40 p-2 rounded-md">
                     <div><span className="font-medium">Key:</span> {item.key}</div>
                     <div><span className="font-medium">Path:</span> {item.path}</div>
                     {item.mode !== undefined && (
@@ -123,7 +123,7 @@ const VolumeViewer: React.FC<VolumeViewerProps> = ({ volumes }) => {
               <div className="font-medium text-sm mb-1">Items:</div>
               <div className="space-y-1 ml-2">
                 {volume.secret.items.map((item, idx) => (
-                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800/40 p-2 rounded-md">
                     <div><span className="font-medium">Key:</span> {item.key}</div>
                     <div><span className="font-medium">Path:</span> {item.path}</div>
                     {item.mode !== undefined && (
@@ -228,7 +228,7 @@ const VolumeViewer: React.FC<VolumeViewerProps> = ({ volumes }) => {
               <div className="font-medium text-sm mb-1">Items:</div>
               <div className="space-y-1 ml-2">
                 {volume.downwardAPI.items.map((item, idx) => (
-                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800/40 p-2 rounded-md">
                     <div><span className="font-medium">Path:</span> {item.path}</div>
                     {item.fieldRef && (
                       <div><span className="font-medium">Field Ref:</span> {item.fieldRef.fieldPath}</div>
@@ -263,7 +263,7 @@ const VolumeViewer: React.FC<VolumeViewerProps> = ({ volumes }) => {
               <div className="font-medium text-sm mb-1">Sources:</div>
               <div className="space-y-2 ml-2">
                 {volume.projected.sources.map((source, idx) => (
-                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                  <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800/40 p-2 rounded-md">
                     {source.secret && (
                       <div>
                         <div className="font-medium">Secret:</div>
@@ -321,7 +321,7 @@ const VolumeViewer: React.FC<VolumeViewerProps> = ({ volumes }) => {
         if (volumeType.startsWith('CSI')) {
           return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
         }
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-300';
     }
   };
 

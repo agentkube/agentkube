@@ -242,12 +242,23 @@ const ServiceViewer: React.FC = () => {
   const convertToPorts = (servicePorts: V1ServicePort[] | undefined): SimplifiedPort[] => {
     if (!servicePorts) return [];
 
-    return servicePorts.map(port => ({
-      port: port.port,
-      targetPort: port.targetPort || port.port,
-      protocol: port.protocol,
-      name: port.name
-    }));
+    return servicePorts.map(port => {
+      // For targetPort, if it's a named port (string), use the service port number instead
+      // This ensures we always use numeric ports for port forwarding
+      let targetPort = port.targetPort || port.port;
+      
+      // If targetPort is a string (named port), use the service port number instead
+      if (typeof targetPort === 'string') {
+        targetPort = port.port;
+      }
+
+      return {
+        port: port.port,
+        targetPort,
+        protocol: port.protocol,
+        name: port.name
+      };
+    });
   };
 
   // Loading state

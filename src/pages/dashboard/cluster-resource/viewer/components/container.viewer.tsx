@@ -158,7 +158,7 @@ const ContainersViewer: React.FC<ContainersViewerProps> = ({
       <div className="space-y-2">
         <div className="space-y-2">
           {envsToShow.map((envVar, index) => (
-            <div key={index} className="text-xs bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 px-2 py-2 rounded-md">
+            <div key={index} className="text-xs bg-gray-100 dark:bg-transparent border border-gray-200 dark:border-gray-800 px-2 py-2 rounded-md">
               <span className="font-medium">{envVar.name}</span>: 
               {envVar.value ? (
                 <span> {envVar.value}</span>
@@ -175,7 +175,7 @@ const ContainersViewer: React.FC<ContainersViewerProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="w-fit text-xs text-blue-600 dark:text-blue-400 p-0 h-auto hover:bg-transparent hover:underline"
+            className="w-fit text-xs text-blue-600 dark:bg-transparent dark:text-blue-400 p-0 h-auto hover:bg-transparent  hover:underline"
             onClick={() => setShowAllEnv(!showAllEnv)}
           >
             {showAllEnv ? (
@@ -241,7 +241,7 @@ const ContainersViewer: React.FC<ContainersViewerProps> = ({
     return (
       <div className="space-y-2">
         {mounts.map((mount, index) => (
-          <div key={index} className="bg-gray-100 dark:bg-gray-800 p-2 rounded-md text-xs">
+          <div key={index} className="bg-gray-100 dark:bg-gray-800/30 p-2 rounded-md text-xs">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium">{mount.name}</span>
               {mount.readOnly && (
@@ -330,7 +330,7 @@ const ContainersViewer: React.FC<ContainersViewerProps> = ({
     if (!probe) return null;
     
     return (
-      <div className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+      <div className="text-xs bg-gray-100 dark:bg-gray-800/40 p-2 rounded-md">
         <div className="font-medium mb-1">{type} Probe:</div>
         {probe.httpGet && (
           <div className="ml-2">

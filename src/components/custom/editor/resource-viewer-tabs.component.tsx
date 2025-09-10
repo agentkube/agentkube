@@ -20,7 +20,21 @@ const ResourceViewerYamlTab: React.FC<ResourceViewerYamlTabProps> = ({
   resourceType
 }) => {
   // Extract API information from the resource data if not provided
-  const extractedApiGroup = apiGroup || (resourceData?.apiVersion ? resourceData.apiVersion.split('/')[0] : '');
+  // For core resources (like ConfigMaps), apiVersion is just "v1" with no group
+  // For non-core resources, apiVersion is "group/version" format
+  const extractedApiGroup = apiGroup || (() => {
+    if (!resourceData?.apiVersion) return '';
+    
+    // If apiVersion contains '/', it's a non-core resource with group/version format
+    if (resourceData.apiVersion.includes('/')) {
+      return resourceData.apiVersion.split('/')[0];
+    }
+    
+    // If apiVersion is just a version (like "v1", "v1beta1"), it's a core resource
+    // Core resources have empty apiGroup
+    return '';
+  })();
+  
   const extractedApiVersion = apiVersion || (resourceData?.apiVersion ? 
     (resourceData.apiVersion.includes('/') ? resourceData.apiVersion.split('/')[1] : resourceData.apiVersion) : 'v1');
   

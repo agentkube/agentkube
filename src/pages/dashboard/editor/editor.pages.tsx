@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sun, Moon, Save, ArrowLeft, GripVertical, Wand2, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { jsonToYaml, yamlToJson } from '@/utils/yaml';
+import { cleanMetadataForUpdate, jsonToYaml, yamlToJson } from '@/utils/yaml';
 import { updateResource } from '@/api/internal/resources';
 // import { chatStream } from '@/api/orchestrator.chat';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -140,12 +140,13 @@ const AIEditor: React.FC<AIEditorProps> = ({
       // Convert YAML to JSON
       const jsonContent = yamlToJson(yamlContent);
 
+      const updatedJsonPayload = cleanMetadataForUpdate(jsonContent)
       // Update the resource
       await updateResource(
         currentContext.name,
         resourceType as any,
         resourceName,
-        jsonContent,
+        updatedJsonPayload,
         {
           namespace,
           apiGroup,

@@ -486,7 +486,7 @@ export async function updateResource<T extends keyof KubernetesTypeMapping>(
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      credentials: 'include', // Include cookies for auth
+      // credentials: 'include', // Include cookies for auth
       body: JSON.stringify(resourceData),
     });
 

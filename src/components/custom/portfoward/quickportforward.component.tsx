@@ -32,13 +32,18 @@ const QuickPortForwardButton: React.FC<QuickPortForwardButtonProps> = ({
     setLoading(true);
 
     try {
+      // Handle targetPort - convert to string for API call
+      // If targetPort is a number, convert to string; if it's already a string (named port), keep it
+      const targetPortString = targetPort.toString();
+      
       const result = await startPortForward({
         namespace,
         pod: "", // This will be determined by the backend based on service
         service: serviceName,
         serviceNamespace: namespace,
-        targetPort: targetPort.toString(),
+        targetPort: targetPortString,
         cluster: clusterName
+        // Don't specify port - let backend assign a random one
       });
 
       toast({
