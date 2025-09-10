@@ -47,3 +47,37 @@ export const yamlToJson = (yamlString: string): any => {
     throw new Error(`Failed to parse YAML: ${error}`);
   }
 };
+
+
+export const cleanMetadataForUpdate = (jsonContent: any) => {
+  if (!jsonContent || !jsonContent.metadata) {
+    return jsonContent;
+  }
+
+  // Create a deep copy to avoid mutating the original
+  const cleanedContent = JSON.parse(JSON.stringify(jsonContent));
+  
+  // Remove fields that cause conflicts during updates
+  const fieldsToRemove = [
+    'uid',
+    'resourceVersion', 
+    'creationTimestamp',
+    'generation',
+    'managedFields',
+    'selfLink',
+    'finalizers'
+  ];
+
+  fieldsToRemove.forEach(field => {
+    if (cleanedContent.metadata[field]) {
+      delete cleanedContent.metadata[field];
+    }
+  });
+
+  // Also clean status field if it exists (read-only)
+  if (cleanedContent.status) {
+    delete cleanedContent.status;
+  }
+
+  return cleanedContent;
+};

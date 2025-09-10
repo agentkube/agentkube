@@ -24,6 +24,7 @@ import { useSearchParams } from 'react-router-dom';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
+import Base64Dropdown from '@/components/custom/base64dropdown/base64dropdown.component';
 
 // Define interface for secret data (extending V1Secret with events)
 interface SecretData extends V1Secret {
@@ -405,12 +406,17 @@ const SecretViewer: React.FC = () => {
               return params;
             });
           }} className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="data">Secret Data</TabsTrigger>
-            <TabsTrigger value="yaml">YAML</TabsTrigger>
-            <TabsTrigger value="events">Events</TabsTrigger>
-          </TabsList>
+
+            <div className='flex justify-between'>
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="data">Secret Data</TabsTrigger>
+              <TabsTrigger value="yaml">YAML</TabsTrigger>
+              <TabsTrigger value="events">Events</TabsTrigger>
+            </TabsList>
+
+            <Base64Dropdown />
+            </div>
 
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* Secret Status Cards */}

@@ -184,21 +184,12 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
     try {
       // Parse selected port to get target port
       const selectedPortObj = ports.find(p => p.port.toString() === selectedPort);
-      console.log('Selected port object:', selectedPortObj);
+
       
       // Handle targetPort - convert to string for API call
       // If targetPort is a number, convert to string; if it's already a string (named port), keep it
       const targetPort = selectedPortObj?.targetPort?.toString() || selectedPort;
       
-      console.log({
-        namespace,
-        pod: selectedPod,
-        service: serviceName,
-        serviceNamespace: namespace,
-        targetPort,
-        cluster: clusterName,
-        port: localPort || undefined
-      })
 
       const result = await startPortForward({
         namespace,

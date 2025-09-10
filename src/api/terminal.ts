@@ -41,7 +41,7 @@ class TerminalApiService {
 
       const OPERATOR_WSS_URL = OPERATOR_URL.replace(/^ws?:\/\//, '');
 
-      console.log("OPERATOR_WSS_URL", OPERATOR_WSS_URL)
+      // console.log("OPERATOR_WSS_URL", OPERATOR_WSS_URL)
       // Create a new session via HTTP request
       const response = await fetch(OPERATOR_WSS_URL, {
         method: 'GET',
