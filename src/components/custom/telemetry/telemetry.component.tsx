@@ -105,7 +105,10 @@ const Telemetry: React.FC<TelemetryProps> = ({ resourceName, namespace, kind, on
               </TabsContent>
 
               <TabsContent value="traces" className="mt-4 px-1">
-                <Tracing resourceName={resourceName} namespace={namespace} />
+                {/* <Tracing resourceName={resourceName} namespace={namespace} /> */}
+                <div className="p-4 text-center text-gray-500">
+                  Request data will be displayed here
+                </div>
               </TabsContent>
 
               <TabsContent value="requests" className="mt-4">

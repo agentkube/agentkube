@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { VisualChart, ChartSeries, ChartDataPoint, GradientConfig } from '../visualchart';
+import { VisualChart, ChartDataPoint, GradientConfig } from '../visualchart';
 import { Button } from '@/components/ui/button';
 import { Cpu, MemoryStick, Activity, Network, Search, RefreshCw, Sparkles } from 'lucide-react';
 import { kubeProxyRequest } from '@/api/cluster';
@@ -13,7 +13,6 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { AgentkubeBot } from '@/assets/icons';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDrawer } from '@/contexts/useDrawer';
 import { toast } from '@/hooks/use-toast';
@@ -88,6 +87,26 @@ const NETWORK_GRADIENT: GradientConfig = {
 	],
 };
 
+const DISK_READ_GRADIENT: GradientConfig = {
+	type: 'linear',
+	direction: 'vertical',
+	colors: [
+		{ offset: 0, color: '#10b981', opacity: 0.8 },
+		{ offset: 0.6, color: '#059669', opacity: 0.3 },
+		{ offset: 1, color: '#059669', opacity: 0 },
+	],
+};
+
+const DISK_WRITE_GRADIENT: GradientConfig = {
+	type: 'linear',
+	direction: 'vertical',
+	colors: [
+		{ offset: 0, color: '#f97316', opacity: 0.8 },
+		{ offset: 0.6, color: '#ea580c', opacity: 0.3 },
+		{ offset: 1, color: '#ea580c', opacity: 0 },
+	],
+};
+
 const Metrics: React.FC<MetricsProps> = ({ resourceName, namespace, kind }) => {
 	const { currentContext } = useCluster();
 	const { addStructuredContent } = useDrawer();
@@ -95,7 +114,10 @@ const Metrics: React.FC<MetricsProps> = ({ resourceName, namespace, kind }) => {
 	const [memoryData, setMemoryData] = useState<MetricData[]>([]);
 	const [networkInData, setNetworkInData] = useState<MetricData[]>([]);
 	const [networkOutData, setNetworkOutData] = useState<MetricData[]>([]);
-	const [diskIOData, setDiskIOData] = useState<MetricData[]>([]);
+	const [diskReadData, setDiskReadData] = useState<MetricData[]>([]);
+	const [diskWriteData, setDiskWriteData] = useState<MetricData[]>([]);
+	const [showDiskRead, setShowDiskRead] = useState(true);
+	const [showDiskWrite, setShowDiskWrite] = useState(true);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [timeRange, setTimeRange] = useState<'5m' | '15m' | '1h' | '6h' | '24h'>('1h');
@@ -247,22 +269,32 @@ const Metrics: React.FC<MetricsProps> = ({ resourceName, namespace, kind }) => {
 				step: step.toString(),
 			});
 
-			// Disk IO Query
-			const diskIOQuery = `rate(container_fs_reads_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m]) + rate(container_fs_writes_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m])`;
-			const diskIOParams = new URLSearchParams({
-				query: diskIOQuery,
+			// Disk Read Query
+			const diskReadQuery = `rate(container_fs_reads_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m]) / 1024`;
+			const diskReadParams = new URLSearchParams({
+				query: diskReadQuery,
+				start: start.toString(),
+				end: now.toString(),
+				step: step.toString(),
+			});
+
+			// Disk Write Query
+			const diskWriteQuery = `rate(container_fs_writes_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m]) / 1024`;
+			const diskWriteParams = new URLSearchParams({
+				query: diskWriteQuery,
 				start: start.toString(),
 				end: now.toString(),
 				step: step.toString(),
 			});
 
 			// Execute all queries in parallel
-			const [cpuResponse, memoryResponse, networkInResponse, networkOutResponse, diskIOResponse] = await Promise.all([
+			const [cpuResponse, memoryResponse, networkInResponse, networkOutResponse, diskReadResponse, diskWriteResponse] = await Promise.all([
 				kubeProxyRequest(currentContext.name, `${basePath}?${cpuParams}`, 'GET'),
 				kubeProxyRequest(currentContext.name, `${basePath}?${memoryParams}`, 'GET'),
 				kubeProxyRequest(currentContext.name, `${basePath}?${networkInParams}`, 'GET'),
 				kubeProxyRequest(currentContext.name, `${basePath}?${networkOutParams}`, 'GET'),
-				kubeProxyRequest(currentContext.name, `${basePath}?${diskIOParams}`, 'GET'),
+				kubeProxyRequest(currentContext.name, `${basePath}?${diskReadParams}`, 'GET'),
+				kubeProxyRequest(currentContext.name, `${basePath}?${diskWriteParams}`, 'GET'),
 			]);
 
 			// Process CPU data
@@ -313,16 +345,28 @@ const Metrics: React.FC<MetricsProps> = ({ resourceName, namespace, kind }) => {
 				setNetworkOutData([]);
 			}
 
-			// Process Disk IO data
-			if (diskIOResponse.status === 'success' && diskIOResponse.data?.result?.length > 0) {
-				const values = diskIOResponse.data.result[0].values || [];
+			// Process Disk Read data
+			if (diskReadResponse.status === 'success' && diskReadResponse.data?.result?.length > 0) {
+				const values = diskReadResponse.data.result[0].values || [];
 				const processedData = values.map(([timestamp, value]: [number, string]) => ({
 					timestamp: timestamp * 1000,
-					value: parseFloat(value) / 1024, // Convert to KB/s
+					value: parseFloat(value), // Already converted to KB/s in query
 				}));
-				setDiskIOData(processedData);
+				setDiskReadData(processedData);
 			} else {
-				setDiskIOData([]);
+				setDiskReadData([]);
+			}
+
+			// Process Disk Write data
+			if (diskWriteResponse.status === 'success' && diskWriteResponse.data?.result?.length > 0) {
+				const values = diskWriteResponse.data.result[0].values || [];
+				const processedData = values.map(([timestamp, value]: [number, string]) => ({
+					timestamp: timestamp * 1000,
+					value: parseFloat(value), // Already converted to KB/s in query
+				}));
+				setDiskWriteData(processedData);
+			} else {
+				setDiskWriteData([]);
 			}
 
 		} catch (err) {
@@ -405,10 +449,10 @@ const Metrics: React.FC<MetricsProps> = ({ resourceName, namespace, kind }) => {
 				promqlQuery = `rate(container_network_receive_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m]) + rate(container_network_transmit_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m])`;
 				break;
 			case 'disk':
-				data = diskIOData;
+				data = [...diskReadData, ...diskWriteData];
 				unit = 'KB/s';
 				title = 'Disk I/O';
-				promqlQuery = `rate(container_fs_reads_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m]) + rate(container_fs_writes_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m])`;
+				promqlQuery = `Disk Read: rate(container_fs_reads_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m]) / 1024\nDisk Write: rate(container_fs_writes_bytes_total{pod="${selectedPod}", namespace="${selectedNamespace}"}[5m]) / 1024`;
 				break;
 		}
 
@@ -682,30 +726,64 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 							<Activity className="h-4 w-4 text-orange-500" />
 							<h4 className="text-gray-900 dark:text-gray-400 uppercase">Disk I/O</h4>
 						</div>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Sparkles 
-									className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300' 
-									onClick={() => handleAskAgentkube('disk')}
-								/>
-							</TooltipTrigger>
-							<TooltipContent className='p-1' side="left">
-								<p>Ask Agentkube</p>
-							</TooltipContent>
-						</Tooltip>
+						<div className="flex items-center gap-2">
+							{/* Filter buttons */}
+							<div className="flex gap-1">
+								<button
+									onClick={() => setShowDiskRead(!showDiskRead)}
+									className={`px-2 py-1 text-xs rounded transition-colors ${
+										showDiskRead
+											? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
+											: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
+									}`}
+								>
+									Read
+								</button>
+								<button
+									onClick={() => setShowDiskWrite(!showDiskWrite)}
+									className={`px-2 py-1 text-xs rounded transition-colors ${
+										showDiskWrite
+											? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
+											: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
+									}`}
+								>
+									Write
+								</button>
+							</div>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Sparkles 
+										className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300' 
+										onClick={() => handleAskAgentkube('disk')}
+									/>
+								</TooltipTrigger>
+								<TooltipContent className='p-1' side="left">
+									<p>Ask Agentkube</p>
+								</TooltipContent>
+							</Tooltip>
+						</div>
 					</div>
 					<div className="h-68 p-2">
-						{diskIOData.length > 0 ? (
+						{(diskReadData.length > 0 || diskWriteData.length > 0) ? (
 							<VisualChart
 								type="area"
-								data={[{
-									label: 'Disk I/O (KB/s)',
-									data: convertToChartData(diskIOData),
-									borderColor: '#f97316',
-									backgroundColor: '#f97316',
-								}]}
+								data={[
+									...(showDiskRead ? [{
+										label: 'Disk Read (KB/s)',
+										data: convertToChartData(diskReadData),
+										borderColor: '#10b981',
+										backgroundColor: '#10b981',
+									}] : []),
+									...(showDiskWrite ? [{
+										label: 'Disk Write (KB/s)',
+										data: convertToChartData(diskWriteData),
+										borderColor: '#f97316',
+										backgroundColor: '#f97316',
+									}] : []),
+								]}
+								gradient={showDiskRead && !showDiskWrite ? DISK_READ_GRADIENT : showDiskWrite && !showDiskRead ? DISK_WRITE_GRADIENT : undefined}
 								className='h-64'
-								showLegend={false}
+								showLegend={true}
 								yAxisUnit=" KB/s"
 								formatValue={(value) => formatValue(value, 'KB/s')}
 								animate={true}
@@ -713,7 +791,10 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 									scales: {
 										y: {
 											min: 0,
-											suggestedMax: Math.max(1, Math.max(...diskIOData.map(d => d.value)) * 1.1),
+											suggestedMax: Math.max(1, 
+												...(showDiskRead ? diskReadData.map((d: MetricData) => d.value) : []),
+												...(showDiskWrite ? diskWriteData.map((d: MetricData) => d.value) : [])
+											) * 1.1,
 											grid: {
 												color: 'rgba(156, 163, 175, 0.1)',
 											},

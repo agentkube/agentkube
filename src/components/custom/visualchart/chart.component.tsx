@@ -298,6 +298,19 @@ export const VisualChart: React.FC<VisualChartProps> = ({
         easing: 'easeInOutQuart',
       } : false,
       plugins: {
+        
+        crosshair: {
+          line: {
+            color: '#71717a',  // crosshair line color
+            width: 1        // crosshair line width
+          },
+          sync: {
+            enabled: true,            // enable trace line syncing with other charts
+            group: 1,                 // chart group
+            suppressTooltips: true   // suppress tooltips when showing a synced tracer
+          },
+          
+        },
         title: {
           display: !!title,
           text: title,
@@ -325,6 +338,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
           position: 'bottom' as const,
         },
         tooltip: {
+          
           enabled: showTooltip,
           backgroundColor: themeColors.tooltipBg,
           titleColor: themeColors.tooltipTextColor,
