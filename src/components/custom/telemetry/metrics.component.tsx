@@ -4,15 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Cpu, MemoryStick, Activity, Network, Search, RefreshCw, Sparkles } from 'lucide-react';
 import { kubeProxyRequest } from '@/api/cluster';
 import { useCluster } from '@/contexts/clusterContext';
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDrawer } from '@/contexts/useDrawer';
 import { toast } from '@/hooks/use-toast';
@@ -766,7 +757,7 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 					<div className="h-68 p-2">
 						{(diskReadData.length > 0 || diskWriteData.length > 0) ? (
 							<VisualChart
-								type="area"
+								type="line"
 								data={[
 									...(showDiskRead ? [{
 										label: 'Disk Read (KB/s)',
@@ -815,134 +806,6 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 					</div>
 				</div>
 			</div>
-
-
-			{/* Pod Selection Dialog */}
-			<Dialog open={showPodDialog} onOpenChange={setShowPodDialog}>
-				<DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-					<DialogHeader>
-						<DialogTitle>Select Pod for Metrics</DialogTitle>
-						<DialogDescription>
-							Choose a pod to view its metrics. You can filter by namespace and search by name.
-						</DialogDescription>
-					</DialogHeader>
-
-					<div className="space-y-4">
-						{/* Search and Filter Controls */}
-						<div className="flex gap-4">
-							{/* Search Input */}
-							<div className="relative flex-1">
-								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-								<Input
-									placeholder="Search pods..."
-									value={searchQuery}
-									onChange={(e) => setSearchQuery(e.target.value)}
-									className="pl-10"
-								/>
-							</div>
-
-							{/* Namespace Filter */}
-							<div className="w-48">
-								<select
-									value={selectedNamespaceFilter}
-									onChange={(e) => setSelectedNamespaceFilter(e.target.value)}
-									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
-								>
-									<option value="">All namespaces</option>
-									{namespaces.map((ns) => (
-										<option key={ns.name} value={ns.name}>
-											{ns.name}
-										</option>
-									))}
-								</select>
-							</div>
-
-							{/* Refresh Button */}
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => fetchPods(selectedNamespaceFilter || undefined)}
-								disabled={loadingPods}
-								className="flex items-center gap-2"
-							>
-								<RefreshCw className={`h-4 w-4 ${loadingPods ? 'animate-spin' : ''}`} />
-								Refresh
-							</Button>
-						</div>
-
-						{/* Pods List */}
-						<div className="border rounded-lg max-h-96 overflow-auto">
-							{loadingPods ? (
-								<div className="flex items-center justify-center p-8">
-									<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-									<span className="ml-2">Loading pods...</span>
-								</div>
-							) : filteredPods.length === 0 ? (
-								<div className="text-center p-8 text-gray-500">
-									{pods.length === 0 ? 'No pods found' : 'No pods match your search criteria'}
-								</div>
-							) : (
-								<div className="p-2">
-									<table className="w-full text-sm">
-										<thead>
-											<tr className="border-b border-gray-200 dark:border-gray-700">
-												<th className="text-left p-2 font-medium text-gray-900 dark:text-white">Name</th>
-												<th className="text-left p-2 font-medium text-gray-900 dark:text-white">Namespace</th>
-												<th className="text-left p-2 font-medium text-gray-900 dark:text-white">Status</th>
-												<th className="text-left p-2 font-medium text-gray-900 dark:text-white">Ready</th>
-												<th className="text-left p-2 font-medium text-gray-900 dark:text-white">Restarts</th>
-												<th className="text-left p-2 font-medium text-gray-900 dark:text-white">Age</th>
-											</tr>
-										</thead>
-										<tbody>
-											{filteredPods.map((pod) => (
-												<tr
-													key={`${pod.namespace}/${pod.name}`}
-													onClick={() => handlePodSelect(pod)}
-													className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${selectedPod === pod.name && selectedNamespace === pod.namespace
-														? 'bg-blue-50 dark:bg-blue-900/20'
-														: ''
-														}`}
-												>
-													<td className="p-2">
-														<div className="font-medium text-gray-900 dark:text-white">{pod.name}</div>
-													</td>
-													<td className="p-2">
-														<span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
-															{pod.namespace}
-														</span>
-													</td>
-													<td className="p-2">
-														<span
-															className={`px-2 py-1 rounded text-xs ${pod.status === 'Running'
-																? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-																: pod.status === 'Pending'
-																	? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-																	: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-																}`}
-														>
-															{pod.status}
-														</span>
-													</td>
-													<td className="p-2 text-gray-600 dark:text-gray-400">{pod.ready}</td>
-													<td className="p-2 text-gray-600 dark:text-gray-400">{pod.restarts}</td>
-													<td className="p-2 text-gray-600 dark:text-gray-400">{pod.age}</td>
-												</tr>
-											))}
-										</tbody>
-									</table>
-								</div>
-							)}
-						</div>
-					</div>
-
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setShowPodDialog(false)}>
-							Cancel
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
 		</div>
 		</TooltipProvider>
 	);
