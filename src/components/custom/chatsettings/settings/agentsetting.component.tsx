@@ -72,13 +72,13 @@ const AgentSetting: React.FC = () => {
 
     try {
       const response = await getClusterConfig(currentContext.name);
-      if (response) {
+      if (response?.config) {
         // Update extended tools config based on cluster configuration
         setExtendedToolsConfig(prev => {
           const updated = { ...prev };
           Object.keys(prev).forEach(toolId => {
-            if (response[toolId]) {
-              const { enabled, ...config } = response[toolId];
+            if (response.config[toolId]) {
+              const { enabled, ...config } = response.config[toolId];
               updated[toolId] = {
                 ...prev[toolId],
                 enabled: enabled || false,
@@ -328,6 +328,9 @@ const AgentSetting: React.FC = () => {
         title: newEnabledState ? "Tool Enabled" : "Tool Disabled",
         description: `${extendedTools.find(t => t.id === toolId)?.name} ${newEnabledState ? 'enabled' : 'disabled'} for cluster ${currentContext.name}`,
       });
+      
+      // Reload cluster tool configs to ensure consistency
+      loadClusterToolConfigs();
     } catch (error) {
       toast({
         title: "Error",
@@ -384,6 +387,9 @@ const AgentSetting: React.FC = () => {
         title: "Configuration Saved",
         description: `${configDialog.tool.name} configured for cluster ${currentContext.name}`,
       });
+      
+      // Reload cluster tool configs to ensure consistency
+      loadClusterToolConfigs();
     } catch (error) {
       toast({
         title: "Error",
@@ -428,8 +434,7 @@ const AgentSetting: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <h4 className="text-xs font-medium text-gray-800 dark:text-gray-200">{tool.name}</h4>
                     {isExtended && tool.enabled && (
-                      <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded">
-                        Enabled
+                      <span className="py-1.5 px-0.5 bg-green-100 dark:bg-green-500 text-green-700 dark:text-green-300 text-xs rounded">
                       </span>
                     )}
                   </div>
