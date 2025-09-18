@@ -182,11 +182,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoginSession(session);
       
       // Try to open the authorization URL once, but don't fail if it doesn't work
-      try {
-        await openOAuth2AuthUrl(response.auth_url);
-      } catch (browserError) {
-        console.log('Browser did not open automatically, user can use manual URL');
-      }
+      // try {
+      //   await openOAuth2AuthUrl(response.auth_url);
+      // } catch (browserError) {
+      //   console.log('Browser did not open automatically, user can use manual URL');
+      // }
       
       // Start polling for authentication status
       startAuthStatusPolling();
