@@ -15,6 +15,8 @@ import { kubeProxyRequest } from '@/api/cluster';
 import { useCluster } from '@/contexts/clusterContext';
 import { getClusterConfig, updateClusterConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
+import MemoryDrilldown from './drilldowns/memory.drilldown';
+import CpuDrilldown from './drilldowns/cpu.drilldown';
 import {
   ChartTooltip,
 } from "@/components/ui/chart";
@@ -73,6 +75,8 @@ const MonitoringOverview = () => {
   const [refreshInterval, setRefreshInterval] = useState<string>('Off');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isMemoryDrilldownOpen, setIsMemoryDrilldownOpen] = useState<boolean>(false);
+  const [isCpuDrilldownOpen, setIsCpuDrilldownOpen] = useState<boolean>(false);
 
   const loadMonitoringConfig = useCallback(async () => {
     if (!currentContext) return;
@@ -974,7 +978,10 @@ const MonitoringOverview = () => {
             </div>
 
 
-            <Button className='flex justify-between'>
+            <Button 
+              className='flex justify-between'
+              onClick={() => setIsMemoryDrilldownOpen(true)}
+            >
               Drilldown Memory Usage
               <ArrowUpRight />
             </Button>
@@ -1015,7 +1022,10 @@ const MonitoringOverview = () => {
             </div>
 
 
-            <Button className='flex justify-between'>
+            <Button 
+              className='flex justify-between'
+              onClick={() => setIsCpuDrilldownOpen(true)}
+            >
               Drilldown CPU Usage
               <ArrowUpRight />
             </Button>
@@ -1118,6 +1128,20 @@ const MonitoringOverview = () => {
             </div>
           </div>
         </div>
+
+        {/* Memory Drilldown Drawer */}
+        <MemoryDrilldown
+          isOpen={isMemoryDrilldownOpen}
+          onClose={() => setIsMemoryDrilldownOpen(false)}
+          monitoringConfig={monitoringConfig}
+        />
+
+        {/* CPU Drilldown Drawer */}
+        <CpuDrilldown
+          isOpen={isCpuDrilldownOpen}
+          onClose={() => setIsCpuDrilldownOpen(false)}
+          monitoringConfig={monitoringConfig}
+        />
       </div>
     </div>
   );
