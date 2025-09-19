@@ -20,6 +20,8 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 	handlers.InitializeWebSocketHandler(kubeConfigStore, cfg)
 	// Initialize Helm handler
 	helmHandler := handlers.NewHelmHandler(kubeConfigStore, cacheSvc)
+	// Initialize Vulnerability handler
+	vulHandler := handlers.NewVulnerabilityHandler(kubeConfigStore)
 
 	// Create default gin router with Logger and Recovery middleware
 	router := gin.Default()
@@ -208,6 +210,19 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 				// Patch watcher configuration
 				watcherGroup.PATCH("/config", handlers.PatchWatcherConfigHandler())
 			}
+
+			// Vulnerability scanning routes
+			vulGroup := v1.Group("/vulnerability")
+			{
+				// General vulnerability scanner endpoints
+				vulGroup.GET("/status", vulHandler.GetScannerStatus)
+				vulGroup.POST("/scan", vulHandler.ScanImages)
+				vulGroup.GET("/results", vulHandler.GetImageScanResults)
+				vulGroup.GET("/scans", vulHandler.ListAllScanResults)
+			}
+
+			// Cluster-specific vulnerability scanning routes
+			v1.POST("/cluster/:clusterName/vulnerability/scan", vulHandler.TriggerClusterImageScan)
 		}
 
 	}

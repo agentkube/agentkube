@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,12 +24,14 @@ import (
 	"github.com/agentkube/operator/pkg/dispatchers/webhook"
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/logger"
+	"github.com/agentkube/operator/pkg/vul"
 )
 
 type Settings struct {
 	Kubeconfig struct {
 		ExternalPaths []string `json:"externalPaths"`
 	} `json:"kubeconfig"`
+	ImageScans vul.ImageScans `json:"imageScans"`
 }
 
 func main() {
@@ -52,7 +55,7 @@ func main() {
 		go kubeconfig.LoadAndWatchFiles(contextStore, cfg.KubeConfigPath, kubeconfig.KubeConfig)
 	}
 
-	// Load external paths from settings
+	// Load external paths from settings and initialize vulnerability scanner
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
 		settingsPath := filepath.Join(homeDir, ".agentkube", "settings.json")
@@ -68,6 +71,15 @@ func main() {
 					}
 
 					go kubeconfig.LoadAndWatchFiles(contextStore, externalPath, kubeconfig.KubeConfig)
+				}
+
+				// Initialize vulnerability scanner if enabled
+				if settings.ImageScans.Enable {
+					logger.Log(logger.LevelInfo, nil, nil, "Initializing vulnerability scanner")
+					vul.ImgScanner = vul.NewImageScanner(settings.ImageScans, slog.Default())
+					go func() {
+						vul.ImgScanner.Init("agentkube", "1.0.0")
+					}()
 				}
 			}
 		}
