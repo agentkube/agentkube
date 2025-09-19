@@ -12,8 +12,8 @@ import {
   SiRedis,
   SiBrave,
   SiLinear,
-  SiClaude,
-  SiJenkins
+  SiModelcontextprotocol,
+  SiJenkins,
 } from '@icons-pack/react-simple-icons';
 import { Clock, Database, Search, FileText, Zap } from 'lucide-react';
 import { AWS_PROVIDER } from '@/assets/providers';
@@ -118,7 +118,7 @@ export const MCPIconMap: Record<string, MCPIconMapEntry> = {
 
 export const getMCPIcon = (slug: string): MCPIconMapEntry => {
   return MCPIconMap[slug] || {
-    icon: <SiClaude className='h-4 w-4' />,
-    iconBg: 'bg-[#D97757]'
+    icon: <SiModelcontextprotocol className='h-4 w-4' />,
+    iconBg: 'bg-neutral-200'
   };
 };

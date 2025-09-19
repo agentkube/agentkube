@@ -8,7 +8,7 @@ import { X, ExternalLink, ArrowUpRight } from "lucide-react";
 import { updateMcpConfig, getMcpConfig } from '@/api/settings';
 import { toast } from '@/hooks/use-toast';
 import { openExternalUrl } from '@/api/external';
-import { SiAnthropic, SiClaude } from '@icons-pack/react-simple-icons';
+import { SiAnthropic, SiModelcontextprotocol, SiModelcontextprotocolHex } from '@icons-pack/react-simple-icons';
 
 interface AddMCPManualDialogProps {
   onClose: () => void;
@@ -104,8 +104,8 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-[#D97757] rounded-md flex items-center justify-center">
-              <SiClaude />
+            <div className="w-8 h-8 dark:text-white rounded-md flex items-center justify-center">
+              <SiModelcontextprotocol />
             </div>
             <div className='flex items-center space-x-2'>
               <h3 className="text-lg font-semibold dark:text-white">Add Manually</h3>

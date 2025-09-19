@@ -14,7 +14,7 @@
   "dependencies": {
     "@aptabase/tauri": "github:aptabase/tauri-plugin-aptabase",
     "@hookform/resolvers": "^3.1.1",
-    "@icons-pack/react-simple-icons": "^13.1.0",
+    "@icons-pack/react-simple-icons": "^13.7.0",
     "@kubernetes/client-node": "^1.1.0",
     "@material-tailwind/react": "^2.1.10",
     "@monaco-editor/react": "^4.7.0",

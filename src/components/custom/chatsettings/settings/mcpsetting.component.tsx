@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SiClaude } from '@icons-pack/react-simple-icons';
+import { SiModelcontextprotocol } from '@icons-pack/react-simple-icons';
 import { MCPTool, MCPMarketplace, MCP_MARKETPLACE_URL } from '@/constants/mcp-marketplace.constant';
 import { getMCPIcon } from '@/utils/mcp-icon-map.utils';
 import AddMCPConfig from './addmcpconfig.component';
@@ -182,7 +182,7 @@ const MCPSetting = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <SiClaude className='text-[#D97757]' />
+          <SiModelcontextprotocol className='text-black dark:text-neutral-200' />
           <h2 className="text-2xl font-medium">MCP</h2>
         </div>
         <div className="relative">
