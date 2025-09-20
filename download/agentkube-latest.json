@@ -20,7 +20,7 @@
       "url": "https://github.com/agentkube/agentkube/raw/refs/heads/release/download/v1.0.0/Agentkube-aarch64.AppImage"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWh3dlhGcnVPYTJMUHpjaEVwSXpPN2FBTGdQL2J0dnIrWUFOR0ZnTG1YRjg1YWRWRVVVNENyeklwZlhuSS9PUm82bmUwOEN6aEkveVBvOThLOTdxdWdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4Nzk4NzIxCWZpbGU6QWdlbnRrdWJlXzEuMC40X3g2NC1zZXR1cC5leGUKeGxsUVUvUTlZc1FPZVRBNlRwaVZSK01icGdURHpGT3RqNzNJbU5YRnlRNkZnRG9wK00vc0RseUtaTFhlMXhxSGhmSHV3eVlZcXFIaWpQcjhqTXdYQVE9PQo=",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWtHaDZFSGRrT0RvR1M5WEVDd1pjMHZZSlB1MEFpcnlXY1gyeU54QlhXWEd1Q0xtUE1PTC9WVEl6YTVDZnBERU91WHYrQmxyK2pKK0lJN1EwS2x2TUE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzU4MzMyMjE3CWZpbGU6QWdlbnRrdWJlXzAuMC42X3g2NC1zZXR1cC5leGUKaDEvUGcxTHdGbEd0d29jczZSUktkUWJKdlFZdW95cDl4d1dGczhma0lUNm5IRjlQa1BSMjd2MEJ1VFhnZUtLa2Z0QmtQMHc0d1lxcFV1a2tKV0g2QkE9PQo=",
       "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube_0.0.6_x64-setup.exe"
     },
     "windows-i686": {
