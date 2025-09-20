@@ -5,15 +5,15 @@
   "platforms": {
     "linux-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXR1N09rc0JleUlnSysxdk9sZjNlQ1BTWHM3SVErMGk2cTJ2TURpMEQxYlRkMVBVZUFwcEJIWVROOTU5d2k4ZlFDYmJ5SE1acHg2UDdvMWwwS2dyVHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4ODEyOTg4CWZpbGU6QWdlbnRrdWJlXzEuMC40X2FtZDY0LkFwcEltYWdlCjBoT3h2WlJwYjJQVEduNmpXZlA3NFlIc1BMWWZTUU5tQjZjVzFCSU9LYnFlYmVhT2JGRWtHVTBsYWlwVFJtZFNwa1ZNL1FhSFJFRWZFVXVqRFg0RkR3PT0K",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_amd64.AppImage"
+      "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube_0.0.6_amd64.AppImage"
     },
     "linux-x86_64-deb": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXR1N09rc0JleUlnSysxdk9sZjNlQ1BTWHM3SVErMGk2cTJ2TURpMEQxYlRkMVBVZUFwcEJIWVROOTU5d2k4ZlFDYmJ5SE1acHg2UDdvMWwwS2dyVHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4ODEyOTg4CWZpbGU6QWdlbnRrdWJlXzEuMC40X2FtZDY0LkFwcEltYWdlCjBoT3h2WlJwYjJQVEduNmpXZlA3NFlIc1BMWWZTUU5tQjZjVzFCSU9LYnFlYmVhT2JGRWtHVTBsYWlwVFJtZFNwa1ZNL1FhSFJFRWZFVXVqRFg0RkR3PT0K",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_amd64.deb"
+      "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube_0.0.6_amd64.deb"
     },
     "linux-x86_64-rpm": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXR1N09rc0JleUlnSysxdk9sZjNlQ1BTWHM3SVErMGk2cTJ2TURpMEQxYlRkMVBVZUFwcEJIWVROOTU5d2k4ZlFDYmJ5SE1acHg2UDdvMWwwS2dyVHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4ODEyOTg4CWZpbGU6QWdlbnRrdWJlXzEuMC40X2FtZDY0LkFwcEltYWdlCjBoT3h2WlJwYjJQVEduNmpXZlA3NFlIc1BMWWZTUU5tQjZjVzFCSU9LYnFlYmVhT2JGRWtHVTBsYWlwVFJtZFNwa1ZNL1FhSFJFRWZFVXVqRFg0RkR3PT0K",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube-1.0.4-1.x86_64.rpm"
+      "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube-0.0.6-1.x86_64.rpm"
     },
     "linux-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTOHZqMGF3VEZaV0tMdG1ZY2E0Y0hMOExNcDdQNHZiRlc2VUpXTGUrdXVjVzZRMnhhWHNVV1M0Y3JWa09OWkhoQnR4WnQvMnI0cXQ3V3BiMDJFQTB0QWRqWGlFY0dhNEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjgzMTA4MDEwCWZpbGU6bXlhcHAtYWFyY2g2NC5BcHBJbWFnZS56aXAKdVdHbEQxbGdxdlpjK2FCaE5pUXlqcWlRUGhBNGdaelp1U3dYWE9Wd0YrTFRVUEZoM3dxV051Umk3V1E3RmdaZDl4azUwYmJoWUJHeFVWZTRwcDlpREE9PQo=",
@@ -21,19 +21,19 @@
     },
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWh3dlhGcnVPYTJMUHpjaEVwSXpPN2FBTGdQL2J0dnIrWUFOR0ZnTG1YRjg1YWRWRVVVNENyeklwZlhuSS9PUm82bmUwOEN6aEkveVBvOThLOTdxdWdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4Nzk4NzIxCWZpbGU6QWdlbnRrdWJlXzEuMC40X3g2NC1zZXR1cC5leGUKeGxsUVUvUTlZc1FPZVRBNlRwaVZSK01icGdURHpGT3RqNzNJbU5YRnlRNkZnRG9wK00vc0RseUtaTFhlMXhxSGhmSHV3eVlZcXFIaWpQcjhqTXdYQVE9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_x64-setup.exe"
+      "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube_0.0.6_x64-setup.exe"
     },
     "windows-i686": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWd6UEpZSCtQNEFLeDlteWpiVDZnYUFhaG9oeFkxMWVieDNMNklaTEFwZ0NZSzFIejhDbGhzUVBpNVhwVW0zOUg2K2NPUW1hV091d0g1RjBhV2Z3YlFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4ODAwMjczCWZpbGU6QWdlbnRrdWJlXzEuMC40X3g4Ni1zZXR1cC5leGUKUytoeVovL1pUZHRDVjRlZ2VUbkI2K2RDYU1JVjdMWEl0STN0aFArOWVMRlNwSS9mUGg0S3RnMldBNWFLVjVFL1NYZTdBLzdkYUgrUGtJRkQrUjRMQlE9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_x86-setup.exe"
+      "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube_0.0.6_x86-setup.exe"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabW83ZU1hTWRrdUlTOHBaS2ZlY2ZkRlRiK2l1ckFRWFdydlZOQ3ljUXhFbTJpaU5IZ1VyUDVjVUs5R20vNExwRlJndVF2Z2JGYm8vS1djdldtNjNkRXdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4ODA3NDkwCWZpbGU6QWdlbnRrdWJlXzEuMC40X3g2NC1zZXR1cC5leGUKeTltQzFoUmNET2xlNStFcVdKN0VYUXowTkF0d2VqQ1ZFTSs3VWJ3cC9BQ0NVbVVFRmV2N1VjNXUwb0lUMWlxWDRIWTdBVW1MTDNBTnN1Q28zVkNIQWc9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_x64.dmg"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXZjdVA2UEZJMjg3Z1V0VnJDUHZUVk9EMEN0S25oQStiR3d4cjQrSXZDMnVmdHI1cGFwR3VrWmJENDkyeklZbzZrVGZReWZsdjZTUzB6enlPcGMvMHd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzU4MzMwOTAyCWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKRWhtTTM3MGZrbkRrbXRSL0lmL1d5cmVNMmFBM005ZVNqOFRrRVFvbXYwaWEzNGozeEZmamZyQ2d5ckxmVWRBYnQwVzlva0RNY2hYOXFLTjJkRzJmQUE9PQo=",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube_0.0.6_x64.dmg"
     },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabWdxK0VrcEl1ZU5QUktxTlpYWjRPelU2UlZjRkNGTWxjNnF3TmFRSEpybFFGMVRPMXhORWczTm9meFhxcXZhdmpraGQ1WnY2c3pSdDd1ckRza0pBTGdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQ4NzcwNTgwCWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKNk9ja1UrL3NXT1FLSmQxajhxdTVyVTNidUNSa1JjdVZSWThoZk04ODNDdFV6bWtzYkk0TitWcVpRbkVxeHRuSVhpUjdpdDNhS2MzK2gxVFNZcEFIQUE9PQo=",
-      "url": "https://github.com/agentkube/agentkube/releases/download/v1.0.4/Agentkube_1.0.4_aarch64.dmg"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabXVmVDZTWFNZdDBVUFRndUNMM0R1RGhvcHpyWnJ0cko5T0lSd1Y4Z3VnZTdXWnpGMGtqR2Z3aGNpMm9Pa2szT2VjODZzMyt4L0Q3UUpaWkdrcUdYNlFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzU4MzI5Mzg5CWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKRzZiZ1FxbW5NRjU0aDlMVXhpYjNUVmVxczljMmpvZFlJOWxxN1Z1VCs3bFZYSU5hc1pLKzBwR1duMTlrc1NKcURJSnIvZHJFZnV2cVpkUTRKQUlEQWc9PQo=",
+      "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.6/Agentkube_0.0.6_aarch64.dmg"
     }
   }
 }
