@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Agentkube",
-  "version": "1.0.4",
+  "version": "0.0.6",
   "identifier": "platform.agentkube.app",
   "mainBinaryName": "agentkube",
   "build": {
@@ -176,7 +176,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBNTk0MjQxMTU1MkQ5QzUKUldURjJWSVZRVUpabXUycWVFNHN2NER6TStwZ1dpK2ZMR1p0NjNoT0NqbkxNUXhlVU9MbnJoZnAK",
       "endpoints": [
-        "https://raw.githubusercontent.com/agentkube/agentkube/release/download/latest.json"
+        "https://raw.githubusercontent.com/agentkube/agentkube/release/download/agentkube-latest.json"
       ]
     }
   }

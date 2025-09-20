@@ -1,5 +1,6 @@
 import { ORCHESTRATOR_URL } from "@/config";
 import { fetch } from '@tauri-apps/plugin-http';
+import { HITLApprovalRequest, HITLDecisionRequest, HITLDecisionResponse, HITLStatusResponse, HITLToggleRequest, HITLToggleResponse, HITLPendingRequestsResponse } from '@/types/hitl';
 // Type definitions
 export interface ChatRequest {
   message: string;
@@ -91,6 +92,7 @@ export interface ChatStreamCallbacks {
   onContentStart?: (index: number, block: any) => void;
   onContent?: (index: number, text: string) => void;
   onToolCall?: (toolCall: ToolCall) => void;
+  onHITLApprovalRequest?: (request: HITLApprovalRequest) => void;
   onComplete?: (reason: string) => void;
   onError?: (error: Error) => void;
 }
@@ -184,9 +186,21 @@ async function processChatStream(
             
             const data = JSON.parse(jsonData);
             
+            // Handle HITL approval requests (HIGHEST PRIORITY)
+            // When HITL is enabled, ALL function calls require approval
+            if (data.hitl_approval_request && callbacks.onHITLApprovalRequest) {
+              callbacks.onHITLApprovalRequest(data.hitl_approval_request);
+              continue;
+            }
+            
             // Handle text content
             if (data.text && callbacks.onContent) {
               callbacks.onContent(0, data.text);
+            }
+            
+            // Handle function call arguments
+            if (data.function_call_args && callbacks.onContent) {
+              callbacks.onContent(0, data.function_call_args);
             }
             
             // Handle tool calls - ONLY STORE, DON'T RENDER YET
@@ -423,6 +437,81 @@ export const deleteConversation = async (
   
   if (!response.ok) {
     throw new Error(`Failed to delete conversation: ${response.status}`);
+  }
+  
+  return await response.json();
+};
+
+/**
+ * HITL API Functions
+ * 
+ * Human-in-the-Loop system now applies globally to ALL function calls
+ * when enabled. No function decorators are required - the system
+ * intercepts function calls at the stream level.
+ */
+
+/**
+ * Get current HITL status
+ */
+export const getHITLStatus = async (): Promise<HITLStatusResponse> => {
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/hitl/status`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to get HITL status: ${response.status}`);
+  }
+  
+  return await response.json();
+};
+
+/**
+ * Toggle HITL mode on/off
+ */
+export const toggleHITL = async (request: HITLToggleRequest): Promise<HITLToggleResponse> => {
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/hitl/toggle`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(request)
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to toggle HITL: ${response.status}`);
+  }
+  
+  return await response.json();
+};
+
+/**
+ * Submit user decision for HITL approval request
+ */
+export const submitHITLDecision = async (request: HITLDecisionRequest): Promise<HITLDecisionResponse> => {
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/hitl/decision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(request)
+  });
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Approval request not found or expired');
+    }
+    throw new Error(`Failed to submit HITL decision: ${response.status}`);
+  }
+  
+  return await response.json();
+};
+
+/**
+ * Get all pending HITL approval requests
+ */
+export const getPendingHITLRequests = async (): Promise<HITLPendingRequestsResponse> => {
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/hitl/pending`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to get pending HITL requests: ${response.status}`);
   }
   
   return await response.json();
