@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { openExternalUrl } from '@/api/external';
 import { useAuth } from '@/contexts/useAuth';
 import { useAnalytics } from '@/contexts/useAnalytics';
+import { getUserProfile } from '@/api/auth';
 
 const Account = () => {
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
@@ -20,22 +21,71 @@ const Account = () => {
   const { captureEvent, isAnalyticsEnabled } = useAnalytics();
   const {
     user,
-    loading,
     loginSession,
     initiateLogin,
     handleManualCallback,
     logout,
-    loadUserProfile
+    setUser
   } = useAuth();
 
-  // Fetch latest user profile when user visits the page
+  // Fetch latest user profile directly from API every time the account page is visited
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+        
+        // Update user with fresh profile data
+        setUser(prevUser => {
+          return {
+            ...prevUser,
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            isAuthenticated: true, // Set authentication status to true
+            supabaseId: profile.supabaseId,
+            usage_count: profile.usage_count,
+            usage_limit: profile.usage_limit,
+            subscription: profile.subscription,
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt
+          };
+        });
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+      }
+    };
+
+    // Always fetch profile when component mounts if user is authenticated
+    fetchUserProfile();
+  }, [setUser]); // Removed user?.isAuthenticated dependency to fetch on every mount
+
+  // Separate effect to handle authentication state changes
   useEffect(() => {
     if (user?.isAuthenticated) {
-      loadUserProfile().catch(error => {
-        console.error('Failed to load user profile:', error);
-      });
+      const fetchUserProfile = async () => {
+        try {
+          const profile = await getUserProfile();
+          
+          setUser(prevUser => {
+            if (!prevUser) return null;
+            return {
+              ...prevUser,
+              supabaseId: profile.supabaseId,
+              usage_count: profile.usage_count,
+              usage_limit: profile.usage_limit,
+              subscription: profile.subscription,
+              createdAt: profile.createdAt,
+              updatedAt: profile.updatedAt
+            };
+          });
+        } catch (error) {
+          console.error('Failed to load user profile on auth change:', error);
+        }
+      };
+      
+      fetchUserProfile();
     }
-  }, []);
+  }, [user?.isAuthenticated, setUser]);
 
   const handleLogout = async () => {
     try {
@@ -133,14 +183,6 @@ const Account = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-full p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-        <span className="ml-2 text-gray-500">Loading account information...</span>
-      </div>
-    );
-  }
 
 
   // If not authenticated, show login interface

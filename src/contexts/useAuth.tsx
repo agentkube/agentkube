@@ -86,7 +86,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setOauth2Enabled(config.oauth2_enabled);
         
         if (!config.oauth2_enabled) {
-          console.log('OAuth2 is not enabled, using legacy auth');
+          setUser(null);
+          storeUserInfoInSession(null);
           setLoading(false);
           return;
         }
@@ -142,6 +143,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ...sessionUser,
             isAuthenticated: false
           });
+        } else {
+          setUser(null);
+          storeUserInfoInSession(null);
         }
         
         toast({
