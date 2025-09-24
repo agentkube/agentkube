@@ -48,8 +48,6 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
   // Process dropped or selected files
   const handleFiles = (fileList: FileList) => {
     const newFiles = Array.from(fileList).map((file) => {
-      console.log("Original file from FileList:", file);
-      console.log("File instanceof File:", file instanceof File);
       
       return {
         id: `${URL.createObjectURL(file)}-${Date.now()}`,
@@ -64,7 +62,6 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
       };
     });
     
-    console.log("Created newFiles array:", newFiles);
     setFiles((prev) => [...prev, ...newFiles]);
     newFiles.forEach((f) => simulateUpload(f.id));
   };

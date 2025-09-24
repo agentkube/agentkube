@@ -52,12 +52,12 @@ const advancedFeatures: FeatureItem[] = [
         label: 'Overview',
         path: '/dashboard/monitoring'
       },
-      {
-        id: 'drilldown',
-        icon: <Drill className="w-4 h-4 rotate-[25deg]" />,
-        label: 'Drilldown',
-        path: '/dashboard/monitoring/drilldown'
-      },
+      // {
+      //   id: 'drilldown',
+      //   icon: <Drill className="w-4 h-4 rotate-[25deg]" />,
+      //   label: 'Drilldown',
+      //   path: '/dashboard/monitoring/drilldown'
+      // },
     ]
   },
   {
