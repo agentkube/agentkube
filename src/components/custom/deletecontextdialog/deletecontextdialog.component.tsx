@@ -15,15 +15,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useCluster } from '@/contexts/clusterContext';
+import { deleteContext } from '@/api/cluster';
+import { toast } from '@/hooks/use-toast';
 
 interface DeleteContextDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contextToDelete: string | null;
-  onConfirmDelete: () => void;
+  onDeleteSuccess: (deletedContextName: string) => void;
   onCancel: () => void;
 }
 
@@ -31,13 +34,15 @@ const DeleteContextDialog: React.FC<DeleteContextDialogProps> = ({
   open,
   onOpenChange,
   contextToDelete,
-  onConfirmDelete,
+  onDeleteSuccess,
   onCancel,
 }) => {
   const { contexts, currentContext, setCurrentContext } = useCluster();
   const [alternativeContext, setAlternativeContext] = useState<string>('');
   const [isCurrentContext, setIsCurrentContext] = useState(false);
   const [availableContexts, setAvailableContexts] = useState<string[]>([]);
+  const [allowSystemKubeconfigDeletion, setAllowSystemKubeconfigDeletion] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Check if the context to delete is the current one
   useEffect(() => {
@@ -56,23 +61,46 @@ const DeleteContextDialog: React.FC<DeleteContextDialogProps> = ({
       if (isCurrentlyActive && otherContexts.length > 0) {
         setAlternativeContext(otherContexts[0]);
       }
+      
+      // Reset checkbox state when dialog opens
+      setAllowSystemKubeconfigDeletion(false);
     }
   }, [contextToDelete, currentContext, contexts]);
 
   const handleSwitchAndDelete = async () => {
-    if (isCurrentContext && alternativeContext) {
-      // Find the context object to switch to
-      const newContext = contexts.find(ctx => ctx.name === alternativeContext);
-      if (newContext) {
-        // TODO: Implement API call to change the context in kubeconfig
-        setCurrentContext(newContext);
+    if (!contextToDelete) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      // If deleting current context and alternative is selected, switch first
+      if (isCurrentContext && alternativeContext) {
+        const newContext = contexts.find(ctx => ctx.name === alternativeContext);
+        if (newContext) {
+          setCurrentContext(newContext);
+        }
       }
+      
+      // Delete the context using the API
+      const result = await deleteContext(contextToDelete, allowSystemKubeconfigDeletion);
+      
+      toast({
+        title: "Success",
+        description: result.message || `Context "${contextToDelete}" deleted successfully`
+      });
+      
+      // Notify parent component of successful deletion
+      onDeleteSuccess(contextToDelete);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to delete context: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
     }
-    
-    // TODO: Implement API call to delete the context from kubeconfig
-    
-    // Proceed with the UI update
-    onConfirmDelete();
   };
 
   return (
@@ -117,16 +145,37 @@ const DeleteContextDialog: React.FC<DeleteContextDialogProps> = ({
           </div>
         )}
         
+        {/* Checkbox for allowing system kubeconfig deletion */}
+        <div className="py-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="allow-system-deletion"
+              checked={allowSystemKubeconfigDeletion}
+              onCheckedChange={(checked) => setAllowSystemKubeconfigDeletion(checked === true)}
+            />
+            <label
+              htmlFor="allow-system-deletion"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Allow system kubeconfig deletion (modifies ~/.kube/config)
+            </label>
+          </div>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-6">
+            When checked, this will also remove the context from your system kubeconfig file (~/.kube/config).
+            Leave unchecked for safer deletion that only affects Agentkube.
+          </p>
+        </div>
+        
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={onCancel} disabled={isDeleting}>
             Cancel
           </Button>
           <Button 
             variant="destructive" 
             onClick={handleSwitchAndDelete}
-            disabled={isCurrentContext && (availableContexts.length === 0 || !alternativeContext)}
+            disabled={isDeleting || (isCurrentContext && (availableContexts.length === 0 || !alternativeContext))}
           >
-            {isCurrentContext ? "Switch and Delete" : "Delete"}
+            {isDeleting ? "Deleting..." : (isCurrentContext ? "Switch and Delete" : "Delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

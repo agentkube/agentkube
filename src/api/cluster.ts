@@ -2,6 +2,7 @@ import { KubeContext, KubeconfigUploadResponse, KubeconfigUploadRequest } from '
 import { OPERATOR_URL } from '@/config';
 import { ClusterReport } from '@/types/cluster-report';
 import { IndividualConfigAuditReport } from '@/types/trivy';
+import { fetch } from '@tauri-apps/plugin-http';
 
 
 export const getKubeContexts = async (): Promise<KubeContext[]> => {
@@ -44,14 +45,17 @@ export const uploadKubeconfigFile = async (file: File, sourceName?: string, ttl?
   if (sourceName) formData.append('sourceName', sourceName);
   if (ttl) formData.append('ttl', ttl.toString());
 
+  // Use Tauri HTTP plugin for proper file upload support
   const response = await fetch(`${OPERATOR_URL}/kubeconfig/upload-file`, {
     method: 'POST',
     body: formData,
+    // Don't set Content-Type header - let Tauri set it automatically
   });
 
-  // if (!response.ok) {
-  //   throw new Error('Failed to upload kubeconfig file');
-  // }
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Upload failed: ${errorText}`);
+  }
 
   return response.json();
 };
@@ -86,14 +90,54 @@ export const getUploadedContexts = async (): Promise<{ contexts: KubeContext[]; 
   return response.json();
 };
 
-// Delete uploaded context
-export const deleteUploadedContext = async (contextName: string): Promise<{ success: boolean; message: string }> => {
-  const response = await fetch(`${OPERATOR_URL}/kubeconfig/uploaded-contexts/${contextName}`, {
+// Delete context (both system and imported)
+export const deleteContext = async (
+  contextName: string, 
+  allowSystemKubeconfigDeletion: boolean = false
+): Promise<{ success: boolean; message: string; removedFiles?: string[] }> => {
+  const response = await fetch(`${OPERATOR_URL}/kubeconfig/contexts/${contextName}`, {
     method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ allowSystemKubeconfigDeletion }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to delete uploaded context');
+    const errorText = await response.text();
+    throw new Error(`Failed to delete context: ${errorText}`);
+  }
+
+  return response.json();
+};
+
+// Legacy function - kept for backward compatibility
+export const deleteUploadedContext = async (contextName: string): Promise<{ success: boolean; message: string }> => {
+  return deleteContext(contextName, false);
+};
+
+// Rename context (both system and imported)
+export const renameContext = async (
+  oldName: string,
+  newName: string
+): Promise<{
+  success: boolean;
+  message: string;
+  oldName: string;
+  newName: string;
+  source: string;
+}> => {
+  const response = await fetch(`${OPERATOR_URL}/kubeconfig/contexts/${oldName}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: newName }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to rename context: ${errorText}`);
   }
 
   return response.json();

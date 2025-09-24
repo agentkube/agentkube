@@ -47,17 +47,24 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
 
   // Process dropped or selected files
   const handleFiles = (fileList: FileList) => {
-    const newFiles = Array.from(fileList).map((file) => ({
-      id: `${URL.createObjectURL(file)}-${Date.now()}`,
-      preview: URL.createObjectURL(file),
-      progress: 0,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified,
-      file,
-      isFromText: false,
-    }));
+    const newFiles = Array.from(fileList).map((file) => {
+      console.log("Original file from FileList:", file);
+      console.log("File instanceof File:", file instanceof File);
+      
+      return {
+        id: `${URL.createObjectURL(file)}-${Date.now()}`,
+        preview: URL.createObjectURL(file),
+        progress: 0,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+        file, // Direct reference to the original File object
+        isFromText: false,
+      };
+    });
+    
+    console.log("Created newFiles array:", newFiles);
     setFiles((prev) => [...prev, ...newFiles]);
     newFiles.forEach((f) => simulateUpload(f.id));
   };

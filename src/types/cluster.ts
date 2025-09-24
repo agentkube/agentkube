@@ -155,7 +155,8 @@ export interface KubeConfigFile {
 	contexts: string[];
 	clusters: string[];
 	validationMessage?: string;
-	file?: File; // Add this line
-	isFromText?: boolean; // Add this line
-  isDroppedFile?: boolean;
+	file?: File;
+	isFromText?: boolean;
+	isDroppedFile?: boolean;
+	primaryContext?: string | null;
 }

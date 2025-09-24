@@ -113,18 +113,23 @@ const Kubeconfig = () => {
 
       // If this path was from an uploaded kubeconfig, also delete the contexts
       // Check if the path contains uploaded configs and delete them
-      const uploadedContexts = await getUploadedContexts();
-      const contextsToDelete = uploadedContexts.contexts.filter(ctx =>
-        ctx.name && path.includes(ctx.name.split('-')[0]) // Match source name
-      );
+      try {
+        const uploadedContexts = await getUploadedContexts();
+        const contextsToDelete = (uploadedContexts?.contexts || []).filter(ctx =>
+          ctx.name && path.includes(ctx.name.split('-')[0]) // Match source name
+        );
 
-      // Delete each context associated with this path
-      for (const context of contextsToDelete) {
-        try {
-          await deleteUploadedContext(context.name);
-        } catch (error) {
-          console.error(`Failed to delete context ${context.name}:`, error);
+        // Delete each context associated with this path
+        for (const context of contextsToDelete) {
+          try {
+            await deleteUploadedContext(context.name);
+          } catch (error) {
+            console.error(`Failed to delete context ${context.name}:`, error);
+          }
         }
+      } catch (error) {
+        console.error('Failed to get uploaded contexts:', error);
+        // Continue with path removal even if we can't get uploaded contexts
       }
 
       toast({

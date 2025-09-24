@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw } from 'lucide-react';
+import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw, Edit3, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,11 @@ import LOGO from '@/assets/logo.png';
 import KUBERNETES_LOGO from '@/assets/kubernetes-blue.png';
 import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
-import { DeleteContextDialog, ProvisionDrawer } from '@/components/custom';
+import { DeleteContextDialog, RenameContextDialog, ProvisionDrawer } from '@/components/custom';
+import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.component';
 import { useTheme } from 'next-themes';
 import { toast } from '@/hooks/use-toast';
+import { deleteContext } from '@/api/cluster';
 
 // Interface for our cluster UI data
 interface ClusterItem {
@@ -53,7 +55,7 @@ const determineClusterType = (name: string): ClusterItem['type'] => {
 // Memoized ClusterIcon component
 const ClusterIcon = memo<{ type: ClusterItem['type']; theme?: string }>(({ type, theme }) => {
   const iconProps = { className: 'h-10 w-10' };
-  
+
   switch (type) {
     case 'kind':
       return <img {...iconProps} src={KUBERNETES_LOGO} alt="Kubernetes logo" />;
@@ -167,8 +169,11 @@ const HomePage: React.FC = () => {
   const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval } = useCluster();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contextToDelete, setContextToDelete] = useState<string | null>(null);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [contextToRename, setContextToRename] = useState<string | null>(null);
   const { theme } = useTheme();
   const [isProvisionDrawerOpen, setIsProvisionDrawerOpen] = useState(false);
+  const [isAddKubeConfigOpen, setIsAddKubeConfigOpen] = useState(false);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     // Load view mode from localStorage
@@ -221,7 +226,7 @@ const HomePage: React.FC = () => {
   // Memoize filtered clusters
   const filteredClusters = useMemo(() => {
     if (!searchQuery) return availableClusters;
-    
+
     const query = searchQuery.toLowerCase();
     return availableClusters.filter(cluster =>
       cluster.name.toLowerCase().includes(query) ||
@@ -273,7 +278,7 @@ const HomePage: React.FC = () => {
         console.error('Failed to refresh contexts:', err);
       }
     }, refreshInterval);
-  
+
     return () => clearInterval(interval);
   }, [refreshInterval, refreshContexts]);
 
@@ -342,36 +347,113 @@ const HomePage: React.FC = () => {
   }, [contextMenu.clusterId]);
 
   // Handle delete context action
-  const handleDeleteContext = useCallback(() => {
-    // TODO make api request to delete contex
-    // TODO a dialog check if the set context is current context kubeconfig, ask to change the context and then remove
+  const handleDeleteContext = useCallback(async () => {
     if (contextMenu.clusterId) {
-      setContextToDelete(contextMenu.clusterId);
-      setDeleteDialogOpen(true);
+      // Find the context to check its source
+      const contextToDelete = contexts.find(ctx => ctx.name === contextMenu.clusterId);
+
+      if (!contextToDelete) {
+        toast({
+          title: "Error",
+          description: "Context not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // If source is not 'kubeconfig', delete directly without dialog
+      if (contextToDelete.meta_data.source !== 'kubeconfig') {
+        try {
+          await deleteContext(contextMenu.clusterId, false);
+
+          // If deleting the selected cluster, clear selection
+          if (contextMenu.clusterId === selectedClusterId) {
+            setSelectedClusterId(null);
+          }
+
+          // Remove from pinned clusters if it's there
+          const isPinned = pinnedClusters.some(c => c.id === contextMenu.clusterId);
+          if (isPinned) {
+            setPinnedClusters(prev => prev.filter(c => c.id !== contextMenu.clusterId));
+          }
+
+          // Refresh contexts to update the UI
+          await refreshContexts();
+
+          toast({
+            title: "Success",
+            description: `Context "${contextMenu.clusterId}" deleted successfully`
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: `Failed to delete context: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            variant: "destructive"
+          });
+        }
+      } else {
+        // For 'kubeconfig' source, show dialog
+        setContextToDelete(contextMenu.clusterId);
+        setDeleteDialogOpen(true);
+      }
+
+      setContextMenu(prev => ({ ...prev, visible: false }));
+    }
+  }, [contextMenu.clusterId, contexts, selectedClusterId, pinnedClusters, setPinnedClusters, refreshContexts, toast]);
+
+  const handleDeleteSuccess = useCallback((deletedContextName: string) => {
+    // If deleting the selected cluster, clear selection
+    if (deletedContextName === selectedClusterId) {
+      setSelectedClusterId(null);
+    }
+
+    // Find if the context is pinned or not
+    const isPinned = pinnedClusters.some(c => c.id === deletedContextName);
+
+    if (isPinned) {
+      // Remove from pinned clusters
+      setPinnedClusters(prev => prev.filter(c => c.id !== deletedContextName));
+    }
+
+    // Refresh contexts to update the UI
+    refreshContexts();
+
+    // Close the dialog
+    setDeleteDialogOpen(false);
+    setContextToDelete(null);
+  }, [selectedClusterId, pinnedClusters, setPinnedClusters, refreshContexts]);
+
+  // Handle rename context action
+  const handleRenameContext = useCallback(() => {
+    if (contextMenu.clusterId) {
+      setContextToRename(contextMenu.clusterId);
+      setRenameDialogOpen(true);
       setContextMenu(prev => ({ ...prev, visible: false }));
     }
   }, [contextMenu.clusterId]);
 
-  const confirmDeleteContext = useCallback(() => {
-    if (contextToDelete) {
-      // If deleting the selected cluster, clear selection
-      if (contextToDelete === selectedClusterId) {
-        setSelectedClusterId(null);
-      }
-
-      // Find if the context is pinned or not
-      const isPinned = pinnedClusters.some(c => c.id === contextToDelete);
-
-      if (isPinned) {
-        // Remove from pinned clusters
-        setPinnedClusters(prev => prev.filter(c => c.id !== contextToDelete));
-      }
-
-      // Close the dialog
-      setDeleteDialogOpen(false);
-      setContextToDelete(null);
+  const handleRenameSuccess = useCallback((oldName: string, newName: string) => {
+    // If renaming the selected cluster, update selection
+    if (oldName === selectedClusterId) {
+      setSelectedClusterId(newName);
     }
-  }, [contextToDelete, selectedClusterId, pinnedClusters]);
+
+    // Update pinned clusters if the renamed context is pinned
+    setPinnedClusters(prev =>
+      prev.map(cluster =>
+        cluster.id === oldName
+          ? { ...cluster, id: newName, name: newName }
+          : cluster
+      )
+    );
+
+    // Refresh contexts to update the UI
+    refreshContexts();
+
+    // Close the dialog
+    setRenameDialogOpen(false);
+    setContextToRename(null);
+  }, [selectedClusterId, setPinnedClusters, refreshContexts]);
 
   const handleMainConnect = useCallback(() => {
     if (selectedClusterId) {
@@ -396,7 +478,7 @@ const HomePage: React.FC = () => {
 
     return (
       <div
-        className="absolute bg-white dark:bg-[#0B0D13] backdrop-blur-md shadow-lg rounded-lg z-50 border border-gray-200 dark:border-gray-800"
+        className="absolute bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-lg z-50 border border-gray-200 dark:border-gray-800"
         style={{
           top: `${contextMenu.y}px`,
           left: `${contextMenu.x}px`,
@@ -427,6 +509,14 @@ const HomePage: React.FC = () => {
         >
           <Link size={16} />
           <span>Connect</span>
+        </div>
+
+        <div
+          className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer rounded-sm"
+          onClick={handleRenameContext}
+        >
+          <Edit3 size={16} />
+          <span>Rename</span>
         </div>
 
         <div
@@ -462,9 +552,21 @@ const HomePage: React.FC = () => {
                   : "Select one cluster to get started"}
               </p>
 
-              <div className='flex gap-4'>
+              <div className='flex gap-2 mt-6'>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setIsAddKubeConfigOpen(true)}>
+                        <Settings2 size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="p-1">
+                      <p>Load Kubeconfig</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button
-                  className={`mt-4 flex items-center gap-2 
+                  className={`flex items-center gap-2 
                   ${hasSelectedCluster
                       ? 'bg-blue-700 dark:bg-blue-800 hover:bg-blue-700 text-white'
                       : 'bg-gray-300 hover:bg-gray-300 text-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-600'}`}
@@ -475,12 +577,12 @@ const HomePage: React.FC = () => {
                   <ArrowRight size={16} />
                 </Button>
                 <Button
-                  className="mt-4 bg-blue-600 hover:bg-blue-700 flex items-center gap-2 text-black dark:text-black bg-[#54C895] dark:bg-[#54C895] dark:hover:bg-[#0E9F6E]"
-                  onClick={() =>{ 
+                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 text-black dark:text-black bg-[#54C895] dark:bg-[#54C895] dark:hover:bg-[#0E9F6E]"
+                  onClick={() => {
                     toast({
                       title: "COMING SOON",
                       description: `The provisioning feature is yet to be implemented`,
-                    })  
+                    })
                     // setIsProvisionDrawerOpen(true)
                   }}
                 >
@@ -501,9 +603,9 @@ const HomePage: React.FC = () => {
             <div className="space-y-2">
               {pinnedClusters.length > 0 ? (
                 pinnedClusters.map(cluster => (
-                  <ClusterCard 
-                    key={cluster.id} 
-                    cluster={cluster} 
+                  <ClusterCard
+                    key={cluster.id}
+                    cluster={cluster}
                     isPinned={true}
                     isSelected={selectedClusterId === cluster.id}
                     onContextMenu={handleContextMenu}
@@ -576,8 +678,8 @@ const HomePage: React.FC = () => {
           <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-1 max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'}`}>
             {filteredClusters.length > 0 ? (
               filteredClusters.map(cluster => (
-                <ClusterCard 
-                  key={cluster.id} 
+                <ClusterCard
+                  key={cluster.id}
                   cluster={cluster}
                   isSelected={selectedClusterId === cluster.id}
                   onContextMenu={handleContextMenu}
@@ -599,15 +701,33 @@ const HomePage: React.FC = () => {
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
           contextToDelete={contextToDelete}
-          onConfirmDelete={confirmDeleteContext}
+          onDeleteSuccess={handleDeleteSuccess}
           onCancel={() => {
             setDeleteDialogOpen(false);
             setContextToDelete(null);
           }}
         />
+        <RenameContextDialog
+          open={renameDialogOpen}
+          onOpenChange={setRenameDialogOpen}
+          contextToRename={contextToRename}
+          onRenameSuccess={handleRenameSuccess}
+          onCancel={() => {
+            setRenameDialogOpen(false);
+            setContextToRename(null);
+          }}
+        />
         <ProvisionDrawer
           isOpen={isProvisionDrawerOpen}
           onClose={() => setIsProvisionDrawerOpen(false)}
+        />
+        <AddKubeConfigDialog
+          open={isAddKubeConfigOpen}
+          onOpenChange={setIsAddKubeConfigOpen}
+          onFilesAdded={(paths) => {
+            // Refresh contexts after adding new kubeconfig files
+            refreshContexts();
+          }}
         />
         {/* Context Menu */}
         <ContextMenu />

@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import FileUpload from '@/components/ui/fileupload'; // Import your existing FileUpload component
 import { uploadKubeconfigFile, uploadKubeconfigContent } from '@/api/cluster';
 import { KubeConfigFile } from '@/types/cluster';
+import { useCluster } from '@/contexts/clusterContext';
 
 interface AddKubeConfigDialogProps {
 	open: boolean;
@@ -21,6 +22,13 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 	const [processedFiles, setProcessedFiles] = useState<KubeConfigFile[]>([]);
 	const [isProcessing, setIsProcessing] = useState(false);
 	const { toast } = useToast();
+	const { contexts: existingContexts } = useCluster();
+
+	// Check for duplicate context names
+	const checkForDuplicateContexts = (contexts: string[]): string[] => {
+		const existingNames = existingContexts.map(ctx => ctx.name);
+		return contexts.filter(ctx => existingNames.includes(ctx));
+	};
 
 	// Validate kubeconfig file content
 	const validateKubeConfig = async (file: File): Promise<{
@@ -136,18 +144,29 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 				}
 	
 				const validation = await validateKubeConfig(uploadedFile.file);
-	
+				
+				// Check for duplicate contexts
+				const duplicateContexts = checkForDuplicateContexts(validation.contexts);
+				let validationMessage = validation.message;
+				let isValid = validation.isValid;
+
+				if (duplicateContexts.length > 0) {
+					validationMessage = `Warning: Context(s) already exist: ${duplicateContexts.join(', ')}. Upload will overwrite existing contexts.`;
+					// Still allow upload but show warning
+				}
+
 				validatedFiles.push({
 					id: uploadedFile.id,
 					name: uploadedFile.name,
 					size: uploadedFile.size,
 					path: `/uploaded/kubeconfigs/${uploadedFile.name}`, // Simulated path
-					isValid: validation.isValid,
+					isValid: isValid,
 					contexts: validation.contexts,
 					clusters: validation.clusters,
-					validationMessage: validation.message,
-					file: uploadedFile.file, // Add this line
-					isFromText: uploadedFile.isFromText || false // Add this line
+					validationMessage: validationMessage,
+					file: uploadedFile.file,
+					isFromText: uploadedFile.isFromText || false,
+					primaryContext: validation.contexts.length > 0 ? validation.contexts[0] : null
 				});
 			}
 		}
@@ -177,9 +196,10 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 					if (file.isFromText) {
 						// Handle text content
 						const content = await file.file.text();
+						const sourceName = file.primaryContext || file.name.replace(/\.(yaml|yml|json)$/, '');
 						const result = await uploadKubeconfigContent({
 							content,
-							sourceName: file.name.replace(/\.(yaml|yml|json)$/, ''),
+							sourceName: sourceName,
 							ttl: 0 // No expiry for now
 						});
 						results.push(result);
@@ -189,9 +209,20 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 						}
 					} else {
 						// Handle file upload
+						console.log("About to upload file:", file.file);
+						console.log("File details:", {
+							name: file.name,
+							size: file.size,
+							fileType: file.file?.type,
+							isFromText: file.isFromText,
+							hasFile: !!file.file
+						});
+						
+						const sourceName = file.primaryContext || file.name.replace(/\.(yaml|yml|json)$/, '');
+						
 						const result = await uploadKubeconfigFile(
 							file.file,
-							file.name.replace(/\.(yaml|yml|json)$/, ''),
+							sourceName,
 							0 // No expiry for now
 						);
 

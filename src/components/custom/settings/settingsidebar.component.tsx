@@ -1,8 +1,9 @@
 // components/settings/SettingSidebar.tsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Settings, Users, Monitor, Code, HelpCircle, Folder, Keyboard, ChartColumnBig, Server, RefreshCcwDot, Database, Shield, Binoculars } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, Users, Monitor, Code, HelpCircle, Folder, Keyboard, ChartColumnBig, Server, RefreshCcwDot, Database, Shield, Binoculars, Home, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface SettingSidebarProps {
   isCollapsed: boolean;
@@ -43,24 +44,39 @@ const SettingSidebar: React.FC<SettingSidebarProps> = ({ isCollapsed, toggleColl
     )}>
       <div className="p-4 flex items-center justify-between dark:border-gray-700">
         {!isCollapsed && <h2 className="text-xl font-medium dark:text-white">Settings</h2>}
-        <button 
+        <button
           onClick={toggleCollapse}
           className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 dark:text-white"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
       </div>
-      
+
+      <div className="px-2 pb-4">
+        <NavLink
+          to="/"
+          className={({ isActive }) => cn(
+            "flex justify-between items-center px-2 py-2 rounded-lg transition-colors text-sm w-full",
+            "hover:bg-gray-200 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300",
+            !isCollapsed && "border"
+          )}
+        >
+          
+            <Home className='h-5 w-5' />
+            {!isCollapsed && <span>Return to Home</span>}
+        </NavLink>
+      </div>
+
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
           {sidebarItems.map((item, index) => (
             <li key={index}>
-              <NavLink 
+              <NavLink
                 to={item.path}
                 className={({ isActive }) => cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
-                  isActive 
-                    ? "bg-gray-200 dark:bg-gray-800/50 text-black dark:text-gray-100" 
+                  isActive
+                    ? "bg-gray-200 dark:bg-gray-800/50 text-black dark:text-gray-100"
                     : "hover:bg-gray-200 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
                 )}
               >
