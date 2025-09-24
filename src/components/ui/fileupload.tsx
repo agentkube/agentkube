@@ -155,14 +155,14 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
   return (
     <div className="w-full max-w-3xl mx-auto p-4 md:p-6">
       {/* Mode Toggle */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex text-sm gap-2 mb-6 dark:bg-zinc-800/40 w-fit p-1.5 rounded-lg">
         <button
           onClick={() => setUploadMode('files')}
           className={clsx(
-            "flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200",
+            "flex items-center gap-2 px-4 py-1 rounded-md font-medium transition-all duration-200",
             uploadMode === 'files'
               ? "bg-white text-black shadow-md"
-              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              : "bg-zinc-100 dark:bg-transparent text-zinc-700 dark:text-zinc-300"
           )}
         >
           <UploadCloud className="w-4 h-4" />
@@ -171,10 +171,10 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
         <button
           onClick={() => setUploadMode('text')}
           className={clsx(
-            "flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200",
+            "flex items-center gap-2 px-4 py-1 rounded-md font-medium transition-all duration-200",
             uploadMode === 'text'
               ? "bg-white text-black shadow-md"
-              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              : "bg-zinc-100 dark:bg-transparent text-zinc-700 dark:text-zinc-300"
           )}
         >
           <FileText className="w-4 h-4" />
