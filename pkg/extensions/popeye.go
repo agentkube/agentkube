@@ -26,11 +26,11 @@ func NewPopeyeInstaller(kubeConfigStore kubeconfig.ContextStore) *PopeyeInstalle
 
 type PopeyeReport struct {
 	Popeye struct {
-		ReportTime string    `json:"report_time"`
-		Score      int       `json:"score"`
-		Grade      string    `json:"grade"`
-		Sections   []Section `json:"sections,omitempty"`
-		Errors     []string  `json:"errors,omitempty"`
+		ReportTime string                 `json:"report_time"`
+		Score      int                    `json:"score"`
+		Grade      string                 `json:"grade"`
+		Sections   []Section              `json:"sections,omitempty"`
+		Errors     map[string]interface{} `json:"errors,omitempty"`
 	} `json:"popeye"`
 	ClusterName string `json:"ClusterName,omitempty"`
 	ContextName string `json:"ContextName,omitempty"`
@@ -180,14 +180,38 @@ func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeRepo
 			return nil, fmt.Errorf("failed to install Popeye: %v", err)
 		}
 	}
-	cmd := exec.Command("popeye",
+	// Get the context to determine kubeconfig path
+	context, err := p.kubeConfigStore.GetContext(clusterName)
+	if err != nil {
+		return nil, fmt.Errorf("context '%s' not found: %v", clusterName, err)
+	}
+
+	// Build Popeye command args
+	args := []string{
 		"--all-namespaces",
 		"--out", "json",
 		"--context", clusterName,
 		"--force-exit-zero",
-		"--log-level", "0")
+		"--log-level", "0",
+	}
 
-	logger.Log(logger.LevelInfo, map[string]string{"cluster": clusterName}, nil, "Running Popeye cluster scan...")
+	// Add kubeconfig path if it's from a dynamic/imported source
+	if context.Source == kubeconfig.DynamicCluster {
+		// For dynamic clusters, use the agentkube kubeconfig
+		agentKubeConfig, err := p.getAgentKubeConfigPath()
+		if err != nil {
+			logger.Log(logger.LevelWarn, map[string]string{"cluster": clusterName}, err, "Failed to get agentkube config path, using default")
+		} else {
+			args = append(args, "--kubeconfig", agentKubeConfig)
+		}
+	}
+
+	cmd := exec.Command("popeye", args...)
+
+	logger.Log(logger.LevelInfo, map[string]string{
+		"cluster": clusterName,
+		"source":  fmt.Sprintf("%d", context.Source),
+	}, nil, "Running Popeye cluster scan...")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -206,11 +230,11 @@ func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeRepo
 	if err := json.Unmarshal([]byte(jsonOutput), &report); err != nil {
 		// If that fails, try parsing as just the inner Popeye structure
 		var innerReport struct {
-			ReportTime string    `json:"report_time"`
-			Score      int       `json:"score"`
-			Grade      string    `json:"grade"`
-			Sections   []Section `json:"sections,omitempty"`
-			Errors     []string  `json:"errors,omitempty"`
+			ReportTime string                 `json:"report_time"`
+			Score      int                    `json:"score"`
+			Grade      string                 `json:"grade"`
+			Sections   []Section              `json:"sections,omitempty"`
+			Errors     map[string]interface{} `json:"errors,omitempty"`
 		}
 
 		if innerErr := json.Unmarshal([]byte(jsonOutput), &innerReport); innerErr != nil {
@@ -302,4 +326,21 @@ func removeANSIEscapes(str string) string {
 	}
 
 	return result.String()
+}
+
+// getAgentKubeConfigPath returns the path to the agentkube kubeconfig file
+func (p *PopeyeInstaller) getAgentKubeConfigPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %v", err)
+	}
+	
+	kubeconfigPath := filepath.Join(homeDir, ".agentkube", "kubeconfig", "config")
+	
+	// Check if file exists
+	if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("agentkube kubeconfig not found at %s", kubeconfigPath)
+	}
+	
+	return kubeconfigPath, nil
 }
