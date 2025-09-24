@@ -3,9 +3,11 @@ package kubeconfig
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/agentkube/operator/pkg/cache"
+	"github.com/agentkube/operator/pkg/logger"
 )
 
 // ContextStore is an interface for storing and retrieving contexts.
@@ -70,8 +72,12 @@ func (c *contextStore) GetContexts() ([]*Context, error) {
 		return nil, err
 	}
 
+	// Debug logging for context retrieval
+	logger.Log(logger.LevelInfo, map[string]string{"cacheSize": fmt.Sprintf("%d", len(contextMap))}, nil, "GetContexts: Retrieved from cache")
+
 	for _, ctx := range contextMap {
 		contexts = append(contexts, ctx)
+		logger.Log(logger.LevelInfo, map[string]string{"contextName": ctx.Name, "source": fmt.Sprintf("%d", ctx.Source)}, nil, "GetContexts: Found context")
 	}
 
 	return contexts, nil
@@ -89,7 +95,19 @@ func (c *contextStore) GetContext(name string) (*Context, error) {
 
 // RemoveContext removes a context from the store.
 func (c *contextStore) RemoveContext(name string) error {
-	return c.cache.Delete(context.Background(), name)
+	logger.Log(logger.LevelInfo, map[string]string{"contextName": name}, nil, "RemoveContext: About to delete context")
+	
+	// Get cache size before deletion
+	contextMap, _ := c.cache.GetAll(context.Background(), nil)
+	logger.Log(logger.LevelInfo, map[string]string{"cacheSizeBefore": fmt.Sprintf("%d", len(contextMap))}, nil, "RemoveContext: Cache size before deletion")
+	
+	err := c.cache.Delete(context.Background(), name)
+	
+	// Get cache size after deletion
+	contextMapAfter, _ := c.cache.GetAll(context.Background(), nil)
+	logger.Log(logger.LevelInfo, map[string]string{"cacheSizeAfter": fmt.Sprintf("%d", len(contextMapAfter))}, nil, "RemoveContext: Cache size after deletion")
+	
+	return err
 }
 
 // AddContextWithKeyAndTTL adds a context to the store with a ttl.

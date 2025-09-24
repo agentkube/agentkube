@@ -50,13 +50,21 @@ func LoadAndWatchFiles(kubeConfigStore ContextStore, paths string, source int) {
 			triggers := []fsnotify.Op{fsnotify.Create, fsnotify.Write, fsnotify.Remove, fsnotify.Rename}
 			for _, trigger := range triggers {
 				if event.Op.Has(trigger) {
-					logger.Log(logger.LevelInfo, map[string]string{"event": event.Name},
+					logger.Log(logger.LevelInfo, map[string]string{"event": event.Name, "source": fmt.Sprintf("%d", source)},
 						nil, "watcher: kubeconfig file changed, reloading contexts")
+
+					// Get context count before sync
+					contextsBefore, _ := kubeConfigStore.GetContexts()
+					logger.Log(logger.LevelInfo, map[string]string{"totalContextsBefore": fmt.Sprintf("%d", len(contextsBefore)), "triggerFile": event.Name}, nil, "watcher: contexts before sync")
 
 					err := syncContexts(kubeConfigStore, paths, source)
 					if err != nil {
 						logger.Log(logger.LevelError, nil, err, "watcher: error synchronizing contexts")
 					}
+
+					// Get context count after sync
+					contextsAfter, _ := kubeConfigStore.GetContexts()
+					logger.Log(logger.LevelInfo, map[string]string{"totalContextsAfter": fmt.Sprintf("%d", len(contextsAfter)), "triggerFile": event.Name}, nil, "watcher: contexts after sync")
 				}
 			}
 
@@ -122,10 +130,10 @@ func syncContexts(kubeConfigStore ContextStore, paths string, source int) error 
 	}
 
 	// Find and remove contexts that no longer exist in the kubeconfig
-	// but only for contexts that came from KubeConfig source
+	// but only for contexts that came from the same source
 	for _, existingCtx := range existingContexts {
-		// Skip contexts from other sources
-		if existingCtx.Source != KubeConfig {
+		// Skip contexts from different sources - only sync contexts that match the current source
+		if existingCtx.Source != source {
 			continue
 		}
 

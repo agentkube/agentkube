@@ -1,9 +1,11 @@
 package routes
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/agentkube/operator/pkg/kubeconfig"
+	"github.com/agentkube/operator/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +25,21 @@ func HandleGetContexts(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc 
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
+		}
+
+		// Log context details for debugging
+		logger.Log(logger.LevelInfo, map[string]string{"totalContexts": fmt.Sprintf("%d", len(contexts))}, nil, "HandleGetContexts called")
+		for _, ctx := range contexts {
+			sourceStr := "unknown"
+			switch ctx.Source {
+			case kubeconfig.KubeConfig:
+				sourceStr = "kubeconfig"
+			case kubeconfig.DynamicCluster:
+				sourceStr = "dynamic_cluster" 
+			case kubeconfig.InCluster:
+				sourceStr = "incluster"
+			}
+			logger.Log(logger.LevelInfo, map[string]string{"contextName": ctx.Name, "source": sourceStr}, nil, "Context in store")
 		}
 
 		simplifiedContexts := make([]SimplifiedContext, 0, len(contexts))

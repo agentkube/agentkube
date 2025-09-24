@@ -68,8 +68,10 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 				kubeconfigGroup.POST("/upload-content", handlers.UploadKubeconfigContentHandler(kubeConfigStore))
 				// List uploaded contexts
 				kubeconfigGroup.GET("/uploaded-contexts", handlers.ListUploadedContextsHandler(kubeConfigStore))
-				// Delete uploaded context
-				kubeconfigGroup.DELETE("/uploaded-contexts/:name", handlers.DeleteUploadedContextHandler(kubeConfigStore))
+				// Delete context (system or imported)
+				kubeconfigGroup.DELETE("/contexts/:name", handlers.DeleteContextHandler(kubeConfigStore))
+				// Rename context (system or imported)
+				kubeconfigGroup.PATCH("/contexts/:name", handlers.RenameContextHandler(kubeConfigStore))
 
 				// Validate and add kubeconfig path
 				kubeconfigGroup.POST("/validate-path", handlers.AddKubeconfigPathHandler(kubeConfigStore))

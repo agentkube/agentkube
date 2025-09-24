@@ -94,3 +94,34 @@ func RemoveContextFromFile(context string, path string) error {
 
 	return clientcmd.WriteToFile(*config, path)
 }
+
+// RenameContextInFile renames a context in a kubeconfig file
+func RenameContextInFile(oldName, newName, path string) error {
+	config, err := clientcmd.LoadFromFile(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to load kubeconfig file")
+	}
+
+	// Check if old context exists
+	contextConfig, exists := config.Contexts[oldName]
+	if !exists {
+		return errors.New("context not found in kubeconfig")
+	}
+
+	// Check if new name already exists
+	if _, exists := config.Contexts[newName]; exists {
+		return errors.New("new context name already exists in kubeconfig")
+	}
+
+	// Rename the context
+	config.Contexts[newName] = contextConfig
+	delete(config.Contexts, oldName)
+
+	// Update current context if it was the renamed one
+	if config.CurrentContext == oldName {
+		config.CurrentContext = newName
+	}
+
+	// Write back to file
+	return clientcmd.WriteToFile(*config, path)
+}

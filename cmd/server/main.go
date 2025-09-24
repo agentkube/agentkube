@@ -65,12 +65,12 @@ func main() {
 				for _, externalPath := range settings.Kubeconfig.ExternalPaths {
 					logger.Log(logger.LevelInfo, map[string]string{"external_path": externalPath}, nil, "Loading external kubeconfig")
 
-					err := kubeconfig.LoadAndStoreKubeConfigs(contextStore, externalPath, kubeconfig.KubeConfig)
+					err := kubeconfig.LoadAndStoreKubeConfigs(contextStore, externalPath, kubeconfig.DynamicCluster)
 					if err != nil {
 						logger.Log(logger.LevelError, map[string]string{"external_path": externalPath}, err, "loading external kubeconfig")
 					}
 
-					go kubeconfig.LoadAndWatchFiles(contextStore, externalPath, kubeconfig.KubeConfig)
+					go kubeconfig.LoadAndWatchFiles(contextStore, externalPath, kubeconfig.DynamicCluster)
 				}
 
 				// Initialize vulnerability scanner if enabled
