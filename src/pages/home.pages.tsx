@@ -170,6 +170,7 @@ const HomePage: React.FC = () => {
   const [isReloading, setIsReloading] = useState(false);
   const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval } = useCluster();
   const { user, setUser } = useAuth();
+  const [hasReloaded, setHasReloaded] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contextToDelete, setContextToDelete] = useState<string | null>(null);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -249,44 +250,89 @@ const HomePage: React.FC = () => {
 
   const hasSelectedCluster = selectedClusterId !== null;
 
-  // Fetch latest user profile directly from API every time the home page is visited
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const profile = await getUserProfile();
-        
-        // If we get a valid profile, user is authenticated
-        setUser(prevUser => {
-          return {
-            ...prevUser,
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            isAuthenticated: true, // Set authentication status to true
-            supabaseId: profile.supabaseId,
-            usage_count: profile.usage_count,
-            usage_limit: profile.usage_limit,
-            subscription: profile.subscription,
-            createdAt: profile.createdAt,
-            updatedAt: profile.updatedAt
-          };
-        });
-      } catch (error) {
-        console.error('Failed to load user profile:', error);
-        // If API returns error (like "No valid session found"), user is not authenticated
-        setUser(prevUser => {
-          if (!prevUser) return null;
-          return {
-            ...prevUser,
-            isAuthenticated: false
-          };
-        });
-      }
-    };
-
-    // Always fetch profile when component mounts to check authentication status
-    fetchUserProfile();
+  // Fetch latest user profile using same pattern as clusterContext
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      console.log('Fetching user profile...');
+      const profile = await getUserProfile();
+      
+      console.log('User profile loaded:', profile);
+      // If we get a valid profile, user is authenticated
+      setUser(prevUser => {
+        return {
+          ...prevUser,
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          isAuthenticated: true, // Set authentication status to true
+          supabaseId: profile.supabaseId,
+          usage_count: profile.usage_count,
+          usage_limit: profile.usage_limit,
+          subscription: profile.subscription,
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt
+        };
+      });
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+      // If API returns error (like "No valid session found"), user is not authenticated
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        return {
+          ...prevUser,
+          isAuthenticated: false
+        };
+      });
+    }
   }, [setUser]);
+
+  // Call fetchUserProfile immediately on mount (same as clusterContext pattern)
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
+
+  // Auto-reload mechanism for context sync issues in production
+  useEffect(() => {
+    // Check if this is the first load (no reload flag in sessionStorage)
+    const hasReloadedFlag = sessionStorage.getItem('agentkube_home_reloaded');
+    
+    if (!hasReloadedFlag && !hasReloaded) {
+      console.log('First load detected, checking if contexts need sync...');
+      
+      const checkContextHealth = () => {
+        // Check if contexts are properly loaded
+        const isClusterLoaded = contexts.length > 0 || !isContextsLoading;
+        const isUserLoaded = user !== null;
+        const isThemeLoaded = document.documentElement.style.getPropertyValue('--font-family');
+        
+        console.log('Context health check:', { isClusterLoaded, isUserLoaded, isThemeLoaded });
+        
+        // Only reload if contexts appear to be broken
+        if (!isClusterLoaded || !isUserLoaded || !isThemeLoaded) {
+          console.log('Contexts not properly synced, reloading in 1.2 seconds...');
+          
+          setTimeout(() => {
+            sessionStorage.setItem('agentkube_home_reloaded', 'true');
+            setHasReloaded(true);
+            console.log('Reloading to sync contexts...');
+            window.location.reload();
+          }, 1000); // or back to 1.2
+        } else {
+          console.log('Contexts appear healthy, no reload needed');
+        }
+      };
+      
+      // Check context health after 2 seconds to allow initial loading
+      const healthCheckTimer = setTimeout(checkContextHealth, 2000);
+      return () => clearTimeout(healthCheckTimer);
+      
+    } else if (hasReloadedFlag) {
+      // Clear the flag after successful load to allow future reloads if needed
+      setTimeout(() => {
+        sessionStorage.removeItem('agentkube_home_reloaded');
+      }, 5000);
+    }
+  }, [hasReloaded, contexts.length, isContextsLoading, user]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
