@@ -11,7 +11,8 @@ import { drawerVariants, backdropVariants } from '@/utils/styles.utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatStream, executeCommand, ToolCall } from '@/api/orchestrator.chat';
 import { useCluster } from '@/contexts/clusterContext';
-import SignInContainer from './upgradepro.component';
+import SignInContainer from './signin.component';
+import UpgradeToProContainer from './upgradetopro.component';
 import { useAuth } from '@/contexts/useAuth';
 import {
   Tooltip,
@@ -207,6 +208,23 @@ const RightDrawer: React.FC = () => {
       {
         role: 'assistant',
         content: '**Sign In Required** \n\nThis feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.'
+      }
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    // Check if user has exceeded their usage limit
+    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+      // Add a message indicating they have exceeded their limit
+      setMessages(prev => [...prev,
+      {
+        role: 'user',
+        content: inputValue
+      },
+      {
+        role: 'assistant',
+        content: '**Usage Limit Exceeded** \n\nYou have reached your usage limit of ' + user.usage_limit + ' requests. Please upgrade your plan to continue using the AI assistant.'
       }
       ]);
       setInputValue('');
@@ -534,26 +552,9 @@ const RightDrawer: React.FC = () => {
                   )}
                 </div>
 
-                {isInputFocused && messages.length === 0 && !showChatSettings && (
-                  <motion.div
-                    className='px-8 py-4 bg-gray-200 dark:bg-[#18181b]'
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="mb-3">
-                      <BotMessageSquare className="h-4 w-4 text-gray-700 dark:text-gray-300 mb-2" />
-                      <TextGenerateEffect
-                        words="How can I assist you with your Kubernetes cluster today? Feel free to ask me anything about your application or infrastructure."
-                        className="text-sm"
-                        duration={0.8}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-
-
+     
                 {!showChatSettings && <SignInContainer />}
+                {!showChatSettings && <UpgradeToProContainer />}
 
 
                 {!showChatSettings && (

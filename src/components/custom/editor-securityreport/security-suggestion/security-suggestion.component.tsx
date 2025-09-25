@@ -5,6 +5,8 @@ import { securityRemediationStream } from '@/api/remediation';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import SecurityCodeBlock from '../security-codeblock/security-codeblock.component';
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@/contexts/useAuth';
+import { toast as sooner } from "sonner";
 
 interface SecuritySuggestionProps {
   yamlContent: string;
@@ -17,6 +19,7 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
   const [codeBlock, setCodeBlock] = useState<string>('');
+  const { user } = useAuth();
 
   // Extract code block from markdown response
   useEffect(() => {
@@ -34,6 +37,22 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
 
   const fetchSuggestion = async () => {
     if (isLoading || hasFetched) return;
+
+    // Check if user is authenticated and block the request if not
+    if (!user || !user.isAuthenticated) {
+      sooner("Sign In Required", {
+        description: "This feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.",
+      });
+      return;
+    }
+
+    // Check if user has exceeded their usage limit
+    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+      sooner("Usage Limit Exceeded", {
+        description: `You have reached your usage limit of ${user.usage_limit} requests. Please upgrade your plan to continue using the AI assistant.`,
+      });
+      return;
+    }
     
     setIsLoading(true);
     setSuggestion('');

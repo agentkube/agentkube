@@ -11,6 +11,8 @@ import { submitInvestigationTask } from '@/api/task';
 import { InvestigationRequest, InvestigationResponse, ResourceContext, LogContext } from '@/types/task';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/useAuth';
+import UpgradeToProContainer from '@/components/custom/chat/upgradetopro.component';
 
 interface BackgroundTaskDialogProps {
 	isOpen: boolean;
@@ -39,6 +41,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	const [contextLogs, setContextLogs] = useState<LogsSelection[]>([]);
 	const { currentContext } = useCluster();
 	const navigate = useNavigate();
+	const { user } = useAuth();
 
 	useEffect(() => {
 		if (isOpen && inputRef.current) {
@@ -131,6 +134,22 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 	const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
 		e.preventDefault();
 		if (!inputValue.trim() || isLoading) return;
+
+		// Check if user is authenticated and block the request if not
+		if (!user || !user.isAuthenticated) {
+			sooner("Sign In Required", {
+				description: "This feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.",
+			});
+			return;
+		}
+
+		// Check if user has exceeded their usage limit
+		if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+			sooner("Usage Limit Exceeded", {
+				description: `You have reached your usage limit of ${user.usage_limit} requests. Please upgrade your plan to continue using the AI assistant.`,
+			});
+			return;
+		}
 
 		await createBackgroundTask(inputValue.trim());
 	};
@@ -296,6 +315,8 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 							)}
 						</div>
 
+						{/* Upgrade Container */}
+						<UpgradeToProContainer />
 
 						<div className='flex items-center text-xs p-2 text-blue-800 dark:text-blue-400 bg-blue-400/20 dark:bg-blue-500/10 my-2 rounded-lg'>
 							<Lightbulb size={14} className="mr-1" />

@@ -470,9 +470,21 @@ const Account = () => {
           <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Usage</h2>
           <div className="mt-20">
             <div className="flex items-baseline gap-2">
-              <p className="text-5xl font-light text-blue-600 dark:text-blue-400 mb-1">
-                {user.usage_count || 0}
-              </p>
+              {(() => {
+                const usagePercentage = user.usage_limit 
+                  ? Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)
+                  : 0;
+                
+                const numberColor = usagePercentage >= 80 
+                  ? 'text-yellow-600 dark:text-yellow-600' 
+                  : 'text-blue-600 dark:text-blue-400';
+                
+                return (
+                  <p className={`text-5xl font-light ${numberColor} mb-1`}>
+                    {user.usage_count || 0}
+                  </p>
+                );
+              })()}
               <div>
                 <p className="text-sm text-gray-800 dark:text-gray-400">
                   / {user.usage_limit || '∞'} requests
@@ -480,15 +492,51 @@ const Account = () => {
               </div>
             </div>
             <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
-              <div
-                className="h-1 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]"
-                style={{ 
-                  width: user.usage_limit 
-                    ? `${Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)}%`
-                    : '0%'
-                }}
-              ></div>
+              {(() => {
+                const usagePercentage = user.usage_limit 
+                  ? Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)
+                  : 0;
+                
+                const barColor = usagePercentage >= 80 
+                  ? 'bg-yellow-500 dark:bg-yellow-600' 
+                  : 'bg-blue-500 dark:bg-blue-400';
+                
+                return (
+                  <div
+                    className={`h-1 ${barColor} rounded-[0.3rem]`}
+                    style={{ width: `${usagePercentage}%` }}
+                  ></div>
+                );
+              })()}
             </div>
+            
+            {/* Upgrade button when usage is high */}
+            {(() => {
+              const usagePercentage = user.usage_limit 
+                ? Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)
+                : 0;
+              
+              if (usagePercentage >= 80) {
+                return (
+                  <div className="mt-3">
+                    <Button
+                      onClick={() => {
+                        openExternalUrl("https://account.agentkube.com/settings?tab=plans");
+                        toast({
+                          title: "Upgrade Plan",
+                          description: "Opening subscription management page...",
+                        });
+                      }}
+                      size="sm"
+                      className="bg-yellow-600 w-44 flex justify-between hover:bg-yellow-700 text-white text-xs px-3 py-1 h-7"
+                    >
+                      Upgrade <ArrowUpRight />
+                    </Button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </CardContent>
       </Card>

@@ -19,6 +19,10 @@ import {
 } from '@/api/orchestrator.chat';
 import { EnrichedSearchResult, SearchResult } from '@/types/search';
 import ChatHistorySidebar from './components/chathistory-sidebar.t2c';
+import { useAuth } from '@/contexts/useAuth';
+import { toast as sooner } from "sonner";
+import UpgradeToProContainer from '@/components/custom/chat/upgradetopro.component';
+import SignInContainer from '@/components/custom/chat/signin.component';
 
 interface SuggestedQuestion {
   question: string;
@@ -29,6 +33,7 @@ const Talk2Cluster = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const { currentContext } = useCluster();
+  const { user } = useAuth();
 
   // Chat state
   const [message, setMessage] = useState('');
@@ -253,6 +258,22 @@ const Talk2Cluster = () => {
 
     if (!message.trim() || isChatLoading) return;
 
+    // Check if user is authenticated and block the request if not
+    if (!user || !user.isAuthenticated) {
+      sooner("Sign In Required", {
+        description: "This feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.",
+      });
+      return;
+    }
+
+    // Check if user has exceeded their usage limit
+    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+      sooner("Usage Limit Exceeded", {
+        description: `You have reached your usage limit of ${user.usage_limit} requests. Please upgrade your plan to continue using the AI assistant.`,
+      });
+      return;
+    }
+
     // Add user message to chat history
     const userMessage: ChatMessage = {
       role: 'user',
@@ -392,6 +413,10 @@ const Talk2Cluster = () => {
                 suggestedQuestions={suggestedQuestions}
               />
             </div>
+
+            {/* Auth/Upgrade Containers */}
+            <SignInContainer />
+            <UpgradeToProContainer />
 
             {/* Input area */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-800/80">
