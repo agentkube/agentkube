@@ -93,7 +93,7 @@ const Support = () => {
             Connect with other Agentkube users, share tips, and get community help.
           </p>
           <a 
-            onClick={() => openExternalUrl("https://discord.gg/Agentkube")}
+            onClick={() => openExternalUrl("https://discord.gg/UxnwzcjMWA")}
             rel="noopener noreferrer"
             className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white rounded px-4 py-2 text-sm cursor-pointer"
           >

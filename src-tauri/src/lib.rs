@@ -8,13 +8,59 @@ mod network_commands;
 use network_monitor::NetworkMonitor;
 use network_commands::{NetworkMonitorState, get_network_status, start_network_monitoring};
 
+// Initialization state for splashscreen
+#[derive(Default)]
+struct InitializationState {
+    frontend_complete: bool,
+}
+
+#[tauri::command]
+async fn complete_initialization(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<Mutex<InitializationState>>>,
+) -> Result<(), String> {
+    log::info!("Completing initialization...");
+    
+    let mut init_state = state.lock().await;
+    init_state.frontend_complete = true;
+    
+    // Close splashscreen and show main window
+    if let Some(splashscreen) = app.get_webview_window("splashscreen") {
+        if let Err(e) = splashscreen.close() {
+            log::warn!("Failed to close splashscreen window: {}", e);
+        } else {
+            log::info!("Splashscreen window closed");
+        }
+    }
+    
+    if let Some(main_window) = app.get_webview_window("main") {
+        if let Err(e) = main_window.show() {
+            log::warn!("Failed to show main window: {}", e);
+        } else {
+            log::info!("Main window shown");
+        }
+        
+        if let Err(e) = main_window.set_focus() {
+            log::warn!("Failed to focus main window: {}", e);
+        } else {
+            log::info!("Main window focused");
+        }
+    } else {
+        log::error!("Main window not found!");
+        return Err("Main window not found".to_string());
+    }
+    
+    log::info!("Application initialization complete");
+    Ok(())
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_network_status,
-            start_network_monitoring
+            start_network_monitoring,
+            complete_initialization
         ])
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
@@ -40,6 +86,10 @@ pub fn run() {
             let network_monitor = NetworkMonitor::new(app.handle().clone());
             let network_monitor_state: NetworkMonitorState = Arc::new(Mutex::new(network_monitor));
             app.manage(network_monitor_state);
+
+            // Initialize splashscreen state
+            let init_state = Arc::new(Mutex::new(InitializationState::default()));
+            app.manage(init_state);
 
             // Enhanced logging configuration
             app.handle().plugin(

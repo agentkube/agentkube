@@ -13,6 +13,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import UpgradeToProContainer from '@/components/custom/chat/upgradetopro.component';
+import SignInContainer from '@/components/custom/chat/signin.component';
 
 interface BackgroundTaskDialogProps {
 	isOpen: boolean;
@@ -315,7 +316,8 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 							)}
 						</div>
 
-						{/* Upgrade Container */}
+						{/* Sign In and Upgrade Containers */}
+						<SignInContainer />
 						<UpgradeToProContainer />
 
 						<div className='flex items-center text-xs p-2 text-blue-800 dark:text-blue-400 bg-blue-400/20 dark:bg-blue-500/10 my-2 rounded-lg'>

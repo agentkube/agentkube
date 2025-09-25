@@ -8,6 +8,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "Agentkube",
         "width": 1400,
         "height": 900,
@@ -16,7 +17,22 @@
         "decorations": false,
         "hiddenTitle": true,
         "shadow": true,
-        "titleBarStyle": "Transparent"
+        "titleBarStyle": "Transparent",
+        "visible": false
+      },
+      {
+        "label": "splashscreen",
+        "url": "splashscreen.html",
+        "width": 600,
+        "height": 360,
+        "decorations": false,
+        "center": true,
+        "resizable": false,
+        "fullscreen": false,
+        "visible": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": false
       }
     ]
   },

@@ -14,6 +14,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "Agentkube",
         "width": 1400,
         "height": 900,
@@ -23,7 +24,22 @@
         "hiddenTitle": true,
         "shadow": true,
         "titleBarStyle": "Overlay",
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "visible": false
+      },
+      {
+        "label": "splashscreen",
+        "url": "splashscreen.html",
+        "width": 600,
+        "height": 360,
+        "decorations": false,
+        "center": true,
+        "resizable": false,
+        "fullscreen": false,
+        "visible": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": false
       }
     ],
     "security": {
@@ -48,7 +64,7 @@
         {
           "identifier": "http:default",
           "description": "Allows making HTTP requests to specific domains",
-          "windows": ["main"],
+          "windows": ["main", "splashscreen"],
           "permissions": [
             {
               "identifier": "http:default",
@@ -63,7 +79,7 @@
         {
           "identifier": "cors-fetch:default",
           "description": "Allows CORS fetch requests",
-          "windows": ["main"],
+          "windows": ["main", "splashscreen"],
           "permissions": [
             {
               "identifier": "cors-fetch:default",

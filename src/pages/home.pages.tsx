@@ -18,6 +18,8 @@ import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.co
 import { useTheme } from 'next-themes';
 import { toast } from '@/hooks/use-toast';
 import { deleteContext } from '@/api/cluster';
+import { useAuth } from '@/contexts/useAuth';
+import { getUserProfile } from '@/api/auth';
 
 // Interface for our cluster UI data
 interface ClusterItem {
@@ -167,6 +169,7 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [isReloading, setIsReloading] = useState(false);
   const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval } = useCluster();
+  const { user, setUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contextToDelete, setContextToDelete] = useState<string | null>(null);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -245,6 +248,45 @@ const HomePage: React.FC = () => {
   }, [allClusters, selectedClusterId]);
 
   const hasSelectedCluster = selectedClusterId !== null;
+
+  // Fetch latest user profile directly from API every time the home page is visited
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+        
+        // If we get a valid profile, user is authenticated
+        setUser(prevUser => {
+          return {
+            ...prevUser,
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            isAuthenticated: true, // Set authentication status to true
+            supabaseId: profile.supabaseId,
+            usage_count: profile.usage_count,
+            usage_limit: profile.usage_limit,
+            subscription: profile.subscription,
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt
+          };
+        });
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+        // If API returns error (like "No valid session found"), user is not authenticated
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            isAuthenticated: false
+          };
+        });
+      }
+    };
+
+    // Always fetch profile when component mounts to check authentication status
+    fetchUserProfile();
+  }, [setUser]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
@@ -724,7 +766,7 @@ const HomePage: React.FC = () => {
         <AddKubeConfigDialog
           open={isAddKubeConfigOpen}
           onOpenChange={setIsAddKubeConfigOpen}
-          onFilesAdded={(paths) => {
+          onFilesAdded={(_paths) => {
             // Refresh contexts after adding new kubeconfig files
             refreshContexts();
           }}
