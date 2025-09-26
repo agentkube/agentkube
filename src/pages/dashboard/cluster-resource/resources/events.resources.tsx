@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from '@/hooks/use-toast';
 import { CoreV1Event as V1Event } from '@kubernetes/client-node';
+import EventAnalyzer from '@/components/custom/eventanalyzer/eventanalyzer.component';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -1083,7 +1084,13 @@ const Events: React.FC = () => {
                       {formatEventTime(event)}
                     </TableCell>
                     <TableCell>
-                    <DropdownMenu>
+                      {event.type === 'Warning' ? (
+                        <EventAnalyzer
+                          event={event}
+                          clusterName={currentContext?.name || 'unknown'}
+                        />
+                      ) : (
+                        <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
@@ -1110,6 +1117,7 @@ const Events: React.FC = () => {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -11,20 +11,15 @@ import {
 import { useAuth } from '@/contexts/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { openExternalUrl } from '@/api/external'
+import { CoreV1Event as V1Event } from '@kubernetes/client-node'
 
-interface LogAnalyzerProps {
-  logs: string
-  podName: string
-  namespace: string
-  containerName: string
+interface EventAnalyzerProps {
+  event: V1Event
   clusterName: string
 }
 
-const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
-  logs,
-  podName,
-  namespace,
-  containerName,
+const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
+  event,
   clusterName
 }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -75,46 +70,63 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
     try {
       // Mock streaming analysis with markdown content
       const mockAnalysisText = `
-### Error Detection
-Found 3 critical errors in the logs:
-- Connection timeout to database (2 occurrences)
-- Memory allocation failure at 14:32:15
-- Invalid configuration parameter \`max_connections\`
+### Event Analysis Summary
+**Event Type:** ${event.type || 'Unknown'}
+**Reason:** ${event.reason || 'N/A'}
+**Count:** ${event.count || 1} occurrences
 
-### Performance Analysis
-Performance insights for ${podName}:
-- Average response time: **245ms**
-- Memory usage peaked at **85%**
-- 12 slow queries detected (>1s execution time)
+### Root Cause Analysis
+Based on the event details for **${event.involvedObject?.kind}/${event.involvedObject?.name}**:
 
-### Pattern Recognition
-Recurring patterns detected:
-- High request volume every 15 minutes
-- Error rate spikes correlate with memory pressure  
-- Restart cycle detected every 4 hours
+**Primary Issue:** ${event.reason === 'Failed' ? 'Resource failure detected' : event.reason === 'Killing' ? 'Pod termination in progress' : event.reason === 'Unhealthy' ? 'Health check failure' : 'System event occurred'}
 
-### Security Scan
-Security analysis results:
-- No critical vulnerabilities found
-- 2 failed authentication attempts
-- SSL certificate expires in 30 days
+**Impact Assessment:**
+- **Severity:** ${event.type === 'Warning' ? '� High - Requires attention' : ' Normal - Informational'}
+- **Resource:** ${event.involvedObject?.kind} in namespace \`${event.metadata?.namespace}\`
+- **Frequency:** ${(event.count || 1) > 10 ? '=4 High frequency event' : (event.count || 1) > 5 ? '=� Moderate frequency' : '=� Low frequency'}
 
-## Recommendations
+### Technical Details
+**Component:** ${event.source?.component || 'Unknown'}
+**Host:** ${event.source?.host || 'N/A'}
+**Message:** ${event.message || 'No additional message'}
 
-1. **Database Connection Pool**: Increase connection timeout values
-2. **Memory Management**: Add resource limits to prevent OOM kills
-3. **Configuration**: Fix the invalid \`max_connections\` parameter
-4. **Monitoring**: Set up alerts for memory usage > 80%
+### Pattern Detection
+${(event.count || 1) > 1 ? `- **Recurring Event**: This event has occurred ${event.count} times
+- **Potential Issue**: Pattern suggests ongoing problems` : '- **Single Occurrence**: Isolated event, monitor for recurrence'}
+
+### Recommended Actions
+
+1. **Immediate Steps**:
+   ${event.type === 'Warning' ? `- Investigate the ${event.involvedObject?.kind} resource
+   - Check resource logs and status
+   - Verify resource configuration` : `- Monitor for related events
+   - Document for future reference`}
+
+2. **Prevention**:
+   - Set up monitoring alerts for similar events
+   - Review resource limits and configurations
+   - Implement proper health checks
+
+### Related Resources
+Check these resources for more context:
+- **Namespace**: \`${event.metadata?.namespace}\`
+- **Resource**: \`${event.involvedObject?.kind}/${event.involvedObject?.name}\`
+- **Component**: \`${event.source?.component}\`
 
 \`\`\`yaml
-# Recommended resource limits
-resources:
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
-  requests:
-    memory: "256Mi"
-    cpu: "250m"
+# Example monitoring alert for this event type
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ${event.reason?.toLowerCase()}-alert
+spec:
+  groups:
+  - name: kubernetes.events
+    rules:
+    - alert: ${event.reason}Event
+      expr: increase(kube_event_count{reason="${event.reason}"}[5m]) > 0
+      labels:
+        severity: ${event.type === 'Warning' ? 'warning' : 'info'}
 \`\`\`
 
 `
@@ -134,7 +146,7 @@ resources:
     } catch (error) {
       console.error('Error generating analysis:', error)
       setIsAnalyzing(false)
-      setAnalysisContent('Failed to generate log analysis. Please try again.')
+      setAnalysisContent('Failed to generate event analysis. Please try again.')
     }
   }
 
@@ -197,7 +209,7 @@ resources:
                 Sign In
               </h4>
               <p className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                Sign in to access AI log analysis.
+                Sign in to access AI event analysis.
               </p>
             </div>
             <Button
@@ -268,11 +280,11 @@ resources:
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className="h-full gap-2"
+              
               onClick={handleClick}
-              variant={isOpen ? "default" : "outline"}
+              variant={isOpen ? "outline" : "ghost"}
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-3 w-3" />
             </Button>
           </TooltipTrigger>
           <TooltipContent className="p-1">
@@ -314,20 +326,54 @@ resources:
 
             <div className="space-y-3 mb-2 px-4">
               <div className="text-xs text-neutral-800 dark:text-gray-200 space-y-1">
-                <div className="flex"><span className="text-gray-500 w-20">Container</span> {containerName}</div>
-                <div className="flex"><span className="text-gray-500 w-20">Pod</span> {podName}</div>
-                <div className="flex"><span className="text-gray-500 w-20">Namespace</span> 
-                  <span className="text-blue-600 dark:text-blue-400 hover:text-blue-500 hover:underline cursor-pointer" onClick={() => navigate(`/dashboard/explore/namespaces/${namespace}`)}>
-                    {namespace}
+                <div className="flex"><span className="text-gray-500 w-20">Type</span> 
+                  <span className={`${
+                    event.type === 'Warning' 
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : event.type === 'Normal'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }`}>
+                    {event.type || 'Unknown'}
                   </span>
                 </div>
+                <div className="flex"><span className="text-gray-500 w-20">Reason</span> 
+                  <span className={`${
+                    ['Failed', 'FailedMount', 'FailedSync', 'Unhealthy', 'BackOff'].includes(event.reason || '') 
+                      ? 'text-red-600 dark:text-red-400'
+                      : ['Killing', 'Preempting', 'FailedScheduling'].includes(event.reason || '')
+                      ? 'text-orange-600 dark:text-orange-400'
+                      : ['Started', 'Created', 'Scheduled', 'Pulled', 'Pulling'].includes(event.reason || '')
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {event.reason || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex"><span className="text-gray-500 w-20">Object</span> 
+                  <span className="text-blue-600 dark:text-blue-400 hover:text-blue-500 hover:underline truncate max-w-64 cursor-pointer" onClick={() => navigate(`/dashboard/explore/${event.involvedObject?.kind?.toLowerCase()+'s'}/${event.metadata?.namespace}/${event.involvedObject?.name}`)}>
+                    {event.involvedObject?.kind}/{event.involvedObject?.name || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex"><span className="text-gray-500 w-20">Namespace</span> 
+                  <span className="text-blue-600 dark:text-blue-400 hover:text-blue-500 hover:underline cursor-pointer" onClick={() => navigate(`/dashboard/explore/namespaces/${event.metadata?.namespace}`)}>
+                    {event.metadata?.namespace || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex"><span className="text-gray-500 w-20">Source</span> {event.source?.component || 'N/A'}</div>
+                <div className="flex"><span className="text-gray-500 w-20">Count</span> {event.count || 1}</div>
                 <div className="flex"><span className="text-gray-500 w-20">Cluster</span> {clusterName}</div>
+                <div className="flex flex-col"><span className="text-gray-500 w-20">Message</span> 
+                  <span className="text-xs text-gray-300 mt-1 break-words">
+                    {event.message || 'No message available'}
+                  </span>
+                </div>
               </div>
             </div>
             {!hasFetched && !isAnalyzing ? (
               <div className="text-center py-6 px-4 bg-gray-300 dark:bg-gray-700/20 border-t border-gray-500/30 dark:border-gray-500/30">
                 <Sparkles className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-400 mb-4">Ready to analyze your logs</p>
+                <p className="text-sm text-gray-400 mb-4">Ready to analyze this event</p>
                 <Button
                   onClick={startAnalysis}
                   disabled={isAnalyzing}
@@ -347,7 +393,7 @@ resources:
                 {isAnalyzing && (
                   <div className="flex pt-4">
                     <Loader2 className="h-4 w-4 animate-spin mr-2 text-gray-200 dark:text-gray-600" />
-                    <span className="text-xs dark:text-gray-500">Analyzing logs...</span>
+                    <span className="text-xs dark:text-gray-500">Analyzing event...</span>
                   </div>
                 )}
 
@@ -382,4 +428,4 @@ resources:
   )
 }
 
-export default LogAnalyzer
+export default EventAnalyzer
