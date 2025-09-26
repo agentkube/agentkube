@@ -30,6 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { toast } from '@/hooks/use-toast';
+import LogAnalyzer from '@/components/custom/loganalyzer/loganalyzer.component';
 
 interface ContainerLogsProps {
   podName: string;
@@ -780,6 +781,8 @@ ${selectedText}
           </div>
 
           <div className="flex items-center gap-2">
+            
+
             <span className="text-sm text-gray-500 dark:text-gray-400">
               Tail:
             </span>
@@ -798,6 +801,14 @@ ${selectedText}
                 <SelectItem value="5000">5000</SelectItem>
               </SelectContent>
             </Select>
+
+            <LogAnalyzer
+              logs={rawLogs}
+              podName={podName}
+              namespace={namespace}
+              containerName={selectedContainer}
+              clusterName={clusterName}
+            />
           </div>
         </div>
 

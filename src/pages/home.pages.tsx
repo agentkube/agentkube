@@ -316,14 +316,14 @@ const HomePage: React.FC = () => {
             setHasReloaded(true);
             console.log('Reloading to sync contexts...');
             window.location.reload();
-          }, 1000); // or back to 1.2
+          }, 900); // or back to 1.2
         } else {
           console.log('Contexts appear healthy, no reload needed');
         }
       };
       
       // Check context health after 2 seconds to allow initial loading
-      const healthCheckTimer = setTimeout(checkContextHealth, 2000);
+      const healthCheckTimer = setTimeout(checkContextHealth, 1000);
       return () => clearTimeout(healthCheckTimer);
       
     } else if (hasReloadedFlag) {

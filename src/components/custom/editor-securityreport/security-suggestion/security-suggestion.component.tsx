@@ -71,7 +71,7 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
             code_snippet: misconfiguration.CauseMetadata?.Code?.Lines ? 
               misconfiguration.CauseMetadata.Code.Lines.map((line: any) => line.Content).join('\n') : ''
           },
-          model: "openai/o3-mini"
+          model: "openai/o3-mini" // TODO need to change the model
         },
         {
           onToken: (token) => {

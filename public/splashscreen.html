@@ -87,7 +87,7 @@
                     auth: false
                 };
                 this.maxRetries = 3;
-                this.retryDelay = 2000;
+                this.retryDelay = 3000;
                 this.init();
             }
 
@@ -96,7 +96,7 @@
                 
                 this.updateStatus('Starting Agentkube...');
                 this.updateProgress(10);
-                await this.sleep(1000);
+                await this.sleep(4000);
                 
                 this.updateStatus('Checking proxy server...');
                 this.updateProgress(30);
@@ -120,6 +120,7 @@
                     await this.sleep(2000);
                 }
                 
+                this.updateStatus('Loading application...');
                 await this.completeInitialization();
             }
 
@@ -205,7 +206,12 @@
 
             async completeInitialization() {
                 try {
+                    // Wait longer for React contexts to fully initialize
+                    console.log('Waiting for React contexts to initialize...');
+                    await this.sleep(3000);
+                    
                     if (window.__TAURI__ && window.__TAURI__.core) {
+                        console.log('Completing Tauri initialization...');
                         await window.__TAURI__.core.invoke('complete_initialization');
                     } else {
                         await this.sleep(2000);
