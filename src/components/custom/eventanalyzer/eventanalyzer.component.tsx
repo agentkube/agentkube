@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from "@/components/ui/button"
 import { Sparkles, X, Loader2, RotateCcw, User, Crown, ArrowUpRight, Copy, CheckCheck } from "lucide-react"
 import MarkdownContent from '@/utils/markdown-formatter'
@@ -28,14 +29,17 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
   const [hasFetched, setHasFetched] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [buttonPosition, setButtonPosition] = useState<{ top: number; left: number } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const { user, loading } = useAuth()
   const navigate = useNavigate()
 
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
+          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
@@ -151,6 +155,14 @@ spec:
   }
 
   const handleClick = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setButtonPosition({
+        top: rect.top + window.scrollY - 100, // Move 20px upwards
+        left: rect.left + window.scrollX - 384 - 8 // Position to the left with 8px gap
+      })
+    }
+    
     if (!hasFetched) {
       startAnalysis()
     }
@@ -280,7 +292,7 @@ spec:
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              
+              ref={buttonRef}
               onClick={handleClick}
               variant={isOpen ? "outline" : "ghost"}
             >
@@ -292,8 +304,16 @@ spec:
           </TooltipContent>
         </Tooltip>
 
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-96 bg-[#0B0D13]/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-50">
+      {isOpen && buttonPosition && createPortal(
+        <div 
+          className="w-96 bg-[#0B0D13]/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-[9999]" 
+          style={{
+            position: 'absolute',
+            top: Math.max(8, buttonPosition.top),
+            left: Math.max(8, buttonPosition.left)
+          }}
+          ref={dropdownRef}
+        >
           <div>
             <div className="flex items-center justify-between mb-4 pt-4 px-4">
               <div className='flex items-center gap-2'>
@@ -421,7 +441,8 @@ spec:
             {/* Upgrade Component */}
             {shouldShowUpgrade && <UpgradeComponent />}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       </div>
     </TooltipProvider>
