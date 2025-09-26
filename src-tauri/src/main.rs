@@ -93,6 +93,48 @@ fn get_log_directory() -> std::path::PathBuf {
     }
 }
 
+fn get_comprehensive_path() -> String {
+    // Common PATH locations on macOS
+    let mut path_candidates = vec![
+        "/usr/local/bin".to_string(),
+        "/opt/homebrew/bin".to_string(),
+        "/usr/bin".to_string(),
+        "/bin".to_string(), 
+        "/usr/sbin".to_string(),
+        "/sbin".to_string(),
+        "/usr/local/sbin".to_string(),
+        "/opt/homebrew/sbin".to_string(),
+        "/usr/local/go/bin".to_string(),
+    ];
+    
+    // Add user-specific paths if HOME is available
+    if let Ok(home) = std::env::var("HOME") {
+        path_candidates.push(format!("{}/go/bin", home));
+        path_candidates.push(format!("{}/.cargo/bin", home));
+        path_candidates.push(format!("{}/.local/bin", home));
+        path_candidates.push(format!("{}/bin", home));
+        path_candidates.push(format!("{}/.npm-global/bin", home));
+    }
+    
+    // Get existing PATH and split it
+    let existing_path = std::env::var("PATH").unwrap_or_default();
+    let mut all_paths = Vec::new();
+    
+    // Add existing PATH entries first
+    if !existing_path.is_empty() {
+        all_paths.extend(existing_path.split(':').map(|s| s.to_string()));
+    }
+    
+    // Add our candidates that actually exist
+    for path in &path_candidates {
+        if std::path::Path::new(path).exists() && !all_paths.contains(path) {
+            all_paths.push(path.clone());
+        }
+    }
+    
+    all_paths.join(":")
+}
+
 fn spawn_hidden_process(binary_path: &str, log_name: &str) -> Result<std::process::Child, std::io::Error> {
     let mut cmd = Command::new(binary_path);
     
@@ -112,8 +154,24 @@ fn spawn_hidden_process(binary_path: &str, log_name: &str) -> Result<std::proces
     cmd.stdout(stdout_file);
     cmd.stderr(stderr_file);
     
+    // Set comprehensive PATH environment
+    let comprehensive_path = get_comprehensive_path();
+    cmd.env("PATH", &comprehensive_path);
+    
+    // Set other essential environment variables
+    if let Ok(home) = std::env::var("HOME") {
+        cmd.env("HOME", home);
+    }
+    if let Ok(user) = std::env::var("USER") {
+        cmd.env("USER", user);
+    }
+    if let Ok(shell) = std::env::var("SHELL") {
+        cmd.env("SHELL", shell);
+    }
+    
     log::info!("Binary logs will be written to: {} and {}", 
                stdout_log.display(), stderr_log.display());
+    log::info!("Setting comprehensive PATH for {}: {}", log_name, comprehensive_path);
     
     #[cfg(windows)]
     {
