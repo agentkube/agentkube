@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { openExternalUrl } from '@/api/external'
 import { CoreV1Event as V1Event } from '@kubernetes/client-node'
+import { analyzeEventStream, EventAnalysisRequest } from '@/api/event.analyzer'
 
 interface EventAnalyzerProps {
   event: V1Event
@@ -69,83 +70,32 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
     setIsAnalyzing(true)
     setAnalysisContent('')
 
-    let responseText = ''
-
     try {
-      // Mock streaming analysis with markdown content
-      const mockAnalysisText = `
-### Event Analysis Summary
-**Event Type:** ${event.type || 'Unknown'}
-**Reason:** ${event.reason || 'N/A'}
-**Count:** ${event.count || 1} occurrences
-
-### Root Cause Analysis
-Based on the event details for **${event.involvedObject?.kind}/${event.involvedObject?.name}**:
-
-**Primary Issue:** ${event.reason === 'Failed' ? 'Resource failure detected' : event.reason === 'Killing' ? 'Pod termination in progress' : event.reason === 'Unhealthy' ? 'Health check failure' : 'System event occurred'}
-
-**Impact Assessment:**
-- **Severity:** ${event.type === 'Warning' ? '� High - Requires attention' : ' Normal - Informational'}
-- **Resource:** ${event.involvedObject?.kind} in namespace \`${event.metadata?.namespace}\`
-- **Frequency:** ${(event.count || 1) > 10 ? '=4 High frequency event' : (event.count || 1) > 5 ? '=� Moderate frequency' : '=� Low frequency'}
-
-### Technical Details
-**Component:** ${event.source?.component || 'Unknown'}
-**Host:** ${event.source?.host || 'N/A'}
-**Message:** ${event.message || 'No additional message'}
-
-### Pattern Detection
-${(event.count || 1) > 1 ? `- **Recurring Event**: This event has occurred ${event.count} times
-- **Potential Issue**: Pattern suggests ongoing problems` : '- **Single Occurrence**: Isolated event, monitor for recurrence'}
-
-### Recommended Actions
-
-1. **Immediate Steps**:
-   ${event.type === 'Warning' ? `- Investigate the ${event.involvedObject?.kind} resource
-   - Check resource logs and status
-   - Verify resource configuration` : `- Monitor for related events
-   - Document for future reference`}
-
-2. **Prevention**:
-   - Set up monitoring alerts for similar events
-   - Review resource limits and configurations
-   - Implement proper health checks
-
-### Related Resources
-Check these resources for more context:
-- **Namespace**: \`${event.metadata?.namespace}\`
-- **Resource**: \`${event.involvedObject?.kind}/${event.involvedObject?.name}\`
-- **Component**: \`${event.source?.component}\`
-
-\`\`\`yaml
-# Example monitoring alert for this event type
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: ${event.reason?.toLowerCase()}-alert
-spec:
-  groups:
-  - name: kubernetes.events
-    rules:
-    - alert: ${event.reason}Event
-      expr: increase(kube_event_count{reason="${event.reason}"}[5m]) > 0
-      labels:
-        severity: ${event.type === 'Warning' ? 'warning' : 'info'}
-\`\`\`
-
-`
-
-      // Simulate streaming by adding text gradually
-      const words = mockAnalysisText.split(' ')
-
-      for (let i = 0; i < words.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 50))
-        responseText += (i === 0 ? '' : ' ') + words[i]
-        setAnalysisContent(responseText)
+      const request: EventAnalysisRequest = {
+        event: event as any, // Convert V1Event to any for API compatibility
+        cluster_name: clusterName,
+        model: "openai/gpt-4o-mini"
       }
 
-      setHasFetched(true)
-      setIsAnalyzing(false)
+      await analyzeEventStream(request, {
+        onContent: (_index: number, text: string) => {
+          setAnalysisContent(prev => prev + text)
+        },
+        // onToolCall: (toolCall: any) => {
+        //   // Handle tool calls if needed - commented out for now
+        //   console.log('Tool call:', toolCall)
+        // },
+        onComplete: (reason: string) => {
+          console.log('Analysis complete:', reason)
+          setHasFetched(true)
+          setIsAnalyzing(false)
+        },
+        onError: (error: Error) => {
+          console.error('Error generating analysis:', error)
+          setIsAnalyzing(false)
+          setAnalysisContent('Failed to generate event analysis. Please try again.')
+        }
+      })
 
     } catch (error) {
       console.error('Error generating analysis:', error)
@@ -411,7 +361,7 @@ spec:
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 px-4">
                 {isAnalyzing && (
-                  <div className="flex pt-4">
+                  <div className="flex py-4">
                     <Loader2 className="h-4 w-4 animate-spin mr-2 text-gray-200 dark:text-gray-600" />
                     <span className="text-xs dark:text-gray-500">Analyzing event...</span>
                   </div>

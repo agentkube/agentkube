@@ -11,6 +11,7 @@ import {
 import { useAuth } from '@/contexts/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { openExternalUrl } from '@/api/external'
+import { analyzeLogsStream, LogAnalysisRequest } from '@/api/log.analyzer'
 
 interface LogAnalyzerProps {
   logs: string
@@ -70,66 +71,35 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
     setIsAnalyzing(true)
     setAnalysisContent('')
 
-    let responseText = ''
-
     try {
-      // Mock streaming analysis with markdown content
-      const mockAnalysisText = `
-### Error Detection
-Found 3 critical errors in the logs:
-- Connection timeout to database (2 occurrences)
-- Memory allocation failure at 14:32:15
-- Invalid configuration parameter \`max_connections\`
-
-### Performance Analysis
-Performance insights for ${podName}:
-- Average response time: **245ms**
-- Memory usage peaked at **85%**
-- 12 slow queries detected (>1s execution time)
-
-### Pattern Recognition
-Recurring patterns detected:
-- High request volume every 15 minutes
-- Error rate spikes correlate with memory pressure  
-- Restart cycle detected every 4 hours
-
-### Security Scan
-Security analysis results:
-- No critical vulnerabilities found
-- 2 failed authentication attempts
-- SSL certificate expires in 30 days
-
-## Recommendations
-
-1. **Database Connection Pool**: Increase connection timeout values
-2. **Memory Management**: Add resource limits to prevent OOM kills
-3. **Configuration**: Fix the invalid \`max_connections\` parameter
-4. **Monitoring**: Set up alerts for memory usage > 80%
-
-\`\`\`yaml
-# Recommended resource limits
-resources:
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
-  requests:
-    memory: "256Mi"
-    cpu: "250m"
-\`\`\`
-
-`
-
-      // Simulate streaming by adding text gradually
-      const words = mockAnalysisText.split(' ')
-
-      for (let i = 0; i < words.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 50))
-        responseText += (i === 0 ? '' : ' ') + words[i]
-        setAnalysisContent(responseText)
+      const request: LogAnalysisRequest = {
+        logs: logs,
+        pod_name: podName,
+        namespace: namespace,
+        container_name: containerName,
+        cluster_name: clusterName,
+        model: "openai/gpt-4o-mini"
       }
 
-      setHasFetched(true)
-      setIsAnalyzing(false)
+      await analyzeLogsStream(request, {
+        onContent: (_index: number, text: string) => {
+          setAnalysisContent(prev => prev + text)
+        },
+        // onToolCall: (toolCall: any) => {
+        //   // Handle tool calls if needed - commented out for now
+        //   console.log('Tool call:', toolCall)
+        // },
+        onComplete: (reason: string) => {
+          console.log('Analysis complete:', reason)
+          setHasFetched(true)
+          setIsAnalyzing(false)
+        },
+        onError: (error: Error) => {
+          console.error('Error generating analysis:', error)
+          setIsAnalyzing(false)
+          setAnalysisContent('Failed to generate log analysis. Please try again.')
+        }
+      })
 
     } catch (error) {
       console.error('Error generating analysis:', error)
@@ -345,7 +315,7 @@ resources:
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 px-4">
                 {isAnalyzing && (
-                  <div className="flex pt-4">
+                  <div className="flex py-4">
                     <Loader2 className="h-4 w-4 animate-spin mr-2 text-gray-200 dark:text-gray-600" />
                     <span className="text-xs dark:text-gray-500">Analyzing logs...</span>
                   </div>
