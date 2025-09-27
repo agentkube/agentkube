@@ -25,6 +25,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 // Define types for Subject and ClusterRoleBinding
 interface Subject {
   kind: string;
@@ -69,7 +70,7 @@ const ClusterRoleBindings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const { isReconMode } = useReconMode();
   // --- Start of Multi-select ---
   const [selectedBindings, setSelectedBindings] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -288,6 +289,15 @@ const ClusterRoleBindings: React.FC = () => {
 
   const handleDeleteBindingMenuItem = (e: React.MouseEvent, binding: V1ClusterRoleBinding) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActiveBinding(binding);
     setSelectedBindings(new Set([binding.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -295,6 +305,14 @@ const ClusterRoleBindings: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

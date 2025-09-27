@@ -25,6 +25,8 @@ import EventsViewer from '../components/event.viewer';
 import ReplicationControllerPods from '../components/replicationcontrollerpods.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { DeletionDialog } from '@/components/custom';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define interface for replicationcontroller data (extending V1ReplicationController with events)
 interface ReplicationControllerData extends V1ReplicationController {
@@ -37,6 +39,7 @@ const ReplicationControllerViewer: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { currentContext, fullWidth } = useCluster();
+  const { isReconMode } = useReconMode();
   const { rcName, namespace } = useParams<{ rcName: string; namespace: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -103,6 +106,15 @@ const ReplicationControllerViewer: React.FC = () => {
   }, [currentContext, namespace, rcName]);
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

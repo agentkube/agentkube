@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
+import { useReconMode } from '@/contexts/useRecon';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -54,6 +55,7 @@ const Jobs: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { addResourceContext } = useDrawer();
+  const { isReconMode } = useReconMode();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -148,6 +150,15 @@ const Jobs: React.FC = () => {
 
   // Handle creating a new job from this job (re-run)
   const handleRerunJob = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -218,6 +229,15 @@ const Jobs: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -277,6 +297,15 @@ const Jobs: React.FC = () => {
 
   // Handle terminate action
   const handleTerminateJob = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -394,6 +423,15 @@ const Jobs: React.FC = () => {
 
   const handleDeleteJob = (e: React.MouseEvent, job: any) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveJob(job);
     setSelectedJobs(new Set([`${job.metadata?.namespace}/${job.metadata?.name}`]));
     setShowDeleteDialog(true);

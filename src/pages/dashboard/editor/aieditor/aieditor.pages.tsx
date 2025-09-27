@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Blur } from '@/assets/icons';
 import { SiKubernetes } from '@icons-pack/react-simple-icons';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define type for resource tab
 interface ResourceTab {
@@ -54,6 +55,7 @@ const AIResourceEditor: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [securityReport, setSecurityReport] = useState<MisconfigurationReport | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isTemplateLoading, setIsTemplateLoading] = useState<boolean>(false);
@@ -272,6 +274,15 @@ const AIResourceEditor: React.FC = () => {
 
   // Handle save (create resource)
   const handleSave = async (): Promise<void> => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     if (!currentContext?.name) {
       toast({
         title: "Error",

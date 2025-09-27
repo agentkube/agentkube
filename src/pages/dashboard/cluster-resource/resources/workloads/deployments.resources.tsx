@@ -25,6 +25,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -39,6 +40,7 @@ const Deployments: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [deployments, setDeployments] = useState<V1Deployment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +151,15 @@ const Deployments: React.FC = () => {
 
   // Handle restart action
   const handleRestartDeployments = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -208,6 +219,15 @@ const Deployments: React.FC = () => {
 
   // Handle scale action
   const handleScaleDeployment = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     // Determine which deployments to scale
@@ -252,6 +272,15 @@ const Deployments: React.FC = () => {
 
   // Handle pause/resume deployments
   const handlePauseResumeDeployment = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -313,6 +342,16 @@ const Deployments: React.FC = () => {
 
   const handleDeleteDeployment = (e: React.MouseEvent, deployment: V1Deployment) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveDeployment(deployment);
     setSelectedDeployments(new Set([`${deployment.metadata?.namespace}/${deployment.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -349,6 +388,15 @@ const Deployments: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

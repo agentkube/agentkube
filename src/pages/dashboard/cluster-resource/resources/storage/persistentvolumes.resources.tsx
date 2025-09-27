@@ -26,6 +26,7 @@ import { deleteResource } from '@/api/internal/resources';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -118,6 +119,7 @@ const getStatusColorClass = (phase: string | undefined): string => {
 const PersistentVolumes: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
+  const { isReconMode } = useReconMode();
   const [volumes, setVolumes] = useState<V1PersistentVolume[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +160,16 @@ const PersistentVolumes: React.FC = () => {
 
   const handleDeleteVolumeMenuItem = (e: React.MouseEvent, volume: V1PersistentVolume) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveVolume(volume);
     setSelectedVolumes(new Set([volume.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -238,6 +250,15 @@ const PersistentVolumes: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

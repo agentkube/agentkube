@@ -7,6 +7,8 @@ import {
   listResources
 } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -40,6 +42,7 @@ const CronJobViewer: React.FC = () => {
   const { currentContext, fullWidth } = useCluster();
   const { cronJobName, namespace } = useParams<{ cronJobName: string; namespace: string }>();
   const navigate = useNavigate();
+  const { isReconMode } = useReconMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
@@ -148,6 +151,15 @@ const CronJobViewer: React.FC = () => {
 
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

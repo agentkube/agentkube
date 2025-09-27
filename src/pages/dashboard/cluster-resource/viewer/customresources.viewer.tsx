@@ -14,6 +14,8 @@ import { ErrorComponent, ResourceViewerYamlTab, DeletionDialog } from '@/compone
 import { YamlViewer } from '@/utils/yaml.utils';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define interfaces
 interface CustomResource {
@@ -50,7 +52,7 @@ const CustomResourceViewer = () => {
   const plural = searchParams.get('plural') || '';
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'yaml';
-
+  const { isReconMode } = useReconMode();
   const [resource, setResource] = useState<CustomResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +94,15 @@ const CustomResourceViewer = () => {
   }, [currentContext, params, apiGroup, apiVersion, plural]);
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

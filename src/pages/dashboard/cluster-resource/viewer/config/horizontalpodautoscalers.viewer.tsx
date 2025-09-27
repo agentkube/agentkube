@@ -20,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { useSearchParams } from 'react-router-dom';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
@@ -44,7 +46,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
   const defaultTab = tabParam || 'overview';
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
+  const { isReconMode } = useReconMode();
   // Fetch events for the HPA
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -110,6 +112,15 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
   }, [currentContext, namespace, hpaName]);
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

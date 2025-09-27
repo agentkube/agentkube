@@ -26,6 +26,8 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
+
 
 // Define types for IngressClass (not directly exported from kubernetes-client-node)
 interface IngressClassSpec {
@@ -67,7 +69,7 @@ const IngressClasses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const { isReconMode } = useReconMode();
   // --- Start of Multi-select ---
   const [selectedIngressClasses, setSelectedIngressClasses] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -97,6 +99,15 @@ const IngressClasses: React.FC = () => {
 
   const handleDeleteIngressClassMenuItem = (e: React.MouseEvent, ingressClass: V1IngressClass) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActiveIngressClass(ingressClass);
     setSelectedIngressClasses(new Set([ingressClass.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -315,6 +326,15 @@ const IngressClasses: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

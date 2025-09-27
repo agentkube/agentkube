@@ -22,6 +22,8 @@ import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for PriorityClass
 interface V1PriorityClass {
@@ -55,7 +57,7 @@ const PriorityClasses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const { isReconMode } = useReconMode();
 
   // --- Start of Multi-select ---
   const [selectedPriorityClasses, setSelectedPriorityClasses] = useState<Set<string>>(new Set());
@@ -173,6 +175,15 @@ const PriorityClasses: React.FC = () => {
 
   const handleDeletePriorityClassMenuItem = (e: React.MouseEvent, priorityClass: V1PriorityClass) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActivePriorityClass(priorityClass);
     setSelectedPriorityClasses(new Set([priorityClass.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -180,6 +191,15 @@ const PriorityClasses: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

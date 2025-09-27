@@ -24,6 +24,8 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { DeletionDialog } from '@/components/custom';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define interface for networkpolicy data
 interface NetworkPolicyData extends V1NetworkPolicy {
@@ -43,6 +45,8 @@ const NetworkPolicyViewer: React.FC = () => {
   const defaultTab = tabParam || 'overview';
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { isReconMode } = useReconMode();
+
   // Fetch events for the networkpolicy
   const fetchEvents = async () => {
     if (!currentContext || !namespace || !networkPolicyName) return;
@@ -102,6 +106,15 @@ const NetworkPolicyViewer: React.FC = () => {
   }, [currentContext, namespace, networkPolicyName]);
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
+import { useReconMode } from '@/contexts/useRecon';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -47,6 +48,7 @@ const ReplicaSets: React.FC = () => {
 
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [selectedResourcesForScaling, setSelectedResourcesForScaling] = useState<any[]>([]);
+  const { isReconMode } = useReconMode();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,6 +152,15 @@ const ReplicaSets: React.FC = () => {
 
   // Handle scale action
   const handleScaleReplicaSets = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     // Determine which replicaSets to scale
@@ -175,6 +186,15 @@ const ReplicaSets: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -291,6 +311,15 @@ const ReplicaSets: React.FC = () => {
 
   const handleDeleteReplicaSet = (e: React.MouseEvent, replicaSet: any) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveReplicaSet(replicaSet);
     setSelectedReplicaSets(new Set([`${replicaSet.metadata?.namespace}/${replicaSet.metadata?.name}`]));
     setShowDeleteDialog(true);

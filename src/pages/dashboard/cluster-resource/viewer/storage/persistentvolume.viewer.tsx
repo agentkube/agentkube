@@ -24,6 +24,8 @@ import EventsViewer from '../components/event.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { useSearchParams } from 'react-router-dom';
 import { DeletionDialog } from '@/components/custom';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define interface for PV data
 interface PVData extends V1PersistentVolume {
@@ -43,6 +45,7 @@ const PersistentVolumeViewer: React.FC = () => {
   const defaultTab = tabParam || 'overview';
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { isReconMode } = useReconMode();
 
   // Fetch events for the PV
   const fetchEvents = async () => {
@@ -103,6 +106,15 @@ const PersistentVolumeViewer: React.FC = () => {
   }, [currentContext, pvName]);
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

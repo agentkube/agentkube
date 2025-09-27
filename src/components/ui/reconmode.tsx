@@ -3,7 +3,7 @@ import * as SwitchPrimitives from "@radix-ui/react-switch"
 import { cn } from "@/lib/utils"
 import { Binoculars } from "lucide-react"
 import { AGENTKUBE } from "@/assets";
-import { getAgentReconMode, updateAgentReconMode } from "@/api/settings";
+import { useReconMode } from "@/contexts/useRecon";
 
 const Root = SwitchPrimitives.Root as any;
 const Thumb = SwitchPrimitives.Thumb as any;
@@ -15,41 +15,20 @@ interface ReconModeSwitchProps extends React.ComponentPropsWithoutRef<typeof Roo
 
 const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps>(
   ({ className, onCheckedChange, ...props }, ref) => {
-    const [isChecked, setIsChecked] = React.useState(false);
-    const [isLoading, setIsLoading] = React.useState(false);
+    const { isReconMode, isLoading, setReconMode } = useReconMode();
 
     const handleCheckedChange = async (checked: boolean) => {
       try {
-        setIsLoading(true);
-        await updateAgentReconMode(checked);
-        setIsChecked(checked);
+        await setReconMode(checked);
         onCheckedChange?.(checked);
       } catch (error) {
         console.error('Failed to update recon mode:', error);
-        // Revert on error
-        const currentSetting = await getAgentReconMode();
-        setIsChecked(currentSetting.recon);
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    React.useEffect(() => {
-      const loadReconMode = async () => {
-        try {
-          const response = await getAgentReconMode();
-          setIsChecked(response.recon);
-        } catch (error) {
-          console.error('Failed to load recon mode:', error);
-        }
-      };
-      
-      loadReconMode();
-    }, []);
-
     React.useImperativeHandle(ref, () => ({
       click: () => {
-        handleCheckedChange(!isChecked);
+        handleCheckedChange(!isReconMode);
       }
     } as HTMLButtonElement));
 
@@ -59,13 +38,13 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
         <Root
           className={cn(
             "peer relative inline-flex h-6 w-16 shrink-0 cursor-pointer items-center rounded-md border-2 border-transparent shadow-lg transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-            isChecked
+            isReconMode
               ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
               : "bg-gray-300 dark:bg-gray-600/20",
             isLoading && "opacity-50 cursor-not-allowed",
             className
           )}
-          checked={isChecked}
+          checked={isReconMode}
           onCheckedChange={handleCheckedChange}
           disabled={isLoading}
           {...props}
@@ -74,23 +53,23 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
           {/* Text inside the switch track */}
           <span className={cn(
             "absolute text-[9px] font-mono font-medium transition-all duration-300 pointer-events-none select-none",
-            isChecked
+            isReconMode
               ? "left-1.5 text-black "
               : "right-1.5 text-gray-600 dark:text-gray-300"
           )}>
-            {isChecked ? "RECON" : "AGENT"}
+            {isReconMode ? "RECON" : "AGENT"}
           </span>
 
           <Thumb
             className={cn(
               "pointer-events-none flex h-5 w-5 items-center justify-center rounded-md shadow-lg ring-0 transition-all duration-300 z-10",
-              isChecked
+              isReconMode
                 ? "translate-x-10 bg-white"
                 : "translate-x-0.5 bg-gray-100 dark:bg-gray-600/40"
             )}
           >
             {/* Icon inside the thumb */}
-            {isChecked ? (
+            {isReconMode ? (
               <Binoculars className="h-3.5 w-3.5 text-emerald-700" />
             ) : (
               <img src={AGENTKUBE} className="h-4 w-4" />

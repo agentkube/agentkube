@@ -3,6 +3,7 @@ import { getDaemonSets } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
 import { V1DaemonSet } from '@kubernetes/client-node';
+import { useReconMode } from '@/contexts/useRecon';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -46,6 +47,7 @@ const DaemonSets: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { isReconMode } = useReconMode();
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
@@ -147,6 +149,15 @@ const DaemonSets: React.FC = () => {
 
   // Handle restart action for DaemonSets (rolling restart)
   const handleRestartDaemonSets = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -207,6 +218,15 @@ const DaemonSets: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -373,6 +393,15 @@ const DaemonSets: React.FC = () => {
 
   const handleDeleteDaemonSet = (e: React.MouseEvent, daemonSet: V1DaemonSet) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveDaemonSet(daemonSet);
     setSelectedDaemonSets(new Set([`${daemonSet.metadata?.namespace}/${daemonSet.metadata?.name}`]));
     setShowDeleteDialog(true);

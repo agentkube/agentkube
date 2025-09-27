@@ -26,6 +26,8 @@ import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-ta
 import ServiceEndpoints from '../components/serviceendpoints.viewer';
 import { DeletionDialog, QuickPortForward } from '@/components/custom';
 import PortForwardDialog from '@/components/custom/portfoward/portforward.components';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define interface for service data
 interface ServiceData extends V1Service {
@@ -54,6 +56,7 @@ const ServiceViewer: React.FC = () => {
   const defaultTab = tabParam || 'overview';
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { isReconMode } = useReconMode();
 
   // Fetch events for the service
   const fetchEvents = async () => {
@@ -113,6 +116,15 @@ const ServiceViewer: React.FC = () => {
 
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

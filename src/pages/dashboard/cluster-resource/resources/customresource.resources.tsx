@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { listResources, deleteResource, getApiGroups } from '@/api/internal/resources';
+import { listResources, deleteResource } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define types for Custom Resources
 interface CustomResourceDefinition {
@@ -127,6 +128,7 @@ const CustomResources: React.FC = () => {
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [activeCRD, setActiveCRD] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const { isReconMode } = useReconMode();
 
   // Add sorting state
   const [sort, setSort] = useState<SortState>({
@@ -488,6 +490,15 @@ const CustomResources: React.FC = () => {
 
   // Function to handle resource deletion
   const handleDeleteResource = async (resource: CustomResource) => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     if (!resource.metadata?.name || !currentContext) {
       return;
     }

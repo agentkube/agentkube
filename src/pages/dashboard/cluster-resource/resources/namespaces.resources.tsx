@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
 type SortField = 'name' | 'status' | 'age' | 'labels' | null;
@@ -33,6 +34,7 @@ const Namespaces: React.FC = () => {
   const { currentContext } = useCluster();
   const navigate = useNavigate();
   const { addResourceContext } = useDrawer();
+  const { isReconMode } = useReconMode();
   const [namespaces, setNamespaces] = useState<V1Namespace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -191,6 +193,15 @@ const Namespaces: React.FC = () => {
   };
 
   const handleDeleteNamespace = (namespace: V1Namespace) => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setNamespaceToDelete(namespace);
     setShowDeleteDialog(true);
   };
@@ -225,12 +236,6 @@ const Namespaces: React.FC = () => {
       setShowDeleteDialog(false);
       setNamespaceToDelete(null);
     }
-  };
-
-
-  const handleEditNamespace = (namespace: V1Namespace) => {
-    console.log('Edit namespace:', namespace.metadata?.name);
-    // Implement edit functionality
   };
 
   const handleAskAI = (namespace: V1Namespace) => {

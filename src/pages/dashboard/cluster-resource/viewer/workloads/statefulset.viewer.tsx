@@ -7,6 +7,8 @@ import {
   listResources
 } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -43,6 +45,7 @@ const StatefulSetViewer: React.FC = () => {
   const defaultTab = tabParam || 'overview';
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { isReconMode } = useReconMode();
 
   // Fetch events for the statefulset
   const fetchEvents = async () => {
@@ -104,6 +107,14 @@ const StatefulSetViewer: React.FC = () => {
 
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
     setShowDeleteDialog(true);
   };
 

@@ -26,6 +26,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -40,6 +41,7 @@ const ReplicationControllers: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [replicationControllers, setReplicationControllers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +151,15 @@ const ReplicationControllers: React.FC = () => {
 
   // Handle scale action for ReplicationControllers
   const handleScaleReplicationControllers = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -234,6 +245,16 @@ const ReplicationControllers: React.FC = () => {
 
   const handleDeleteReplicationController = (e: React.MouseEvent, rc: any) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveReplicationController(rc);
     setSelectedReplicationControllers(new Set([`${rc.metadata?.namespace}/${rc.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -270,6 +291,15 @@ const ReplicationControllers: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

@@ -26,6 +26,7 @@ import { deleteResource } from '@/api/internal/resources';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define types for Endpoints (not available in kubernetes-client-node)
 interface V1EndpointPort {
@@ -83,7 +84,7 @@ const Endpoints: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const { isReconMode } = useReconMode();
   // --- Start of Multi-select ---
   const [selectedEndpoints, setSelectedEndpoints] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -190,6 +191,15 @@ const Endpoints: React.FC = () => {
 
   const handleDeleteEndpointMenuItem = (e: React.MouseEvent, endpoint: V1Endpoints) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActiveEndpoint(endpoint);
     setSelectedEndpoints(new Set([`${endpoint.metadata?.namespace}/${endpoint.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -233,6 +243,15 @@ const Endpoints: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

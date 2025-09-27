@@ -24,6 +24,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 // Define types for PolicyRule and ClusterRole
 interface PolicyRule {
   apiGroups: string[];
@@ -72,7 +73,7 @@ const ClusterRoles: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const { isReconMode } = useReconMode();
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
@@ -223,6 +224,15 @@ const ClusterRoles: React.FC = () => {
 
   const handleDeleteClusterRoleMenuItem = (e: React.MouseEvent, clusterRole: V1ClusterRole) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActiveClusterRole(clusterRole);
     setSelectedClusterRoles(new Set([clusterRole.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -230,6 +240,15 @@ const ClusterRoles: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

@@ -26,6 +26,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -39,6 +40,7 @@ interface SortState {
 const StorageClasses: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
+  const { isReconMode } = useReconMode();
   const [storageClasses, setStorageClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +81,16 @@ const StorageClasses: React.FC = () => {
 
   const handleDeleteStorageClassMenuItem = (e: React.MouseEvent, storageClass: any) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveStorageClass(storageClass);
     setSelectedStorageClasses(new Set([storageClass.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -159,6 +171,15 @@ const StorageClasses: React.FC = () => {
 
   // Handle clone StorageClass
   const handleCloneStorageClass = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -244,6 +265,15 @@ const StorageClasses: React.FC = () => {
 
   // Handle setting as default StorageClass
   const handleSetAsDefault = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -381,6 +411,15 @@ const StorageClasses: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

@@ -27,6 +27,8 @@ import { deleteResource } from '@/api/internal/resources';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
+
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -45,6 +47,7 @@ const Services: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const { isReconMode } = useReconMode();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -74,6 +77,15 @@ const Services: React.FC = () => {
 
   const handleDeleteServiceMenuItem = (e: React.MouseEvent, service: V1Service) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActiveService(service);
     setSelectedServices(new Set([`${service.metadata?.namespace}/${service.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -195,6 +207,15 @@ const Services: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

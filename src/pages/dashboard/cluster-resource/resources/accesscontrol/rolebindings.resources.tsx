@@ -27,6 +27,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 // Define types for Subject and RoleBinding
 interface Subject {
   kind: string;
@@ -73,7 +74,7 @@ const RoleBindings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const { isReconMode } = useReconMode();
   // --- Start of Multi-select ---
   const [selectedRoleBindings, setSelectedRoleBindings] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -268,6 +269,15 @@ const RoleBindings: React.FC = () => {
 
   const handleDeleteRoleBindingMenuItem = (e: React.MouseEvent, binding: V1RoleBinding) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActiveRoleBinding(binding);
     setSelectedRoleBindings(new Set([`${binding.metadata?.namespace}/${binding.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -304,6 +314,15 @@ const RoleBindings: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

@@ -27,6 +27,7 @@ import { deleteResource } from '@/api/internal/resources';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -72,6 +73,7 @@ const ConfigMaps: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [configMaps, setConfigMaps] = useState<V1ConfigMap[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,16 @@ const ConfigMaps: React.FC = () => {
 
   const handleDeleteConfigMapMenuItem = (e: React.MouseEvent, configMap: V1ConfigMap) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveConfigMap(configMap);
     setSelectedConfigMaps(new Set([`${configMap.metadata?.namespace}/${configMap.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -223,6 +235,15 @@ const ConfigMaps: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

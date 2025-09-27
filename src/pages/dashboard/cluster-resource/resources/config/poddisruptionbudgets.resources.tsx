@@ -23,6 +23,8 @@ import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for PodDisruptionBudget
 interface LabelSelector {
@@ -76,6 +78,7 @@ const PodDisruptionBudgets: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [pdbs, setPdbs] = useState<V1PodDisruptionBudget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -198,6 +201,16 @@ const PodDisruptionBudgets: React.FC = () => {
 
   const handleDeletePdbMenuItem = (e: React.MouseEvent, pdb: V1PodDisruptionBudget) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActivePdb(pdb);
     setSelectedPdbs(new Set([`${pdb.metadata?.namespace}/${pdb.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -205,6 +218,15 @@ const PodDisruptionBudgets: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

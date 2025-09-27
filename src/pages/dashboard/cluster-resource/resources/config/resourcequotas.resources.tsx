@@ -23,6 +23,8 @@ import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for ResourceQuota
 interface ResourceQuotaSpec {
@@ -73,6 +75,7 @@ const ResourceQuotas: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const { isReconMode } = useReconMode();
 
   // --- Start of Multi-select ---
   const [selectedQuotas, setSelectedQuotas] = useState<Set<string>>(new Set());
@@ -190,6 +193,16 @@ const ResourceQuotas: React.FC = () => {
 
   const handleDeleteQuotaMenuItem = (e: React.MouseEvent, quota: V1ResourceQuota) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
+
     setActiveQuota(quota);
     setSelectedQuotas(new Set([`${quota.metadata?.namespace}/${quota.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -197,6 +210,16 @@ const ResourceQuotas: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

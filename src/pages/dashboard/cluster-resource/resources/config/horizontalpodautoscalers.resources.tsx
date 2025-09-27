@@ -23,6 +23,8 @@ import {
 import { Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define types for HorizontalPodAutoscaler (both v1 and v2)
 interface CrossVersionObjectReference {
@@ -195,6 +197,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [hpas, setHpas] = useState<V1HorizontalPodAutoscaler[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -308,6 +311,16 @@ const HorizontalPodAutoscalers: React.FC = () => {
 
   const handleDeleteHpaMenuItem = (e: React.MouseEvent, hpa: V1HorizontalPodAutoscaler) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveHpa(hpa);
     setSelectedHpas(new Set([`${hpa.metadata?.namespace}/${hpa.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -315,6 +328,15 @@ const HorizontalPodAutoscalers: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

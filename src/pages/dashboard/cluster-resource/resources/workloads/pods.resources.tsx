@@ -30,6 +30,7 @@ import { useBackgroundTask } from '@/contexts/useBackgroundTask';
 import { SideDrawer } from '@/components/ui/sidedrawer.custom';
 import Telemetry from '@/components/custom/telemetry/telemetry.component';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -112,6 +113,7 @@ const Pods: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [pods, setPods] = useState<V1Pod[]>([]);
   const [podsMetrics, setPodsMetrics] = useState<Record<string, PodResourceMetrics>>({});
   const [loading, setLoading] = useState(true);
@@ -270,6 +272,15 @@ const Pods: React.FC = () => {
 
   // Handle restart action
   const handleRestartPods = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -308,6 +319,16 @@ const Pods: React.FC = () => {
 
   const handleDeletePod = (e: React.MouseEvent, pod: V1Pod) => {
     e.stopPropagation(); // Stop the event from bubbling up
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActivePod(pod);
     setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -353,6 +374,15 @@ const Pods: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -1354,6 +1384,18 @@ const Pods: React.FC = () => {
 
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
+                              if (isReconMode) {
+                                toast({
+                                  title: "Recon Mode",
+                                  description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+                                  variant: "recon"
+                                });
+                                return;
+                              }
+                              // Set the active pod and trigger restart
+                              setActivePod(pod);
+                              setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
+                              handleRestartPods();
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <RefreshCw className="mr-2 h-4 w-4" />
                               Restart

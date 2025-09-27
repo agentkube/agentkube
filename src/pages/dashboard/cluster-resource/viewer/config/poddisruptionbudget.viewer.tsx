@@ -24,6 +24,8 @@ import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define interface for PDB data with events
 interface PDBData extends V1PodDisruptionBudget {
@@ -43,7 +45,7 @@ const PodDisruptionBudgetViewer: React.FC = () => {
   const defaultTab = tabParam || 'overview';
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
+  const { isReconMode } = useReconMode();
   // Fetch events for the PDB
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -109,6 +111,15 @@ const PodDisruptionBudgetViewer: React.FC = () => {
   }, [currentContext, namespace, pdbName]);
 
   const handleDelete = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowDeleteDialog(true);
   };
 

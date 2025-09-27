@@ -26,6 +26,8 @@ import { deleteResource } from '@/api/internal/resources';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
+
 
 // Define types for NetworkPolicy (not directly exported from kubernetes-client-node)
 interface IPBlock {
@@ -113,6 +115,7 @@ const NetworkPolicies: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const { isReconMode } = useReconMode();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -149,6 +152,15 @@ const NetworkPolicies: React.FC = () => {
 
   const handleDeleteNetworkPolicyMenuItem = (e: React.MouseEvent, policy: V1NetworkPolicy) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActivePolicy(policy);
     setSelectedPolicies(new Set([`${policy.metadata?.namespace}/${policy.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -240,6 +252,15 @@ const NetworkPolicies: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

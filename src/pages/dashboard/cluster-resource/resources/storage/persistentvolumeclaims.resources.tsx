@@ -28,6 +28,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { useReconMode } from '@/contexts/useRecon';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -42,6 +43,7 @@ const PersistentVolumeClaims: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [pvcs, setPvcs] = useState<V1PersistentVolumeClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,16 @@ const PersistentVolumeClaims: React.FC = () => {
 
   const handleDeletePvcMenuItem = (e: React.MouseEvent, pvc: V1PersistentVolumeClaim) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActivePvc(pvc);
     setSelectedPvcs(new Set([`${pvc.metadata?.namespace}/${pvc.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -163,6 +175,15 @@ const PersistentVolumeClaims: React.FC = () => {
 
   // Handle clone PVC
   const handleClonePvc = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -233,6 +254,15 @@ const PersistentVolumeClaims: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

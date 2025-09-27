@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { Blur } from '@/assets/icons';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { useReconMode } from '@/contexts/useRecon';
 
 interface AIEditorProps {
   // The resource data
@@ -58,6 +59,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
 }) => {
   const navigate = useNavigate();
   const { addResourceContext } = useDrawer();
+  const { isReconMode } = useReconMode();
   // State for editor
   const [yamlContent, setYamlContent] = useState<string>('');
   const [originalContent, setOriginalContent] = useState<string>('');
@@ -133,6 +135,15 @@ const AIEditor: React.FC<AIEditorProps> = ({
 
   // Handle save
   const handleSave = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     if (!currentContext?.name || !resourceName || !hasChanges) return;
 
     setIsSaving(true);

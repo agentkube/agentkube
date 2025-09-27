@@ -303,14 +303,14 @@ const HomePage: React.FC = () => {
         // Check if contexts are properly loaded
         const isClusterLoaded = contexts.length > 0 || !isContextsLoading;
         const isUserLoaded = user !== null;
-        const isThemeLoaded = document.documentElement.style.getPropertyValue('--font-family');
+        // const isThemeLoaded = document.documentElement.style.getPropertyValue('--font-family');
         
-        console.log('Context health check:', { isClusterLoaded, isUserLoaded, isThemeLoaded });
+        // console.log('Context health check:', { isClusterLoaded, isUserLoaded, isThemeLoaded });
         
         // Only reload if contexts appear to be broken
-        if (!isClusterLoaded || !isUserLoaded || !isThemeLoaded) {
-          console.log('Contexts not properly synced, reloading in 1.2 seconds...');
-          
+        if (!isClusterLoaded || !isUserLoaded
+          //  || !isThemeLoaded
+          ) {
           setTimeout(() => {
             sessionStorage.setItem('agentkube_home_reloaded', 'true');
             setHasReloaded(true);

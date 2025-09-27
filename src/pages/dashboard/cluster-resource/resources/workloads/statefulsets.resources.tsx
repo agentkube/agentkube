@@ -3,6 +3,7 @@ import { getStatefulSets } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
 import { V1StatefulSet } from '@kubernetes/client-node';
+import { useReconMode } from '@/contexts/useRecon';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -48,6 +49,7 @@ const StatefulSets: React.FC = () => {
 
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [selectedResourcesForScaling, setSelectedResourcesForScaling] = useState<V1StatefulSet[]>([]);
+  const { isReconMode } = useReconMode();
 
   // --- Start of Multi-select ---
   const [selectedStatefulSets, setSelectedStatefulSets] = useState<Set<string>>(new Set());
@@ -151,6 +153,15 @@ const StatefulSets: React.FC = () => {
 
   // Handle restart action for StatefulSets (rolling restart)
   const handleRestartStatefulSets = async () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     try {
@@ -211,6 +222,15 @@ const StatefulSets: React.FC = () => {
 
   // Handle scale action for StatefulSets
   const handleScaleStatefulSets = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
 
     // Determine which statefulSets to scale
@@ -234,6 +254,15 @@ const StatefulSets: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -387,6 +416,15 @@ const StatefulSets: React.FC = () => {
 
   const handleDeleteStatefulSet = (e: React.MouseEvent, statefulSet: V1StatefulSet) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveStatefulSet(statefulSet);
     setSelectedStatefulSets(new Set([`${statefulSet.metadata?.namespace}/${statefulSet.metadata?.name}`]));
     setShowDeleteDialog(true);

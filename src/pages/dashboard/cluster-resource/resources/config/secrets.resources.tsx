@@ -24,6 +24,8 @@ import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -38,6 +40,7 @@ const Secrets: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { isReconMode } = useReconMode();
   const [secrets, setSecrets] = useState<V1Secret[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +163,16 @@ const Secrets: React.FC = () => {
 
   const handleDeleteSecretMenuItem = (e: React.MouseEvent, secret: V1Secret) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveSecret(secret);
     setSelectedSecrets(new Set([`${secret.metadata?.namespace}/${secret.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -167,6 +180,15 @@ const Secrets: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

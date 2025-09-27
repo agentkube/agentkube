@@ -22,6 +22,8 @@ import { Trash } from "lucide-react";
 import { Trash2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { useReconMode } from '@/contexts/useRecon';
+import { toast } from '@/hooks/use-toast';
 // Define types for MutatingWebhookConfiguration
 interface Rule {
   apiGroups?: string[];
@@ -98,6 +100,7 @@ interface SortState {
 const MutatingWebhookConfigurations: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
+  const { isReconMode } = useReconMode();
   const [webhooks, setWebhooks] = useState<V1MutatingWebhookConfiguration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +216,16 @@ const MutatingWebhookConfigurations: React.FC = () => {
 
   const handleDeleteWebhookMenuItem = (e: React.MouseEvent, webhook: V1MutatingWebhookConfiguration) => {
     e.stopPropagation();
+    
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setActiveWebhook(webhook);
     setSelectedWebhooks(new Set([webhook.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -220,6 +233,15 @@ const MutatingWebhookConfigurations: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };

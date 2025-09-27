@@ -26,7 +26,7 @@ import { deleteResource } from '@/api/internal/resources';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
-
+import { useReconMode } from '@/contexts/useRecon';
 // Define types for ServiceAccount
 interface ServiceAccountSecret {
   name: string;
@@ -70,7 +70,7 @@ const ServiceAccounts: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-
+  const { isReconMode } = useReconMode();
   // --- Start of Multi-select ---
   const [selectedServiceAccounts, setSelectedServiceAccounts] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -209,6 +209,15 @@ const ServiceAccounts: React.FC = () => {
 
   const handleDeleteServiceAccountMenuItem = (e: React.MouseEvent, serviceAccount: V1ServiceAccount) => {
     e.stopPropagation();
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
     setActiveServiceAccount(serviceAccount);
     setSelectedServiceAccounts(new Set([`${serviceAccount.metadata?.namespace}/${serviceAccount.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -246,6 +255,15 @@ const ServiceAccounts: React.FC = () => {
 
   // Handle delete action
   const handleDeleteClick = () => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+    
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
