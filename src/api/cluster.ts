@@ -20,6 +20,9 @@ export const getKubeContexts = async (): Promise<KubeContext[]> => {
 export const kubeProxyRequest = async (clusterName: string, path: string, method: string, body?: any) => {
   const response = await fetch(`${OPERATOR_URL}/clusters/${clusterName}/${path}`, {
     method,
+    headers: {
+      'Content-Type': 'application/json',
+    }, // patch header was added as AI editor has some issue withebelo header content type
     body: body ? JSON.stringify(body) : undefined,
   });
 
