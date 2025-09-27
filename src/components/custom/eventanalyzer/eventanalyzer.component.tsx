@@ -74,6 +74,7 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
       const request: EventAnalysisRequest = {
         event: event as any, // Convert V1Event to any for API compatibility
         cluster_name: clusterName,
+        kubecontext: clusterName,
         model: "openai/gpt-4o-mini"
       }
 
@@ -368,11 +369,11 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
                 )}
 
                 {analysisContent && (
-                  <div className="relative">
+                  <div className="relative py-8">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute top-2 right-0 h-1 w-8 p-0 z-10 bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white backdrop-blur-sm"
+                      className="absolute top-4 right-0 h-1 w-8 p-0 z-10 bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white backdrop-blur-sm"
                       onClick={handleCopyAnalysis}
                     >
                       {copied ? <CheckCheck className="text-green-500 h-4 w-4" /> : <Copy className="h-4 w-4" />}

@@ -10,6 +10,7 @@ export interface LogAnalysisRequest {
   cluster_name: string;
   model?: string;
   kubecontext?: string;
+  pod_yaml?: string;
 }
 
 // Stream callback types

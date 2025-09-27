@@ -38,6 +38,7 @@ interface ContainerLogsProps {
   clusterName: string;
   containers: string[];
   onAddToChat?: (text: string) => void; // Add this prop for the chat functionality
+  podData?: any; // Optional pod data object for enhanced log analysis
 }
 
 // Log time filter options
@@ -66,7 +67,8 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   namespace,
   clusterName,
   containers,
-  onAddToChat
+  onAddToChat,
+  podData
 }) => {
   const { addStructuredContent } = useDrawer();
   const [selectedContainer, setSelectedContainer] = useState<string>(containers[0] || '');
@@ -808,6 +810,7 @@ ${selectedText}
               namespace={namespace}
               containerName={selectedContainer}
               clusterName={clusterName}
+              podData={podData}
             />
           </div>
         </div>

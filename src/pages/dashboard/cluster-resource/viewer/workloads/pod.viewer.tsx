@@ -172,6 +172,7 @@ const PodViewer: React.FC = () => {
     }
   };
 
+
   // Status alert component based on pod phase
   const PodStatusAlert = ({ phase }: { phase?: string }) => {
     if (!phase) return null;
@@ -497,6 +498,7 @@ const PodViewer: React.FC = () => {
                 namespace={namespace}
                 clusterName={currentContext.name}
                 containers={podData.spec.containers.map(c => c.name)}
+                podData={podData}
               />
             )}
           </TabsContent>

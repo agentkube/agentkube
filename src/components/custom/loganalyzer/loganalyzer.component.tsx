@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { openExternalUrl } from '@/api/external'
 import { analyzeLogsStream, LogAnalysisRequest } from '@/api/log.analyzer'
+import { jsonToYaml } from '@/utils/yaml'
 
 interface LogAnalyzerProps {
   logs: string
@@ -19,6 +20,7 @@ interface LogAnalyzerProps {
   namespace: string
   containerName: string
   clusterName: string
+  podData?: any  // Optional pod data object for enhanced analysis
 }
 
 const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
@@ -26,7 +28,8 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
   podName,
   namespace,
   containerName,
-  clusterName
+  clusterName,
+  podData
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -78,7 +81,9 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
         namespace: namespace,
         container_name: containerName,
         cluster_name: clusterName,
-        model: "openai/gpt-4o-mini"
+        model: "openai/gpt-4o-mini",
+        kubecontext: clusterName,
+        pod_yaml: podData ? jsonToYaml(podData) : undefined
       }
 
       await analyzeLogsStream(request, {
@@ -322,11 +327,11 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
                 )}
 
                 {analysisContent && (
-                  <div className="relative">
+                  <div className="relative py-8">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute top-2 right-0 h-1 w-8 p-0 z-10 bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white backdrop-blur-sm"
+                      className="absolute top-4 right-0 h-1 w-8 p-0 z-10 bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white backdrop-blur-sm"
                       onClick={handleCopyAnalysis}
                     >
                       {copied ? <CheckCheck className="text-green-500 h-4 w-4" /> : <Copy className="h-4 w-4" />}
