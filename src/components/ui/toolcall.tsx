@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, Terminal, Wrench, Copy, Check } from 'lucide-react';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
@@ -15,7 +15,48 @@ interface ToolCallAccordionProps {
 const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [showFullOutput, setShowFullOutput] = useState(false);
   const { theme } = useTheme();
+
+  // Memoize parsed JSON to avoid re-parsing on every render
+  const parsedArguments = useMemo(() => {
+    if (!toolCall.arguments) return null;
+    try {
+      return JSON.parse(toolCall.arguments);
+    } catch (error) {
+      console.warn('Failed to parse tool call arguments:', error);
+      return toolCall.arguments;
+    }
+  }, [toolCall.arguments]);
+
+  // Memoize formatted arguments string
+  const formattedArguments = useMemo(() => {
+    if (!parsedArguments) return '';
+    if (typeof parsedArguments === 'string') return parsedArguments;
+    return JSON.stringify(parsedArguments, null, 2);
+  }, [parsedArguments]);
+
+  // Memoize output text to avoid re-processing
+  const outputText = useMemo(() => {
+    if (!toolCall.output) return '';
+    return typeof toolCall.output === 'string'
+      ? toolCall.output
+      : toolCall.output.output || JSON.stringify(toolCall.output, null, 2);
+  }, [toolCall.output]);
+
+  // Check if output is large and needs truncation
+  const isLargeOutput = outputText.length > 2000;
+  const maxLines = 50;
+  
+  // Memoize truncated output
+  const displayOutput = useMemo(() => {
+    if (!isLargeOutput || showFullOutput) return outputText;
+    
+    const lines = outputText.split('\n');
+    if (lines.length <= maxLines) return outputText;
+    
+    return lines.slice(0, maxLines).join('\n') + '\n... (truncated)';
+  }, [outputText, isLargeOutput, showFullOutput, maxLines]);
 
   // Custom styles for syntax highlighter
   const customStyle = {
@@ -31,14 +72,10 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   };
 
   const handleCopyOutput = async () => {
-    if (!toolCall.output) return;
-    
-    const textToCopy = typeof toolCall.output === 'string'
-      ? toolCall.output
-      : toolCall.output.output || JSON.stringify(toolCall.output, null, 2);
+    if (!outputText) return;
     
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      await navigator.clipboard.writeText(outputText);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
@@ -87,7 +124,7 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
       {isOpen && (
         <div className="bg-gray-100 dark:bg-transparent">
           {/* Parameters section */}
-          {toolCall.arguments && (
+          {formattedArguments && (
             <div className="p-2 space-y-1">
               <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
                 Parameters
@@ -105,7 +142,7 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
                     }
                   }}
                 >
-                  {JSON.stringify(JSON.parse(toolCall.arguments), null, 2)}
+                  {formattedArguments}
                 </SyntaxHighlighter>
               </div>
             </div>
@@ -116,19 +153,34 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
             <div className="p-2 pt-0 space-y-1">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
-                  Output
-                </h4>
-                <button
-                  onClick={handleCopyOutput}
-                  className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors"
-                  title="Copy output"
-                >
-                  {isCopied ? (
-                    <Check className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <Copy className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                  Output {isLargeOutput && (
+                    <span className="text-xs text-gray-400">
+                      ({outputText.split('\n').length} lines)
+                    </span>
                   )}
-                </button>
+                </h4>
+                <div className="flex items-center gap-1">
+                  {isLargeOutput && (
+                    <button
+                      onClick={() => setShowFullOutput(!showFullOutput)}
+                      className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors text-xs"
+                      title={showFullOutput ? "Show less" : "Show more"}
+                    >
+                      {showFullOutput ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleCopyOutput}
+                    className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors"
+                    title="Copy output"
+                  >
+                    {isCopied ? (
+                      <Check className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <Copy className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
                 <SyntaxHighlighter
@@ -143,10 +195,7 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
                     }
                   }}
                 >
-                  {typeof toolCall.output === 'string'
-                    ? toolCall.output
-                    : toolCall.output.output || JSON.stringify(toolCall.output, null, 2)
-                  }
+                  {displayOutput}
                 </SyntaxHighlighter>
               </div>
             </div>
@@ -157,4 +206,13 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   );
 };
 
-export default ToolCallAccordion;
+// Memoize the component to prevent unnecessary re-renders
+export default React.memo(ToolCallAccordion, (prevProps, nextProps) => {
+  return (
+    prevProps.toolCall.tool === nextProps.toolCall.tool &&
+    prevProps.toolCall.name === nextProps.toolCall.name &&
+    prevProps.toolCall.arguments === nextProps.toolCall.arguments &&
+    prevProps.toolCall.output === nextProps.toolCall.output &&
+    prevProps.toolCall.isPending === nextProps.toolCall.isPending
+  );
+});
