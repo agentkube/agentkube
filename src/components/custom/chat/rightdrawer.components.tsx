@@ -634,9 +634,9 @@ const RightDrawer: React.FC = () => {
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                         onFocus={handleInputFocus}
                         onBlur={handleInputBlur}
-                        onSubmit={handleSubmit}
-                        placeholder="Ask anything (⌘L)"
-                        disabled={isLoading}
+                        onSubmit={isLoading ? undefined : handleSubmit}
+                        placeholder={isLoading ? "Waiting for response..." : "Ask anything (⌘L)"}
+                        disabled={false}
                         className="dark:border-transparent"
                         autoFocus={true}
                         mentionItems={mentionData}
