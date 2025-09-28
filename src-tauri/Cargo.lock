@@ -23,6 +23,7 @@ version = "0.1.0"
 dependencies = [
  "core-foundation 0.9.4",
  "dirs 5.0.1",
+ "libc",
  "log",
  "reqwest 0.12.15",
  "serde",
@@ -44,6 +45,7 @@ dependencies = [
  "tauri-plugin-websocket",
  "tokio",
  "url",
+ "windows-sys 0.52.0",
  "zbus",
 ]
 

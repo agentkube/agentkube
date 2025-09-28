@@ -1,12 +1,59 @@
 use tauri::{RunEvent, Manager};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::process::Command;
 
 mod network_monitor;
 mod network_commands;
 
 use network_monitor::NetworkMonitor;
 use network_commands::{NetworkMonitorState, get_network_status, start_network_monitoring};
+
+#[cfg(windows)]
+fn kill_process_by_port_enhanced(port: u16) {
+    log::info!("Attempting to kill process using port {} (enhanced)", port);
+
+    let netstat_output = Command::new("netstat")
+        .args(["-ano"])
+        .output();
+
+    if let Ok(output) = netstat_output {
+        let output_str = String::from_utf8_lossy(&output.stdout);
+
+        for line in output_str.lines() {
+            if line.contains(&format!(":{}", port)) && line.contains("LISTENING") {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if let Some(pid_str) = parts.last() {
+                    if let Ok(pid) = pid_str.parse::<u32>() {
+                        log::info!("Found process using port {}: PID {}", port, pid);
+
+                        // Try taskkill with force flag
+                        let result = Command::new("taskkill")
+                            .args(["/F", "/PID", &pid.to_string()])
+                            .output();
+
+                        match result {
+                            Ok(output) => {
+                                if output.status.success() {
+                                    log::info!("Successfully killed process PID {} on port {}", pid, port);
+                                } else {
+                                    log::error!("Failed to kill process PID {} on port {}: {}",
+                                               pid, port, String::from_utf8_lossy(&output.stderr));
+                                }
+                            }
+                            Err(e) => {
+                                log::error!("Error executing taskkill for PID {} on port {}: {}", pid, port, e);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        log::error!("Failed to execute netstat command");
+    }
+}
 
 // Initialization state for splashscreen
 #[derive(Default)]
@@ -127,29 +174,27 @@ pub fn run() {
             },
             RunEvent::Exit => {
                 log::info!("App is exiting...");
-                
+
                 // Kill processes running on ports 4688 and 4689
                 #[cfg(target_os = "windows")]
                 {
-                    let _ = std::process::Command::new("cmd")
-                        .args(["/C", "for /f \"tokens=5\" %a in ('netstat -aon ^| find \":4688\"') do taskkill /F /PID %a"])
-                        .output();
-                    let _ = std::process::Command::new("cmd")
-                        .args(["/C", "for /f \"tokens=5\" %a in ('netstat -aon ^| find \":4689\"') do taskkill /F /PID %a"])
-                        .output();
+                    log::info!("Starting Windows process cleanup...");
+                    kill_process_by_port_enhanced(4688); // operator
+                    kill_process_by_port_enhanced(4689); // orchestrator
                 }
-                
+
                 #[cfg(any(target_os = "linux", target_os = "macos"))]
                 {
-                    let _ = std::process::Command::new("sh")
+                    log::info!("Starting Unix process cleanup...");
+                    let _ = Command::new("sh")
                         .args(["-c", "lsof -ti:4688 | xargs -r kill -9"])
                         .output();
-                    let _ = std::process::Command::new("sh")
+                    let _ = Command::new("sh")
                         .args(["-c", "lsof -ti:4689 | xargs -r kill -9"])
                         .output();
                 }
-                
-                log::info!("Killed processes on ports 4688 and 4689");
+
+                log::info!("Process cleanup completed");
             },
             _ => {}
         });
