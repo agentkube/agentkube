@@ -211,4 +211,11 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
   );
 };
 
-export default AssistantMessage;
+// Memoize the component to prevent unnecessary re-renders
+export default React.memo(AssistantMessage, (prevProps, nextProps) => {
+  return (
+    prevProps.content === nextProps.content &&
+    prevProps.toolCalls === nextProps.toolCalls &&
+    prevProps.userMessage === nextProps.userMessage
+  );
+});

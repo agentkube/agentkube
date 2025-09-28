@@ -87,4 +87,10 @@ const UserMessage: React.FC<UserMessageProps> = ({ content, contextFiles = [] })
   );
 };
 
-export default UserMessage;
+// Memoize the component to prevent unnecessary re-renders
+export default React.memo(UserMessage, (prevProps, nextProps) => {
+  return (
+    prevProps.content === nextProps.content &&
+    prevProps.contextFiles === nextProps.contextFiles
+  );
+});

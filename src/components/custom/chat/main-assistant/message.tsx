@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { Hand, Search, Sparkle, Sparkles } from "lucide-react";
 import UserMessage from './user-message.rightdrawer';
 import AssistantMessage from './assistant-message.rightdrawer';
@@ -40,11 +40,32 @@ const Messages: React.FC<MessagesProps> = ({
   onRetry
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Scroll to bottom whenever messages change
+  // Debounced scroll to bottom function to prevent DOM thrashing
+  const debouncedScrollToBottom = useCallback(() => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, []);
+
+  // Only scroll when messages length changes or loading state changes, not on every content update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, currentResponse, currentToolCalls]);
+    debouncedScrollToBottom();
+  }, [messages.length, isLoading, debouncedScrollToBottom]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Helper function to find the preceding user message for an assistant message
   const findUserMessageForAssistant = (assistantIndex: number): string | undefined => {
