@@ -222,21 +222,15 @@ export const ScanProvider: React.FC<ScanProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Auto-fetch images when cluster context changes
+  // Clear scan data when cluster context changes (but don't auto-fetch)
   useEffect(() => {
     if (currentContext) {
-      fetchClusterImages();
       // Clear previous scan results when switching clusters
+      setClusterImages([]);
       setScanResults([]);
+      setError(null);
     }
-  }, [currentContext, fetchClusterImages]);
-
-  // Auto-scan images when they are fetched (only once)
-  useEffect(() => {
-    if (clusterImages.length > 0 && !scanning && scanResults.length === 0) {
-      scanClusterImages();
-    }
-  }, [clusterImages, scanClusterImages, scanning, scanResults.length]);
+  }, [currentContext]);
 
   const value = {
     clusterImages,

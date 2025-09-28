@@ -26,6 +26,7 @@ import { ModalProvider } from '@/components/ui/animatedmodal';
 import NotificationDropdown from '../notificationdropdown/notificationdropdown.component';
 import { useBackgroundTask } from '@/contexts/useBackgroundTask';
 import BackgroundTaskDialog from '../backgroundtaskdialog/backgroundtaskdialog.component';
+import VulnScanFooterTool from '../vulnscanfootertool/vulnscanfootertool.component';
 
 // Define types for Update object
 interface UpdateInfo {
@@ -206,6 +207,8 @@ const Footer: React.FC = () => {
           <button className="text-gray-600 backdrop-blur-md px-2 py-1 hover:bg-gray-200/10 hover:dark:bg-gray-200/10">
             v{currentVersion}
           </button>
+
+          <VulnScanFooterTool className="py-1.5" />
 
           <button
             onClick={() => openExternalUrl("https://docs.agentkube.com/changelog")}
