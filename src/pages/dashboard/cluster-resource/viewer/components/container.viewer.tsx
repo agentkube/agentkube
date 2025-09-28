@@ -382,7 +382,8 @@ const ContainersViewer: React.FC<ContainersViewerProps> = ({
     
     // Generate docker pull command
     const getPullCommand = (image: string) => {
-      return `docker pull ${image}`;
+      // return `docker pull ${image}`;
+      return `${image}`;
     };
     
     const copyToClipboard = (text: string) => {

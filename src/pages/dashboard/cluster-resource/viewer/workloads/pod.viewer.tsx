@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, Terminal, Trash, BadgeCheck } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, Terminal, Trash, BadgeCheck, Image } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -26,6 +26,7 @@ import EventsViewer from '../components/event.viewer';
 import ContainerLogs from '../components/containerlogs.viewer';
 import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import PodMetricsComponent from '@/components/custom/metrics/pod-metrics.component';
+import ImageVulnDrawer from '@/components/custom/imagevulndrawer/imagevulndrawer.component';
 import { runExternalShell } from '@/api/external';
 import { useSearchParams } from 'react-router-dom';
 
@@ -48,6 +49,7 @@ const PodViewer: React.FC = () => {
   const defaultTab = tabParam || 'overview';
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showImageVulnDrawer, setShowImageVulnDrawer] = useState(false);
 
   // Fetch events for the pod
   const fetchEvents = async () => {
@@ -173,6 +175,10 @@ const PodViewer: React.FC = () => {
       console.error('Error opening shell:', err);
       setError(err instanceof Error ? err.message : 'Failed to open shell');
     }
+  };
+
+  const handleOpenImageVuln = () => {
+    setShowImageVulnDrawer(true);
   };
 
   // Handle refresh data
@@ -353,6 +359,9 @@ const PodViewer: React.FC = () => {
               <Button variant="outline" size="sm" onClick={handleOpenShell}>
                 <Terminal className="h-4 w-4" />
               </Button>
+              <Button variant="outline" size="sm" onClick={handleOpenImageVuln}>
+                <Image className="h-4 w-4" />
+              </Button>
               <Button variant="outline" size="sm" onClick={handleRefresh}>
                 Refresh
               </Button>
@@ -524,6 +533,13 @@ const PodViewer: React.FC = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Image Vulnerability Drawer */}
+        <ImageVulnDrawer
+          isOpen={showImageVulnDrawer}
+          onClose={() => setShowImageVulnDrawer(false)}
+          podData={podData}
+        />
       </div>
     </div>
   );

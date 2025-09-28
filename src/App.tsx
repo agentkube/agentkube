@@ -93,6 +93,7 @@ import { AuthProvider } from "./contexts/useAuth";
 import { ModelsProvider } from "./contexts/useModel";
 import { AnalyticsProvider } from "./contexts/useAnalytics";
 import { ReconModeProvider } from "./contexts/useRecon";
+import { ScanProvider } from "./contexts/useScan";
 
 function App() {
   return (
@@ -101,8 +102,9 @@ function App() {
         <AnalyticsProvider>
           <ModelsProvider>
             <ClusterProvider>
-              <ReconModeProvider>
-                <DrawerProvider>
+              <ScanProvider>
+                <ReconModeProvider>
+                  <DrawerProvider>
                   <NamespaceProvider>
 
                   <div className="h-screen overflow-clip">
@@ -283,8 +285,9 @@ function App() {
                   </div>
                   {/* <TailwindIndicator /> */}
                   </NamespaceProvider>
-                </DrawerProvider>
-              </ReconModeProvider>
+                  </DrawerProvider>
+                </ReconModeProvider>
+              </ScanProvider>
             </ClusterProvider>
           </ModelsProvider>
         </AnalyticsProvider>
