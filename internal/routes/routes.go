@@ -224,6 +224,7 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			}
 
 			// Cluster-specific vulnerability scanning routes
+			v1.GET("/cluster/:clusterName/images", vulHandler.GetClusterImages)
 			v1.POST("/cluster/:clusterName/vulnerability/scan", vulHandler.TriggerClusterImageScan)
 		}
 

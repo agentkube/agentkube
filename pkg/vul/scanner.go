@@ -12,24 +12,34 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/installation"
-	"github.com/anchore/grype/grype/distro"
+	v6dist "github.com/anchore/grype/grype/db/v6/distribution"
+	v6inst "github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
-	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/cataloging"
 )
 
 const (
 	imgScanTimeout = 5 * time.Minute
+	wontFix        = "(won't fix)"
+	naValue        = "N/A"
 )
 
+// Global scanner instance
 var ImgScanner *imageScanner
 
+// ImageScans configuration similar to K9s
 type ImageScans struct {
 	Enable     bool       `json:"enable"`
 	Exclusions Exclusions `json:"exclusions"`
@@ -40,14 +50,16 @@ type Exclusions struct {
 	Labels     map[string][]string `json:"labels"`
 }
 
+// imageScanner follows K9s architecture
 type imageScanner struct {
-	mx           sync.RWMutex
+	vulnProvider vulnerability.Provider
+	dbStatus     *vulnerability.ProviderStatus
+	opts         *options.Grype
 	scans        Scans
+	mx           sync.RWMutex
+	initialized  bool
 	config       ImageScans
 	log          *slog.Logger
-	opts         *options.Grype
-	vulnProvider vulnerability.Provider
-	initialized  bool
 }
 
 type Scans map[string]*Scan
@@ -59,10 +71,16 @@ type Scan struct {
 }
 
 type table struct {
-	Rows []row
+	Rows     []row
+	Metadata []rowMetadata
 }
 
 type row []string
+
+type rowMetadata struct {
+	Match        *match.Match
+	VulnMetadata *vulnerability.Metadata
+}
 
 type tally struct {
 	Critical int
@@ -73,6 +91,7 @@ type tally struct {
 	Total    int
 }
 
+// NewImageScanner creates a new image scanner like K9s
 func NewImageScanner(cfg ImageScans, l *slog.Logger) *imageScanner {
 	return &imageScanner{
 		scans:  make(Scans),
@@ -81,6 +100,7 @@ func NewImageScanner(cfg ImageScans, l *slog.Logger) *imageScanner {
 	}
 }
 
+// Init initializes the scanner exactly like K9s does
 func (s *imageScanner) Init(name, version string) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
@@ -89,21 +109,22 @@ func (s *imageScanner) Init(name, version string) {
 	s.opts = options.DefaultGrype(id)
 	s.opts.GenerateMissingCPEs = true
 
-	// Load vulnerability database with proper configuration
-	distConfig := distribution.Config{
-		// Use default update URL if none specified
-	}
-
-	instConfig := installation.Config{
-		DBRootDir:        s.opts.DB.Dir, // Use the configured DB directory
-		ValidateChecksum: s.opts.DB.ValidateByHashOnStart,
-		ValidateAge:      s.opts.DB.ValidateAge,
-	}
-
 	var err error
-	s.vulnProvider, _, err = grype.LoadVulnerabilityDB(
-		distConfig,
-		instConfig,
+	s.vulnProvider, s.dbStatus, err = grype.LoadVulnerabilityDB(
+		v6dist.Config{
+			ID:                 id,
+			LatestURL:          s.opts.DB.UpdateURL,
+			CACert:             s.opts.DB.CACert,
+			RequireUpdateCheck: s.opts.DB.RequireUpdateCheck,
+			CheckTimeout:       s.opts.DB.UpdateAvailableTimeout,
+			UpdateTimeout:      s.opts.DB.UpdateDownloadTimeout,
+		},
+		v6inst.Config{
+			DBRootDir:               s.opts.DB.Dir,
+			ValidateAge:             s.opts.DB.ValidateAge,
+			MaxAllowedBuiltAge:      s.opts.DB.MaxAllowedBuiltAge,
+			UpdateCheckMaxFrequency: s.opts.DB.MaxUpdateCheckFrequency,
+		},
 		s.opts.DB.AutoUpdate,
 	)
 	if err != nil {
@@ -111,8 +132,37 @@ func (s *imageScanner) Init(name, version string) {
 		return
 	}
 
+	if e := validateDBLoad(err, s.dbStatus); e != nil {
+		s.log.Error("VulDb validate failed", "error", e)
+		return
+	}
+
 	s.initialized = true
-	s.log.Info("Vulnerability scanner initialized")
+	s.log.Info("Vulnerability scanner initialized successfully")
+}
+
+// Stop closes scan database like K9s
+func (s *imageScanner) Stop() {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	if s.vulnProvider != nil {
+		s.vulnProvider = nil
+	}
+}
+
+// validateDBLoad validates database load like K9s
+func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {
+	if loadErr != nil {
+		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
+	}
+	if status == nil {
+		return fmt.Errorf("unable to determine the status of the vulnerability db")
+	}
+	if status.Error != nil {
+		return fmt.Errorf("db could not be loaded: %w", status.Error)
+	}
+	return nil
 }
 
 func (s *imageScanner) GetScan(img string) (*Scan, bool) {
@@ -142,6 +192,7 @@ func (s *imageScanner) isInitialized() bool {
 	return s.initialized
 }
 
+// Enqueue images for scanning like K9s
 func (s *imageScanner) Enqueue(ctx context.Context, images ...string) {
 	if !s.isInitialized() {
 		return
@@ -157,72 +208,140 @@ func (s *imageScanner) Enqueue(ctx context.Context, images ...string) {
 	}
 }
 
+// scanWorker processes individual image scans like K9s
 func (s *imageScanner) scanWorker(ctx context.Context, img string) {
 	defer s.log.Debug("ScanWorker bailing out!")
 
-	s.log.Debug("ScanWorker processing image", "image", img)
+	s.log.Info("ScanWorker processing image", "image", img)
 	sc := newScan(img)
 	s.setScan(img, sc)
 	if err := s.scan(ctx, img, sc); err != nil {
-		s.log.Warn("Scan failed for image",
+		s.log.Error("Scan failed for image",
 			"image", img,
 			"error", err,
 		)
+	} else {
+		s.log.Info("Scan completed successfully", "image", img)
 	}
 }
 
-func (s *imageScanner) scan(ctx context.Context, img string, sc *Scan) error {
+// scan performs the actual vulnerability scanning like K9s
+func (s *imageScanner) scan(_ context.Context, img string, sc *Scan) error {
+	defer func(t time.Time) {
+		s.log.Debug("[Vulscan] perf",
+			"image", img,
+			"elapsed", time.Since(t),
+		)
+	}(time.Now())
+
+	s.log.Info("Starting vulnerability scan", "image", img)
+
 	var errs error
-
-	// Create source from image
-	src, err := syft.GetSource(ctx, img, syft.DefaultGetSourceConfig())
+	packages, pkgContext, _, err := pkg.Provide(img, getProviderConfig(s.opts))
 	if err != nil {
-		errs = errors.Join(errs, fmt.Errorf("failed to get source for %s: %w", img, err))
+		s.log.Error("Failed to catalog packages", "image", img, "error", err)
+		errs = errors.Join(errs, fmt.Errorf("failed to catalog %s: %w", img, err))
 		return errs
 	}
 
-	// Create SBOM
-	config := syft.DefaultCreateSBOMConfig().WithCatalogerSelection(
-		pkgcataloging.NewSelectionRequest().WithDefaults("all"),
-	)
-	config.Search.Scope = source.SquashedScope
-	sbomResult, err := syft.CreateSBOM(ctx, src, config)
-	if err != nil {
-		errs = errors.Join(errs, fmt.Errorf("failed to create SBOM for %s: %w", img, err))
-		return errs
-	}
+	s.log.Info("Cataloged packages", "image", img, "packages", len(packages))
 
-	// Convert packages for Grype
-	packages := pkg.FromCollection(sbomResult.Artifacts.Packages, pkg.SynthesisConfig{
-		Distro: pkg.DistroConfig{
-			Override: distro.FromRelease(sbomResult.Artifacts.LinuxDistribution, distro.DefaultFixChannels()),
-		},
+	vexProcessor, err := vex.NewProcessor(vex.ProcessorOptions{
+		Documents:   s.opts.VexDocuments,
+		IgnoreRules: s.opts.Ignore,
 	})
+	if err != nil {
+		errs = errors.Join(errs, fmt.Errorf("failed to create vex processor: %w", err))
+	}
 
-	// Initialize matchers
-	matchers := matcher.NewDefaultMatchers(matcher.Config{})
+	v := grype.VulnerabilityMatcher{
+		VulnerabilityProvider: s.vulnProvider,
+		IgnoreRules:           s.opts.Ignore,
+		NormalizeByCVE:        s.opts.ByCVE,
+		FailSeverity:          s.opts.FailOnSeverity(),
+		Matchers:              getMatchers(s.opts),
+		VexProcessor:          vexProcessor,
+	}
 
-	// Find vulnerabilities using the correct API
-	mm := grype.FindVulnerabilitiesForPackage(s.vulnProvider, matchers, packages)
-
-	if err := sc.run(&mm, s.vulnProvider); err != nil {
+	mm, _, err := v.FindMatches(packages, pkgContext)
+	if err != nil {
+		s.log.Error("Failed to find vulnerability matches", "image", img, "error", err)
 		errs = errors.Join(errs, err)
 	}
+
+	s.log.Info("Found vulnerability matches", "image", img, "matches", mm.Count())
+
+	if err := sc.run(mm, s.vulnProvider); err != nil {
+		s.log.Error("Failed to process scan results", "image", img, "error", err)
+		errs = errors.Join(errs, err)
+	}
+
+	s.log.Info("Vulnerability scan completed", "image", img, "vulnerabilities", sc.Tally.Total)
 
 	return errs
 }
 
+// getProviderConfig creates provider config like K9s
+func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
+	// Create default SBOM configuration like K9s does
+	cfg := syft.DefaultCreateSBOMConfig()
+	cfg.Packages.JavaArchive.IncludeIndexedArchives = opts.Search.IncludeIndexedArchives
+	cfg.Packages.JavaArchive.IncludeUnindexedArchives = opts.Search.IncludeUnindexedArchives
+
+	// Handle packages with missing version information
+	cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
+
+	return pkg.ProviderConfig{
+		SyftProviderConfig: pkg.SyftProviderConfig{
+			SBOMOptions:            cfg,
+			RegistryOptions:        opts.Registry.ToOptions(),
+			Platform:               opts.Platform,
+			Name:                   opts.Name,
+			DefaultImagePullSource: opts.DefaultImagePullSource,
+			Exclusions:             opts.Exclusions,
+		},
+		SynthesisConfig: pkg.SynthesisConfig{
+			GenerateMissingCPEs: opts.GenerateMissingCPEs,
+		},
+	}
+}
+
+// getMatchers creates matchers like K9s
+func getMatchers(opts *options.Grype) []match.Matcher {
+	return matcher.NewDefaultMatchers(
+		matcher.Config{
+			Java: java.MatcherConfig{
+				ExternalSearchConfig: opts.ExternalSources.ToJavaMatcherConfig(),
+				UseCPEs:              opts.Match.Java.UseCPEs,
+			},
+			Ruby:       ruby.MatcherConfig(opts.Match.Ruby),
+			Python:     python.MatcherConfig(opts.Match.Python),
+			Dotnet:     dotnet.MatcherConfig(opts.Match.Dotnet),
+			Javascript: javascript.MatcherConfig(opts.Match.Javascript),
+			Golang: golang.MatcherConfig{
+				UseCPEs:               opts.Match.Golang.UseCPEs,
+				AlwaysUseCPEForStdlib: opts.Match.Golang.AlwaysUseCPEForStdlib,
+			},
+			Stock: stock.MatcherConfig(opts.Match.Stock),
+		},
+	)
+}
+
 func newScan(id string) *Scan {
 	return &Scan{
-		ID:    id,
-		Table: &table{Rows: make([]row, 0)},
+		ID: id,
+		Table: &table{
+			Rows:     make([]row, 0),
+			Metadata: make([]rowMetadata, 0),
+		},
 		Tally: tally{},
 	}
 }
 
-func (s *Scan) run(mm *match.Matches, store vulnerability.MetadataProvider) error {
+// run processes scan results like K9s
+func (s *Scan) run(mm *match.Matches, vulnProvider vulnerability.Provider) error {
 	for m := range mm.Enumerate() {
-		meta, err := store.VulnerabilityMetadata(vulnerability.Reference{ID: m.Vulnerability.ID, Namespace: m.Vulnerability.Namespace})
+		meta, err := vulnProvider.VulnerabilityMetadata(vulnerability.Reference{ID: m.Vulnerability.ID, Namespace: m.Vulnerability.Namespace})
 		if err != nil {
 			return err
 		}
@@ -230,17 +349,16 @@ func (s *Scan) run(mm *match.Matches, store vulnerability.MetadataProvider) erro
 		if meta != nil {
 			severity = meta.Severity
 		}
-		fixVersion := "N/A"
-		if len(m.Vulnerability.Fix.Versions) > 0 {
-			fixVersion = strings.Join(m.Vulnerability.Fix.Versions, ", ")
-		}
+		fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
 		switch m.Vulnerability.Fix.State {
-		case "wont-fix":
-			fixVersion = "Won't Fix"
-		case "unknown":
-			fixVersion = "N/A"
+		case vulnerability.FixStateWontFix:
+			fixVersion = wontFix
+		case vulnerability.FixStateUnknown:
+			fixVersion = naValue
 		}
-		s.Table.addRow(newRow(m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity))
+
+		// Store enhanced row with metadata
+		s.Table.addRowWithMetadata(&m, meta, fixVersion, severity)
 	}
 	s.Table.dedup()
 	s.Tally = newTally(s.Table)
@@ -248,8 +366,17 @@ func (s *Scan) run(mm *match.Matches, store vulnerability.MetadataProvider) erro
 	return nil
 }
 
-func (t *table) addRow(r row) {
+// func (t *table) addRow(r row) {
+// 	t.Rows = append(t.Rows, r)
+// }
+
+func (t *table) addRowWithMetadata(m *match.Match, meta *vulnerability.Metadata, fixVersion, severity string) {
+	r := newRow(m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity)
 	t.Rows = append(t.Rows, r)
+	t.Metadata = append(t.Metadata, rowMetadata{
+		Match:        m,
+		VulnMetadata: meta,
+	})
 }
 
 func (t *table) dedup() {
@@ -352,4 +479,16 @@ func (cfg ImageScans) ShouldExclude(ns string, lbls map[string]string) bool {
 	}
 
 	return false
+}
+
+// ImageInfo represents container image information
+type ImageInfo struct {
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace"`
+	PodName     string            `json:"podName"`
+	Container   string            `json:"container"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	Image       string            `json:"image"`
+	ImageID     string            `json:"imageId"`
 }

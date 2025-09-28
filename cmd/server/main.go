@@ -185,6 +185,11 @@ func main() {
 		controller.Stop()
 	}
 
+	// Stop vulnerability scanner if initialized
+	if vul.ImgScanner != nil {
+		vul.ImgScanner.Stop()
+	}
+
 	// Shutdown HTTP server with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

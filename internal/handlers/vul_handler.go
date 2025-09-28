@@ -9,6 +9,8 @@ import (
 	"github.com/agentkube/operator/pkg/logger"
 	"github.com/agentkube/operator/pkg/vul"
 	"github.com/gin-gonic/gin"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type VulnerabilityHandler struct {
@@ -76,15 +78,13 @@ func (h *VulnerabilityHandler) ScanImages(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Enqueue images for scanning
+	// Enqueue images for scanning (non-blocking)
 	vul.ImgScanner.Enqueue(ctx, req.Images...)
-
-	// Wait briefly for scans to complete or return accepting status
-	time.Sleep(2 * time.Second)
 
 	var results []ScanResult
 	var errors []string
 
+	// Immediately check current scan status without waiting
 	for _, img := range req.Images {
 		scan, found := vul.ImgScanner.GetScan(img)
 		if found && scan != nil {
@@ -104,11 +104,11 @@ func (h *VulnerabilityHandler) ScanImages(c *gin.Context) {
 			}
 			results = append(results, result)
 		} else {
-			// Scan might still be in progress
+			// Scan is queued/in progress
 			result := ScanResult{
 				Image:    img,
 				ScanTime: time.Now().Format(time.RFC3339),
-				Status:   "in_progress",
+				Status:   "queued",
 			}
 			results = append(results, result)
 		}
@@ -137,7 +137,11 @@ func (h *VulnerabilityHandler) GetImageScanResults(c *gin.Context) {
 
 	scan, found := vul.ImgScanner.GetScan(image)
 	if !found {
-		c.JSON(http.StatusNotFound, gin.H{"error": "scan results not found for image"})
+		c.JSON(http.StatusOK, ScanResult{
+			Image:    image,
+			ScanTime: time.Now().Format(time.RFC3339),
+			Status:   "not_found",
+		})
 		return
 	}
 
@@ -176,6 +180,52 @@ func (h *VulnerabilityHandler) ListAllScanResults(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"results": results,
 		"total":   len(results),
+	})
+}
+
+
+// GetClusterImages discovers and returns all container images in a cluster
+func (h *VulnerabilityHandler) GetClusterImages(c *gin.Context) {
+	clusterName := c.Param("clusterName")
+	if clusterName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cluster name is required"})
+		return
+	}
+
+	// Optional filters
+	namespace := c.Query("namespace")
+
+	// Validate cluster access
+	kubeContext, err := h.kubeConfigStore.GetContext(clusterName)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"cluster": clusterName}, err, "getting kubeconfig context")
+		c.JSON(http.StatusNotFound, gin.H{"error": "cluster not found or inaccessible"})
+		return
+	}
+
+	// Create kubernetes client
+	clientset, err := kubeContext.ClientSetWithToken("")
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"cluster": clusterName}, err, "creating kubernetes client")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create kubernetes client"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	images, err := h.discoverClusterImages(ctx, clientset, namespace)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"cluster": clusterName, "namespace": namespace}, err, "discovering cluster images")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to discover cluster images"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"cluster":   clusterName,
+		"namespace": namespace,
+		"images":    images,
+		"count":     len(images),
 	})
 }
 
@@ -238,12 +288,34 @@ type ScanResult struct {
 }
 
 type Vulnerability struct {
-	ID          string `json:"id"`
-	Severity    string `json:"severity"`
-	PackageName string `json:"packageName"`
-	Version     string `json:"version"`
-	FixVersion  string `json:"fixVersion"`
-	PackageType string `json:"packageType"`
+	ID                     string                   `json:"id"`
+	Severity               string                   `json:"severity"`
+	PackageName            string                   `json:"packageName"`
+	Version                string                   `json:"version"`
+	FixVersion             string                   `json:"fixVersion"`
+	PackageType            string                   `json:"packageType"`
+	DataSource             string                   `json:"dataSource,omitempty"`
+	Description            string                   `json:"description,omitempty"`
+	PublishedDate          string                   `json:"publishedDate,omitempty"`
+	LastModifiedDate       string                   `json:"lastModifiedDate,omitempty"`
+	CVSSScore              *float64                 `json:"cvssScore,omitempty"`
+	CVSSVector             string                   `json:"cvssVector,omitempty"`
+	CWEIDs                 []string                 `json:"cweIds,omitempty"`
+	Namespace              string                   `json:"namespace,omitempty"`
+	PURL                   string                   `json:"purl,omitempty"`
+	URLs                   []string                 `json:"urls,omitempty"`
+	Locations              []VulnerabilityLocation  `json:"locations,omitempty"`
+	RelatedVulnerabilities []RelatedVulnerability   `json:"relatedVulnerabilities,omitempty"`
+}
+
+type VulnerabilityLocation struct {
+	Path    string `json:"path"`
+	LayerID string `json:"layerID,omitempty"`
+}
+
+type RelatedVulnerability struct {
+	ID        string `json:"id"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 type Summary struct {
@@ -258,18 +330,158 @@ type Summary struct {
 func convertVulnerabilities(scan *vul.Scan) []Vulnerability {
 	var vulns []Vulnerability
 
-	for _, row := range scan.Table.Rows {
+	for i, row := range scan.Table.Rows {
 		if len(row) >= 6 {
-			vulns = append(vulns, Vulnerability{
+			vuln := Vulnerability{
 				ID:          row.Vulnerability(),
 				Severity:    row.Severity(),
 				PackageName: row.Name(),
 				Version:     row.Version(),
 				FixVersion:  row.Fix(),
 				PackageType: row.Type(),
-			})
+			}
+
+			// Add enhanced metadata if available
+			if i < len(scan.Table.Metadata) {
+				meta := scan.Table.Metadata[i]
+				if meta.VulnMetadata != nil {
+					vuln.DataSource = meta.VulnMetadata.DataSource
+					vuln.Description = meta.VulnMetadata.Description
+					vuln.Namespace = meta.VulnMetadata.Namespace
+					vuln.URLs = meta.VulnMetadata.URLs
+					
+					// Add CVSS information
+					if len(meta.VulnMetadata.Cvss) > 0 {
+						// Get the first (typically highest priority) CVSS score
+						for _, cvss := range meta.VulnMetadata.Cvss {
+							if cvss.Metrics.BaseScore > 0 {
+								score := cvss.Metrics.BaseScore
+								vuln.CVSSScore = &score
+								vuln.CVSSVector = cvss.Vector
+								break
+							}
+						}
+					}
+					
+					// Add CISA KEV date if available
+					if len(meta.VulnMetadata.KnownExploited) > 0 && meta.VulnMetadata.KnownExploited[0].DateAdded != nil {
+						vuln.PublishedDate = meta.VulnMetadata.KnownExploited[0].DateAdded.Format("2006-01-02T15:04:05Z")
+					}
+					
+					// Add EPSS date if available  
+					if len(meta.VulnMetadata.EPSS) > 0 {
+						vuln.LastModifiedDate = meta.VulnMetadata.EPSS[0].Date.Format("2006-01-02T15:04:05Z")
+					}
+				}
+
+				if meta.Match != nil {
+					// Add package URL if available
+					if meta.Match.Package.PURL != "" {
+						vuln.PURL = meta.Match.Package.PURL
+					}
+
+					// Add locations
+					for _, location := range meta.Match.Package.Locations.ToSlice() {
+						vuln.Locations = append(vuln.Locations, VulnerabilityLocation{
+							Path:    location.RealPath,
+							LayerID: "", // LayerID not directly available in file.Location
+						})
+					}
+
+					// Add related vulnerabilities
+					for _, related := range meta.Match.Vulnerability.RelatedVulnerabilities {
+						vuln.RelatedVulnerabilities = append(vuln.RelatedVulnerabilities, RelatedVulnerability{
+							ID:        related.ID,
+							Namespace: related.Namespace,
+						})
+					}
+				}
+			}
+
+			vulns = append(vulns, vuln)
 		}
 	}
 
 	return vulns
+}
+
+// discoverClusterImages discovers all container images in cluster pods
+func (h *VulnerabilityHandler) discoverClusterImages(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]vul.ImageInfo, error) {
+	var images []vul.ImageInfo
+	imageMap := make(map[string]vul.ImageInfo) // To avoid duplicates
+
+	// Get pods from all namespaces or specific namespace
+	listOptions := metav1.ListOptions{}
+
+	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range pods.Items {
+		// Process init containers
+		for _, container := range pod.Spec.InitContainers {
+			imageInfo := vul.ImageInfo{
+				Name:        container.Name,
+				Namespace:   pod.Namespace,
+				PodName:     pod.Name,
+				Container:   container.Name,
+				Labels:      pod.Labels,
+				Annotations: pod.Annotations,
+				Image:       container.Image,
+				ImageID:     "", // Will be populated from status if available
+			}
+
+			// Use image as unique key to avoid duplicates
+			imageMap[container.Image] = imageInfo
+		}
+
+		// Process regular containers
+		for _, container := range pod.Spec.Containers {
+			imageInfo := vul.ImageInfo{
+				Name:        container.Name,
+				Namespace:   pod.Namespace,
+				PodName:     pod.Name,
+				Container:   container.Name,
+				Labels:      pod.Labels,
+				Annotations: pod.Annotations,
+				Image:       container.Image,
+				ImageID:     "", // Will be populated from status if available
+			}
+
+			// Use image as unique key to avoid duplicates
+			imageMap[container.Image] = imageInfo
+		}
+
+		// Update with actual image IDs from pod status
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			for imageKey, imageInfo := range imageMap {
+				if imageInfo.Container == containerStatus.Name &&
+					imageInfo.PodName == pod.Name &&
+					imageInfo.Namespace == pod.Namespace {
+					imageInfo.ImageID = containerStatus.ImageID
+					imageMap[imageKey] = imageInfo
+				}
+			}
+		}
+
+		// Update with actual image IDs from init container status
+		for _, containerStatus := range pod.Status.InitContainerStatuses {
+			for imageKey, imageInfo := range imageMap {
+				if imageInfo.Container == containerStatus.Name &&
+					imageInfo.PodName == pod.Name &&
+					imageInfo.Namespace == pod.Namespace {
+					imageInfo.ImageID = containerStatus.ImageID
+					imageMap[imageKey] = imageInfo
+				}
+			}
+		}
+	}
+
+	// Convert map to slice
+	for _, imageInfo := range imageMap {
+		images = append(images, imageInfo)
+	}
+
+	return images, nil
 }

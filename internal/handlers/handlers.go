@@ -717,16 +717,16 @@ func renameSystemContextAggressive(oldName, newName string, kubeConfigStore kube
 func deleteImportedContext(contextName string, kubeConfigStore kubeconfig.ContextStore) error {
 	// Remove from memory
 	logger.Log(logger.LevelInfo, map[string]string{"contextName": contextName}, nil, "About to remove context from memory store")
-	
+
 	// Get all contexts before deletion for debugging
 	allContextsBefore, _ := kubeConfigStore.GetContexts()
 	logger.Log(logger.LevelInfo, map[string]string{"contextName": contextName, "totalContextsBefore": fmt.Sprintf("%d", len(allContextsBefore))}, nil, "Context count before deletion")
-	
+
 	err := kubeConfigStore.RemoveContext(contextName)
 	if err != nil {
 		return fmt.Errorf("failed to remove context from store: %v", err)
 	}
-	
+
 	// Get all contexts after deletion for debugging
 	allContextsAfter, _ := kubeConfigStore.GetContexts()
 	logger.Log(logger.LevelInfo, map[string]string{"contextName": contextName, "totalContextsAfter": fmt.Sprintf("%d", len(allContextsAfter))}, nil, "Context count after deletion")
