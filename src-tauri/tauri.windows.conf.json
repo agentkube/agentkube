@@ -40,7 +40,8 @@
     "targets": "all",
     "windows": {
       "nsis": {
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "sidebarImage": "images/winsidebarImage.bmp"
       }
     }
   }
