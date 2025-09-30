@@ -445,7 +445,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
               {podIP && (
                 <div className="mb-2">
                   <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Pod IP</h4>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-200 border px-2 py-0.5  w-fit bg-gray-200 dark:bg-gray-700/50 rounded-[0.3rem]">{podIP}</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-200 px-2 py-0.5  w-fit bg-gray-200 dark:bg-gray-700/50 rounded-[0.3rem]">{podIP}</p>
                 </div>
               )}
             </div>
@@ -1023,7 +1023,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                   </button>
                 </h2>
                 <button onClick={onClose} className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
-                  <X size={24} />
+                  <X className='h-4 w-4' />
                 </button>
               </div>
 

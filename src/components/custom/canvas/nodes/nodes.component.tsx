@@ -52,12 +52,11 @@ export const ResourceNode = memo(({ data }: ResourceNodeProps) => {
       <Handle
         type="target"
         position={Position.Left}
-        className="!bg-transparent !border-none w-12 h-12 -left-6"
+        className="!bg-transparent !border-none w-12 h-12"
         style={{ zIndex: -1 }}
       />
-      <div className="flex items-center gap-3">
+      <div className="flex items-center w-56 truncate gap-3">
         <div className="flex-shrink-0">
-          
           <img src={icon} alt={resourceType} className="w-8 h-8" />
         </div>
         <div className="flex flex-col">
@@ -68,7 +67,7 @@ export const ResourceNode = memo(({ data }: ResourceNodeProps) => {
       <Handle
         type="source"
         position={Position.Right}
-        className="!bg-transparent !border-none w-12 h-12 -right-6"
+        className="!bg-transparent !border-none w-12 h-12"
         style={{ zIndex: -1 }}
       />
     </div>
