@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Filter, Clock, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
+import EventAnalyzer from '@/components/custom/eventanalyzer/eventanalyzer.component';
+import { useCluster } from '@/contexts/clusterContext';
 
 interface EventsViewerProps {
   events: CoreV1Event[];
@@ -20,6 +22,7 @@ const EventsViewer: React.FC<EventsViewerProps> = ({
   namespace
 }) => {
   const [showAll, setShowAll] = useState(false);
+  const { currentContext } = useCluster();
   
   // Filter events for the specific resource if resourceName is provided
   const filteredEvents = resourceName 
@@ -116,6 +119,7 @@ const EventsViewer: React.FC<EventsViewerProps> = ({
               <TableHead className="w-[120px]">Reason</TableHead>
               <TableHead>Message</TableHead>
               <TableHead className="w-[120px]">From</TableHead>
+              <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -148,6 +152,16 @@ const EventsViewer: React.FC<EventsViewerProps> = ({
                   {event.source?.component}
                   {event.source?.host && (
                     <div className="text-xs">{event.source.host}</div>
+                  )}
+                </TableCell>
+                <TableCell className="align-top py-2">
+                  {event.type === 'Warning' ? (
+                    <EventAnalyzer
+                      event={event}
+                      clusterName={currentContext?.name || 'unknown'}
+                    />
+                  ) : (
+                    <div className="w-8 h-8" /> // Empty space for non-warning events
                   )}
                 </TableCell>
               </TableRow>
