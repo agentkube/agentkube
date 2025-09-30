@@ -1,13 +1,15 @@
 import React, { useEffect } from 'react';
 import { Panel } from '@xyflow/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Check, ChevronDown, ChevronRight, Activity, AlertTriangle, ChevronUp, ChartLine, Tag, Terminal, Container } from 'lucide-react';
+import { X, Copy, Check, ChevronDown, ChevronRight, Activity, AlertTriangle, ChevronUp, ChartLine, Tag, Terminal, Container, Move, ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight } from 'lucide-react';
 import { useState } from 'react';
 import { K8sResourceData } from '@/utils/kubernetes-graph.utils';
 import { KubeResourceIconMap, KubeResourceType } from '@/constants/kuberesource-icon-map.constant';
 import { useCluster } from '@/contexts/clusterContext';
 import { OPERATOR_URL } from '@/config';
 import { getPodMetrics, PodMetrics } from '@/api/internal/metrics';
+
+type PanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 interface ResourceDetailsPanelProps {
   resource: K8sResourceData | null;
@@ -61,8 +63,22 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
   const [resourceMetrics, setResourceMetrics] = useState<Record<string, PodResourceMetrics>>({});
   const [detailedMetrics, setDetailedMetrics] = useState<PodMetrics | null>(null);
   const [showContainers, setShowContainers] = useState(false);
+  const [panelPosition, setPanelPosition] = useState<PanelPosition>('top-right');
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
 
   const { currentContext } = useCluster();
+
+  const positionOptions = [
+    { value: 'top-left' as PanelPosition, label: 'Top Left', icon: ArrowUpLeft },
+    { value: 'top-right' as PanelPosition, label: 'Top Right', icon: ArrowUpRight },
+    { value: 'bottom-left' as PanelPosition, label: 'Bottom Left', icon: ArrowDownLeft },
+    { value: 'bottom-right' as PanelPosition, label: 'Bottom Right', icon: ArrowDownRight },
+  ];
+
+  const handlePositionChange = (newPosition: PanelPosition) => {
+    setPanelPosition(newPosition);
+    setShowPositionDropdown(false);
+  };
 
   const renderConditions = (conditions: any[]) => {
     if (!conditions || conditions.length === 0) return null;
@@ -999,7 +1015,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
   return (
     <AnimatePresence>
       {resource && (
-        <Panel position="top-right">
+        <Panel position={panelPosition}>
           <motion.div
             initial={{ x: 300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -1022,9 +1038,39 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                     {copied ? <Check size={16} className="text-green-500" /> : <Copy size={14} />}
                   </button>
                 </h2>
-                <button onClick={onClose} className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
-                  <X className='h-4 w-4' />
-                </button>
+                <div className="flex items-center gap-2 relative">
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowPositionDropdown(!showPositionDropdown)}
+                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 flex items-center gap-1"
+                      title="Change panel position"
+                    >
+                      <Move className='h-3 w-3 rotate-45' />
+                    </button>
+                    
+                    {showPositionDropdown && (
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800/20 backdrop-blur-md rounded-lg shadow-lg z-50 min-w-[140px]">
+                        {positionOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => handlePositionChange(option.value)}
+                            className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 ${
+                              panelPosition === option.value
+                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                : 'text-gray-700 dark:text-gray-300'
+                            } first:rounded-t-lg last:rounded-b-lg`}
+                          >
+                            <option.icon size={14} />
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={onClose} className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
+                    <X className='h-4 w-4' />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
