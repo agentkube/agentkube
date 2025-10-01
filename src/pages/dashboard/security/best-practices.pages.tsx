@@ -102,6 +102,7 @@ const AuditReport = () => {
         'GET'
       ) as TrivyConfigAuditReportsResponse;
 
+      console.log(response.items)
       if (response && response.items && Array.isArray(response.items)) {
         setConfigAuditReports(response.items);
 
@@ -132,11 +133,18 @@ const AuditReport = () => {
     if (currentContext?.name) {
       try {
         setLoadingIndividualReport(true);
-        const individualReportData = await getConfigAuditReportForResource(
-          currentContext.name,
-          report.metadata.name
-        );
-        setIndividualReport(individualReportData);
+        const namespace = report.metadata.labels?.['trivy-operator.resource.namespace'] || report.metadata.namespace;
+        
+        if (namespace) {
+          const individualReportData = await getConfigAuditReportForResource(
+            currentContext.name,
+            report.metadata.name,
+            namespace
+          );
+          setIndividualReport(individualReportData);
+        } else {
+          throw new Error('No namespace found for report');
+        }
       } catch (err) {
         console.error('Failed to fetch individual report:', err);
         setIndividualReport(null);

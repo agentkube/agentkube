@@ -198,10 +198,10 @@ export const getClusterReport = async (clusterName: string): Promise<ClusterRepo
   return response.json();
 };
 
-export const getConfigAuditReportForResource = async (clusterName: string, reportName: string): Promise<IndividualConfigAuditReport> => {
+export const getConfigAuditReportForResource = async (clusterName: string, reportName: string, namespace: string): Promise<IndividualConfigAuditReport> => {
   const response = await kubeProxyRequest(
     clusterName,
-    `apis/aquasecurity.github.io/v1alpha1/configauditreports/${reportName}`,
+    `apis/aquasecurity.github.io/v1alpha1/namespaces/${namespace}/configauditreports/${reportName}`,
     'GET'
   );
 

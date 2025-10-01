@@ -9,6 +9,7 @@ import { Container as ContainerIcon, Image } from 'lucide-react';
 
 interface ResourceNodeProps {
   data: K8sResourceData;
+  onAttackPathClick?: (resourceData: K8sResourceData) => void;
 }
 
 export const getEdgeStyle = (label?: string) => {
@@ -37,15 +38,27 @@ export const getEdgeStyle = (label?: string) => {
   }
 };
 
-export const ResourceNode = memo(({ data }: ResourceNodeProps) => {
+export const ResourceNode = memo(({ data, onAttackPathClick }: ResourceNodeProps) => {
   const { resourceType, resourceName } = data;
   const iconKey = resourceType.toLowerCase() as KubeResourceType;
   const icon = KubeResourceIconMap[iconKey] || KubeResourceIconMap.default;
   const isLucideIcon = typeof icon === 'function';
 
+  const handleClick = (event: React.MouseEvent) => {
+    // Check for cmd+click (macOS) or ctrl+click (Windows/Linux)
+    if ((event.metaKey || event.ctrlKey) && onAttackPathClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      onAttackPathClick(data);
+    }
+  };
+
   //Option 1 Get the resource by getK8sResource
   return (
-    <div className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem]">
+    <div 
+      className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem] cursor-pointer"
+      onClick={handleClick}
+    >
       <Handle
         type="target"
         position={Position.Left}
@@ -117,11 +130,33 @@ interface ContainerNodeProps {
     podName: string;
     namespace: string;
   };
+  onAttackPathClick?: (resourceData: any) => void;
 }
 
-export const ContainerNode = memo(({ data }: ContainerNodeProps) => {
+export const ContainerNode = memo(({ data, onAttackPathClick }: ContainerNodeProps) => {
+  const handleClick = (event: React.MouseEvent) => {
+    // Check for cmd+click (macOS) or ctrl+click (Windows/Linux)
+    if ((event.metaKey || event.ctrlKey) && onAttackPathClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      // Convert container data to K8sResourceData format
+      const resourceData = {
+        resourceType: 'container',
+        resourceName: data.name,
+        namespace: data.namespace,
+        name: data.name,
+        podName: data.podName,
+        image: data.image
+      };
+      onAttackPathClick(resourceData);
+    }
+  };
+
   return (
-    <div className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem]">
+    <div 
+      className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem] cursor-pointer"
+      onClick={handleClick}
+    >
       <Handle
         type="target"
         position={Position.Left}
@@ -154,15 +189,35 @@ interface ImageNodeProps {
     image: string;
     container: string;
   };
+  onAttackPathClick?: (resourceData: any) => void;
 }
 
-export const ImageNode = memo(({ data }: ImageNodeProps) => {
+export const ImageNode = memo(({ data, onAttackPathClick }: ImageNodeProps) => {
   // Extract just the image name and tag for display
   const imageParts = data.image.split('/');
   const imageNameTag = imageParts[imageParts.length - 1] || data.image;
+
+  const handleClick = (event: React.MouseEvent) => {
+    // Check for cmd+click (macOS) or ctrl+click (Windows/Linux)
+    if ((event.metaKey || event.ctrlKey) && onAttackPathClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      // Convert image data to K8sResourceData format
+      const resourceData = {
+        resourceType: 'image',
+        resourceName: imageNameTag,
+        image: data.image,
+        container: data.container
+      };
+      onAttackPathClick(resourceData);
+    }
+  };
   
   return (
-    <div className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem]">
+    <div 
+      className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem] cursor-pointer"
+      onClick={handleClick}
+    >
       <Handle
         type="target"
         position={Position.Left}
@@ -190,8 +245,21 @@ export const ImageNode = memo(({ data }: ImageNodeProps) => {
 
 ImageNode.displayName = 'ImageNode';
 
+// Create wrapper components that extract the handler from node data
+const ResourceNodeWrapper = ({ data, ...props }: any) => (
+  <ResourceNode data={data} onAttackPathClick={data.onAttackPathClick} {...props} />
+);
+
+const ContainerNodeWrapper = ({ data, ...props }: any) => (
+  <ContainerNode data={data} onAttackPathClick={data.onAttackPathClick} {...props} />
+);
+
+const ImageNodeWrapper = ({ data, ...props }: any) => (
+  <ImageNode data={data} onAttackPathClick={data.onAttackPathClick} {...props} />
+);
+
 export const nodeTypes: NodeTypes = {
-  resource: ResourceNode,
-  container: ContainerNode,
-  image: ImageNode,
+  resource: ResourceNodeWrapper,
+  container: ContainerNodeWrapper,
+  image: ImageNodeWrapper,
 };

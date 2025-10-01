@@ -20,6 +20,7 @@ import { K8sGraphData, K8sResourceData } from '@/utils/kubernetes-graph.utils';
 import { useCluster } from '@/contexts/clusterContext';
 import { getEdgeStyle, nodeTypes } from './nodes/nodes.component';
 import { ResourceDetailsPanel } from './panel/resource-panel.component';
+import { AttackPathDrawer } from '../attackpathdrawer';
 
 interface ResourceCanvasProps {
   resourceDetails?: {
@@ -38,6 +39,8 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedResource, setSelectedResource] = useState<K8sResourceData | null>(null);
+  const [attackPathResource, setAttackPathResource] = useState<K8sResourceData | null>(null);
+  const [isAttackPathDrawerOpen, setIsAttackPathDrawerOpen] = useState(false);
   const { currentContext } = useCluster();
 
 
@@ -53,6 +56,11 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
   const onConnect = useCallback((params: Connection) => {
     setEdges((eds) => addEdge(params, eds));
   }, [setEdges]);
+
+  const handleAttackPathClick = useCallback((resourceData: K8sResourceData) => {
+    setAttackPathResource(resourceData);
+    setIsAttackPathDrawerOpen(true);
+  }, []);
 
   const calculateNodePositions = (graphData: K8sGraphData): Node<K8sResourceData>[] => {
     const VERTICAL_SPACING = 120;
@@ -155,7 +163,15 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
         );
   
         const positionedNodes = calculateNodePositions(graphData);
-        setNodes(positionedNodes);
+        // Add the attack path click handler to each node's data
+        const nodesWithHandler = positionedNodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            onAttackPathClick: handleAttackPathClick
+          }
+        }));
+        setNodes(nodesWithHandler);
   
         const formattedEdges: Edge[] = graphData.edges.map(edge => ({
           id: edge.id,
@@ -235,6 +251,12 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
           onClose={() => setSelectedResource(null)}
         />
       </ReactFlow>
+
+      <AttackPathDrawer
+        isOpen={isAttackPathDrawerOpen}
+        onClose={() => setIsAttackPathDrawerOpen(false)}
+        resourceData={attackPathResource}
+      />
 
     </div>
   );
