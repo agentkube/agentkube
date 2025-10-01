@@ -34,6 +34,9 @@ func GetCanvasNodes(c *gin.Context) {
 		return
 	}
 
+	// Check for attack-path query parameter
+	attackPath := c.Query("query") == "attack-path"
+
 	// Handle 'core' group as empty string to match k8s API expectations
 	if resource.Group == "core" {
 		resource.Group = ""
@@ -66,7 +69,7 @@ func GetCanvasNodes(c *gin.Context) {
 	}
 
 	// Get graph nodes representation
-	response, err := canvasController.GetGraphNodes(c.Request.Context(), resource)
+	response, err := canvasController.GetGraphNodes(c.Request.Context(), resource, attackPath)
 	if err != nil {
 		logger.Log(logger.LevelError, map[string]string{
 			"clusterName":  clusterName,

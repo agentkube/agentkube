@@ -25,7 +25,7 @@ func NewController(restConfig *rest.Config) (*Controller, error) {
 }
 
 // GetGraphNodes retrieves the graph representation of Kubernetes resources
-func (c *Controller) GetGraphNodes(ctx context.Context, resource ResourceIdentifier) (*GraphResponse, error) {
+func (c *Controller) GetGraphNodes(ctx context.Context, resource ResourceIdentifier, attackPath bool) (*GraphResponse, error) {
 	dynamicClient, err := dynamic.NewForConfig(c.restConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dynamic client: %v", err)
@@ -46,19 +46,19 @@ func (c *Controller) GetGraphNodes(ctx context.Context, resource ResourceIdentif
 	// Process related resources based on type
 	switch resource.ResourceType {
 	case "deployments":
-		err = c.processDeploymentGraph(ctx, dynamicClient, mainNode.ID, resource, response)
+		err = c.processDeploymentGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 	case "statefulsets":
-		err = c.processStatefulSetGraph(ctx, dynamicClient, mainNode.ID, resource, response)
+		err = c.processStatefulSetGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 	case "daemonsets":
-		err = c.processDaemonSetGraph(ctx, dynamicClient, mainNode.ID, resource, response)
+		err = c.processDaemonSetGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 	case "services":
-		err = c.processServiceGraph(ctx, dynamicClient, mainNode.ID, resource, response)
+		err = c.processServiceGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 	case "jobs":
-		err = c.processJobGraph(ctx, dynamicClient, mainNode.ID, resource, response)
+		err = c.processJobGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 	case "cronjobs":
-		err = c.processCronJobGraph(ctx, dynamicClient, mainNode.ID, resource, response)
+		err = c.processCronJobGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 	case "nodes":
-		err = c.processNodeGraph(ctx, dynamicClient, mainNode.ID, resource, response)
+		err = c.processNodeGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 	default:
 		// For other resource types, just return the single node
 		return response, nil
@@ -68,12 +68,20 @@ func (c *Controller) GetGraphNodes(ctx context.Context, resource ResourceIdentif
 		return nil, err
 	}
 
+	// If attack-path mode, add additional security-related resources
+	if attackPath {
+		err = c.addAttackPathResources(ctx, dynamicClient, resource, response)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return response, nil
 }
 
 // Resource Processing Functions
 
-func (c *Controller) processDeploymentGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse) error {
+func (c *Controller) processDeploymentGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
 	// Find ReplicaSets
 	rsList, err := c.findReplicaSets(ctx, client, resource)
 	if err != nil {
@@ -118,13 +126,21 @@ func (c *Controller) processDeploymentGraph(ctx context.Context, client dynamic.
 				Type:   "smoothstep",
 				Label:  "manages",
 			})
+
+			// If attack-path mode, add container details
+			if attackPath {
+				err = c.addContainerNodes(ctx, client, pod, podNode.ID, response)
+				if err != nil {
+					continue
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func (c *Controller) processStatefulSetGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse) error {
+func (c *Controller) processStatefulSetGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
 	// Find controlled pods
 	pods, err := c.findControlledPods(ctx, client, resource)
 	if err != nil {
@@ -146,12 +162,20 @@ func (c *Controller) processStatefulSetGraph(ctx context.Context, client dynamic
 			Type:   "smoothstep",
 			Label:  "manages",
 		})
+
+		// If attack-path mode, add container details
+		if attackPath {
+			err = c.addContainerNodes(ctx, client, pod, podNode.ID, response)
+			if err != nil {
+				continue
+			}
+		}
 	}
 
 	return nil
 }
 
-func (c *Controller) processDaemonSetGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse) error {
+func (c *Controller) processDaemonSetGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
 	// Find controlled pods
 	pods, err := c.findControlledPods(ctx, client, resource)
 	if err != nil {
@@ -173,12 +197,20 @@ func (c *Controller) processDaemonSetGraph(ctx context.Context, client dynamic.I
 			Type:   "smoothstep",
 			Label:  "manages",
 		})
+
+		// If attack-path mode, add container details
+		if attackPath {
+			err = c.addContainerNodes(ctx, client, pod, podNode.ID, response)
+			if err != nil {
+				continue
+			}
+		}
 	}
 
 	return nil
 }
 
-func (c *Controller) processServiceGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse) error {
+func (c *Controller) processServiceGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, _ bool) error {
 	// Find pods that match service selector
 	pods, err := c.findServicePods(ctx, client, resource)
 	if err != nil {
@@ -205,7 +237,7 @@ func (c *Controller) processServiceGraph(ctx context.Context, client dynamic.Int
 	return nil
 }
 
-func (c *Controller) processJobGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse) error {
+func (c *Controller) processJobGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
 	// Find pods controlled by this job
 	pods, err := c.findControlledPods(ctx, client, resource)
 	if err != nil {
@@ -228,12 +260,20 @@ func (c *Controller) processJobGraph(ctx context.Context, client dynamic.Interfa
 			Type:   "smoothstep",
 			Label:  "manages",
 		})
+
+		// If attack-path mode, add container details
+		if attackPath {
+			err = c.addContainerNodes(ctx, client, pod, podNode.ID, response)
+			if err != nil {
+				continue
+			}
+		}
 	}
 
 	return nil
 }
 
-func (c *Controller) processCronJobGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse) error {
+func (c *Controller) processCronJobGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
 	// Find jobs created by this cronjob
 	jobs, err := c.findCronJobJobs(ctx, client, resource)
 	if err != nil {
@@ -278,13 +318,21 @@ func (c *Controller) processCronJobGraph(ctx context.Context, client dynamic.Int
 				Type:   "smoothstep",
 				Label:  "manages",
 			})
+
+			// If attack-path mode, add container details
+			if attackPath {
+				err = c.addContainerNodes(ctx, client, pod, podNode.ID, response)
+				if err != nil {
+					continue
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func (c *Controller) processNodeGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse) error {
+func (c *Controller) processNodeGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, _ bool) error {
 	// Get all pods running on this node
 	podList, err := client.Resource(schema.GroupVersionResource{
 		Version:  "v1",
@@ -370,6 +418,30 @@ func (c *Controller) getResourceStatus(obj *unstructured.Unstructured) map[strin
 	// Get replicas if present
 	replicas, found, _ := unstructured.NestedMap(obj.Object, "status")
 	if found {
+		status["replicas"] = replicas
+	}
+
+	// For services, include spec information that's relevant for display
+	if obj.GetKind() == "Service" {
+		if replicas == nil {
+			replicas = make(map[string]interface{})
+		}
+		
+		// Add service type
+		if serviceType, found, _ := unstructured.NestedString(obj.Object, "spec", "type"); found {
+			replicas["type"] = serviceType
+		}
+		
+		// Add cluster IP
+		if clusterIP, found, _ := unstructured.NestedString(obj.Object, "spec", "clusterIP"); found {
+			replicas["clusterIP"] = clusterIP
+		}
+		
+		// Add ports
+		if ports, found, _ := unstructured.NestedSlice(obj.Object, "spec", "ports"); found {
+			replicas["ports"] = ports
+		}
+		
 		status["replicas"] = replicas
 	}
 
@@ -561,4 +633,437 @@ func matchLabels(selector, labels map[string]string) bool {
 		}
 	}
 	return len(selector) > 0
+}
+
+// addAttackPathResources adds security-related resources for attack path analysis
+func (c *Controller) addAttackPathResources(ctx context.Context, client dynamic.Interface, resource ResourceIdentifier, response *GraphResponse) error {
+	// Find services that expose this resource
+	err := c.findAndAddServices(ctx, client, resource, response)
+	if err != nil {
+		return err
+	}
+
+	// Find ingresses that route to services
+	err = c.findAndAddIngresses(ctx, client, resource, response)
+	if err != nil {
+		return err
+	}
+
+	// Find ConfigMaps and Secrets used by pods
+	err = c.findAndAddConfigResources(ctx, client, resource, response)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// addContainerNodes adds container and image details to pods
+func (c *Controller) addContainerNodes(ctx context.Context, client dynamic.Interface, pod ResourceIdentifier, podNodeID string, response *GraphResponse) error {
+	// Get pod object
+	podObj, err := client.Resource(schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "pods",
+	}).Namespace(pod.Namespace).Get(ctx, pod.ResourceName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Extract containers from pod spec
+	containers, found, err := unstructured.NestedSlice(podObj.Object, "spec", "containers")
+	if err != nil || !found {
+		return nil
+	}
+
+	for i, container := range containers {
+		containerMap, ok := container.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		containerName, _, _ := unstructured.NestedString(containerMap, "name")
+		containerImage, _, _ := unstructured.NestedString(containerMap, "image")
+
+		// Create container node
+		containerNode := Node{
+			ID:   fmt.Sprintf("container-%s-%s-%d", pod.ResourceName, containerName, i),
+			Type: "container",
+			Data: map[string]interface{}{
+				"name":      containerName,
+				"image":     containerImage,
+				"podName":   pod.ResourceName,
+				"namespace": pod.Namespace,
+			},
+		}
+
+		response.Nodes = append(response.Nodes, containerNode)
+
+		// Add edge from pod to container
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: podNodeID,
+			Target: containerNode.ID,
+			Type:   "smoothstep",
+			Label:  "contains",
+		})
+
+		// Create image node
+		imageNode := Node{
+			ID:   fmt.Sprintf("image-%s", fmt.Sprintf("%x", containerImage)),
+			Type: "image",
+			Data: map[string]interface{}{
+				"image":     containerImage,
+				"container": containerName,
+			},
+		}
+
+		response.Nodes = append(response.Nodes, imageNode)
+
+		// Add edge from container to image
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: containerNode.ID,
+			Target: imageNode.ID,
+			Type:   "smoothstep",
+			Label:  "uses",
+		})
+	}
+
+	return nil
+}
+
+// findAndAddServices finds services that expose the given resource
+func (c *Controller) findAndAddServices(ctx context.Context, client dynamic.Interface, resource ResourceIdentifier, response *GraphResponse) error {
+	// Get all services in the namespace
+	serviceList, err := client.Resource(schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "services",
+	}).Namespace(resource.Namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Find pods controlled by the resource
+	pods, err := c.getResourcePods(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	for _, service := range serviceList.Items {
+		// Get service selector
+		selector, found, err := unstructured.NestedStringMap(service.Object, "spec", "selector")
+		if err != nil || !found || len(selector) == 0 {
+			continue
+		}
+
+		// Check if any pod matches this service selector
+		hasMatchingPod := false
+		for _, pod := range pods {
+			podObj, err := client.Resource(schema.GroupVersionResource{
+				Version:  "v1",
+				Resource: "pods",
+			}).Namespace(pod.Namespace).Get(ctx, pod.ResourceName, metav1.GetOptions{})
+			if err != nil {
+				continue
+			}
+
+			if matchLabels(selector, podObj.GetLabels()) {
+				hasMatchingPod = true
+				break
+			}
+		}
+
+		if hasMatchingPod {
+			serviceNode, err := c.buildResourceNode(ctx, client, ResourceIdentifier{
+				Namespace:    resource.Namespace,
+				Group:        "",
+				Version:      "v1",
+				ResourceType: "services",
+				ResourceName: service.GetName(),
+			})
+			if err != nil {
+				continue
+			}
+
+			response.Nodes = append(response.Nodes, serviceNode)
+
+			// Add edge from service to deployment
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: serviceNode.ID,
+				Target: fmt.Sprintf("node-%s-%s", resource.ResourceType[:len(resource.ResourceType)-1], resource.ResourceName),
+				Type:   "smoothstep",
+				Label:  "exposes",
+			})
+		}
+	}
+
+	return nil
+}
+
+// findAndAddIngresses finds ingresses that route to services
+func (c *Controller) findAndAddIngresses(ctx context.Context, client dynamic.Interface, resource ResourceIdentifier, response *GraphResponse) error {
+	// Get all ingresses in the namespace
+	ingressList, err := client.Resource(schema.GroupVersionResource{
+		Group:    "networking.k8s.io",
+		Version:  "v1",
+		Resource: "ingresses",
+	}).Namespace(resource.Namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		// If ingresses API is not available, try extensions/v1beta1
+		ingressList, err = client.Resource(schema.GroupVersionResource{
+			Group:    "extensions",
+			Version:  "v1beta1",
+			Resource: "ingresses",
+		}).Namespace(resource.Namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil // Ignore if ingresses are not available
+		}
+	}
+
+	// Find service nodes in the response
+	serviceNodes := make(map[string]string)
+	for _, node := range response.Nodes {
+		nodeData := node.Data
+		if resourceType, ok := nodeData["resourceType"].(string); ok && resourceType == "services" {
+			if serviceName, ok := nodeData["resourceName"].(string); ok {
+				serviceNodes[serviceName] = node.ID
+			}
+		}
+	}
+
+	for _, ingress := range ingressList.Items {
+		// Check if ingress routes to any of our services
+		rules, found, err := unstructured.NestedSlice(ingress.Object, "spec", "rules")
+		if err != nil || !found {
+			continue
+		}
+
+		hasMatchingService := false
+		for _, rule := range rules {
+			ruleMap, ok := rule.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			http, found, err := unstructured.NestedMap(ruleMap, "http")
+			if err != nil || !found {
+				continue
+			}
+
+			paths, found, err := unstructured.NestedSlice(http, "paths")
+			if err != nil || !found {
+				continue
+			}
+
+			for _, path := range paths {
+				pathMap, ok := path.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				backend, found, err := unstructured.NestedMap(pathMap, "backend")
+				if err != nil || !found {
+					continue
+				}
+
+				serviceName, found, err := unstructured.NestedString(backend, "service", "name")
+				if err != nil || !found {
+					// Try old format
+					serviceName, found, err = unstructured.NestedString(backend, "serviceName")
+					if err != nil || !found {
+						continue
+					}
+				}
+
+				if _, exists := serviceNodes[serviceName]; exists {
+					hasMatchingService = true
+					break
+				}
+			}
+			if hasMatchingService {
+				break
+			}
+		}
+
+		if hasMatchingService {
+			ingressNode, err := c.buildResourceNode(ctx, client, ResourceIdentifier{
+				Namespace:    resource.Namespace,
+				Group:        "networking.k8s.io",
+				Version:      "v1",
+				ResourceType: "ingresses",
+				ResourceName: ingress.GetName(),
+			})
+			if err != nil {
+				continue
+			}
+
+			response.Nodes = append(response.Nodes, ingressNode)
+
+			// Add edges from ingress to services
+			for _, serviceNodeID := range serviceNodes {
+				response.Edges = append(response.Edges, Edge{
+					ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+					Source: ingressNode.ID,
+					Target: serviceNodeID,
+					Type:   "smoothstep",
+					Label:  "routes-to",
+				})
+			}
+		}
+	}
+
+	return nil
+}
+
+// findAndAddConfigResources finds ConfigMaps and Secrets used by pods
+func (c *Controller) findAndAddConfigResources(ctx context.Context, client dynamic.Interface, resource ResourceIdentifier, response *GraphResponse) error {
+	// Find pods controlled by the resource
+	pods, err := c.getResourcePods(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	configMaps := make(map[string]bool)
+	secrets := make(map[string]bool)
+
+	for _, pod := range pods {
+		podObj, err := client.Resource(schema.GroupVersionResource{
+			Version:  "v1",
+			Resource: "pods",
+		}).Namespace(pod.Namespace).Get(ctx, pod.ResourceName, metav1.GetOptions{})
+		if err != nil {
+			continue
+		}
+
+		// Check volumes for configMaps and secrets
+		volumes, found, err := unstructured.NestedSlice(podObj.Object, "spec", "volumes")
+		if err == nil && found {
+			for _, volume := range volumes {
+				volumeMap, ok := volume.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				// Check for configMap
+				if configMap, found, _ := unstructured.NestedString(volumeMap, "configMap", "name"); found {
+					configMaps[configMap] = true
+				}
+
+				// Check for secret
+				if secret, found, _ := unstructured.NestedString(volumeMap, "secret", "secretName"); found {
+					secrets[secret] = true
+				}
+			}
+		}
+
+		// Check envFrom for configMaps and secrets
+		containers, found, err := unstructured.NestedSlice(podObj.Object, "spec", "containers")
+		if err == nil && found {
+			for _, container := range containers {
+				containerMap, ok := container.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				envFrom, found, err := unstructured.NestedSlice(containerMap, "envFrom")
+				if err == nil && found {
+					for _, envSource := range envFrom {
+						envMap, ok := envSource.(map[string]interface{})
+						if !ok {
+							continue
+						}
+
+						if configMapRef, found, _ := unstructured.NestedString(envMap, "configMapRef", "name"); found {
+							configMaps[configMapRef] = true
+						}
+
+						if secretRef, found, _ := unstructured.NestedString(envMap, "secretRef", "name"); found {
+							secrets[secretRef] = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Add ConfigMap nodes
+	for configMapName := range configMaps {
+		configMapNode, err := c.buildResourceNode(ctx, client, ResourceIdentifier{
+			Namespace:    resource.Namespace,
+			Group:        "",
+			Version:      "v1",
+			ResourceType: "configmaps",
+			ResourceName: configMapName,
+		})
+		if err != nil {
+			continue
+		}
+
+		response.Nodes = append(response.Nodes, configMapNode)
+
+		// Add edge from configmap to deployment
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: configMapNode.ID,
+			Target: fmt.Sprintf("node-%s-%s", resource.ResourceType[:len(resource.ResourceType)-1], resource.ResourceName),
+			Type:   "smoothstep",
+			Label:  "configures",
+		})
+	}
+
+	// Add Secret nodes
+	for secretName := range secrets {
+		secretNode, err := c.buildResourceNode(ctx, client, ResourceIdentifier{
+			Namespace:    resource.Namespace,
+			Group:        "",
+			Version:      "v1",
+			ResourceType: "secrets",
+			ResourceName: secretName,
+		})
+		if err != nil {
+			continue
+		}
+
+		response.Nodes = append(response.Nodes, secretNode)
+
+		// Add edge from secret to deployment
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: secretNode.ID,
+			Target: fmt.Sprintf("node-%s-%s", resource.ResourceType[:len(resource.ResourceType)-1], resource.ResourceName),
+			Type:   "smoothstep",
+			Label:  "provides-secrets",
+		})
+	}
+
+	return nil
+}
+
+// getResourcePods returns all pods controlled by a resource
+func (c *Controller) getResourcePods(ctx context.Context, client dynamic.Interface, resource ResourceIdentifier) ([]ResourceIdentifier, error) {
+	switch resource.ResourceType {
+	case "deployments":
+		// Find ReplicaSets first, then pods
+		replicaSets, err := c.findReplicaSets(ctx, client, resource)
+		if err != nil {
+			return nil, err
+		}
+
+		var allPods []ResourceIdentifier
+		for _, rs := range replicaSets {
+			pods, err := c.findPods(ctx, client, rs)
+			if err != nil {
+				continue
+			}
+			allPods = append(allPods, pods...)
+		}
+		return allPods, nil
+
+	case "statefulsets", "daemonsets", "jobs":
+		return c.findControlledPods(ctx, client, resource)
+
+	default:
+		return nil, nil
+	}
 }
