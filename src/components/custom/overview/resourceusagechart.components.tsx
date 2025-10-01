@@ -188,14 +188,14 @@ const ResourceUsageChart = () => {
           memoryUsed = parseInt(memValue) * 1024 * 1024;
         }
       } else {
-        // Mock data if metrics not available for this node
-        cpuUsed = cpuTotal * 0.64; // 64% usage
-        memoryUsed = memoryTotal * 0.35; // 35% usage
+        // No metrics available for this node
+        cpuUsed = 0;
+        memoryUsed = 0;
       }
     } else {
-      // Mock data if all metrics not available
-      cpuUsed = cpuTotal * 0.64; // 64% usage
-      memoryUsed = memoryTotal * 0.35; // 35% usage
+      // No metrics available
+      cpuUsed = 0;
+      memoryUsed = 0;
     }
 
     // Count pods on this node
@@ -222,7 +222,7 @@ const ResourceUsageChart = () => {
       memoryUsed,
       memoryPercent: memoryTotal > 0 ? (memoryUsed / memoryTotal) * 100 : 0,
       storageTotal,
-      storagePercent: 0, // TODO Mock data since storage metrics usually require additional components
+      storagePercent: 0, // Storage metrics not available
       podCount: nodePods.length,
       podCapacity,
       uptime

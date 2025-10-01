@@ -145,7 +145,7 @@ const EventsViewer: React.FC<EventsViewerProps> = ({
                 <TableCell className="align-top text-sm font-medium py-2">
                   {event.reason} {formatCount(event.count)}
                 </TableCell>
-                <TableCell className="align-top text-sm py-2">
+                <TableCell className="align-top text-sm max-w-xl py-2">
                   {event.message}
                 </TableCell>
                 <TableCell className="align-top text-sm text-gray-500 dark:text-gray-400 py-2">
