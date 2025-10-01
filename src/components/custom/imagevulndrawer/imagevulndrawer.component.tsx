@@ -500,16 +500,21 @@ const ImageVulnDrawer: React.FC<ImageVulnDrawerProps> = ({
                     className="dark:text-gray-300"
                     onClick={() => toggleImageSelection(image)}
                   >
-                    <div className="flex items-center gap-1 max-w-80 p-1">
-                      <Image />
-                      <span className="truncate text-lg">
+                    <div className="flex items-center gap-1 dark:text-gray-400 max-w-80 p-1 dark:bg-gray-600/10 rounded-lg">
+                      <div className='bg-gray-200/20 dark:bg-gray-500/20 rounded-md p-1'>
+                        <Image className='h-4 w-4 dark:text-cyan-600' />
+                      </div>
+                      <span className="truncate text-sm ">
                         {image}
                       </span>
+
                       {result && (
-                        <span className="text-lg whitespace-nowrap">
+                        <span className="text-sm whitespace-nowrap">
                           ({result.summary.total})
                         </span>
                       )}
+
+
                       {!isSelected && (
                         <X className="h-3 w-3 ml-1 flex-shrink-0" />
                       )}
