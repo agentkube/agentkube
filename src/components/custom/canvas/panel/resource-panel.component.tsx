@@ -3,6 +3,7 @@ import { Panel } from '@xyflow/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Check, ChevronDown, ChevronRight, Activity, AlertTriangle, ChevronUp, ChartLine, Tag, Terminal, Container, Move, ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { K8sResourceData } from '@/utils/kubernetes-graph.utils';
 import { KubeResourceIconMap, KubeResourceType } from '@/constants/kuberesource-icon-map.constant';
 import { useCluster } from '@/contexts/clusterContext';
@@ -67,6 +68,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
   const [showPositionDropdown, setShowPositionDropdown] = useState(false);
 
   const { currentContext } = useCluster();
+  const navigate = useNavigate();
 
   const positionOptions = [
     { value: 'top-left' as PanelPosition, label: 'Top Left', icon: ArrowUpLeft },
@@ -233,6 +235,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
   };
 
 
+
   useEffect(() => {
     const checkMetrics = async () => {
       const available = await checkMetricsServerAvailability();
@@ -310,10 +313,10 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                     <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
                       <div
                         className={`h-full rounded-full ${metrics.cpu.usagePercentage > 90
-                            ? 'bg-red-500'
-                            : metrics.cpu.usagePercentage > 70
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
+                          ? 'bg-red-500'
+                          : metrics.cpu.usagePercentage > 70
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
                           }`}
                         style={{ width: `${Math.min(metrics.cpu.usagePercentage, 100)}%` }}
                       />
@@ -353,10 +356,10 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                     <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
                       <div
                         className={`h-full rounded-full ${metrics.memory.usagePercentage > 90
-                            ? 'bg-red-500'
-                            : metrics.memory.usagePercentage > 70
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
+                          ? 'bg-red-500'
+                          : metrics.memory.usagePercentage > 70
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
                           }`}
                         style={{ width: `${Math.min(metrics.memory.usagePercentage, 100)}%` }}
                       />
@@ -416,7 +419,22 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(resource.resourceName);
+      let textToCopy = '';
+
+      // Determine what to copy based on resource type
+      switch (resource.resourceType) {
+        case 'container':
+          textToCopy = resource.name || resource.resourceName || 'container';
+          break;
+        case 'image':
+          textToCopy = resource.image || resource.resourceName || 'image';
+          break;
+        default:
+          textToCopy = resource.resourceName || resource.name || resource.resourceType;
+          break;
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -429,7 +447,53 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
     const status = resource.status as Record<string, any>;
     const replicas = status?.replicas as Record<string, any> | undefined;
 
+
     switch (resource.resourceType) {
+      case 'container': {
+        const containerData = resource as any;
+
+        return (
+          <div className="">
+            <div className="space-y-2">
+              <div>
+                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Container Name</h4>
+                <p className="text-sm text-gray-900 dark:text-gray-200">{containerData.name}</p>
+              </div>
+
+
+              {containerData.podName && (
+                <div>
+                  <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Pod</h4>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">{containerData.podName}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      case 'image': {
+        const imageData = resource as any;
+        return (
+          <div className="">
+            <div className="space-y-2">
+              <div>
+                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Image</h4>
+                <p className="text-sm mt-1 text-gray-900 dark:text-gray-300 break-all font-mono text-xs bg-gray-100 dark:bg-gray-800/40 px-2 py-1 rounded">
+                  {imageData.image}
+                </p>
+              </div>
+              {imageData.container && (
+                <div className='flex items-center gap-1'>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-300/50">Used by Container</h4>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">{imageData.container}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
       case 'pods': {
         const podPhase = replicas?.phase as string | undefined;
         const podIP = replicas?.podIP as string | undefined;
@@ -437,7 +501,6 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
 
         return (
           <div className="pt-1">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">Pod Details</h3>
 
             {/* Phase/Status */}
             <div className='grid grid-cols-2 gap-x-2'>
@@ -545,8 +608,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
         const updatedReplicas = replicas?.updatedReplicas;
 
         return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">Deployment Details</h3>
+          <div className="">
 
             {/* Replicas Information */}
             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -601,8 +663,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
         const readyReplicas = replicas?.readyReplicas;
 
         return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">ReplicaSet Details</h3>
+          <div className="">
 
             {/* Replicas Information */}
             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -660,23 +721,26 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
         const type = replicas?.type;
         const ports = replicas?.ports as any[] | undefined;
 
+
         return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">Service Details</h3>
+          <div className="">
 
-            {type && (
-              <div className="mb-2">
-                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Type</h4>
-                <p className="text-sm mt-1 text-gray-900 dark:text-gray-200">{type}</p>
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {type && (
+                <div className="mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Service Type</h4>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-200 px-2 py-0.5  w-fit bg-gray-200 dark:bg-gray-700/50 rounded-[0.3rem]">{type}</p>
+                </div>
+              )}
 
-            {clusterIP && (
-              <div className="mb-2">
-                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Cluster IP</h4>
-                <p className="text-sm mt-1 text-gray-900 dark:text-gray-200">{clusterIP}</p>
-              </div>
-            )}
+              {clusterIP && (
+                <div className="mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Cluster IP</h4>
+                  <p className="text-sm mt-1 text-gray-900 dark:text-gray-200">{clusterIP}</p>
+                </div>
+              )}
+            </div>
+
 
             {loadBalancer && loadBalancer.ingress && loadBalancer.ingress.length > 0 && (
               <div className="mb-2">
@@ -718,8 +782,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
         const subsets = replicas?.subsets as any[] | undefined;
 
         return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">Endpoints Details</h3>
+          <div className="">
 
             {subsets && subsets.length > 0 ? (
               <div className="mb-2">
@@ -762,8 +825,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
 
       case 'networkpolicies': {
         return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">Network Policy Details</h3>
+          <div className="">
 
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Network policies define how pods communicate with each other and other network endpoints.
@@ -771,6 +833,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
           </div>
         );
       }
+
 
       case 'daemonsets': {
         // Extract daemonset-specific data
@@ -782,8 +845,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
         const updatedNumberScheduled = replicas?.updatedNumberScheduled;
 
         return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">DaemonSet Details</h3>
+          <div className="">
 
             {/* Replicas Information */}
             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -861,8 +923,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
         const currentReplicas = replicas?.currentReplicas;
 
         return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">StatefulSet Details</h3>
+          <div className="">
 
             {/* Replicas Information */}
             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -945,27 +1006,29 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
       }
 
       default: {
-        // Default case for other resource types
-        return (
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">Details</h3>
-
-            {status?.age && (
-              <div className="mb-2">
-                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300">Age</h4>
-                <p className="text-sm mt-1 text-gray-900 dark:text-gray-200">{status.age}</p>
-              </div>
-            )}
-
-            {renderConditions(status?.conditions)}
-          </div>
-        );
+        // Return null for unsupported resource types - no panel will show
+        return null;
       }
     }
   };
 
-  const iconKey = resource.resourceType.toLowerCase() as KubeResourceType;
+  // Handle resource type detection for container and image nodes
+  let resourceType = resource.resourceType?.toLowerCase();
+
+  // Special handling for container and image nodes that might not have resourceType set properly
+  if (!resourceType || resourceType === 'unknown') {
+    if (resource.image && resource.container) {
+      resourceType = 'image';
+    } else if (resource.name && resource.podName) {
+      resourceType = 'container';
+    }
+  }
+
+  const iconKey = resourceType as KubeResourceType;
   const icon = KubeResourceIconMap[iconKey] || KubeResourceIconMap.default;
+
+  // Check if it's a Lucide icon (container or image)
+  const isLucideIcon = iconKey === 'container' || iconKey === 'image';
 
   const renderLabels = () => {
     if (!resource.labels || Object.keys(resource.labels).length === 0) return null;
@@ -1025,9 +1088,15 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
           >
             <div className="p-4">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 font-[Anton] uppercase flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 font-[Anton] uppercase flex items-center gap-2">
                   <div className="flex-shrink-0">
-                    <img src={icon} alt={resource.resourceType} className="w-6 h-6" />
+                    {isLucideIcon ? (
+                      React.createElement(icon as React.ComponentType<any>, {
+                        className: "w-6 h-6 text-gray-700 dark:text-gray-300"
+                      })
+                    ) : (
+                      <img src={icon as string} alt={resource.resourceType} className="w-6 h-6" />
+                    )}
                   </div>
                   {resource.resourceType}
                   <button
@@ -1047,18 +1116,17 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                     >
                       <Move className='h-3 w-3 rotate-45' />
                     </button>
-                    
+
                     {showPositionDropdown && (
                       <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800/20 backdrop-blur-md rounded-lg shadow-lg z-50 min-w-[140px]">
                         {positionOptions.map((option) => (
                           <button
                             key={option.value}
                             onClick={() => handlePositionChange(option.value)}
-                            className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 ${
-                              panelPosition === option.value
+                            className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 ${panelPosition === option.value
                                 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                                 : 'text-gray-700 dark:text-gray-300'
-                            } first:rounded-t-lg last:rounded-b-lg`}
+                              } first:rounded-t-lg last:rounded-b-lg`}
                           >
                             <option.icon size={14} />
                             {option.label}
@@ -1074,25 +1142,32 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
               </div>
 
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-x-2">
-                  <div>
-                    <h3 className="text-xs font-medium text-gray-500 dark:text-gray-300">Name</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-xs text-gray-900 dark:text-gray-300 break-words">{resource.resourceName}</p>
+                {/* Resource name and namespace - only for regular k8s resources */}
+                {resource.resourceName && resource.namespace && (
+                  <div className="grid grid-cols-2 gap-x-2 ">
+                    <div className='group'>
+                      <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300/50">Name</h4>
+                      <p 
+                        className="text-sm text-blue-600 dark:text-white hover:text-blue-400 dark:hover:text-blue-400 break-all cursor-pointer hover:underline flex items-center gap-1"
+                        onClick={() => navigate(`/dashboard/explore/${resource.resourceType}/${resource.namespace}/${resource.resourceName}`)}
+                      >
+                        {resource.resourceName}
+                      </p>
+                      <ArrowUpRight className="h-4 w-4  opacity-0 group-hover:opacity-100 text-blue-400 transition-opacity" />
+                    </div>
+
+                    <div className='group'>
+                      <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300/50">Namespace</h4>
+                      <p 
+                        className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:underline flex items-center gap-1"
+                        onClick={() => navigate(`/dashboard/explore/namespaces/${resource.namespace}`)}
+                      >
+                         <span>{resource.namespace}</span>
+                        <ArrowUpRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </p>
                     </div>
                   </div>
-
-                  <div>
-                    {resource.namespace && (
-                      <>
-                        <h3 className="text-xs font-medium text-gray-500 dark:text-gray-300">Namespace</h3>
-                        <p className="mt-1 text-xs cursor-pointer text-blue-600 dark:text-blue-400 hover:underline dark:border-gray-500/30 w-fit">
-                          {resource.namespace}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
+                )}
 
                 {/* Resource-specific details based on type */}
                 {renderResourceSpecificDetails()}

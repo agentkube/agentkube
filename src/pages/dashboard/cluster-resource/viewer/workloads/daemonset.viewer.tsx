@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Layers, Server, Trash } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Box, Shield, Layers, Server, Trash, Crosshair } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -46,6 +46,17 @@ const DaemonSetViewer: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { isReconMode } = useReconMode();
+  // Get attack path mode from URL params
+  const attackPathParam = searchParams.get('attackPath');
+  const [attackPathMode, setAttackPathMode] = useState(attackPathParam === 'true');
+
+  // Sync attack path mode with URL parameter
+  useEffect(() => {
+    const urlAttackPath = searchParams.get('attackPath') === 'true';
+    if (urlAttackPath !== attackPathMode) {
+      setAttackPathMode(urlAttackPath);
+    }
+  }, [searchParams, attackPathMode]);
 
   // Fetch events for the daemonset
   const fetchEvents = async () => {
@@ -214,7 +225,7 @@ const DaemonSetViewer: React.FC = () => {
     }
 
     return (
-      <Alert className="mb-6 bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-yellow-800">
+      <Alert className="mb-6 dark:text-yellow-600 bg-orange-700/10 dark:bg-orange-700/10 border border-yellow-200 dark:border-yellow-800">
         {icon}
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{description}</AlertDescription>
@@ -384,13 +395,39 @@ const DaemonSetViewer: React.FC = () => {
             });
           }}
           className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="yaml">YAML</TabsTrigger>
-            <TabsTrigger value="canvas">Canvas</TabsTrigger>
-            <TabsTrigger value="events">Events</TabsTrigger>
-            <TabsTrigger value="pods">Pods</TabsTrigger>
-          </TabsList>
+          <div className='flex justify-between items-center'>
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="yaml">YAML</TabsTrigger>
+              <TabsTrigger value="canvas">Canvas</TabsTrigger>
+              <TabsTrigger value="events">Events</TabsTrigger>
+              <TabsTrigger value="pods">Pods</TabsTrigger>
+            </TabsList>
+
+            {defaultTab === 'canvas' && (
+              <Button
+                variant={attackPathMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const newAttackPathMode = !attackPathMode;
+                  setAttackPathMode(newAttackPathMode);
+                  setSearchParams(params => {
+                    if (newAttackPathMode) {
+                      params.set('attackPath', 'true');
+                    } else {
+                      params.delete('attackPath');
+                    }
+                    return params;
+                  });
+                }}
+                className={`ml-2 h-9 ${attackPathMode ? 'bg-orange-500/20 dark:bg-orange-700/20 text-orange-500 dark:text-orange-400 border-none' : ''}`}
+                title={attackPathMode ? "Disable Attack Path Analysis" : "Enable Attack Path Analysis"}
+              >
+                <Crosshair className="h-4 w-4 mr-1.5" />
+                Attack Path
+              </Button>
+            )}
+          </div>
 
           <TabsContent value="overview" className="space-y-2 bg-transparent">
             {/* DaemonSet Status Cards */}
@@ -737,6 +774,7 @@ const DaemonSetViewer: React.FC = () => {
                     resourceType: 'daemonsets',
                     resourceName: daemonSetData.metadata?.name || '',
                   }}
+                  attackPath={attackPathMode}
                 />
               )}
             </div>

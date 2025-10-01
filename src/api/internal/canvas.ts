@@ -58,6 +58,7 @@ export interface GraphResponse {
  * @param version The API version of the resource
  * @param resourceType The type of resource (plural form, e.g. 'deployments')
  * @param resourceName The name of the specific resource
+ * @param attackPath Optional flag to enable attack path analysis (shows containers, images, services, ingresses, etc.)
  * @returns Promise with the graph data containing nodes and edges
  */
 export async function getResourceCanvas(
@@ -66,7 +67,8 @@ export async function getResourceCanvas(
   group: string,
   version: string,
   resourceType: string,
-  resourceName: string
+  resourceName: string,
+  attackPath?: boolean
 ): Promise<GraphResponse> {
   try {
     // Create the resource identifier object
@@ -78,8 +80,14 @@ export async function getResourceCanvas(
       resource_name: resourceName
     };
 
+    // Build the URL with optional query parameter
+    const url = new URL(`${OPERATOR_URL}/cluster/${clusterName}/canvas`);
+    if (attackPath) {
+      url.searchParams.set('query', 'attack-path');
+    }
+
     // Make API request to the canvas endpoint
-    const response = await fetch(`${OPERATOR_URL}/cluster/${clusterName}/canvas`, {
+    const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -5,39 +5,35 @@ import { Handle, NodeTypes, Position } from '@xyflow/react';
 import { KubeResourceIconMap, KubeResourceType } from '@/constants/kuberesource-icon-map.constant';
 import Internet from '@/assets/resources/internet.png';
 import { K8sResourceData } from '@/utils/kubernetes-graph.utils';
+import { Container as ContainerIcon, Image } from 'lucide-react';
 
 interface ResourceNodeProps {
   data: K8sResourceData;
 }
 
 export const getEdgeStyle = (label?: string) => {
+  // Maintain the dotted and flowing style for all edges
+  const baseStyle = {
+    stroke: '#4f46e5CC', // Indigo-600 - consistent color for all edges
+    strokeWidth: 2,
+    strokeDasharray: '5,5', // Dotted line style
+    animated: true, // Flowing animation for all edges
+  };
+
+  // You can still differentiate by label if needed, but keep visual consistency
   switch (label) {
     case 'manages':
-      return {
-        stroke: '#4f46e5CC', // Indigo-600
-        strokeWidth: 2,
-        animated: true,
-      };
     case 'routes-to':
-      return {
-        stroke: '#10b981', // Emerald-500
-        strokeWidth: 2,
-      };
     case 'uses':
-      return {
-        stroke: '#6366f1', // Indigo-500
-        strokeWidth: 2,
-      };
     case 'affects':
-      return {
-        stroke: '#f59e0b', // Amber-500
-        strokeWidth: 2,
-      };
+    case 'exposes':
+    case 'configures':
+    case 'provides-secrets':
+    case 'contains':
+    case 'creates':
+    case 'running':
     default:
-      return {
-        stroke: '#94a3b8', // Slate-400
-        strokeWidth: 2,
-      };
+      return baseStyle;
   }
 };
 
@@ -45,6 +41,7 @@ export const ResourceNode = memo(({ data }: ResourceNodeProps) => {
   const { resourceType, resourceName } = data;
   const iconKey = resourceType.toLowerCase() as KubeResourceType;
   const icon = KubeResourceIconMap[iconKey] || KubeResourceIconMap.default;
+  const isLucideIcon = typeof icon === 'function';
 
   //Option 1 Get the resource by getK8sResource
   return (
@@ -57,7 +54,13 @@ export const ResourceNode = memo(({ data }: ResourceNodeProps) => {
       />
       <div className="flex items-center w-56 truncate gap-3">
         <div className="flex-shrink-0">
-          <img src={icon} alt={resourceType} className="w-8 h-8" />
+          {isLucideIcon ? (
+            React.createElement(icon as React.ComponentType<any>, { 
+              className: "w-8 h-8 text-gray-700" 
+            })
+          ) : (
+            <img src={icon as string} alt={resourceType} className="w-8 h-8" />
+          )}
         </div>
         <div className="flex flex-col">
           <div className="text-sm font-bold text-gray-700">{resourceType}</div>
@@ -107,6 +110,88 @@ export const InternetNode = () => {
   );
 };
 
+interface ContainerNodeProps {
+  data: {
+    name: string;
+    image: string;
+    podName: string;
+    namespace: string;
+  };
+}
+
+export const ContainerNode = memo(({ data }: ContainerNodeProps) => {
+  return (
+    <div className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem]">
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!bg-transparent !border-none w-12 h-12"
+        style={{ zIndex: -1 }}
+      />
+      <div className="flex items-center w-56 truncate gap-3">
+        <div className="flex-shrink-0">
+          <ContainerIcon className="w-8 h-8 text-blue-700" />
+        </div>
+        <div className="flex flex-col">
+          <div className="text-sm font-bold text-gray-700">Container</div>
+          <div className="text-xs text-gray-500">{data.name}</div>
+        </div>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!bg-transparent !border-none w-12 h-12"
+        style={{ zIndex: -1 }}
+      />
+    </div>
+  );
+});
+
+ContainerNode.displayName = 'ContainerNode';
+
+interface ImageNodeProps {
+  data: {
+    image: string;
+    container: string;
+  };
+}
+
+export const ImageNode = memo(({ data }: ImageNodeProps) => {
+  // Extract just the image name and tag for display
+  const imageParts = data.image.split('/');
+  const imageNameTag = imageParts[imageParts.length - 1] || data.image;
+  
+  return (
+    <div className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem]">
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!bg-transparent !border-none w-12 h-12"
+        style={{ zIndex: -1 }}
+      />
+      <div className="flex items-center w-56 truncate gap-3">
+        <div className="flex-shrink-0">
+          <Image className="w-8 h-8 text-cyan-500" />
+        </div>
+        <div className="flex flex-col">
+          <div className="text-sm font-bold text-gray-700">Image</div>
+          <div className="text-xs text-gray-500" title={data.image}>{imageNameTag}</div>
+        </div>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!bg-transparent !border-none w-12 h-12"
+        style={{ zIndex: -1 }}
+      />
+    </div>
+  );
+});
+
+ImageNode.displayName = 'ImageNode';
+
 export const nodeTypes: NodeTypes = {
   resource: ResourceNode,
+  container: ContainerNode,
+  image: ImageNode,
 };

@@ -66,7 +66,7 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // Set up polling
     pollingTimerRef.current = setInterval(() => {
       refreshModels();
-    }, 5000);
+    }, 20000);
 
     // Cleanup function
     return () => {

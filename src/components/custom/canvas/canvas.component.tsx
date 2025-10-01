@@ -14,6 +14,7 @@ import {
   Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Loader2 } from 'lucide-react';
 import { getResourceCanvas } from '@/api/internal/canvas';
 import { K8sGraphData, K8sResourceData } from '@/utils/kubernetes-graph.utils';
 import { useCluster } from '@/contexts/clusterContext';
@@ -28,9 +29,10 @@ interface ResourceCanvasProps {
     resourceType: string;
     resourceName: string;
   };
+  attackPath?: boolean;
 }
 
-export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
+export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<K8sResourceData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +42,12 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
 
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node<K8sResourceData>) => {
-    setSelectedResource(node.data);
+    // Normalize the data for container and image nodes
+    const normalizedData: K8sResourceData = {
+      ...node.data,
+      resourceType: node.data.resourceType || node.type || 'unknown' // Use node.type as fallback for resourceType
+    };
+    setSelectedResource(normalizedData);
   }, []);
 
   const onConnect = useCallback((params: Connection) => {
@@ -48,39 +55,82 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
   }, [setEdges]);
 
   const calculateNodePositions = (graphData: K8sGraphData): Node<K8sResourceData>[] => {
-    const VERTICAL_SPACING = 100;
+    const VERTICAL_SPACING = 120;
     const HORIZONTAL_SPACING = 400;
 
-    // Group nodes by resource type
-    const nodesByType = new Map<string, K8sResourceData[]>();
+    // Define the logical order/layers for Kubernetes resources
+    const resourceOrder = {
+      // External/Ingress layer (leftmost)
+      'ingresses': 0,
+      
+      // Service layer (left side)
+      'services': 1,
+      
+      // Main workload layer (center)
+      'deployments': 2,
+      'statefulsets': 2,
+      'daemonsets': 2,
+      'jobs': 2,
+      'cronjobs': 2,
+      
+      // Replica management layer
+      'replicasets': 3,
+      
+      // Pod layer (right side)
+      'pods': 4,
+      
+      // Container layer (attack path)
+      'container': 5,
+      
+      // Image layer (attack path)
+      'image': 6,
+      
+      // Config layer (top/bottom to avoid conflicts)
+      'configmaps': 1,
+      'secrets': 1,
+    };
+
+    // Group nodes by their logical layer
+    const nodesByLayer = new Map<number, K8sResourceData[]>();
+    
     graphData.nodes.forEach(node => {
-      const type = node.data.resourceType;
-      if (!nodesByType.has(type)) {
-        nodesByType.set(type, []);
+      const resourceType = node.data.resourceType || node.type; // fallback for attack path nodes
+      const layer = resourceOrder[resourceType as keyof typeof resourceOrder] ?? 2; // default to workload layer
+      
+      if (!nodesByLayer.has(layer)) {
+        nodesByLayer.set(layer, []);
       }
-      nodesByType.get(type)?.push(node.data);
+      nodesByLayer.get(layer)?.push(node.data);
     });
 
-    // Create an array of nodes with positions
+    // Create positioned nodes
     const positionedNodes: Node<K8sResourceData>[] = [];
-    let columnIndex = 0;
-
-    nodesByType.forEach((nodes, _) => {
-      nodes.forEach((nodeData, rowIndex) => {
+    
+    nodesByLayer.forEach((nodes, layer) => {
+      nodes.forEach((nodeData, index) => {
         const node = graphData.nodes.find(n => n.data === nodeData);
         if (node) {
+          // Special positioning for config resources (configmaps, secrets)
+          let yPosition = index * VERTICAL_SPACING;
+          const resourceType = nodeData.resourceType || node.type;
+          
+          if (resourceType === 'configmaps') {
+            yPosition = -150; // Position above the main flow
+          } else if (resourceType === 'secrets') {
+            yPosition = -50; // Position above the main flow, but below configmaps
+          }
+
           positionedNodes.push({
             id: node.id,
-            type: node.type, // 'changed from resource'
+            type: node.type,
             position: {
-              x: columnIndex * HORIZONTAL_SPACING,
-              y: rowIndex * VERTICAL_SPACING
+              x: layer * HORIZONTAL_SPACING,
+              y: yPosition
             },
             data: nodeData,
           });
         }
       });
-      columnIndex++;
     });
 
     return positionedNodes;
@@ -100,7 +150,8 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
           resourceDetails.group,
           resourceDetails.version,
           resourceDetails.resourceType,
-          resourceDetails.resourceName
+          resourceDetails.resourceName,
+          attackPath
         );
   
         const positionedNodes = calculateNodePositions(graphData);
@@ -111,7 +162,7 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
           source: edge.source,
           target: edge.target,
           type: 'default',
-          animated: edge.label === 'manages',
+          animated: edge.label !== 'all-nodes', // true by default, can there is not nodes label as all-nodes
           style: getEdgeStyle(edge.label),
           labelStyle: { fill: getEdgeStyle(edge.label).stroke, fontWeight: 500 },
           labelBgStyle: { fill: '#ffffff', opacity: 0.8 },
@@ -136,12 +187,18 @@ export const ResourceCanvas = ({ resourceDetails }: ResourceCanvasProps) => {
     resourceDetails?.version,
     resourceDetails?.resourceType,
     resourceDetails?.resourceName,
+    attackPath,
     setNodes,
     setEdges
   ]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading resource graph...</div>;
+    return (
+      <div className="flex items-center justify-center text-gray-500 dark:text-gray-400/50 h-full gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Loading resource graph...</span>
+      </div>
+    );
   }
 
   if (error) {

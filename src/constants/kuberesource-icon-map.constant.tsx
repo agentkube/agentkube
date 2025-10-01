@@ -28,6 +28,7 @@ import clusterRoleBindingIcon from '@/assets/resources/png/resources/labeled/crb
 import roleBindingIcon from '@/assets/resources/png/resources/labeled/rb-128.png';
 import crdIcon from '@/assets/resources/png/resources/labeled/crd-128.png';
 import internetIcon from '@/assets/resources/internet.png';
+import { Container, Image } from 'lucide-react';
 
 export const KubeResourceIconMap = {
   nodes: nodeIcon,
@@ -70,6 +71,8 @@ export const KubeResourceIconMap = {
   'rolebindings': roleBindingIcon,
   'customresources': crdIcon,
   internet: internetIcon,
+  container: Container, // Using Lucide React Container icon
+  image: Image, // Using Lucide React Image icon
   default: crdIcon,
 } as const;
 
