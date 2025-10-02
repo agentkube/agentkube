@@ -15,6 +15,7 @@ interface SideDrawerProps {
   onClose: () => void;
   children: React.ReactNode;
   offsetTop?: string;
+  className?: string;
 }
 
 interface DrawerHeaderProps {
@@ -61,7 +62,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({ children, className = "" 
   );
 };
 
-const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, children, offsetTop = "top-0" }) => {
+const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, children, offsetTop = "top-0", className = "w-1/2" }) => {
   const [drawerMounted, setDrawerMounted] = useState<boolean>(false);
   const [isClosing, setIsClosing] = useState<boolean>(false);
 
@@ -122,7 +123,7 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, children, offs
 
             {/* Drawer with smooth animation */}
             <motion.div
-              className={`fixed ${offsetTop} right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg shadow-lg z-40`}
+              className={`fixed ${offsetTop} right-0 h-full ${className} bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg shadow-lg z-40`}
               initial="hidden"
               animate="visible"
               exit="exit"
