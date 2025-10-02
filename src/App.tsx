@@ -14,7 +14,8 @@ import {
   Indexing,
   ImageScans,
   Watcher,
-  TaskReport
+  TaskReport,
+  NetworkDiagnosis
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Provisioner, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -270,6 +271,7 @@ function App() {
                           <Route path="models" element={<ModelConfiguration />} />
                           <Route path="support" element={<Support />} />
                           <Route path="mcp" element={<MCPServerConfig />} />
+                          <Route path="networks" element={<NetworkDiagnosis />} />
                           <Route path="account" element={<Account />} />
                           <Route path="updates" element={<Updates />} />
                           <Route path="imagescans" element={<ImageScans />} />

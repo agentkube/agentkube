@@ -1,7 +1,7 @@
 // components/settings/SettingSidebar.tsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Settings, Users, Monitor, Code, HelpCircle, Folder, Keyboard, ChartColumnBig, Server, RefreshCcwDot, Database, Shield, Binoculars, Home, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, Users, Monitor, Code, HelpCircle, Folder, Keyboard, ChartColumnBig, Server, RefreshCcwDot, Database, Shield, Binoculars, Home, ArrowLeft, Network } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -25,6 +25,7 @@ const SettingSidebar: React.FC<SettingSidebarProps> = ({ isCollapsed, toggleColl
     { icon: <Keyboard size={15} />, label: 'Shortcuts', path: '/settings/shortcuts' },
     { icon: <Monitor size={15} />, label: 'Appearance', path: '/settings/appearance' },
     { icon: <Server size={15} />, label: 'MCP', path: '/settings/mcp' },
+    { icon: <Network size={15} />, label: 'Network', path: '/settings/networks' },
 
     // TODO: Release v1.0.6
     // { icon: <Shield size={15} />, label: 'Image Scans', path: '/settings/imagescans' },
