@@ -95,6 +95,7 @@ import { ModelsProvider } from "./contexts/useModel";
 import { AnalyticsProvider } from "./contexts/useAnalytics";
 import { ReconModeProvider } from "./contexts/useRecon";
 import { ScanProvider } from "./contexts/useScan";
+import MiniEditorWrapper from "./components/custom/minieditor/minieditorwrapper.component";
 
 function App() {
   return (
@@ -285,6 +286,7 @@ function App() {
                     <SoonerToaster position="bottom-right" />
                     <Footer />
                   </div>
+                  <MiniEditorWrapper />
                   {/* <TailwindIndicator /> */}
                   </NamespaceProvider>
                   </DrawerProvider>

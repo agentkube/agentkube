@@ -331,7 +331,11 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
         automaticLayout: true,
         quickSuggestions: true,
         formatOnPaste: true,
-        formatOnType: true
+        formatOnType: true,
+        lineNumbersMinChars: 3,
+        glyphMargin: false,
+        folding: false,
+        lineDecorationsWidth: 6
       }}
     />
   );
