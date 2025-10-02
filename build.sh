@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
+# TODO optimized binary
+# CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags "-s -w -X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo dev) -X main.buildTime=$(date +%FT%T%z)" -o ./dist/agentkube-operator-aarch64-apple-darwin ./cmd/server/main.go
 # Variables
 BINARY_NAME="agentkube-operator"
 MAIN_PATH="./cmd/server/main.go"
 DIST_DIR="./dist"
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME=$(date +%FT%T%z)
-LDFLAGS="-X main.version=${VERSION} -X main.buildTime=${BUILD_TIME}"
+LDFLAGS="-s -w -X main.version=${VERSION} -X main.buildTime=${BUILD_TIME}"
 
 # Print help message
 function show_help {
@@ -51,7 +53,7 @@ function build {
     local output=$3
     
     echo "Building for ${os}/${arch}..."
-    GOOS=${os} GOARCH=${arch} go build -ldflags "${LDFLAGS}" -o "${DIST_DIR}/${output}" ${MAIN_PATH}
+    CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go build -trimpath -ldflags "${LDFLAGS}" -o "${DIST_DIR}/${output}" ${MAIN_PATH}
     echo "Done."
 }
 
@@ -115,7 +117,7 @@ function build_linux_arm {
 # Build for current platform
 function build_current {
     echo "Building for current platform..."
-    go build -ldflags "${LDFLAGS}" -o "${DIST_DIR}/${BINARY_NAME}" ${MAIN_PATH}
+    CGO_ENABLED=0 go build -trimpath -ldflags "${LDFLAGS}" -o "${DIST_DIR}/${BINARY_NAME}" ${MAIN_PATH}
     echo "Done."
 }
 
