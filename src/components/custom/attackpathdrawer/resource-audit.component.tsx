@@ -12,6 +12,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertCircle,
   Loader2,
   Info,
@@ -45,7 +52,7 @@ export const ResourceAudit: React.FC<ResourceAuditProps> = ({ resourceData }) =>
 
   // Filter and expand states
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSeverity] = useState<SeverityLevel | "all">("all");
+  const [selectedSeverity, setSelectedSeverity] = useState<SeverityLevel | "all">("all");
   const [expandedChecks, setExpandedChecks] = useState<Set<string>>(new Set());
 
   // Sorting states
@@ -164,18 +171,17 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
     });
   };
 
-  // Filter reports based on resource data
-  const filteredReports = useMemo(() => {
+  // Get filtered checks from all reports
+  const filteredChecks = useMemo(() => {
     if (!Array.isArray(configAuditReports)) {
       return [];
     }
 
-
+    // First filter reports by resource
     let filtered = configAuditReports.filter(report => {
       const resourceName = report.metadata.labels?.['trivy-operator.resource.name'] || report.metadata.name;
       const resourceKind = report.metadata.labels?.['trivy-operator.resource.kind'] || 'Unknown';
       const reportNamespace = report.metadata.labels?.['trivy-operator.resource.namespace'] || report.metadata.namespace;
-
 
       // Filter by current resource
       if (resourceData.resourceName && resourceName !== resourceData.resourceName) {
@@ -200,55 +206,71 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
         }
       }
 
-      const matchesSearch = searchQuery === "" ||
-        report.metadata.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        resourceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        resourceKind.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (reportNamespace && reportNamespace.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      if (selectedSeverity === "all") {
-        return matchesSearch;
-      }
-
-      const hasSeverity = report.report.checks.some(check => check.severity === selectedSeverity);
-      return matchesSearch && hasSeverity;
+      return true;
     });
 
+    // Flatten checks from all reports and add metadata
+    const allChecks = filtered.flatMap(report => 
+      report.report.checks.map((check, index) => ({
+        ...check,
+        reportMetadata: report.metadata,
+        reportSummary: report.report.summary,
+        checkKey: `${report.metadata.name}-${index}`
+      }))
+    );
+
+    // Filter checks by search query
+    let filteredChecksList = allChecks.filter(check => {
+      const resourceName = check.reportMetadata.labels?.['trivy-operator.resource.name'] || check.reportMetadata.name;
+      const resourceKind = check.reportMetadata.labels?.['trivy-operator.resource.kind'] || 'Unknown';
+      const reportNamespace = check.reportMetadata.labels?.['trivy-operator.resource.namespace'] || check.reportMetadata.namespace;
+
+      const matchesSearch = searchQuery === "" ||
+        check.reportMetadata.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resourceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resourceKind.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        check.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        check.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        check.severity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (check.success ? 'pass' : 'fail').includes(searchQuery.toLowerCase()) ||
+        (reportNamespace && reportNamespace.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // Filter by severity
+      if (selectedSeverity !== "all" && check.severity !== selectedSeverity) {
+        return false;
+      }
+
+      return matchesSearch;
+    });
 
     // Apply sorting
     if (sortField) {
-      filtered.sort((a, b) => {
+      filteredChecksList.sort((a, b) => {
         let aValue: string | number;
         let bValue: string | number;
 
         switch (sortField) {
           case 'resource':
-            aValue = (a.metadata.labels?.['trivy-operator.resource.name'] || a.metadata.name).toLowerCase();
-            bValue = (b.metadata.labels?.['trivy-operator.resource.name'] || b.metadata.name).toLowerCase();
+            aValue = (a.reportMetadata.labels?.['trivy-operator.resource.name'] || a.reportMetadata.name).toLowerCase();
+            bValue = (b.reportMetadata.labels?.['trivy-operator.resource.name'] || b.reportMetadata.name).toLowerCase();
             break;
           case 'kind':
-            aValue = (a.metadata.labels?.['trivy-operator.resource.kind'] || 'Unknown').toLowerCase();
-            bValue = (b.metadata.labels?.['trivy-operator.resource.kind'] || 'Unknown').toLowerCase();
+            aValue = (a.reportMetadata.labels?.['trivy-operator.resource.kind'] || 'Unknown').toLowerCase();
+            bValue = (b.reportMetadata.labels?.['trivy-operator.resource.kind'] || 'Unknown').toLowerCase();
             break;
           case 'namespace':
-            aValue = (a.metadata.labels?.['trivy-operator.resource.namespace'] || a.metadata.namespace || 'N/A').toLowerCase();
-            bValue = (b.metadata.labels?.['trivy-operator.resource.namespace'] || b.metadata.namespace || 'N/A').toLowerCase();
+            aValue = (a.reportMetadata.labels?.['trivy-operator.resource.namespace'] || a.reportMetadata.namespace || 'N/A').toLowerCase();
+            bValue = (b.reportMetadata.labels?.['trivy-operator.resource.namespace'] || b.reportMetadata.namespace || 'N/A').toLowerCase();
             break;
           case 'critical':
-            aValue = a.report.summary.criticalCount;
-            bValue = b.report.summary.criticalCount;
+            aValue = ('checkID' in a ? (a.checkID || '') : (a.id || '')).toLowerCase();
+            bValue = ('checkID' in b ? (b.checkID || '') : (b.id || '')).toLowerCase();
             break;
-          case 'high':
-            aValue = a.report.summary.highCount;
-            bValue = b.report.summary.highCount;
-            break;
-          case 'medium':
-            aValue = a.report.summary.mediumCount;
-            bValue = b.report.summary.mediumCount;
-            break;
-          case 'low':
-            aValue = a.report.summary.lowCount;
-            bValue = b.report.summary.lowCount;
+          case 'severity':
+            // Custom severity order for sorting
+            const severityOrder = { 'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+            aValue = severityOrder[a.severity as keyof typeof severityOrder] || 0;
+            bValue = severityOrder[b.severity as keyof typeof severityOrder] || 0;
             break;
           default:
             return 0;
@@ -262,8 +284,29 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
       });
     }
 
-    return filtered;
+    return filteredChecksList;
   }, [configAuditReports, resourceData, searchQuery, selectedSeverity, sortField, sortDirection]);
+
+  // Group checks back by report for display
+  const filteredReports = useMemo(() => {
+    const reportMap = new Map();
+    
+    filteredChecks.forEach(check => {
+      const reportName = check.reportMetadata.name;
+      if (!reportMap.has(reportName)) {
+        reportMap.set(reportName, {
+          metadata: check.reportMetadata,
+          report: {
+            summary: check.reportSummary,
+            checks: []
+          }
+        });
+      }
+      reportMap.get(reportName).report.checks.push(check);
+    });
+
+    return Array.from(reportMap.values());
+  }, [filteredChecks]);
 
   // Calculate security metrics from filtered reports
   const securityMetrics = useMemo(() => {
@@ -318,7 +361,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
     <div className="space-y-4">
       {/* Security Metrics Cards */}
       <div className="grid grid-cols-4 gap-1 mb-6">
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-gray-50 dark:bg-transparent dark:hover:bg-gray-800/20 rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
           <CardContent className="py-2 px-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Critical</h2>
             <div className="mt-auto">
@@ -329,7 +372,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-gray-50 dark:bg-transparent dark:hover:bg-gray-800/20 rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
           <CardContent className="py-2 px-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">High</h2>
             <div className="mt-auto">
@@ -340,7 +383,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-gray-50 dark:bg-transparent dark:hover:bg-gray-800/20 rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
           <CardContent className="py-2 px-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Medium</h2>
             <div className="mt-auto">
@@ -351,7 +394,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-gray-50 dark:bg-transparent dark:hover:bg-gray-800/20 rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
           <CardContent className="py-2 px-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Low</h2>
             <div className="mt-auto">
@@ -364,19 +407,35 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
         </Card>
       </div>
 
-      {/* Search Input */}
-      <div className="mb-4">
-        <Input
-          type="text"
-          placeholder="Search configuration checks..."
-          className="w-full border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      {/* Search and Filter Controls */}
+      <div className="mb-4 flex gap-4">
+        <div className="flex-1">
+          <Input
+            type="text"
+            placeholder="Search configuration checks..."
+            className="w-full border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="min-w-[150px]">
+          <Select value={selectedSeverity} onValueChange={(value) => setSelectedSeverity(value as SeverityLevel | "all")}>
+            <SelectTrigger className="border border-gray-400 dark:border-gray-800/50 dark:bg-transparent h-full">
+              <SelectValue placeholder="Severity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Severities</SelectItem>
+              <SelectItem value="CRITICAL">Critical</SelectItem>
+              <SelectItem value="HIGH">High</SelectItem>
+              <SelectItem value="MEDIUM">Medium</SelectItem>
+              <SelectItem value="LOW">Low</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="text-xs mb-4 flex items-center gap-2">
-        <span className="text-gray-600 dark:text-gray-400">{filteredReports.length} audit reports</span>
+        <span className="text-gray-600 dark:text-gray-400">{filteredChecks.length} checks from {filteredReports.length} reports</span>
       </div>
 
       {filteredReports.length > 0 ? (
@@ -395,7 +454,15 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                   </div>
                 </TableHead>
                 <TableHead>Title & Description</TableHead>
-                <TableHead className="text-center">Severity</TableHead>
+                <TableHead 
+                  className="text-center cursor-pointer hover:text-blue-500"
+                  onClick={() => handleSort('severity')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Severity
+                    {getSortIcon('severity')}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -520,7 +587,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
       ) : (
         <div className="text-center py-16 bg-transparent dark:bg-transparent rounded-xl border border-gray-200 dark:border-gray-800/30">
           <Info className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-medium mb-2">No Config Audit Reports Found</h3>
+          <h3 className="text-xl font-medium mb-2">No Vulnerability Reports Found</h3>
           <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
             No configuration audit reports were found for this resource.
             Try ensuring Trivy is properly configured.
