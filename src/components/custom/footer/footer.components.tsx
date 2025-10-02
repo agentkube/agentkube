@@ -208,7 +208,7 @@ const Footer: React.FC = () => {
             v{currentVersion}
           </button>
 
-          <VulnScanFooterTool className="py-1.5" />
+          <VulnScanFooterTool />
 
           <button
             onClick={() => openExternalUrl("https://docs.agentkube.com/changelog")}
