@@ -188,6 +188,7 @@ interface ImageNodeProps {
   data: {
     image: string;
     container: string;
+    vulnerabilityCount?: number;
   };
   onAttackPathClick?: (resourceData: any) => void;
 }
@@ -215,7 +216,7 @@ export const ImageNode = memo(({ data, onAttackPathClick }: ImageNodeProps) => {
   
   return (
     <div 
-      className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem] cursor-pointer"
+      className="px-4 py-2 shadow-lg bg-gray-100 border-2 border-gray-400/50 rounded-[0.5rem] cursor-pointer relative"
       onClick={handleClick}
     >
       <Handle
@@ -233,6 +234,14 @@ export const ImageNode = memo(({ data, onAttackPathClick }: ImageNodeProps) => {
           <div className="text-xs text-gray-500" title={data.image}>{imageNameTag}</div>
         </div>
       </div>
+      
+      {/* Vulnerability Count Badge */}
+      {data.vulnerabilityCount !== undefined && data.vulnerabilityCount > 0 && (
+        <div className="absolute -top-4 -right-4 bg-rose-500 text-white text-md font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-white shadow-sm">
+          {data.vulnerabilityCount > 99 ? '99+' : data.vulnerabilityCount}
+        </div>
+      )}
+      
       <Handle
         type="source"
         position={Position.Right}

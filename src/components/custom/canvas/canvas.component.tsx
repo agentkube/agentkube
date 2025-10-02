@@ -21,6 +21,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { getEdgeStyle, nodeTypes } from './nodes/nodes.component';
 import { ResourceDetailsPanel } from './panel/resource-panel.component';
 import { AttackPathDrawer } from '../attackpathdrawer';
+import { getScanResults } from '@/api/vuln';
 
 interface ResourceCanvasProps {
   resourceDetails?: {
@@ -61,6 +62,17 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
     setAttackPathResource(resourceData);
     setIsAttackPathDrawerOpen(true);
   }, []);
+
+  // Function to fetch vulnerability count for an image
+  const fetchVulnerabilityCount = async (image: string): Promise<number> => {
+    try {
+      const result = await getScanResults({ image });
+      return result?.summary?.total || 0;
+    } catch (err) {
+      console.warn(`No scan results found for image: ${image}`, err);
+      return 0;
+    }
+  };
 
   const calculateNodePositions = (graphData: K8sGraphData): Node<K8sResourceData>[] => {
     const VERTICAL_SPACING = 120;
@@ -163,14 +175,32 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
         );
   
         const positionedNodes = calculateNodePositions(graphData);
-        // Add the attack path click handler to each node's data
-        const nodesWithHandler = positionedNodes.map(node => ({
-          ...node,
-          data: {
-            ...node.data,
-            onAttackPathClick: handleAttackPathClick
-          }
-        }));
+        
+        // Add the attack path click handler and fetch vulnerability counts for image nodes
+        const nodesWithHandler = await Promise.all(
+          positionedNodes.map(async (node) => {
+            let updatedData: K8sResourceData & { onAttackPathClick: (resourceData: K8sResourceData) => void } = {
+              ...node.data,
+              onAttackPathClick: handleAttackPathClick
+            };
+
+            // If this is an image node, fetch vulnerability count
+            if (node.type === 'image' && node.data.image) {
+              try {
+                const vulnCount = await fetchVulnerabilityCount(node.data.image as string);
+                (updatedData as any).vulnerabilityCount = vulnCount;
+              } catch (err) {
+                console.warn(`Failed to fetch vulnerability count for image: ${node.data.image}`, err);
+              }
+            }
+
+            return {
+              ...node,
+              data: updatedData
+            };
+          })
+        );
+        
         setNodes(nodesWithHandler);
   
         const formattedEdges: Edge[] = graphData.edges.map(edge => ({
