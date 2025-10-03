@@ -4,11 +4,11 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border border-slate-200 px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-slate-950 [&>svg~*]:pl-7 dark:border-slate-800 dark:[&>svg]:text-slate-50",
+  "relative w-full rounded-lg border border-slate-200 px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-slate-950 [&>svg~*]:pl-7 dark:border-slate-800",
   {
     variants: {
       variant: {
-        default: "bg-white text-slate-950 dark:bg-transparent dark:text-slate-50",
+        default: "bg-white dark:bg-transparent",
         warning: "bg-yellow-500/10 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-600 dark:border-yellow-600/60 [&>svg]:text-yellow-600 dark:[&>svg]:text-yellow-400",
         destructive: "bg-red-500/10 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-600 dark:border-red-600/60 [&>svg]:text-red-600 dark:[&>svg]:text-red-400",
         info: "bg-blue-500/10 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-600 dark:border-blue-600/60 [&>svg]:text-blue-600 dark:[&>svg]:text-blue-400",
@@ -40,7 +40,7 @@ const AlertTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h5
     ref={ref}
-    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    className={cn("mb-0.5 font-medium leading-none tracking-tight", className)}
     {...props}
   />
 ))

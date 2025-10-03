@@ -266,7 +266,7 @@ ClusterCard.displayName = 'ClusterCard';
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [isReloading, setIsReloading] = useState(false);
-  const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval } = useCluster();
+  const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval, recentConnections, removeFromRecentConnections, updateRecentConnectionName } = useCluster();
   const { user, setUser } = useAuth();
   const [hasReloaded, setHasReloaded] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -315,31 +315,50 @@ const HomePage: React.FC = () => {
     }));
   }, [contexts]);
 
+  // Memoize recent cluster items from recent connections
+  const recentClusterItems = useMemo(() => {
+    return recentConnections.map(conn => ({
+      id: conn.kubeContext.name,
+      name: conn.kubeContext.name,
+      description: `${conn.kubeContext.kubeContext.cluster}`,
+      type: determineClusterType(conn.kubeContext.kubeContext.user)
+    }));
+  }, [recentConnections]);
+
   // Memoize pinned cluster IDs
   const pinnedClusterIds = useMemo(() => {
     return new Set(pinnedClusters.map(c => c.id));
   }, [pinnedClusters]);
 
-  // Memoize available clusters
-  const availableClusters = useMemo(() => {
-    return clusterItems.filter(item => !pinnedClusterIds.has(item.id));
-  }, [clusterItems, pinnedClusterIds]);
+  // Memoize recent cluster IDs
+  const recentClusterIds = useMemo(() => {
+    return new Set(recentClusterItems.map(c => c.id));
+  }, [recentClusterItems]);
 
-  // Memoize filtered clusters
+  // Memoize available clusters (exclude pinned and recent)
+  const availableClusters = useMemo(() => {
+    return clusterItems.filter(item => 
+      !pinnedClusterIds.has(item.id) && !recentClusterIds.has(item.id)
+    );
+  }, [clusterItems, pinnedClusterIds, recentClusterIds]);
+
+  // Memoize filtered clusters (recent + available, with search)
   const filteredClusters = useMemo(() => {
-    if (!searchQuery) return availableClusters;
+    const allAvailableClusters = [...recentClusterItems, ...availableClusters];
+    
+    if (!searchQuery) return allAvailableClusters;
 
     const query = searchQuery.toLowerCase();
-    return availableClusters.filter(cluster =>
+    return allAvailableClusters.filter(cluster =>
       cluster.name.toLowerCase().includes(query) ||
       cluster.description.toLowerCase().includes(query)
     );
-  }, [availableClusters, searchQuery]);
+  }, [recentClusterItems, availableClusters, searchQuery]);
 
   // Memoize all clusters
   const allClusters = useMemo(() => {
-    return [...pinnedClusters, ...availableClusters];
-  }, [pinnedClusters, availableClusters]);
+    return [...recentClusterItems, ...pinnedClusters, ...availableClusters];
+  }, [recentClusterItems, pinnedClusters, availableClusters]);
 
   // Memoize selected cluster
   const selectedCluster = useMemo(() => {
@@ -512,7 +531,9 @@ const HomePage: React.FC = () => {
   // Handle pin action
   const handlePin = useCallback(() => {
     if (contextMenu.clusterId) {
-      const clusterToPin = availableClusters.find(c => c.id === contextMenu.clusterId);
+      // Check in recent connections first, then available clusters
+      const clusterToPin = recentClusterItems.find(c => c.id === contextMenu.clusterId) || 
+                          availableClusters.find(c => c.id === contextMenu.clusterId);
       if (clusterToPin) {
         // Add to pinned clusters
         setPinnedClusters(prev => [...prev, clusterToPin]);
@@ -520,7 +541,7 @@ const HomePage: React.FC = () => {
       // Close context menu
       setContextMenu(prev => ({ ...prev, visible: false }));
     }
-  }, [contextMenu.clusterId, availableClusters]);
+  }, [contextMenu.clusterId, recentClusterItems, availableClusters]);
 
   // Handle unpin action
   const handleUnpin = useCallback(() => {
@@ -563,6 +584,9 @@ const HomePage: React.FC = () => {
             setPinnedClusters(prev => prev.filter(c => c.id !== contextMenu.clusterId));
           }
 
+          // Remove from recent connections if it's there
+          removeFromRecentConnections(contextMenu.clusterId);
+
           // Refresh contexts to update the UI
           await refreshContexts();
 
@@ -601,6 +625,9 @@ const HomePage: React.FC = () => {
       setPinnedClusters(prev => prev.filter(c => c.id !== deletedContextName));
     }
 
+    // Remove from recent connections if it's there
+    removeFromRecentConnections(deletedContextName);
+
     // Refresh contexts to update the UI
     refreshContexts();
 
@@ -633,6 +660,9 @@ const HomePage: React.FC = () => {
       )
     );
 
+    // Update recent connections if the renamed context is in recent connections
+    updateRecentConnectionName(oldName, newName);
+
     // Refresh contexts to update the UI
     refreshContexts();
 
@@ -645,11 +675,11 @@ const HomePage: React.FC = () => {
     if (selectedClusterId) {
       handleConnect(selectedClusterId);
     } else {
-      // If no cluster is selected, use the first available one
-      const defaultClusterId = pinnedClusters[0]?.id || availableClusters[0]?.id;
+      // If no cluster is selected, use the first available one (recent > pinned > available)
+      const defaultClusterId = recentClusterItems[0]?.id || pinnedClusters[0]?.id || availableClusters[0]?.id;
       if (defaultClusterId) handleConnect(defaultClusterId);
     }
-  }, [selectedClusterId, handleConnect, pinnedClusters, availableClusters]);
+  }, [selectedClusterId, handleConnect, recentClusterItems, pinnedClusters, availableClusters]);
 
   const handleContextMenuConnect = useCallback(() => {
     if (contextMenu.clusterId) {
@@ -667,11 +697,13 @@ const HomePage: React.FC = () => {
   }, [handleDeleteContext]);
 
   const handleDirectPin = useCallback((clusterId: string) => {
-    const clusterToPin = availableClusters.find(c => c.id === clusterId);
+    // Check in recent connections first, then available clusters
+    const clusterToPin = recentClusterItems.find(c => c.id === clusterId) || 
+                        availableClusters.find(c => c.id === clusterId);
     if (clusterToPin) {
       setPinnedClusters(prev => [...prev, clusterToPin]);
     }
-  }, [availableClusters]);
+  }, [recentClusterItems, availableClusters]);
 
   const handleDirectUnpin = useCallback((clusterId: string) => {
     setPinnedClusters(prev => prev.filter(c => c.id !== clusterId));
@@ -776,7 +808,7 @@ const HomePage: React.FC = () => {
                       ? 'bg-blue-700 dark:bg-blue-800 hover:bg-blue-700 text-white'
                       : 'bg-gray-300 hover:bg-gray-300 text-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-600'}`}
                   onClick={handleMainConnect}
-                  disabled={isContextsLoading || (!pinnedClusters.length && !availableClusters.length)}
+                  disabled={isContextsLoading || (!recentClusterItems.length && !pinnedClusters.length && !availableClusters.length)}
                 >
                   Connect
                   <ArrowRight size={16} />

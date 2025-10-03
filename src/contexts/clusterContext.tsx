@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { KubeContext } from '@/types/cluster';
+import { KubeContext, RecentConnection } from '@/types/cluster';
 import { getKubeContexts } from '@/api/cluster';
 import { useToast } from '@/hooks/use-toast';
 
@@ -10,11 +10,15 @@ interface ClusterContextType {
   error: string | null;
   fullWidth: boolean;
   refreshInterval: number;
+  recentConnections: RecentConnection[];
   fetchContexts: () => Promise<void>;
   setCurrentContext: (context: KubeContext) => void;
   refreshContexts: () => Promise<void>;
   setFullWidth: (fullWidth: boolean) => void;
   setRefreshInterval: (interval: number) => void;
+  addToRecentConnections: (context: KubeContext) => void;
+  removeFromRecentConnections: (contextName: string) => void;
+  updateRecentConnectionName: (oldName: string, newName: string) => void;
 }
 
 const ClusterContext = createContext<ClusterContextType | undefined>(undefined);
@@ -38,6 +42,10 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     return stored ? JSON.parse(stored) : false;
   });
 
+  const [recentConnections, setRecentConnections] = useState<RecentConnection[]>(() => {
+    const stored = localStorage.getItem('recent-connected-clusters');
+    return stored ? JSON.parse(stored) : [];
+  });
 
   const { toast } = useToast();
 
@@ -53,6 +61,51 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     setFullWidthState(isFullWidth);
     localStorage.setItem('full-width', JSON.stringify(isFullWidth));
   };
+
+  // Recent connections cache management
+  const addToRecentConnections = useCallback((context: KubeContext) => {
+    setRecentConnections(prev => {
+      // Remove existing entry if present
+      const filtered = prev.filter(conn => conn.kubeContext.name !== context.name);
+      
+      // Add to front with current timestamp
+      const newConnection: RecentConnection = {
+        kubeContext: context,
+        connectedAt: new Date().toISOString()
+      };
+      
+      // Keep only last 3 entries
+      const updated = [newConnection, ...filtered].slice(0, 3);
+      
+      // Save to localStorage
+      localStorage.setItem('recent-connected-clusters', JSON.stringify(updated));
+      
+      return updated;
+    });
+  }, []);
+
+  const removeFromRecentConnections = useCallback((contextName: string) => {
+    setRecentConnections(prev => {
+      const filtered = prev.filter(conn => conn.kubeContext.name !== contextName);
+      localStorage.setItem('recent-connected-clusters', JSON.stringify(filtered));
+      return filtered;
+    });
+  }, []);
+
+  const updateRecentConnectionName = useCallback((oldName: string, newName: string) => {
+    setRecentConnections(prev => {
+      const updated = prev.map(conn => 
+        conn.kubeContext.name === oldName 
+          ? { 
+              ...conn, 
+              kubeContext: { ...conn.kubeContext, name: newName }
+            }
+          : conn
+      );
+      localStorage.setItem('recent-connected-clusters', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   // Function to fetch all available kube contexts
   const fetchContexts = useCallback(async () => {
@@ -108,6 +161,10 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
   const handleSetCurrentContext = (context: KubeContext) => {
     setCurrentContext(context);
     localStorage.setItem(storageKey, context.name);
+    
+    // Add to recent connections cache
+    addToRecentConnections(context);
+    
     toast({
       title: "Context Changed",
       description: `Switched to: ${context.name}`,
@@ -121,11 +178,15 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     error,
     fullWidth,
     refreshInterval,
+    recentConnections,
     fetchContexts,
     setCurrentContext: handleSetCurrentContext,
     refreshContexts,
     setFullWidth: handleSetFullWidth,
     setRefreshInterval,
+    addToRecentConnections,
+    removeFromRecentConnections,
+    updateRecentConnectionName,
   };
 
   return (

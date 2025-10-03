@@ -420,14 +420,19 @@ const NodeViewer: React.FC = () => {
     return (
       <Alert className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
         <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-        <AlertTitle>Node is Not Ready</AlertTitle>
-        <AlertDescription>
+        <AlertTitle className="text-red-500 dark:text-red-400">Node is Not Ready</AlertTitle>
+        <AlertDescription className="text-red-500 dark:text-red-400">
           {status === 'NotReady'
             ? 'The node is not in a ready state and cannot accept new workloads.'
             : `The node has a ${status} condition that prevents it from functioning normally.`}
         </AlertDescription>
       </Alert>
     );
+  };
+
+  // TODO: Add handler function for installing metrics server
+  const handleInstallMetricsServer = async () => {
+    // TODO: Implement metrics server installation logic
   };
 
   // Metrics alert component
@@ -437,12 +442,28 @@ const NodeViewer: React.FC = () => {
     return (
       <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800">
         <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-        <AlertTitle>Metrics Unavailable</AlertTitle>
-        <AlertDescription>
-          {metricsError.includes('not installed')
-            ? 'Metrics server is not installed. Resource usage data is not available.'
-            : `Unable to fetch metrics: ${metricsError}`}
-        </AlertDescription>
+        <div className='flex items-end justify-between'>
+          <div>
+            <AlertTitle className="text-yellow-500 dark:text-yellow-500">Metrics Unavailable</AlertTitle>
+            <AlertDescription className=" text-yellow-500 dark:text-yellow-400/70 flex items-center justify-between">
+              <span>
+                {metricsError.includes('not installed')
+                  ? 'Metrics server is not installed. Resource usage data is not available.'
+                  : `Unable to fetch metrics: ${metricsError}`}
+              </span>
+            </AlertDescription>
+          </div>
+          {metricsError.includes('not installed') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleInstallMetricsServer}
+              className="text-yellow-600 border-yellow-300 hover:bg-yellow-100 dark:text-yellow-500 dark:hover:text-yellow-400 dark:border-yellow-700 dark:hover:bg-yellow-900/20"
+            >
+              Install Metrics Server
+            </Button>
+          )}
+        </div>
       </Alert>
     );
   };
@@ -637,7 +658,7 @@ const NodeViewer: React.FC = () => {
                   ) : (
                     metricsError ? 'Metrics unavailable' : 'Loading metrics...'
                   )}
-                </div>                
+                </div>
                 <Progress value={resources.usage.cpuPercent} className="h-1 mt-2 dark:bg-gray-400/10" />
               </div>
 
@@ -723,8 +744,8 @@ const NodeViewer: React.FC = () => {
               )}
             </div>
 
-                       {/* Node System Info */}
-                       <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
+            {/* Node System Info */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700/30 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">System Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                 <div>
@@ -735,7 +756,7 @@ const NodeViewer: React.FC = () => {
                   <div className="text-sm text-gray-500 dark:text-gray-400">Architecture</div>
                   <div className='flex items-center gap-1'><SiArm className='h-4 w-4' />{nodeInfo.architecture}</div>
                 </div>
-              
+
                 <div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">Kernel Version</div>
                   <div>{nodeInfo.kernelVersion}</div>
@@ -809,7 +830,7 @@ const NodeViewer: React.FC = () => {
               )}
             </div>
 
- 
+
 
             {/* Node Events */}
             <EventsViewer

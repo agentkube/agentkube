@@ -160,3 +160,8 @@ export interface KubeConfigFile {
 	isDroppedFile?: boolean;
 	primaryContext?: string | null;
 }
+
+export interface RecentConnection {
+	kubeContext: KubeContext;
+	connectedAt: string; // ISO timestamp
+}
