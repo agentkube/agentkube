@@ -59,7 +59,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
   // Is advanced features section collapsed
   const [isAdvancedCollapsed, setIsAdvancedCollapsed] = useState(() => {
     const saved = localStorage.getItem('advanced-section-collapsed');
-    return saved ? JSON.parse(saved) : false;
+    return saved ? JSON.parse(saved) : true;
   });
 
   // Save collapse state to localStorage whenever it changes

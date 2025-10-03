@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw, Edit3, Settings2 } from 'lucide-react';
+import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw, Edit3, Settings2, Unplug } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,8 +86,13 @@ const ClusterCard = memo<{
   onContextMenu: (e: React.MouseEvent, clusterId: string, isPinned: boolean) => void;
   onClusterClick: (clusterId: string) => void;
   onConnect: (clusterId: string) => void;
+  onRename: (clusterId: string) => void;
+  onDelete: (clusterId: string) => void;
+  onPin: (clusterId: string) => void;
+  onUnpin: (clusterId: string) => void;
+  viewMode: 'grid' | 'list';
   theme?: string;
-}>(({ cluster, isPinned = false, isSelected, onContextMenu, onClusterClick, onConnect, theme }) => {
+}>(({ cluster, isPinned = false, isSelected, onContextMenu, onClusterClick, onConnect, onRename, onDelete, onPin, onUnpin, viewMode, theme }) => {
   // Handle double-click to immediately connect
   const handleDoubleClick = useCallback(() => {
     onConnect(cluster.id);
@@ -100,6 +105,30 @@ const ClusterCard = memo<{
   const handleRightClick = useCallback((e: React.MouseEvent) => {
     onContextMenu(e, cluster.id, isPinned);
   }, [onContextMenu, cluster.id, isPinned]);
+
+  const handleConnectClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onConnect(cluster.id);
+  }, [onConnect, cluster.id]);
+
+  const handleRenameClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRename(cluster.id);
+  }, [onRename, cluster.id]);
+
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(cluster.id);
+  }, [onDelete, cluster.id]);
+
+  const handlePinClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPinned) {
+      onUnpin(cluster.id);
+    } else {
+      onPin(cluster.id);
+    }
+  }, [isPinned, onPin, onUnpin, cluster.id]);
 
   // Determine if we need to truncate the text
   const isTruncatedName = cluster.name.length > 35;
@@ -159,6 +188,75 @@ const ClusterCard = memo<{
           </p>
         )}
       </div>
+
+      {/* Action Icons - Only show in list view and when selected */}
+      {viewMode === 'list' && isSelected && (
+        <div className="flex items-center gap-2 ml-auto">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleConnectClick}
+                  className="p-1.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Unplug size={16} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className='p-1'>
+                <p>Connect</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handlePinClick}
+                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Pin size={16} className={`text-gray-600 dark:text-gray-400 ${isPinned ? '-rotate-45' : 'rotate-45'}`} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className='p-1'>
+                <p>{isPinned ? 'Unpin' : 'Pin'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleRenameClick}
+                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Edit3 size={16} className="text-gray-600 dark:text-gray-400" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className='p-1'>
+                <p>Rename</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleDeleteClick}
+                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Trash2 size={16} className="text-red-500" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent  className='p-1'>
+                <p>Delete</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
     </div>
   );
 });
@@ -560,6 +658,25 @@ const HomePage: React.FC = () => {
     }
   }, [contextMenu.clusterId, handleConnect]);
 
+  // Wrapper functions for the action buttons
+  const handleDirectDelete = useCallback((clusterId: string) => {
+    // Set the context menu clusterId temporarily to reuse existing logic
+    setContextMenu(prev => ({ ...prev, clusterId }));
+    // Then call the existing delete handler
+    handleDeleteContext();
+  }, [handleDeleteContext]);
+
+  const handleDirectPin = useCallback((clusterId: string) => {
+    const clusterToPin = availableClusters.find(c => c.id === clusterId);
+    if (clusterToPin) {
+      setPinnedClusters(prev => [...prev, clusterToPin]);
+    }
+  }, [availableClusters]);
+
+  const handleDirectUnpin = useCallback((clusterId: string) => {
+    setPinnedClusters(prev => prev.filter(c => c.id !== clusterId));
+  }, []);
+
   // Context Menu Component - memoized
   const ContextMenu = memo(() => {
     if (!contextMenu.visible) return null;
@@ -699,6 +816,14 @@ const HomePage: React.FC = () => {
                     onContextMenu={handleContextMenu}
                     onClusterClick={handleClusterClick}
                     onConnect={handleConnect}
+                    onRename={() => {
+                      setContextToRename(cluster.id);
+                      setRenameDialogOpen(true);
+                    }}
+                    onDelete={handleDirectDelete}
+                    onPin={handleDirectPin}
+                    onUnpin={handleDirectUnpin}
+                    viewMode={viewMode}
                     theme={theme}
                   />
                 ))
@@ -773,6 +898,14 @@ const HomePage: React.FC = () => {
                   onContextMenu={handleContextMenu}
                   onClusterClick={handleClusterClick}
                   onConnect={handleConnect}
+                  onRename={() => {
+                    setContextToRename(cluster.id);
+                    setRenameDialogOpen(true);
+                  }}
+                  onDelete={handleDirectDelete}
+                  onPin={handleDirectPin}
+                  onUnpin={handleDirectUnpin}
+                  viewMode={viewMode}
                   theme={theme}
                 />
               ))
