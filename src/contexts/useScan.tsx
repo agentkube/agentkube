@@ -53,11 +53,6 @@ export const ScanProvider: React.FC<ScanProviderProps> = ({ children }) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch cluster images';
       setError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }

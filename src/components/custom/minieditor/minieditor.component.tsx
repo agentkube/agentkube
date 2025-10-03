@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Plus, X, GripVertical, RotateCcw } from 'lucide-react';
+import { Plus, X, RotateCcw, ChevronDown, Folder } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomMonacoEditor } from '@/components/custom';
 import { toast } from '@/hooks/use-toast';
@@ -8,6 +8,16 @@ import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
 import { useReconMode } from '@/contexts/useRecon';
 import { kubeProxyRequest } from '@/api/cluster';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from '@/components/ui/dropdown-menu';
+import { TEMPLATE_CATEGORIES, GITHUB_BASE_URL, TemplateItem } from '@/constants/templates.constant';
 
 interface MiniEditorProps {
   isOpen: boolean;
@@ -20,6 +30,7 @@ export const MiniEditor = ({ isOpen, onToggle }: MiniEditorProps) => {
   const { isReconMode } = useReconMode();
   const [content, setContent] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isTemplateLoading, setIsTemplateLoading] = useState<boolean>(false);
   const [editorHeight, setEditorHeight] = useState<number>(() => {
     const cached = localStorage.getItem('mini_editor_height');
     return cached ? parseInt(cached) : 384; // Default h-96 (24rem = 384px)
@@ -39,6 +50,37 @@ export const MiniEditor = ({ isOpen, onToggle }: MiniEditorProps) => {
 
   const handleClear = () => {
     setContent('');
+  };
+
+  // Handle template selection
+  const handleTemplateSelect = async (template: TemplateItem) => {
+    setIsTemplateLoading(true);
+    
+    try {
+      const response = await fetch(`${GITHUB_BASE_URL}/${template.path}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const templateContent = await response.text();
+      setContent(templateContent);
+      
+      toast({
+        title: "Template Applied",
+        description: `${template.name} template applied to editor`,
+        variant: "success"
+      });
+    } catch (error) {
+      console.error(`Error fetching template content for ${template.path}:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to load template: ${error instanceof Error ? error.message : String(error)}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsTemplateLoading(false);
+    }
   };
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -283,6 +325,64 @@ export const MiniEditor = ({ isOpen, onToggle }: MiniEditorProps) => {
             <div className="flex items-center justify-between px-2 py-1 border-b border-gray-200 dark:border-gray-700/50">
               <h3 className="text-sm font-light text-gray-900 dark:text-gray-400/60">Editor</h3>
               <div className="flex items-center gap-1">
+                {/* Template Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="h-8 hover:bg-gray-100 dark:hover:bg-[#0B0D13]/50"
+                      disabled={isTemplateLoading}
+                    >
+                      {isTemplateLoading ? (
+                        'Loading...'
+                      ) : (
+                        <>
+                          <Folder className="h-3 w-3 mr-1" />
+                          Templates
+                          <ChevronDown className="h-3 w-3 ml-1" />
+                        </>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 max-h-80 dark:bg-[#0B0D13]/40 overflow-y-auto">
+                    {TEMPLATE_CATEGORIES.map((category) => (
+                      <DropdownMenuSub key={category.name} >
+                        <DropdownMenuSubTrigger className='backdrop-blur-md'>
+                          <Folder className="h-4 w-4 mr-2 text-blue-500" />
+                          {category.displayName}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-56 dark:bg-[#0B0D13]/40 backdrop-blur-md border-none">
+                          {category.items.map((template) => (
+                            <DropdownMenuItem
+                              key={template.path}
+                              onClick={() => handleTemplateSelect(template)}
+                              className="flex items-center gap-2 p-2"
+                            >
+                              {template.icon ? (
+                                <img 
+                                  src={template.icon} 
+                                  alt={template.name} 
+                                  width={16} 
+                                  height={16} 
+                                  className="object-contain mt-0.5 flex-shrink-0 h-4 w-4"
+                                />
+                              ) : (
+                                <Folder className="h-4 w-4 mt-0.5 text-blue-500 flex-shrink-0" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">{template.name}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                  {template.description}
+                                </div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
             
                 <Button 
                   size="sm"
