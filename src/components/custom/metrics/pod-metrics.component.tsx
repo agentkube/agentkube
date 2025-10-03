@@ -31,9 +31,10 @@ interface PodMetrics {
 interface PodMetricsComponentProps {
   namespace: string;
   podName: string;
+  onError?: (error: string | null) => void;
 }
 
-const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, podName }) => {
+const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, podName, onError }) => {
   const { currentContext } = useCluster();
   const [podMetrics, setPodMetrics] = useState<PodMetrics | null>(null);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -53,10 +54,18 @@ const PodMetricsComponent: React.FC<PodMetricsComponentProps> = ({ namespace, po
       const data = await kubeProxyRequest(currentContext.name, metricsApiPath, 'GET');
       setPodMetrics(data);
       setError(null);
+      onError?.(null);
     } catch (err) {
       console.error('Error fetching pod metrics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch pod metrics');
-      // We still set error for logging, but won't display it
+      let errorMessage = err instanceof Error ? err.message : 'Failed to fetch pod metrics';
+      
+      // Check if it's a 404 error which typically means metrics server is not installed
+      if (errorMessage.includes('404') || errorMessage.includes('page not found')) {
+        errorMessage = 'Metrics server not installed or pod metrics not available';
+      }
+      
+      setError(errorMessage);
+      onError?.(errorMessage);
     } finally {
       setRefreshing(false);
     }

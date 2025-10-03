@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, Terminal, Trash, BadgeCheck, Image } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, Terminal, Trash, BadgeCheck, Image, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -40,6 +40,7 @@ const PodViewer: React.FC = () => {
   const [events, setEvents] = useState<CoreV1Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
   const { currentContext, fullWidth } = useCluster();
   const { podName, namespace } = useParams<{ podName: string; namespace: string }>();
   const navigate = useNavigate();
@@ -181,6 +182,11 @@ const PodViewer: React.FC = () => {
     setShowImageVulnDrawer(true);
   };
 
+  // TODO: Add handler function for installing metrics server
+  const handleInstallMetricsServer = async () => {
+    // TODO: Implement metrics server installation logic
+  };
+
   // Handle refresh data
   const handleRefresh = () => {
     setLoading(true);
@@ -199,6 +205,39 @@ const PodViewer: React.FC = () => {
     }
   };
 
+
+  // Metrics alert component
+  const MetricsAlert = () => {
+    if (!metricsError) return null;
+
+    return (
+      <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800">
+        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+        <div className='flex items-end justify-between'>
+          <div>
+            <AlertTitle className="text-yellow-500 dark:text-yellow-500">Metrics Unavailable</AlertTitle>
+            <AlertDescription className=" text-yellow-500 dark:text-yellow-400/70 flex items-center justify-between">
+              <span>
+                {metricsError.includes('not installed')
+                  ? 'Metrics server is not installed. Resource usage data is not available.'
+                  : `Unable to fetch metrics: ${metricsError}`}
+              </span>
+            </AlertDescription>
+          </div>
+          {metricsError.includes('not installed') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleInstallMetricsServer}
+              className="text-yellow-600 border-yellow-300 hover:bg-yellow-100 dark:text-yellow-500 dark:hover:text-yellow-400 dark:border-yellow-700 dark:hover:bg-yellow-900/20"
+            >
+              Install Metrics Server
+            </Button>
+          )}
+        </div>
+      </Alert>
+    );
+  };
 
   // Status alert component based on pod phase
   const PodStatusAlert = ({ phase }: { phase?: string }) => {
@@ -379,6 +418,9 @@ const PodViewer: React.FC = () => {
         {/* Status alert if needed */}
         <PodStatusAlert phase={podData.status?.phase} />
 
+        {/* Metrics alert if needed */}
+        <MetricsAlert />
+
         {podData && (
           <DeletionDialog
             isOpen={showDeleteDialog}
@@ -502,6 +544,7 @@ const PodViewer: React.FC = () => {
               <PodMetricsComponent
                 namespace={namespace}
                 podName={podName}
+                onError={setMetricsError}
               />
             )}
           </TabsContent>

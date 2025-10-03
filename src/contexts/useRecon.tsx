@@ -49,9 +49,9 @@ export const ReconModeProvider: React.FC<ReconModeProviderProps> = ({ children }
       toast({
         title: enabled ? "Recon Mode Enabled" : "Recon Mode Disabled",
         description: enabled 
-          ? "All modifying operations are now blocked. Read-only access enabled." 
+          ? "All modifications blocked, read-only access only." 
           : "All operations are now allowed. Full access restored.",
-        variant: enabled ? "default" : "success"
+        variant: enabled ? "recon" : "success"
       });
     } catch (error) {
       console.error('Failed to update recon mode:', error);
