@@ -185,7 +185,7 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
         <TreeNodeTrigger>
           <TreeExpander hasChildren={hasChildren} />
           <TreeIcon icon={feature.icon} hasChildren={hasChildren} />
-          <TreeLabel>{feature.label}</TreeLabel>
+          <TreeLabel className='dark:text-gray-300'>{feature.label}</TreeLabel>
         </TreeNodeTrigger>
         {hasChildren && (
           <TreeNodeContent hasChildren={hasChildren}>

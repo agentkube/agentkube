@@ -58,8 +58,8 @@ export function WorkspaceSwitcher() {
 
   return (
     <Select value={selectedWorkspace} onValueChange={handleWorkspaceChange}>
-      <SelectTrigger className="w-40 h-7 p-1.5 text-xs border-none border-gray-300 dark:border-gray-500/10 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50 focus:ring-0 focus:ring-offset-0">
-        <div className="flex items-center space-x-2">
+      <SelectTrigger className="w-40 h-7 p-1.5 text-xs border-none border-gray-300 dark:border-gray-500/10 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50  focus:ring-0 focus:ring-offset-0">
+        <div className="flex items-center space-x-2 ">
           {/* <div className="w-5 h-5 rounded-sm bg-gray-500/40 flex items-center justify-center text-white/50 text-xs font-bold">
             {currentWorkspace?.name.charAt(0).toUpperCase()}
           </div> */}
