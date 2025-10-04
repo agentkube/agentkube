@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { Airplay, Settings, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+import { Airplay, Settings, Sparkles, ChevronLeft, ChevronRight, Home } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom';
 import SwitchDarkMode from './SwitchDarkMode';
 import { useDrawer } from '@/contexts/useDrawer';
 import { WindowTitlebar } from "./WindowTitlebar"
+import { platform } from '@tauri-apps/plugin-os';
 import {
   Tooltip,
   TooltipContent,
@@ -16,6 +17,8 @@ import { ReconModeSwitch } from "./ui/reconmode";
 import { NetworkStatus } from "./ui/network-status";
 import RECONGIF from '@/assets/recon.gif'
 import { Button } from "./ui/button";
+import { WorkspaceSwitcher } from "./custom/workspaceswitcher/workspaceswitcher.component";
+import { HeaderComponent } from "./custom/header/header.component";
 
 interface NavigationHistoryState {
   history: string[];
@@ -27,6 +30,7 @@ export function Menu() {
   const location = useLocation();
   const { setIsOpen } = useDrawer();
   const reconSwitchRef = useRef<HTMLButtonElement>(null);
+  const [currentPlatform, setCurrentPlatform] = useState<string | null>(null);
 
   const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryState>({
     history: [location.pathname],
@@ -36,6 +40,21 @@ export function Menu() {
   // Derived states
   const canGoBack = navigationHistory.currentIndex > 0;
   const canGoForward = navigationHistory.currentIndex < navigationHistory.history.length - 1;
+
+  // Detect platform on component mount
+  useEffect(() => {
+    const detectPlatform = async () => {
+      try {
+        const osType = await platform();
+        setCurrentPlatform(osType);
+      } catch (error) {
+        console.error("Failed to detect platform:", error);
+        setCurrentPlatform("windows"); // Default fallback
+      }
+    };
+
+    detectPlatform();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,15 +128,39 @@ export function Menu() {
       windowControlsProps={{ className: "" }}
     >
       <div className="py-[3px] px-4 flex items-center w-full justify-between draggable border-b dark:border-gray-300/10">
-        <div className="inline-flex ml-2 space-x-1.5">
-          {/* Window Controls */}
+
+        <div className={`flex items-center gap-1.5 undraggable ${currentPlatform === 'macos' ? 'ml-[3.5rem]' : 'ml-2'}`}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => navigate('/')}
+                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300/50 dark:hover:text-gray-300  transition-colors"
+                >
+                  <Home className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="p-1">
+                <p>Home (⌘+D)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <span className="dark:text-gray-400/60">
+            /
+          </span>
+          <WorkspaceSwitcher />
+
         </div>
 
-
+        {/* Center - Navigation Header */}
+        <div className="flex-1 flex justify-center undraggable">
+          <HeaderComponent />
+        </div>
 
         {/* Right-side controls */}
         <div className="flex items-center space-x-2 undraggable">
           {/* Network Status */}
+
           <NetworkStatus />
 
           <TooltipProvider>
@@ -152,7 +195,7 @@ export function Menu() {
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleBack}
-                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors undraggable ${!canGoBack
+                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 transition-colors undraggable ${!canGoBack
                       ? 'opacity-30 cursor-not-allowed'
                       : 'cursor-pointer'
                       }`}
@@ -178,7 +221,7 @@ export function Menu() {
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleForward}
-                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors undraggable ${!canGoForward
+                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 transition-colors undraggable ${!canGoForward
                       ? 'opacity-30 cursor-not-allowed'
                       : 'cursor-pointer'
                       }`}
@@ -206,7 +249,7 @@ export function Menu() {
               <TooltipTrigger asChild>
                 <button
                   onClick={handleOpenDrawer}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer rounded-[0.3rem] transition-colors"
+                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700/40 cursor-pointer rounded-[0.3rem] transition-colors"
                   role="button"
                   aria-label="Open Assistant"
                 >
@@ -219,21 +262,7 @@ export function Menu() {
             </Tooltip>
           </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => navigate('/')}
-                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Airplay size={15} className="text-gray-700 dark:text-gray-300" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="p-1">
-                <p>Home (⌘+D)</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+
 
           <SwitchDarkMode />
 
@@ -242,7 +271,7 @@ export function Menu() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate('/settings')}
-                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 transition-colors"
                 >
                   <Settings size={15} className="text-gray-700 dark:text-gray-300" />
                 </button>

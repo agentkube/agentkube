@@ -4,9 +4,15 @@ import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCluster } from '@/contexts/clusterContext';
 import { SidebarItem } from '@/types/sidebar';
-import SidebarMenuItem from './sidebarmenuitem/sidebarmenuitem.components';
 import FeatureSection from './featuresection/featuresection.components';
 import ClusterDisplay from './clusterdisplay/clusterdisplay.component';
+import { TreeProvider, TreeView, TreeNode, TreeNodeTrigger, TreeNodeContent, TreeExpander, TreeIcon, TreeLabel } from '@/components/ui/tree';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ExploreSidebarProps {
   items: SidebarItem[];
@@ -103,6 +109,83 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
     navigate(feature.path);
   };
 
+  // Convert current selected item to array format for tree
+  const getSelectedItemIds = () => {
+    return selectedItem ? [selectedItem] : [];
+  };
+
+  // Handle regular sidebar item selection
+  const handleItemSelection = (nodeIds: string[]) => {
+    if (nodeIds.length === 0) {
+      onItemClick(null);
+      return;
+    }
+    
+    const nodeId = nodeIds[0];
+    
+    // Find the item by ID (check both parent and child items)
+    const findItemById = (sidebarItems: SidebarItem[], targetId: string): SidebarItem | null => {
+      for (const item of sidebarItems) {
+        if (item.id === targetId) {
+          return item;
+        }
+        if (item.children) {
+          for (const child of item.children) {
+            if (child.id === targetId) {
+              return child;
+            }
+          }
+        }
+      }
+      return null;
+    };
+    
+    const selectedItem = findItemById(items, nodeId);
+    if (selectedItem) {
+      const hasChildren = selectedItem.children && selectedItem.children.length > 0;
+      
+      if (hasChildren && selectedItem.children) {
+        // If parent has multiple children, don't navigate - just expand
+        if (selectedItem.children.length > 1) {
+          return; // Don't navigate, just expand/collapse
+        } else {
+          // If parent has single child, navigate to the child
+          onItemClick(selectedItem.children[0].id);
+          return;
+        }
+      } else {
+        // Leaf item - navigate normally
+        onItemClick(nodeId);
+        return;
+      }
+    }
+    
+    // Fallback
+    onItemClick(nodeId);
+  };
+
+  // Render sidebar items using tree components
+  const renderSidebarNode = (item: SidebarItem, level: number = 0, isLast: boolean = false) => {
+    const hasChildren = item.children && item.children.length > 0;
+    
+    return (
+      <TreeNode key={item.id} nodeId={item.id} level={level} isLast={isLast}>
+        <TreeNodeTrigger>
+          <TreeExpander hasChildren={hasChildren} />
+          <TreeIcon icon={item.icon} hasChildren={hasChildren} />
+          <TreeLabel>{item.label}</TreeLabel>
+        </TreeNodeTrigger>
+        {hasChildren && (
+          <TreeNodeContent hasChildren={hasChildren}>
+            {item.children?.map((child, index) => 
+              renderSidebarNode(child, level + 1, index === (item.children?.length || 0) - 1)
+            )}
+          </TreeNodeContent>
+        )}
+      </TreeNode>
+    );
+  };
+
   useEffect(() => {
     refreshContexts();
   }, [refreshContexts]);
@@ -110,7 +193,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
 
   return (
     <div
-      className={`flex flex-col border-r dark:border-gray-400/20 border-gray-200 transition-all duration-300 ${isCollapsed ? 'min-w-16 w-16' : 'min-w-64'
+      className={`flex flex-col mt-1  border-r dark:border-gray-400/20 border-gray-200 transition-all duration-300 ${isCollapsed ? 'min-w-16 w-16' : 'min-w-64'
         }`}
     >
       <div className="flex items-center justify-between p-4">
@@ -170,18 +253,102 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
         [&::-webkit-scrollbar-thumb]:bg-gray-400/20 
         [&::-webkit-scrollbar-thumb]:rounded-full
       ">
-        {items.map((item) => (
-          <SidebarMenuItem
-            key={item.id}
-            item={item}
-            isExpanded={expandedItems.includes(item.id)}
-            selectedItem={selectedItem}
-            level={0}
-            onItemClick={onItemClick}
-            onExpandToggle={onExpandToggle}
-            isCollapsed={isCollapsed}
-          />
-        ))}
+        {!isCollapsed ? (
+          <TreeProvider
+            defaultExpandedIds={expandedItems}
+            selectedIds={getSelectedItemIds()}
+            onSelectionChange={handleItemSelection}
+            showLines={true}
+            showIcons={true}
+            selectable={true}
+            multiSelect={false}
+            indent={16}
+            animateExpand={true}
+          >
+            <TreeView className="p-0">
+              {items.map((item, index) => 
+                renderSidebarNode(item, 0, index === items.length - 1)
+              )}
+            </TreeView>
+          </TreeProvider>
+        ) : (
+          // Collapsed view - show icons with dropdowns for parents
+          <div className="space-y-1">
+            {items.map((item) => {
+              const hasChildren = item.children && item.children.length > 0;
+              
+              if (hasChildren) {
+                return (
+                  <div key={item.id} className="py-1 relative group">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className={`w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors
+                            ${selectedItem === item.id ? 'bg-gray-400/30' : ''}`}
+                          title={item.label}
+                        >
+                          {item.icon}
+                        </button>
+                      </DropdownMenuTrigger>
+                      
+                      {/* Tooltip for collapsed view */}
+                      <div className="absolute left-full ml-2 -mt-8 z-10 bg-gray-200 dark:bg-[#0B0D13]/30 backdrop-blur-md dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+                        <p className="font-medium">{item.label}</p>
+                        <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+                      </div>
+                      
+                      <DropdownMenuContent
+                        side="right"
+                        align="start"
+                        className="mt-0 ml-4 z-50 bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-md border border-gray-200 dark:border-gray-800/60 w-48 overflow-hidden"
+                      >
+                        <div className="p-2 text-sm font-medium text-gray-800 dark:text-gray-300 font-[Anton] uppercase border-b border-gray-200 dark:border-gray-800">
+                          {item.label}
+                        </div>
+                        <div className="py-1">
+                          {item.children?.map((child) => (
+                            <DropdownMenuItem
+                              key={child.id}
+                              className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900 ${
+                                selectedItem === child.id ? 'bg-blue-50 dark:bg-blue-900/10' : ''
+                              }`}
+                              onClick={() => onItemClick(child.id)}
+                            >
+                              <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
+                                {child.icon}
+                              </span>
+                              <span className="text-sm font-medium text-gray-800 dark:text-gray-300">{child.label}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                );
+              } else {
+                // Items without children - simple button
+                return (
+                  <div key={item.id} className="py-1 relative group">
+                    <button
+                      className={`w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors
+                        ${selectedItem === item.id ? 'bg-gray-400/30' : ''}`}
+                      onClick={() => onItemClick(item.id)}
+                      title={item.label}
+                    >
+                      {item.icon}
+                    </button>
+                    
+                    {/* Tooltip */}
+                    <div className="absolute left-full ml-2 -mt-8 z-10 bg-gray-200 dark:bg-[#0B0D13]/30 backdrop-blur-md dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+                      <p className="font-medium">{item.label}</p>
+                      <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+                    </div>
+                  </div>
+                );
+              }
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

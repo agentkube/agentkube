@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown, RotateCcw, Filter, Sparkles, TextSearch } from "lucide-react";
@@ -830,56 +830,90 @@ const Events: React.FC = () => {
       </div>
       
       {/* Event statistics */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-xl shadow-none">
-          <div className="p-4">
-            <div className="text-xs text-gray-500 dark:text-gray-400">Total Events</div>
-            <div className="text-2xl font-bold mt-1">{events.length}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {filteredEvents.length !== events.length && `Showing ${filteredEvents.length} after filtering`}
+      <div className="grid grid-cols-4 gap-1 mb-6">
+        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+          <CardContent className="py-2 flex flex-col h-full">
+            <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Total Events</h2>
+            <div className="mt-auto">
+              <p className="text-4xl font-light text-blue-600 dark:text-blue-400 mb-1">{events.length}</p>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                {filteredEvents.length !== events.length && `Showing ${filteredEvents.length} filtered`}
+              </div>
+              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+                <div className="h-1 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
+              </div>
             </div>
-          </div>
+          </CardContent>
         </Card>
         
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-xl shadow-none">
-          <div className="p-4">
-            <div className="text-xs text-gray-500 dark:text-gray-400">Warning Events</div>
-            <div className="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400">
-              {events.filter(e => e.type === 'Warning').length}
+        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+          <CardContent className="py-2 flex flex-col h-full">
+            <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Warning Events</h2>
+            <div className="mt-auto">
+              <p className="text-4xl font-light text-amber-600 dark:text-amber-400 mb-1">
+                {events.filter(e => e.type === 'Warning').length}
+              </p>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                {events.length > 0 && 
+                  `${((events.filter(e => e.type === 'Warning').length / events.length) * 100).toFixed(1)}% of total`}
+              </div>
+              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+                <div 
+                  className="h-1 bg-amber-500 dark:bg-amber-400 rounded-[0.3rem]" 
+                  style={{ 
+                    width: events.length > 0 
+                      ? `${(events.filter(e => e.type === 'Warning').length / events.length) * 100}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {events.length > 0 && 
-                `${((events.filter(e => e.type === 'Warning').length / events.length) * 100).toFixed(1)}% of total`}
-            </div>
-          </div>
+          </CardContent>
         </Card>
         
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-xl shadow-none">
-          <div className="p-4">
-            <div className="text-xs text-gray-500 dark:text-gray-400">Normal Events</div>
-            <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">
-              {events.filter(e => e.type === 'Normal').length}
+        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+          <CardContent className="py-2 flex flex-col h-full">
+            <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Normal Events</h2>
+            <div className="mt-auto">
+              <p className="text-4xl font-light text-green-600 dark:text-green-400 mb-1">
+                {events.filter(e => e.type === 'Normal').length}
+              </p>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                {events.length > 0 && 
+                  `${((events.filter(e => e.type === 'Normal').length / events.length) * 100).toFixed(1)}% of total`}
+              </div>
+              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+                <div 
+                  className="h-1 bg-green-500 dark:bg-green-400 rounded-[0.3rem]" 
+                  style={{ 
+                    width: events.length > 0 
+                      ? `${(events.filter(e => e.type === 'Normal').length / events.length) * 100}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {events.length > 0 && 
-                `${((events.filter(e => e.type === 'Normal').length / events.length) * 100).toFixed(1)}% of total`}
-            </div>
-          </div>
+          </CardContent>
         </Card>
         
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-xl shadow-none">
-          <div className="p-4">
-            <div className="text-xs text-gray-500 dark:text-gray-400">Last Event</div>
-            <div className="text-2xl font-bold mt-1">
-              {events.length > 0 
-                ? formatEventTime(events.sort((a, b) => getEventTime(b).getTime() - getEventTime(a).getTime())[0]) 
-                : 'N/A'}
+        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+          <CardContent className="py-2 flex flex-col h-full">
+            <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Last Event</h2>
+            <div className="mt-auto">
+              <p className="text-4xl font-light text-gray-600 dark:text-gray-400 mb-1">
+                {events.length > 0 
+                  ? formatEventTime(events.sort((a, b) => getEventTime(b).getTime() - getEventTime(a).getTime())[0]) 
+                  : 'N/A'}
+              </p>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                {events.length > 0 && new Date(getEventTime(events.sort((a, b) => 
+                  getEventTime(b).getTime() - getEventTime(a).getTime())[0])).toLocaleTimeString()}
+              </div>
+              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+                <div className="h-1 bg-gray-500 dark:bg-gray-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
+              </div>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {events.length > 0 && new Date(getEventTime(events.sort((a, b) => 
-                getEventTime(b).getTime() - getEventTime(a).getTime())[0])).toLocaleTimeString()}
-            </div>
-          </div>
+          </CardContent>
         </Card>
       </div>
 
