@@ -3,7 +3,7 @@ import { ThemeProvider } from "./components/theme-provider"
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/home.pages';
 import {
-  Appearance, BestPractices, Dashboard, GeneralSettings, Kubeconfig, Settings,
+  Appearance, AuditReport, Dashboard, GeneralSettings, Kubeconfig, Settings,
   Shortcuts, Support, VulnerabilityReport, MonitoringOverview, CostOverview, Overview, AIEditor,
   AIResourceEditor, ModelConfiguration, HelmCharts, HelmReleases, ChartsView, Talk2cluster, MCPServerConfig, Account, LLMComparison, ModelCompare,
   Updates,
@@ -258,7 +258,7 @@ function App() {
 
                           <Route path="security">
                             <Route path="vulnerability-report" element={<VulnerabilityReport />} />
-                            <Route path="best-practices" element={<BestPractices />} />
+                            <Route path="audit-report" element={<AuditReport />} />
                           </Route>
 
                         </Route>

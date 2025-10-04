@@ -46,7 +46,9 @@ export { default as ResourceContext } from './resourcecontext/resourcecontext.co
 export { default as ResourcePreview } from './resourcepreview/resourcepreview.component';
 export { default as ResourceLogPreview } from './resourcepreview/resourcelogpreview.component';
 export { default as TrivySetupDialog } from './security-setup/security-setup-dialog.component';
-export { default as TrivyNotInstalled } from './security-setup/trivynotinstalled.component';
+export { default as TrivyNotInstalledAuditReport } from './security-setup/trivynotinstalled-audit-report.component';
+export { default as TrivyNotInstalledVulnReport } from './security-setup/trivynotinstalled-vuln-report.component';
+export { default as DemoVideoDialog } from './demovideodialog/demovideodialog.component';
 export { default as ComplianceDetailsDrawer } from './security/compliance-report-drawer.components';
 
 export { default as Spotlight } from './spotlight/spotlight.component';

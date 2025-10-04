@@ -51,12 +51,6 @@ export const SYSTEM_SUGGESTIONS = [
     link: '/dashboard/investigate'
   },
   {
-    title: 'View Runbooks',
-    description: 'View Runbooks',
-    icon: <File className="w-5 h-5" />,
-    link: '/dashboard/runbooks'
-  },
-  {
     title: 'View Cost Management',
     description: 'View Cost Management',
     icon: <File className="w-5 h-5" />,
@@ -66,13 +60,13 @@ export const SYSTEM_SUGGESTIONS = [
     title: 'View Security Audit Report',
     description: 'View Security Audit Report',
     icon: <File className="w-5 h-5" />,
-    link: '/dashboard/security-best-practices'
+    link: '/dashboard/security/audit-report'
   },
   {
     title: 'View Vulnerability Report',
     description: 'View Vulnerability Report',
     icon: <File className="w-5 h-5" />,
-    link: '/dashboard/vulnerability-report'
+    link: '/dashboard/security/vulnerability-report'
   },
   {
     title: 'MCP Server',
