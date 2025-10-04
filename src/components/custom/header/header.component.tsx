@@ -76,7 +76,7 @@ export const HeaderComponent: React.FC = () => {
           const podPathMatch = pathname.match(/\/pods\/([^\/]+)\/([^\/]+)/);
           if (podPathMatch) {
             const [, , podName] = podPathMatch;
-            return `Pods - ${podName}`;
+            return `Pod - ${podName}`;
           }
           return 'Pods';
         }
@@ -84,7 +84,7 @@ export const HeaderComponent: React.FC = () => {
           const deploymentPathMatch = pathname.match(/\/deployments\/([^\/]+)\/([^\/]+)/);
           if (deploymentPathMatch) {
             const [, , deploymentName] = deploymentPathMatch;
-            return `Deployments - ${deploymentName}`;
+            return `Deployment - ${deploymentName}`;
           }
           return 'Deployments';
         }
@@ -100,7 +100,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/replicasets\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `ReplicaSets - ${resourceName}`;
+            return `ReplicaSet - ${resourceName}`;
           }
           return 'ReplicaSets';
         }
@@ -124,7 +124,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/cronjobs\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `CronJobs - ${resourceName}`;
+            return `CronJob - ${resourceName}`;
           }
           return 'CronJobs';
         }
@@ -132,7 +132,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/jobs\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Jobs - ${resourceName}`;
+            return `Job - ${resourceName}`;
           }
           return 'Jobs';
         }
@@ -142,7 +142,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/services\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Services - ${resourceName}`;
+            return `Service - ${resourceName}`;
           }
           return 'Services';
         }
@@ -158,7 +158,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/ingresses\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Ingresses - ${resourceName}`;
+            return `Ingress - ${resourceName}`;
           }
           return 'Ingresses';
         }
@@ -166,7 +166,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/ingressclasses\/([^\/]+)/);
           if (match) {
             const [, resourceName] = match;
-            return `Ingress Classes - ${resourceName}`;
+            return `Ingress Class - ${resourceName}`;
           }
           return 'Ingress Classes';
         }
@@ -186,7 +186,7 @@ export const HeaderComponent: React.FC = () => {
             const [, , resourceName] = match;
             return `PVCs - ${resourceName}`;
           }
-          return 'Persistent Volume Claims';
+          return 'Persistent Volume Claim';
         }
         if (pathname.includes('/persistentvolumes')) {
           const match = pathname.match(/\/persistentvolumes\/([^\/]+)/);
@@ -194,13 +194,13 @@ export const HeaderComponent: React.FC = () => {
             const [, resourceName] = match;
             return `PVs - ${resourceName}`;
           }
-          return 'Persistent Volumes';
+          return 'Persistent Volume';
         }
         if (pathname.includes('/storageclasses')) {
           const match = pathname.match(/\/storageclasses\/([^\/]+)/);
           if (match) {
             const [, resourceName] = match;
-            return `Storage Classes - ${resourceName}`;
+            return `Storage Class - ${resourceName}`;
           }
           return 'Storage Classes';
         }
@@ -210,7 +210,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/configmaps\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `ConfigMaps - ${resourceName}`;
+            return `ConfigMap - ${resourceName}`;
           }
           return 'ConfigMaps';
         }
@@ -218,7 +218,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/secrets\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Secrets - ${resourceName}`;
+            return `Secret - ${resourceName}`;
           }
           return 'Secrets';
         }
@@ -226,7 +226,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/resourcequotas\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Resource Quotas - ${resourceName}`;
+            return `Resource Quota - ${resourceName}`;
           }
           return 'Resource Quotas';
         }
@@ -242,7 +242,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/horizontalpodautoscalers\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `HPAs - ${resourceName}`;
+            return `HPA - ${resourceName}`;
           }
           return 'Horizontal Pod Autoscalers';
         }
@@ -250,7 +250,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/verticalpodautoscalers\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `VPAs - ${resourceName}`;
+            return `VPA - ${resourceName}`;
           }
           return 'Vertical Pod Autoscalers';
         }
@@ -260,7 +260,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/nodes\/([^\/]+)/);
           if (match) {
             const [, resourceName] = match;
-            return `Nodes - ${resourceName}`;
+            return `Node - ${resourceName}`;
           }
           return 'Nodes';
         }
@@ -268,7 +268,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/namespaces\/([^\/]+)/);
           if (match) {
             const [, resourceName] = match;
-            return `Namespaces - ${resourceName}`;
+            return `Namespace - ${resourceName}`;
           }
           return 'Namespaces';
         }
@@ -276,7 +276,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/events\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Events - ${resourceName}`;
+            return `Event - ${resourceName}`;
           }
           return 'Events';
         }
@@ -286,7 +286,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/serviceaccounts\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Service Accounts - ${resourceName}`;
+            return `Service Account - ${resourceName}`;
           }
           return 'Service Accounts';
         }
@@ -302,7 +302,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/rolebindings\/([^\/]+)\/([^\/]+)/);
           if (match) {
             const [, , resourceName] = match;
-            return `Role Bindings - ${resourceName}`;
+            return `Role Binding - ${resourceName}`;
           }
           return 'Role Bindings';
         }
@@ -310,7 +310,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/clusterroles\/([^\/]+)/);
           if (match) {
             const [, resourceName] = match;
-            return `Cluster Roles - ${resourceName}`;
+            return `Cluster Role - ${resourceName}`;
           }
           return 'Cluster Roles';
         }
@@ -318,7 +318,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/clusterrolebindings\/([^\/]+)/);
           if (match) {
             const [, resourceName] = match;
-            return `Cluster Role Bindings - ${resourceName}`;
+            return `Cluster Role Binding - ${resourceName}`;
           }
           return 'Cluster Role Bindings';
         }
@@ -328,7 +328,7 @@ export const HeaderComponent: React.FC = () => {
           const match = pathname.match(/\/customresources\/view\/([^\/]+)\/([^\/]+)/) || pathname.match(/\/customresources\/view\/([^\/]+)/);
           if (match) {
             const resourceName = match[2] || match[1];
-            return `Custom Resources - ${resourceName}`;
+            return `CustomResource - ${resourceName}`;
           }
           return 'Custom Resources';
         }
