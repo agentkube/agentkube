@@ -26,6 +26,7 @@ import PropertiesViewer from './components/properties.viewer';
 import EventsViewer from './components/event.viewer';
 import NodePods from './components/nodepods.viewer';
 import { ResourceViewerYamlTab } from '@/components/custom';
+import MetricsServerInstallationDialog from '@/components/custom/metrics-server/metricssvrinstallationdialog.component';
 import { SiArm, SiContainerd, SiLinux } from '@icons-pack/react-simple-icons';
 
 // Define interface for node data (extending V1Node with events)
@@ -54,12 +55,13 @@ const NodeViewer: React.FC = () => {
   const [metrics, setMetrics] = useState<NodeMetrics | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
-  const { currentContext, fullWidth } = useCluster();
+  const { currentContext, fullWidth, isMetricsServerInstalled, checkMetricsServerStatus } = useCluster();
   const { nodeName } = useParams<{ nodeName: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
+  const [isMetricsInstallDialogOpen, setIsMetricsInstallDialogOpen] = useState(false);
 
   // Parse CPU string (handles 'm' suffix for millicores and 'n' suffix for nanocores)
   const parseCpuValue = (cpuStr: string): number => {
@@ -430,9 +432,28 @@ const NodeViewer: React.FC = () => {
     );
   };
 
-  // TODO: Add handler function for installing metrics server
-  const handleInstallMetricsServer = async () => {
-    // TODO: Implement metrics server installation logic
+  // Handler function for installing metrics server
+  const handleInstallMetricsServer = () => {
+    setIsMetricsInstallDialogOpen(true);
+  };
+
+  // Handler for when dialog closes - refresh metrics server status
+  const handleDialogClose = async (open: boolean) => {
+    setIsMetricsInstallDialogOpen(open);
+    
+    if (!open) {
+      // Dialog is closing - refresh metrics server status and refetch metrics
+      try {
+        await checkMetricsServerStatus();
+        // Clear metrics error and try to fetch metrics again
+        setMetricsError(null);
+        if (nodeData) {
+          await fetchNodeMetrics();
+        }
+      } catch (error) {
+        console.error('Error refreshing metrics after dialog close:', error);
+      }
+    }
   };
 
   // Metrics alert component
@@ -862,6 +883,11 @@ const NodeViewer: React.FC = () => {
             )}
           </TabsContent>
         </Tabs>
+         {/* Metrics Server Installation Dialog */}
+                <MetricsServerInstallationDialog
+             open={isMetricsInstallDialogOpen}
+             onOpenChange={handleDialogClose}
+            />
       </div>
     </div>
   );

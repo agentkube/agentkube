@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, HardDrive, Cpu, Database, ChevronDown, ArrowRight } from "lucide-react";
+import { Clock, HardDrive, Cpu, Database, ChevronDown, ArrowRight, X } from "lucide-react";
 import { getNodes, getPods } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { V1Node, V1Pod } from '@kubernetes/client-node';
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useNavigate } from 'react-router-dom';
 const ResourceUsageChart = () => {
-  const { currentContext } = useCluster();
+  const { currentContext, isMetricsServerInstalled } = useCluster();
   const [nodes, setNodes] = useState<V1Node[]>([]);
   const [pods, setPods] = useState<V1Pod[]>([]);
   const [nodeMetrics, setNodeMetrics] = useState<any>(null);
@@ -41,22 +41,26 @@ const ResourceUsageChart = () => {
         const podData = await getPods(currentContext.name);
         setPods(podData);
 
-        // Fetch node metrics
-        try {
-          const response = await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+        // Fetch node metrics only if metrics server is installed
+        if (isMetricsServerInstalled) {
+          try {
+            const response = await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
 
-          if (response.ok) {
-            const data = await response.json();
-            setNodeMetrics(data.items || []);
+            if (response.ok) {
+              const data = await response.json();
+              setNodeMetrics(data.items || []);
+            }
+          } catch (metricErr) {
+            console.error('Failed to fetch metrics:', metricErr);
+            // Continue without metrics
           }
-        } catch (metricErr) {
-          console.error('Failed to fetch metrics:', metricErr);
-          // Continue without metrics
+        } else {
+          setNodeMetrics(null);
         }
 
         setError(null);
@@ -74,17 +78,20 @@ const ResourceUsageChart = () => {
   // Set up metrics refresh interval
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (currentContext) {
+      if (currentContext && isMetricsServerInstalled) {
         fetchNodeMetrics();
       }
     }, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [currentContext]);
+  }, [currentContext, isMetricsServerInstalled]);
 
   // Function to fetch just the metrics
   const fetchNodeMetrics = async () => {
-    if (!currentContext) return;
+    if (!currentContext || !isMetricsServerInstalled) {
+      setNodeMetrics(null);
+      return;
+    }
 
     try {
       const response = await fetch(`${OPERATOR_URL}/clusters/${currentContext.name}/apis/metrics.k8s.io/v1beta1/nodes`, {
@@ -150,7 +157,7 @@ const ResourceUsageChart = () => {
     }
 
     const node = nodes[nodeIndex];
-    
+
     // Get node capacity
     const capacity = node.status?.capacity || {};
     const cpuTotal = parseInt(capacity.cpu || '0');
@@ -163,7 +170,7 @@ const ResourceUsageChart = () => {
     let memoryUsed = 0;
 
     if (nodeMetrics) {
-      const nodeMetric = nodeMetrics.find((metric: any) => 
+      const nodeMetric = nodeMetrics.find((metric: any) =>
         metric.metadata?.name === node.metadata?.name
       );
 
@@ -239,10 +246,10 @@ const ResourceUsageChart = () => {
       return `${(kiBytes / 1024 / 1024).toFixed(2)} GiB`;
     }
   };
-  
+
   // Calculate total cluster resources
   const clusterResources = calculateClusterResources();
-  
+
   // Calculate resources for the selected node
   const nodeResources = calculateNodeResources(selectedNodeIndex);
 
@@ -271,35 +278,46 @@ const ResourceUsageChart = () => {
                 <div>
                   <h2 className="text-sm uppercase font-medium text-gray-700 dark:text-gray-500 mb-2">Cluster Overview</h2>
                   <div className="text-5xl font-light text-gray-900 dark:text-white flex items-center gap-3">
-                    {clusterResources.nodeCount} Nodes 
+                    {clusterResources.nodeCount} Nodes
                   </div>
                   <div>{clusterResources.cpuTotal} CPUs · {formatMemory(clusterResources.memoryTotal)} RAM</div>
                 </div>
-                
+
                 {/* Node selector dropdown */}
-                <div className="w-64">
-                  <Select value={selectedNodeIndex.toString()} onValueChange={handleNodeChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a node" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-[#111827]/30 backdrop-blur-sm">
-                      {nodes.map((node, index) => (
-                        <SelectItem key={node.metadata?.uid || index} value={index.toString()}>
-                          {node.metadata?.name || `Node ${index + 1}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center gap-2">
+                  <div className="w-64 space-y-2">
+                    <Select value={selectedNodeIndex.toString()} onValueChange={handleNodeChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a node" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-[#111827]/30 backdrop-blur-sm">
+                        {nodes.map((node, index) => (
+                          <SelectItem key={node.metadata?.uid || index} value={index.toString()}>
+                            {node.metadata?.name || `Node ${index + 1}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Metrics Server Status Indicator */}
+                    {!isMetricsServerInstalled && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-md text-sm">
+                        <X className="h-4 w-4" />
+                        <span>Metrics Server</span>
+                      </div>
+                    )}
+                  </div>
+
+
                 </div>
               </div>
-              
+
               <div className="text-xl font-light text-gray-900 dark:text-white flex items-center gap-3">
                 <span className="font-bold text-gray-500 dark:text-gray-400">Node:</span>{" "}
                 <span className='hover:text-blue-500 dark:hover:text-blue-500 cursor-pointer' onClick={() => navigate(`/dashboard/explore/nodes/${nodeResources.nodeName}`)}>
                   {nodeResources.nodeName}
                 </span>
               </div>
-              
+
               <div className="flex gap-3 flex-wrap">
                 <div className="bg-gray-100 dark:bg-gray-800/30 px-3 py-2 rounded-lg">
                   <span className="text-gray-500 dark:text-gray-400">CPUs: </span>
@@ -314,15 +332,15 @@ const ResourceUsageChart = () => {
                   <span className="text-gray-500 dark:text-gray-400">Uptime: </span>
                   <span className="font-medium">{nodeResources.uptime}</span>
                 </div>
-                <div 
-                className="bg-gray-100 dark:bg-gray-800/30 hover:bg-gray-200 dark:hover:bg-gray-700/30 cursor-pointer px-3 py-2 rounded-lg flex items-center gap-1"
-                onClick={() => navigate(`/dashboard/explore/nodes/${nodeResources.nodeName}`)}
+                <div
+                  className="bg-gray-100 dark:bg-gray-800/30 hover:bg-gray-200 dark:hover:bg-gray-700/30 cursor-pointer px-3 py-2 rounded-lg flex items-center gap-1"
+                  onClick={() => navigate(`/dashboard/explore/nodes/${nodeResources.nodeName}`)}
                 >
                   <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                   <span className="text-gray-500 dark:text-gray-400">View Node</span> <ArrowRight className="h-4 w-4" />
                 </div>
               </div>
-              
+
               <div className="flex gap-6 mt-4 h-64 items-end">
                 {/* CPU Usage Section */}
                 <div className="flex-1 h-full flex flex-col justify-end">
@@ -332,12 +350,12 @@ const ResourceUsageChart = () => {
                       <Cpu className="h-4 w-4" /> CPU
                     </span>
                   </div>
-                  <div className="bg-indigo-400/70 dark:bg-indigo-400/50 rounded-md h-full" style={{ 
+                  <div className="bg-indigo-400/70 dark:bg-indigo-400/50 rounded-md h-full" style={{
                     height: `${nodeResources.cpuPercent}%`,
                     minHeight: '5%' // Ensure there's always a visible bar
                   }}></div>
                 </div>
-                
+
                 {/* Memory Usage Section */}
                 <div className="flex-1 h-full flex flex-col justify-end">
                   <div className="flex justify-between items-center mb-2">
@@ -346,12 +364,12 @@ const ResourceUsageChart = () => {
                       <Database className="h-4 w-4" /> Memory
                     </span>
                   </div>
-                  <div className="bg-indigo-400/70 dark:bg-indigo-400/50 rounded-md h-full" style={{ 
+                  <div className="bg-indigo-400/70 dark:bg-indigo-400/50 rounded-md h-full" style={{
                     height: `${nodeResources.memoryPercent}%`,
                     minHeight: '5%' // Ensure there's always a visible bar
                   }}></div>
                 </div>
-                
+
                 {/* Storage Usage Section */}
                 <div className="flex-1 h-full flex flex-col justify-end">
                   <div className="flex justify-between items-center mb-4">
@@ -360,13 +378,13 @@ const ResourceUsageChart = () => {
                       <HardDrive className="h-4 w-4" /> Storage
                     </span>
                   </div>
-                  <div className="bg-green-600 dark:bg-green-700 rounded-md h-full" style={{ 
+                  <div className="bg-green-600 dark:bg-green-700 rounded-md h-full" style={{
                     height: `${nodeResources.storagePercent}%`,
                     minHeight: '5%' // Ensure there's always a visible bar
                   }}></div>
                 </div>
               </div>
-              
+
               <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-2">
                 <span>Pods: {nodeResources.podCount} Running</span>
                 <span>Last update: {new Date().toLocaleTimeString()}</span>

@@ -27,6 +27,8 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
+import { Filter } from 'lucide-react';
 
 // Define types for Endpoints (not available in kubernetes-client-node)
 interface V1EndpointPort {
@@ -85,6 +87,17 @@ const Endpoints: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isReconMode } = useReconMode();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'endpoints', label: 'Endpoints (Ready)', visible: true, canToggle: true },
+    { key: 'ports', label: 'Ports', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
   // --- Start of Multi-select ---
   const [selectedEndpoints, setSelectedEndpoints] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -404,6 +417,26 @@ const Endpoints: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
 
   // Fetch endpoints for all selected namespaces
   useEffect(() => {
@@ -750,9 +783,20 @@ const Endpoints: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -784,30 +828,39 @@ const Endpoints: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('endpoints')}
-                  >
-                    Endpoints (Ready) {renderSortIndicator('endpoints')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                    onClick={() => handleSort('ports')}
-                  >
-                    Ports {renderSortIndicator('ports')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('endpoints') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('endpoints')}
+                    >
+                      Endpoints (Ready) {renderSortIndicator('endpoints')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ports') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
+                      onClick={() => handleSort('ports')}
+                    >
+                      Ports {renderSortIndicator('ports')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -828,25 +881,33 @@ const Endpoints: React.FC = () => {
                         {endpoint.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${endpoint.metadata?.namespace}`)}>
-                        {endpoint.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-between items-center">
-                        {formatEndpointAddresses(endpoint)}
-                        <div className="text-sm ml-2">
-                          {getReadyCounts(endpoint)}
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${endpoint.metadata?.namespace}`)}>
+                          {endpoint.metadata?.namespace}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatEndpointPorts(endpoint)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(endpoint.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('endpoints') && (
+                      <TableCell>
+                        <div className="flex justify-between items-center">
+                          {formatEndpointAddresses(endpoint)}
+                          <div className="text-sm ml-2">
+                            {getReadyCounts(endpoint)}
+                          </div>
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('ports') && (
+                      <TableCell className="text-center">
+                        {formatEndpointPorts(endpoint)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(endpoint.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
 
                     <TableCell>
                       <DropdownMenu>
@@ -888,6 +949,17 @@ const Endpoints: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Endpoints Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

@@ -27,6 +27,8 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
+import { Filter } from 'lucide-react';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -48,6 +50,19 @@ const ReplicationControllers: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { addResourceContext } = useDrawer();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'ready', label: 'Ready', visible: true, canToggle: true },
+    { key: 'desired', label: 'Desired', visible: true, canToggle: true },
+    { key: 'selector', label: 'Selector', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'labels', label: 'Labels', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
   // --- Start of Multi-select ---
   const [selectedReplicationControllers, setSelectedReplicationControllers] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -446,6 +461,26 @@ const ReplicationControllers: React.FC = () => {
     direction: null
   });
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
+
 
   const fetchAllReplicationControllers = async () => {
     if (!currentContext || selectedNamespaces.length === 0) {
@@ -692,9 +727,20 @@ const ReplicationControllers: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -726,42 +772,55 @@ const ReplicationControllers: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('ready')}
-                  >
-                    Ready {renderSortIndicator('ready')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('desired')}
-                  >
-                    Desired {renderSortIndicator('desired')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('selector')}
-                  >
-                    Selector {renderSortIndicator('selector')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('labels')}
-                  >
-                    Labels {renderSortIndicator('labels')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ready') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('ready')}
+                    >
+                      Ready {renderSortIndicator('ready')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('desired') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('desired')}
+                    >
+                      Desired {renderSortIndicator('desired')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('selector') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('selector')}
+                    >
+                      Selector {renderSortIndicator('selector')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('labels') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('labels')}
+                    >
+                      Labels {renderSortIndicator('labels')}
+                    </TableHead>
+                  )}
+
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -775,49 +834,65 @@ const ReplicationControllers: React.FC = () => {
                     onClick={(e) => handleReplicationControllerClick(e, rc)}
                     onContextMenu={(e) => handleContextMenu(e, rc)}
                   >
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium" onClick={() => handleReplicationControllerDetails(rc)}>
                       <div className="hover:text-blue-500 hover:underline">
                         {rc.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>{rc.metadata?.namespace}</TableCell>
-                    <TableCell className="text-center">
-                      {`${rc.status?.readyReplicas || 0}/${rc.spec?.replicas || 0}`}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {rc.spec?.replicas || 0}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {formatSelector(rc.spec?.selector)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(rc.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {rc.metadata?.labels &&
-                          Object.entries(rc.metadata.labels)
-                            .slice(0, 3) // Show at most 3 labels
-                            .map(([key, value]) => (
-                              <span
-                                key={key}
-                                className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-gray-200 dark:bg-gray-900/20 border border-gray-300 dark:border-gray-800/80 text-gray-700 dark:text-gray-300"
-                              >
-                                {key}: {value as string}
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {rc.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('ready') && (
+                      <TableCell className="text-center">
+                        {`${rc.status?.readyReplicas || 0}/${rc.spec?.replicas || 0}`}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('desired') && (
+                      <TableCell className="text-center">
+                        {rc.spec?.replicas || 0}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('selector') && (
+                      <TableCell>
+                        <div className="flex items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            {formatSelector(rc.spec?.selector)}
+                          </span>
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(rc.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('labels') && (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {rc.metadata?.labels &&
+                            Object.entries(rc.metadata.labels)
+                              .slice(0, 3) // Show at most 3 labels
+                              .map(([key, value]) => (
+                                <span
+                                  key={key}
+                                  className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-gray-200 dark:bg-gray-900/20 border border-gray-300 dark:border-gray-800/80 text-gray-700 dark:text-gray-300"
+                                >
+                                  {key}: {value as string}
+                                </span>
+                              ))}
+                          {rc.metadata?.labels &&
+                            Object.keys(rc.metadata.labels).length > 3 && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                +{Object.keys(rc.metadata.labels).length - 3} more
                               </span>
-                            ))}
-                        {rc.metadata?.labels &&
-                          Object.keys(rc.metadata.labels).length > 3 && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              +{Object.keys(rc.metadata.labels).length - 3} more
-                            </span>
-                          )}
-                      </div>
-                    </TableCell>
+                            )}
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -858,6 +933,17 @@ const ReplicationControllers: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="ReplicationControllers Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

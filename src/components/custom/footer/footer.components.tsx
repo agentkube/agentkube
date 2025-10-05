@@ -1,5 +1,6 @@
 import { Rss, Sparkles, Terminal, Download, ExternalLink, Lightbulb, ScanSearch, Bell, BellDot } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import TerminalContainer from '../terminal/terminalcontainer.component';
 import { openExternalUrl } from '@/api/external';
 import {
@@ -27,6 +28,7 @@ import NotificationDropdown from '../notificationdropdown/notificationdropdown.c
 import { useBackgroundTask } from '@/contexts/useBackgroundTask';
 import BackgroundTaskDialog from '../backgroundtaskdialog/backgroundtaskdialog.component';
 import VulnScanFooterTool from '../vulnscanfootertool/vulnscanfootertool.component';
+import MetricsServerStatusFooter from '../metrics-server/metrics-server-status-footer.component';
 
 // Define types for Update object
 interface UpdateInfo {
@@ -71,6 +73,7 @@ if (typeof window !== 'undefined') {
 }
 
 const Footer: React.FC = () => {
+  const location = useLocation();
   const [checking, setChecking] = useState<boolean>(false);
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -80,6 +83,9 @@ const Footer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<string>("v1.0.0")
   const { isOpen: isBackgroundTaskOpen, onClose: closeBackgroundTask, setIsOpen } = useBackgroundTask();
+
+  // Determine if we should show metrics server status (NOT on home and settings pages)
+  const showClusterToolStats = location.pathname !== '/' && !location.pathname.startsWith('/settings');
 
 
   useEffect(() => {
@@ -208,8 +214,10 @@ const Footer: React.FC = () => {
             v{currentVersion}
           </button>
 
-          <VulnScanFooterTool />
-
+          {showClusterToolStats && <VulnScanFooterTool />}
+    
+          {showClusterToolStats && <MetricsServerStatusFooter />}
+          
           <button
             onClick={() => openExternalUrl("https://docs.agentkube.com/changelog")}
             className="text-blue-600 backdrop-blur-md hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10"

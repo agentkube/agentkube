@@ -4,7 +4,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash2, Sparkles } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Trash2, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +25,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
 // Define types for PolicyRule and ClusterRole
 interface PolicyRule {
   apiGroups: string[];
@@ -74,6 +75,18 @@ const ClusterRoles: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isReconMode } = useReconMode();
+
+  // Column filtering state
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false },
+    { key: 'type', label: 'Type', visible: true, canToggle: true },
+    { key: 'rules', label: 'Rules', visible: true, canToggle: true },
+    { key: 'apiGroups', label: 'API Groups / Resources', visible: true, canToggle: true },
+    { key: 'permissions', label: 'Permissions', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+  ]);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
@@ -444,6 +457,28 @@ const ClusterRoles: React.FC = () => {
     direction: null
   });
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev =>
+      prev.map(col =>
+        col.key === columnKey && col.canToggle !== false
+          ? { ...col, visible }
+          : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev =>
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string): boolean => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
+
   // Fetch cluster roles (these are cluster-scoped resources)
   useEffect(() => {
     const fetchClusterRoles = async () => {
@@ -802,19 +837,32 @@ const ClusterRoles: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div>
-        <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Cluster Roles</h1>
-        <div className="w-full md:w-96 mt-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search by name, API groups, resources, or verbs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
+        <div>
+          <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Cluster Roles</h1>
+          <div className="w-full md:w-96 mt-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by name, API groups, resources, or verbs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
+        </div>
+
+        <div className="flex items-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -838,37 +886,51 @@ const ClusterRoles: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('type')}
-                  >
-                    Type {renderSortIndicator('type')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('rulesCount')}
-                  >
-                    Rules {renderSortIndicator('rulesCount')}
-                  </TableHead>
-                  <TableHead>
-                    API Groups / Resources
-                  </TableHead>
-                  <TableHead>
-                    Permissions
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('name') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('type') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('type')}
+                    >
+                      Type {renderSortIndicator('type')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('rules') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('rulesCount')}
+                    >
+                      Rules {renderSortIndicator('rulesCount')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('apiGroups') && (
+                    <TableHead>
+                      API Groups / Resources
+                    </TableHead>
+                  )}
+                  {isColumnVisible('permissions') && (
+                    <TableHead>
+                      Permissions
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -883,27 +945,40 @@ const ClusterRoles: React.FC = () => {
                     onClick={(e) => handleClusterRoleClick(e, clusterRole)}
                     onContextMenu={(e) => handleContextMenu(e, clusterRole)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleClusterRoleDetails(clusterRole)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {clusterRole.metadata?.name}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatRoleType(clusterRole)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {clusterRole.rules?.length || 0}
-                    </TableCell>
-                    <TableCell>
-                      {formatApisAndResources(clusterRole)}
-                    </TableCell>
-                    <TableCell>
-                      {formatVerbs(clusterRole)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(clusterRole.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
+                    {isColumnVisible('name') && (
+                      <TableCell className="font-medium" onClick={() => handleClusterRoleDetails(clusterRole)}>
+                        <div className="hover:text-blue-500 hover:underline">
+                          {clusterRole.metadata?.name}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('type') && (
+                      <TableCell className="text-center">
+                        {formatRoleType(clusterRole)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('rules') && (
+                      <TableCell className="text-center">
+                        {clusterRole.rules?.length || 0}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('apiGroups') && (
+                      <TableCell>
+                        {formatApisAndResources(clusterRole)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('permissions') && (
+                      <TableCell>
+                        {formatVerbs(clusterRole)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(clusterRole.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -936,7 +1011,8 @@ const ClusterRoles: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -944,6 +1020,16 @@ const ClusterRoles: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="ClusterRoles Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   );
 };

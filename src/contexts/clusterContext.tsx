@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { KubeContext, RecentConnection } from '@/types/cluster';
 import { getKubeContexts } from '@/api/cluster';
 import { useToast } from '@/hooks/use-toast';
+import { getMetricsServerStatus } from '@/api/internal/metrics_svr';
 
 interface ClusterContextType {
   contexts: KubeContext[];
@@ -11,6 +12,8 @@ interface ClusterContextType {
   fullWidth: boolean;
   refreshInterval: number;
   recentConnections: RecentConnection[];
+  isMetricsServerInstalled: boolean;
+  isCheckingMetricsServer: boolean;
   fetchContexts: () => Promise<void>;
   setCurrentContext: (context: KubeContext) => void;
   refreshContexts: () => Promise<void>;
@@ -19,6 +22,7 @@ interface ClusterContextType {
   addToRecentConnections: (context: KubeContext) => void;
   removeFromRecentConnections: (contextName: string) => void;
   updateRecentConnectionName: (oldName: string, newName: string) => void;
+  checkMetricsServerStatus: () => Promise<void>;
 }
 
 const ClusterContext = createContext<ClusterContextType | undefined>(undefined);
@@ -46,6 +50,9 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     const stored = localStorage.getItem('recent-connected-clusters');
     return stored ? JSON.parse(stored) : [];
   });
+
+  const [isMetricsServerInstalled, setIsMetricsServerInstalled] = useState<boolean>(false);
+  const [isCheckingMetricsServer, setIsCheckingMetricsServer] = useState<boolean>(false);
 
   const { toast } = useToast();
 
@@ -107,6 +114,25 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     });
   }, []);
 
+  // Function to check metrics server status
+  const checkMetricsServerStatus = useCallback(async () => {
+    if (!currentContext) {
+      setIsMetricsServerInstalled(false);
+      return;
+    }
+
+    try {
+      setIsCheckingMetricsServer(true);
+      const response = await getMetricsServerStatus(currentContext.name);
+      setIsMetricsServerInstalled(response.data.installed && response.data.ready);
+    } catch (error) {
+      console.error('Error checking metrics server status:', error);
+      setIsMetricsServerInstalled(false);
+    } finally {
+      setIsCheckingMetricsServer(false);
+    }
+  }, [currentContext]);
+
   // Function to fetch all available kube contexts
   const fetchContexts = useCallback(async () => {
     try {
@@ -157,6 +183,13 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     fetchContexts();
   }, [fetchContexts]);
 
+  // Check metrics server status when current context changes
+  useEffect(() => {
+    if (currentContext) {
+      checkMetricsServerStatus();
+    }
+  }, [currentContext, checkMetricsServerStatus]);
+
 
   const handleSetCurrentContext = (context: KubeContext) => {
     setCurrentContext(context);
@@ -179,6 +212,8 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     fullWidth,
     refreshInterval,
     recentConnections,
+    isMetricsServerInstalled,
+    isCheckingMetricsServer,
     fetchContexts,
     setCurrentContext: handleSetCurrentContext,
     refreshContexts,
@@ -187,6 +222,7 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     addToRecentConnections,
     removeFromRecentConnections,
     updateRecentConnectionName,
+    checkMetricsServerStatus,
   };
 
   return (

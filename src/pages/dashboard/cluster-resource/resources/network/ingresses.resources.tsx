@@ -28,6 +28,8 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
+import { Filter } from 'lucide-react';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -47,6 +49,18 @@ const Ingresses: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isReconMode } = useReconMode();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'class', label: 'Class', visible: true, canToggle: true },
+    { key: 'hosts', label: 'Hosts & Paths', visible: true, canToggle: true },
+    { key: 'address', label: 'Address', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
   // --- Start of Multi-select ---
   const [selectedIngresses, setSelectedIngresses] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -375,6 +389,26 @@ const Ingresses: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
 
   // Fetch ingresses for all selected namespaces
   useEffect(() => {
@@ -723,9 +757,20 @@ const Ingresses: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -757,36 +802,47 @@ const Ingresses: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('class')}
-                  >
-                    Class {renderSortIndicator('class')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('hosts')}
-                  >
-                    Hosts & Paths {renderSortIndicator('hosts')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('address')}
-                  >
-                    Address {renderSortIndicator('address')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('class') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('class')}
+                    >
+                      Class {renderSortIndicator('class')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('hosts') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('hosts')}
+                    >
+                      Hosts & Paths {renderSortIndicator('hosts')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('address') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('address')}
+                    >
+                      Address {renderSortIndicator('address')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -807,25 +863,35 @@ const Ingresses: React.FC = () => {
                         {ingress.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                        {ingress.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                        {formatIngressClass(ingress)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {formatHostsAndPaths(ingress)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatIngressAddress(ingress)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(ingress.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {ingress.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('class') && (
+                      <TableCell className="text-center">
+                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                          {formatIngressClass(ingress)}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('hosts') && (
+                      <TableCell>
+                        {formatHostsAndPaths(ingress)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('address') && (
+                      <TableCell className="text-center">
+                        {formatIngressAddress(ingress)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(ingress.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -866,6 +932,17 @@ const Ingresses: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Ingresses Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

@@ -27,6 +27,7 @@ import ContainerLogs from '../components/containerlogs.viewer';
 import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import PodMetricsComponent from '@/components/custom/metrics/pod-metrics.component';
 import ImageVulnDrawer from '@/components/custom/imagevulndrawer/imagevulndrawer.component';
+import MetricsServerInstallationDialog from '@/components/custom/metrics-server/metricssvrinstallationdialog.component';
 import { runExternalShell } from '@/api/external';
 import { useSearchParams } from 'react-router-dom';
 
@@ -41,7 +42,7 @@ const PodViewer: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
-  const { currentContext, fullWidth } = useCluster();
+  const { currentContext, fullWidth, isMetricsServerInstalled, checkMetricsServerStatus } = useCluster();
   const { podName, namespace } = useParams<{ podName: string; namespace: string }>();
   const navigate = useNavigate();
   const { isReconMode } = useReconMode();
@@ -51,6 +52,7 @@ const PodViewer: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showImageVulnDrawer, setShowImageVulnDrawer] = useState(false);
+  const [isMetricsInstallDialogOpen, setIsMetricsInstallDialogOpen] = useState(false);
 
   // Fetch events for the pod
   const fetchEvents = async () => {
@@ -182,9 +184,25 @@ const PodViewer: React.FC = () => {
     setShowImageVulnDrawer(true);
   };
 
-  // TODO: Add handler function for installing metrics server
-  const handleInstallMetricsServer = async () => {
-    // TODO: Implement metrics server installation logic
+  // Handler function for installing metrics server
+  const handleInstallMetricsServer = () => {
+    setIsMetricsInstallDialogOpen(true);
+  };
+
+  // Handler for when dialog closes - refresh metrics server status
+  const handleDialogClose = async (open: boolean) => {
+    setIsMetricsInstallDialogOpen(open);
+    
+    if (!open) {
+      // Dialog is closing - refresh metrics server status and clear metrics error
+      try {
+        await checkMetricsServerStatus();
+        // Clear metrics error to allow metrics component to retry
+        setMetricsError(null);
+      } catch (error) {
+        console.error('Error refreshing metrics after dialog close:', error);
+      }
+    }
   };
 
   // Handle refresh data
@@ -582,6 +600,12 @@ const PodViewer: React.FC = () => {
           isOpen={showImageVulnDrawer}
           onClose={() => setShowImageVulnDrawer(false)}
           podData={podData}
+        />
+
+        {/* Metrics Server Installation Dialog */}
+        <MetricsServerInstallationDialog
+          open={isMetricsInstallDialogOpen}
+          onOpenChange={handleDialogClose}
         />
       </div>
     </div>
