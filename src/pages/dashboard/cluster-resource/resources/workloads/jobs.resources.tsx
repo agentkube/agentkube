@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { NamespaceSelector, ErrorComponent } from '@/components/custom';
+import { NamespaceSelector, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw, Trash2, Play, XCircle, Sparkles } from "lucide-react";
+import { RefreshCw, Trash2, Play, XCircle, Sparkles, Filter } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +56,20 @@ const Jobs: React.FC = () => {
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { addResourceContext } = useDrawer();
   const { isReconMode } = useReconMode();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'status', label: 'Status', visible: true, canToggle: true },
+    { key: 'completions', label: 'Completions', visible: true, canToggle: true },
+    { key: 'duration', label: 'Duration', visible: true, canToggle: true },
+    { key: 'parallelism', label: 'Parallelism', visible: true, canToggle: true },
+    { key: 'owner', label: 'Owner', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -466,6 +480,26 @@ const Jobs: React.FC = () => {
     }
   };
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
+
   // Delete confirmation dialog
   const renderDeleteDialog = () => {
     return (
@@ -829,9 +863,20 @@ const Jobs: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -863,48 +908,62 @@ const Jobs: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status {renderSortIndicator('status')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('completions')}
-                  >
-                    Completions {renderSortIndicator('completions')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('duration')}
-                  >
-                    Duration {renderSortIndicator('duration')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('parallelism')}
-                  >
-                    Parallelism {renderSortIndicator('parallelism')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('owner')}
-                  >
-                    Owner {renderSortIndicator('owner')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('status') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status {renderSortIndicator('status')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('completions') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('completions')}
+                    >
+                      Completions {renderSortIndicator('completions')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('duration') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('duration')}
+                    >
+                      Duration {renderSortIndicator('duration')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('parallelism') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('parallelism')}
+                    >
+                      Parallelism {renderSortIndicator('parallelism')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('owner') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('owner')}
+                    >
+                      Owner {renderSortIndicator('owner')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -925,38 +984,52 @@ const Jobs: React.FC = () => {
                           {job.metadata?.name}
                         </div>
                       </TableCell>
-                      <TableCell>{job.metadata?.namespace}</TableCell>
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${jobStatus.colorClass}`}>
-                          {jobStatus.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {`${job.status?.succeeded || 0}/${job.spec?.completions || 1}`}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {calculateDuration(job)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {job.spec?.parallelism || 1}
-                      </TableCell>
-                      <TableCell>
-                        {owner ? (
-                          <div className="flex items-center gap-1">
-                            <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
-                              {owner.kind}
-                            </span>
-                            <span className="hover:text-blue-500 hover:underline">
-                              {owner.name}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {calculateAge(job.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
+                      {isColumnVisible('namespace') && (
+                        <TableCell>{job.metadata?.namespace}</TableCell>
+                      )}
+                      {isColumnVisible('status') && (
+                        <TableCell className="text-center">
+                          <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${jobStatus.colorClass}`}>
+                            {jobStatus.status}
+                          </span>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('completions') && (
+                        <TableCell className="text-center">
+                          {`${job.status?.succeeded || 0}/${job.spec?.completions || 1}`}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('duration') && (
+                        <TableCell className="text-center">
+                          {calculateDuration(job)}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('parallelism') && (
+                        <TableCell className="text-center">
+                          {job.spec?.parallelism || 1}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('owner') && (
+                        <TableCell>
+                          {owner ? (
+                            <div className="flex items-center gap-1">
+                              <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
+                                {owner.kind}
+                              </span>
+                              <span className="hover:text-blue-500 hover:underline">
+                                {owner.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('age') && (
+                        <TableCell className="text-center">
+                          {calculateAge(job.metadata?.creationTimestamp?.toString())}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -998,6 +1071,17 @@ const Jobs: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Jobs Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

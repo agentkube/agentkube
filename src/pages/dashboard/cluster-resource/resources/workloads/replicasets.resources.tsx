@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { NamespaceSelector, ErrorComponent, ScaleDialog } from '@/components/custom';
+import { NamespaceSelector, ErrorComponent, ScaleDialog, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Scale, Sparkles } from "lucide-react";
+import { Trash2, Scale, Sparkles, Filter } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +49,19 @@ const ReplicaSets: React.FC = () => {
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [selectedResourcesForScaling, setSelectedResourcesForScaling] = useState<any[]>([]);
   const { isReconMode } = useReconMode();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'ready', label: 'Ready', visible: true, canToggle: true },
+    { key: 'current', label: 'Current', visible: true, canToggle: true },
+    { key: 'desired', label: 'Desired', visible: true, canToggle: true },
+    { key: 'owner', label: 'Owner', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -398,6 +411,26 @@ const ReplicaSets: React.FC = () => {
       </AlertDialog>
     );
   };
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
   // --- End of Multi-select ---
 
 
@@ -671,9 +704,20 @@ const ReplicaSets: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -712,42 +756,54 @@ const ReplicaSets: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className=" text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('ready')}
-                  >
-                    Ready {renderSortIndicator('ready')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('current')}
-                  >
-                    Current {renderSortIndicator('current')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('desired')}
-                  >
-                    Desired {renderSortIndicator('desired')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('owner')}
-                  >
-                    Owner {renderSortIndicator('owner')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ready') && (
+                    <TableHead
+                      className=" text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('ready')}
+                    >
+                      Ready {renderSortIndicator('ready')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('current') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('current')}
+                    >
+                      Current {renderSortIndicator('current')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('desired') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('desired')}
+                    >
+                      Desired {renderSortIndicator('desired')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('owner') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('owner')}
+                    >
+                      Owner {renderSortIndicator('owner')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
 
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -769,33 +825,45 @@ const ReplicaSets: React.FC = () => {
                           {replicaSet.metadata?.name}
                         </div>
                       </TableCell>
-                      <TableCell>{replicaSet.metadata?.namespace}</TableCell>
-                      <TableCell className="text-center">
-                        {`${replicaSet.status?.readyReplicas || 0}/${replicaSet.spec?.replicas || 0}`}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {replicaSet.status?.replicas || 0}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {replicaSet.spec?.replicas || 0}
-                      </TableCell>
-                      <TableCell>
-                        {owner ? (
-                          <div className="flex items-center gap-1">
-                            <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
-                              {owner.kind}
-                            </span>
-                            <span className="hover:text-blue-500 hover:underline">
-                              {owner.name}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {calculateAge(replicaSet.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
+                      {isColumnVisible('namespace') && (
+                        <TableCell>{replicaSet.metadata?.namespace}</TableCell>
+                      )}
+                      {isColumnVisible('ready') && (
+                        <TableCell className="text-center">
+                          {`${replicaSet.status?.readyReplicas || 0}/${replicaSet.spec?.replicas || 0}`}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('current') && (
+                        <TableCell className="text-center">
+                          {replicaSet.status?.replicas || 0}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('desired') && (
+                        <TableCell className="text-center">
+                          {replicaSet.spec?.replicas || 0}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('owner') && (
+                        <TableCell>
+                          {owner ? (
+                            <div className="flex items-center gap-1">
+                              <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
+                                {owner.kind}
+                              </span>
+                              <span className="hover:text-blue-500 hover:underline">
+                                {owner.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('age') && (
+                        <TableCell className="text-center">
+                          {calculateAge(replicaSet.metadata?.creationTimestamp?.toString())}
+                        </TableCell>
+                      )}
 
                       <TableCell>
                         <DropdownMenu>
@@ -838,6 +906,17 @@ const ReplicaSets: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="ReplicaSets Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

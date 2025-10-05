@@ -5,7 +5,7 @@ import { V1Namespace } from '@kubernetes/client-node';
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Trash, Edit, Sparkles } from "lucide-react";
+import { Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Trash, Edit, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { calculateAge } from '@/utils/age';
-import { DeletionDialog, ErrorComponent } from '@/components/custom';
+import { DeletionDialog, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useNavigate } from 'react-router-dom';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
@@ -47,6 +47,16 @@ const Namespaces: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'status', label: 'Status', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'labels', label: 'Labels', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -267,6 +277,26 @@ const Namespaces: React.FC = () => {
     }
   };
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -290,19 +320,32 @@ const Namespaces: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div>
-        <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Namespaces</h1>
-        <div className="w-full md:w-96 mt-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search by name, status, or label..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
+        <div>
+          <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Namespaces</h1>
+          <div className="w-full md:w-96 mt-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by name, status, or label..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
+        </div>
+
+        <div className="flex items-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
       {namespaceToDelete && (
@@ -335,24 +378,30 @@ const Namespaces: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status {renderSortIndicator('status')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('labels')}
-                  >
-                    Labels {renderSortIndicator('labels')}
-                  </TableHead>
+                  {isColumnVisible('status') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status {renderSortIndicator('status')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('labels') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('labels')}
+                    >
+                      Labels {renderSortIndicator('labels')}
+                    </TableHead>
+                  )}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -365,29 +414,35 @@ const Namespaces: React.FC = () => {
                     <TableCell className="font-medium"
                       onClick={() => navigate(`/dashboard/explore/namespaces/${namespace.metadata?.name}`)}
                     >{namespace.metadata?.name}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${namespace.status?.phase === 'Active'
-                          ? 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          : 'border border-yellow-800/40 dark:border-yellow-400/20 bg-yellow-400/50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-800'
-                          }`}
-                      >
-                        {namespace.status?.phase || 'Unknown'}
-                      </span>
-                    </TableCell>
-                    <TableCell>{calculateAge(namespace.metadata?.creationTimestamp?.toString())}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {namespace.metadata?.labels && Object.entries(namespace.metadata.labels).map(([key, value]) => (
-                          <span
-                            key={key}
-                            className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-gray-200 dark:bg-transparent dark:hover:bg-gray-800/50 border border-gray-300 dark:border-gray-800 text-gray-700 dark:text-gray-300"
-                          >
-                            {key}: {value}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
+                    {isColumnVisible('status') && (
+                      <TableCell>
+                        <span
+                          className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${namespace.status?.phase === 'Active'
+                            ? 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : 'border border-yellow-800/40 dark:border-yellow-400/20 bg-yellow-400/50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-800'
+                            }`}
+                        >
+                          {namespace.status?.phase || 'Unknown'}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell>{calculateAge(namespace.metadata?.creationTimestamp?.toString())}</TableCell>
+                    )}
+                    {isColumnVisible('labels') && (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {namespace.metadata?.labels && Object.entries(namespace.metadata.labels).map(([key, value]) => (
+                            <span
+                              key={key}
+                              className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-gray-200 dark:bg-transparent dark:hover:bg-gray-800/50 border border-gray-300 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                            >
+                              {key}: {value}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -429,6 +484,17 @@ const Namespaces: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Namespaces Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

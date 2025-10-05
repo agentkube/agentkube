@@ -6,12 +6,12 @@ import { V1PersistentVolumeClaim } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { NamespaceSelector, ErrorComponent } from '@/components/custom';
+import { NamespaceSelector, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Database, Copy, Sparkles } from "lucide-react";
@@ -57,6 +57,20 @@ const PersistentVolumeClaims: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { addResourceContext } = useDrawer();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'status', label: 'Status', visible: true, canToggle: true },
+    { key: 'volume', label: 'Volume', visible: true, canToggle: true },
+    { key: 'capacity', label: 'Capacity', visible: true, canToggle: true },
+    { key: 'accessModes', label: 'Access Modes', visible: true, canToggle: true },
+    { key: 'storageClass', label: 'Storage Class', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -432,6 +446,26 @@ const PersistentVolumeClaims: React.FC = () => {
   };
   // -- Endo of Multi-select -- 
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
+
   // Add sorting state
   const [sort, setSort] = useState<SortState>({
     field: null,
@@ -741,9 +775,19 @@ const PersistentVolumeClaims: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -775,48 +819,62 @@ const PersistentVolumeClaims: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status {renderSortIndicator('status')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('volume')}
-                  >
-                    Volume {renderSortIndicator('volume')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('capacity')}
-                  >
-                    Capacity {renderSortIndicator('capacity')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                    onClick={() => handleSort('accessModes')}
-                  >
-                    Access Modes {renderSortIndicator('accessModes')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                    onClick={() => handleSort('storageClass')}
-                  >
-                    Storage Class {renderSortIndicator('storageClass')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[80px]"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('status') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status {renderSortIndicator('status')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('volume') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('volume')}
+                    >
+                      Volume {renderSortIndicator('volume')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('capacity') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('capacity')}
+                    >
+                      Capacity {renderSortIndicator('capacity')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('accessModes') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
+                      onClick={() => handleSort('accessModes')}
+                    >
+                      Access Modes {renderSortIndicator('accessModes')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('storageClass') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
+                      onClick={() => handleSort('storageClass')}
+                    >
+                      Storage Class {renderSortIndicator('storageClass')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[80px]"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -834,46 +892,60 @@ const PersistentVolumeClaims: React.FC = () => {
                         {pvc.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>{pvc.metadata?.namespace}</TableCell>
-                    <TableCell className="text-center">
-                      <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(pvc.status?.phase)}`}>
-                        {pvc.status?.phase || 'Unknown'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div
-                        className="hover:text-blue-500 hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/explore/persistentvolumes`);
-                        }}
-                      >
-                        {pvc.spec?.volumeName || '-'}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatStorage(pvc.status?.capacity?.storage) ||
-                        formatStorage(pvc.spec?.resources?.requests?.storage) ||
-                        'N/A'}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex flex-wrap justify-center gap-1">
-                        {pvc.spec?.accessModes?.map((mode, index) => (
-                          <span
-                            key={index}
-                            className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
-                          >
-                            {mode}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {pvc.spec?.storageClassName || 'default'}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(pvc.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
+                    {isColumnVisible('namespace') && (
+                      <TableCell>{pvc.metadata?.namespace}</TableCell>
+                    )}
+                    {isColumnVisible('status') && (
+                      <TableCell className="text-center">
+                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(pvc.status?.phase)}`}>
+                          {pvc.status?.phase || 'Unknown'}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('volume') && (
+                      <TableCell className="text-center">
+                        <div
+                          className="hover:text-blue-500 hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/explore/persistentvolumes`);
+                          }}
+                        >
+                          {pvc.spec?.volumeName || '-'}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('capacity') && (
+                      <TableCell className="text-center">
+                        {formatStorage(pvc.status?.capacity?.storage) ||
+                          formatStorage(pvc.spec?.resources?.requests?.storage) ||
+                          'N/A'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('accessModes') && (
+                      <TableCell className="text-center">
+                        <div className="flex flex-wrap justify-center gap-1">
+                          {pvc.spec?.accessModes?.map((mode, index) => (
+                            <span
+                              key={index}
+                              className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+                            >
+                              {mode}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('storageClass') && (
+                      <TableCell className="text-center">
+                        {pvc.spec?.storageClassName || 'default'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(pvc.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -914,6 +986,17 @@ const PersistentVolumeClaims: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Persistent Volume Claims Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

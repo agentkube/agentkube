@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { NamespaceSelector, ErrorComponent } from '@/components/custom';
+import { NamespaceSelector, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Play, Pause, Clock, Sparkles } from "lucide-react";
+import { Trash2, Play, Pause, Clock, Sparkles, Filter } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +48,20 @@ const CronJobs: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'status', label: 'Status', visible: true, canToggle: true },
+    { key: 'schedule', label: 'Schedule', visible: true, canToggle: true },
+    { key: 'lastSchedule', label: 'Last Schedule', visible: true, canToggle: true },
+    { key: 'activeJobs', label: 'Active Jobs', visible: true, canToggle: true },
+    { key: 'successful', label: 'Successful', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
@@ -526,6 +540,26 @@ const CronJobs: React.FC = () => {
       </AlertDialog>
     );
   };
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
   // --- End of Multi-select ---
 
   // Add sorting state
@@ -834,9 +868,20 @@ const CronJobs: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -868,48 +913,62 @@ const CronJobs: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status {renderSortIndicator('status')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('schedule')}
-                  >
-                    Schedule {renderSortIndicator('schedule')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('lastSchedule')}
-                  >
-                    Last Schedule {renderSortIndicator('lastSchedule')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('activeJobs')}
-                  >
-                    Active Jobs {renderSortIndicator('activeJobs')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('successful')}
-                  >
-                    Successful {renderSortIndicator('successful')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('status') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status {renderSortIndicator('status')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('schedule') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('schedule')}
+                    >
+                      Schedule {renderSortIndicator('schedule')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('lastSchedule') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('lastSchedule')}
+                    >
+                      Last Schedule {renderSortIndicator('lastSchedule')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('activeJobs') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('activeJobs')}
+                    >
+                      Active Jobs {renderSortIndicator('activeJobs')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('successful') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('successful')}
+                    >
+                      Successful {renderSortIndicator('successful')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -932,31 +991,45 @@ const CronJobs: React.FC = () => {
                           {cronJob.metadata?.name}
                         </div>
                       </TableCell>
-                      <TableCell>{cronJob.metadata?.namespace}</TableCell>
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${status.colorClass}`}>
-                          {status.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          {formatSchedule(cronJob.spec?.schedule || '')}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {formatLastSchedule(cronJob)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={activeJobs > 0 ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}>
-                          {activeJobs}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {lastSuccessfulTime}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {calculateAge(cronJob.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
+                      {isColumnVisible('namespace') && (
+                        <TableCell>{cronJob.metadata?.namespace}</TableCell>
+                      )}
+                      {isColumnVisible('status') && (
+                        <TableCell className="text-center">
+                          <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${status.colorClass}`}>
+                            {status.status}
+                          </span>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('schedule') && (
+                        <TableCell>
+                          <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                            {formatSchedule(cronJob.spec?.schedule || '')}
+                          </span>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('lastSchedule') && (
+                        <TableCell className="text-center">
+                          {formatLastSchedule(cronJob)}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('activeJobs') && (
+                        <TableCell className="text-center">
+                          <span className={activeJobs > 0 ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}>
+                            {activeJobs}
+                          </span>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('successful') && (
+                        <TableCell className="text-center">
+                          {lastSuccessfulTime}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('age') && (
+                        <TableCell className="text-center">
+                          {calculateAge(cronJob.metadata?.creationTimestamp?.toString())}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -998,6 +1071,17 @@ const CronJobs: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="CronJobs Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

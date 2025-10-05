@@ -89,9 +89,9 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-800/60"
+            className="w-full h-full p-2.5 justify-between text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-800/60"
           >
-            <span className="truncate">{getDisplayText()}</span>
+            <span className="truncate text-sm">{getDisplayText()}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>

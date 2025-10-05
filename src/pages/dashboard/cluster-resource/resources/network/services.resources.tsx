@@ -6,12 +6,12 @@ import { V1Service } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { NamespaceSelector, ErrorComponent } from '@/components/custom';
+import { NamespaceSelector, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2 } from "lucide-react";
@@ -377,6 +377,19 @@ const Services: React.FC = () => {
     direction: null
   });
 
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'type', label: 'Type', visible: true, canToggle: true },
+    { key: 'clusterIP', label: 'Cluster IP', visible: true, canToggle: true },
+    { key: 'externalIP', label: 'External IP', visible: true, canToggle: true },
+    { key: 'ports', label: 'Ports', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
+
   // Fetch services for all selected namespaces
   useEffect(() => {
     const fetchAllServices = async () => {
@@ -685,6 +698,26 @@ const Services: React.FC = () => {
     return null;
   };
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -725,9 +758,20 @@ const Services: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            <div className="text-sm font-medium mb-2">Namespaces</div>
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -759,42 +803,54 @@ const Services: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('type')}
-                  >
-                    Type {renderSortIndicator('type')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('clusterIP')}
-                  >
-                    Cluster IP {renderSortIndicator('clusterIP')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('externalIP')}
-                  >
-                    External IP {renderSortIndicator('externalIP')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('ports')}
-                  >
-                    Ports {renderSortIndicator('ports')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('type') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('type')}
+                    >
+                      Type {renderSortIndicator('type')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('clusterIP') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('clusterIP')}
+                    >
+                      Cluster IP {renderSortIndicator('clusterIP')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('externalIP') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('externalIP')}
+                    >
+                      External IP {renderSortIndicator('externalIP')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ports') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('ports')}
+                    >
+                      Ports {renderSortIndicator('ports')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -815,28 +871,40 @@ const Services: React.FC = () => {
                         {service.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                        {service.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getServiceTypeColorClass(service.spec?.type)}`}>
-                        {service.spec?.type || 'ClusterIP'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {service.spec?.clusterIP || '-'}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {getExternalIP(service)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatServicePorts(service)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(service.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {service.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('type') && (
+                      <TableCell className="text-center">
+                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getServiceTypeColorClass(service.spec?.type)}`}>
+                          {service.spec?.type || 'ClusterIP'}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('clusterIP') && (
+                      <TableCell className="text-center">
+                        {service.spec?.clusterIP || '-'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('externalIP') && (
+                      <TableCell className="text-center">
+                        {getExternalIP(service)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('ports') && (
+                      <TableCell className="text-center">
+                        {formatServicePorts(service)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(service.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -877,6 +945,17 @@ const Services: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Services Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

@@ -58,22 +58,22 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  // Polling logic - fetch models every 5 seconds
+  // Fetch models once on component mount
   useEffect(() => {
     // Initial fetch
     refreshModels();
     
-    // Set up polling
-    pollingTimerRef.current = setInterval(() => {
-      refreshModels();
-    }, 20000);
+    // // Set up polling - commented out to fetch only once
+    // pollingTimerRef.current = setInterval(() => {
+    //   refreshModels();
+    // }, 20000);
 
-    // Cleanup function
-    return () => {
-      if (pollingTimerRef.current) {
-        clearInterval(pollingTimerRef.current);
-      }
-    };
+    // // Cleanup function
+    // return () => {
+    //   if (pollingTimerRef.current) {
+    //     clearInterval(pollingTimerRef.current);
+    //   }
+    // };
   }, []);
 
   // Add a new model

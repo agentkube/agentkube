@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { NamespaceSelector, ErrorComponent, ScaleDialog } from '@/components/custom';
+import { NamespaceSelector, ErrorComponent, ScaleDialog, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
+import { Filter } from 'lucide-react';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, RefreshCw, Scale, Pause, Play, Sparkles } from "lucide-react";
@@ -50,6 +51,20 @@ const StatefulSets: React.FC = () => {
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [selectedResourcesForScaling, setSelectedResourcesForScaling] = useState<V1StatefulSet[]>([]);
   const { isReconMode } = useReconMode();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'ready', label: 'Ready', visible: true, canToggle: true },
+    { key: 'current', label: 'Current', visible: true, canToggle: true },
+    { key: 'updated', label: 'Updated', visible: true, canToggle: true },
+    { key: 'serviceName', label: 'Service Name', visible: true, canToggle: true },
+    { key: 'podManagement', label: 'Pod Management', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   // --- Start of Multi-select ---
   const [selectedStatefulSets, setSelectedStatefulSets] = useState<Set<string>>(new Set());
@@ -455,6 +470,26 @@ const StatefulSets: React.FC = () => {
       });
     }
   };
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
   // --- End of Multi-select ---
 
   // Add sorting state
@@ -703,9 +738,20 @@ const StatefulSets: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -744,48 +790,62 @@ const StatefulSets: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('ready')}
-                  >
-                    Ready {renderSortIndicator('ready')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('current')}
-                  >
-                    Current {renderSortIndicator('current')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('updated')}
-                  >
-                    Updated {renderSortIndicator('updated')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('serviceName')}
-                  >
-                    Service Name {renderSortIndicator('serviceName')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('podManagement')}
-                  >
-                    Pod Management {renderSortIndicator('podManagement')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ready') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('ready')}
+                    >
+                      Ready {renderSortIndicator('ready')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('current') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('current')}
+                    >
+                      Current {renderSortIndicator('current')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('updated') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('updated')}
+                    >
+                      Updated {renderSortIndicator('updated')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('serviceName') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('serviceName')}
+                    >
+                      Service Name {renderSortIndicator('serviceName')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('podManagement') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('podManagement')}
+                    >
+                      Pod Management {renderSortIndicator('podManagement')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
 
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -805,27 +865,45 @@ const StatefulSets: React.FC = () => {
                         {statefulSet.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>{statefulSet.metadata?.namespace}</TableCell>
-                    <TableCell className="text-center">
-                      {`${statefulSet.status?.readyReplicas || 0}/${statefulSet.spec?.replicas || 0}`}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {statefulSet.status?.currentReplicas || 0}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {statefulSet.status?.updatedReplicas || 0}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {statefulSet.spec?.serviceName || '-'}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                        {statefulSet.spec?.podManagementPolicy || 'OrderedReady'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(statefulSet.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {statefulSet.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('ready') && (
+                      <TableCell className="text-center">
+                        {`${statefulSet.status?.readyReplicas || 0}/${statefulSet.spec?.replicas || 0}`}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('current') && (
+                      <TableCell className="text-center">
+                        {statefulSet.status?.currentReplicas || 0}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('updated') && (
+                      <TableCell className="text-center">
+                        {statefulSet.status?.updatedReplicas || 0}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('serviceName') && (
+                      <TableCell className="text-center">
+                        {statefulSet.spec?.serviceName || '-'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('podManagement') && (
+                      <TableCell className="text-center">
+                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                          {statefulSet.spec?.podManagementPolicy || 'OrderedReady'}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(statefulSet.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -866,6 +944,17 @@ const StatefulSets: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="StatefulSets Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

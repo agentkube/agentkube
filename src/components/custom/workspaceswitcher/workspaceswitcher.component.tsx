@@ -81,11 +81,11 @@ export function WorkspaceSwitcher() {
             className="cursor-pointer  dark:hover:bg-gray-500/30"
           >
             <div className="flex items-center space-x-3 w-full">
-              <div className={`w-5 h-5 rounded-sm flex items-center justify-center text-white/50 text-xs font-bold ${
-                workspace.name === 'workspace-demo' ? 'bg-orange-500' :
-                workspace.name === 'agentkube-workspace' ? 'bg-blue-500' :
-                workspace.name === 'agentkube-space' ? 'bg-green-500' :
-                'bg-purple-500'
+              <div className={`w-5 h-5 rounded-sm flex items-center justify-center text-gray-300/80 text-xs font-bold ${
+                workspace.name === 'workspace-demo' ? 'bg-orange-500/50' :
+                workspace.name === 'agentkube-workspace' ? 'bg-blue-500/50' :
+                workspace.name === 'agentkube-space' ? 'bg-green-500/50' :
+                'bg-purple-500/50'
               }`}>
                 {workspace.name.charAt(0).toUpperCase()}
               </div>

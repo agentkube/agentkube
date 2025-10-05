@@ -6,12 +6,13 @@ import { V1ConfigMap } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Sparkles } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
+import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -21,7 +22,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Trash } from "lucide-react";
-import { Trash2, Copy } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
 import { useDrawer } from '@/contexts/useDrawer';
@@ -79,6 +80,18 @@ const ConfigMaps: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // Column filtering state
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false },
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'data', label: 'Data', visible: true, canToggle: true },
+    { key: 'keys', label: 'Keys', visible: true, canToggle: true },
+    { key: 'size', label: 'Size', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+  ]);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+
   // --- Start of Multi-select ---
   const [selectedConfigMaps, setSelectedConfigMaps] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -108,7 +121,7 @@ const ConfigMaps: React.FC = () => {
 
   const handleDeleteConfigMapMenuItem = (e: React.MouseEvent, configMap: V1ConfigMap) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -117,7 +130,7 @@ const ConfigMaps: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveConfigMap(configMap);
     setSelectedConfigMaps(new Set([`${configMap.metadata?.namespace}/${configMap.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -133,10 +146,10 @@ const ConfigMaps: React.FC = () => {
         '',
         'v1'
       );
-      
+
       // Add to chat context
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -243,7 +256,7 @@ const ConfigMaps: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -403,6 +416,28 @@ const ConfigMaps: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev =>
+      prev.map(col =>
+        col.key === columnKey && col.canToggle !== false
+          ? { ...col, visible }
+          : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev =>
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string): boolean => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
 
   // Fetch configmaps for all selected namespaces
   useEffect(() => {
@@ -647,23 +682,36 @@ const ConfigMaps: React.FC = () => {
       <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>ConfigMaps</h1>
-          <div className="w-full md:w-96 mt-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search by name, namespace, or data key..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-full md:w-96">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, namespace, or data key..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -689,40 +737,54 @@ const ConfigMaps: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('dataCount')}
-                  >
-                    Data {renderSortIndicator('dataCount')}
-                  </TableHead>
-                  <TableHead>
-                    Keys
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('size')}
-                  >
-                    Size {renderSortIndicator('size')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[70px]"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('name') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('data') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('dataCount')}
+                    >
+                      Data {renderSortIndicator('dataCount')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('keys') && (
+                    <TableHead>
+                      Keys
+                    </TableHead>
+                  )}
+                  {isColumnVisible('size') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('size')}
+                    >
+                      Size {renderSortIndicator('size')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[70px]"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -734,63 +796,77 @@ const ConfigMaps: React.FC = () => {
                     onClick={(e) => handleConfigMapClick(e, configMap)}
                     onContextMenu={(e) => handleContextMenu(e, configMap)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleConfigMapDetails(configMap)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {configMap.metadata?.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                        {configMap.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                        {countDataEntries(configMap)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {formatDataKeys(configMap)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatSize(calculateConfigMapSize(configMap))}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(configMap.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            handleAskAI(configMap);
-                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Ask AI
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleViewConfigMap} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
-                            onClick={(e) => handleDeleteConfigMapMenuItem(e, configMap)}
-                          >
-                            <Trash className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    {isColumnVisible('name') && (
+                      <TableCell className="font-medium" onClick={() => handleConfigMapDetails(configMap)}>
+                        <div className="hover:text-blue-500 hover:underline">
+                          {configMap.metadata?.name}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {configMap.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('data') && (
+                      <TableCell className="text-center">
+                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                          {countDataEntries(configMap)}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('keys') && (
+                      <TableCell>
+                        {formatDataKeys(configMap)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('size') && (
+                      <TableCell className="text-center">
+                        {formatSize(calculateConfigMapSize(configMap))}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(configMap.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleAskAI(configMap);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask AI
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleViewConfigMap} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeleteConfigMapMenuItem(e, configMap)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -798,6 +874,16 @@ const ConfigMaps: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="ConfigMaps Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   );
 };

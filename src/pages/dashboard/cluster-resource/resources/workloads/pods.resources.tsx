@@ -6,7 +6,7 @@ import { V1Pod } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Sparkles, WandSparkles, TextSearch, SearchCode } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Sparkles, WandSparkles, TextSearch, SearchCode, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +31,7 @@ import { SideDrawer } from '@/components/ui/sidedrawer.custom';
 import Telemetry from '@/components/custom/telemetry/telemetry.component';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { useReconMode } from '@/contexts/useRecon';
+import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -138,6 +139,52 @@ const Pods: React.FC = () => {
   // Telemetry drawer state
   const [isTelemetryDrawerOpen, setIsTelemetryDrawerOpen] = useState(false);
   const [telemetryPod, setTelemetryPod] = useState<V1Pod | null>(null);
+
+  // Column configuration state
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true }, // Required column
+    { key: 'status', label: 'Status', visible: true, canToggle: false }, // Required column
+    { key: 'ready', label: 'Ready', visible: true, canToggle: true },
+    { key: 'restarts', label: 'Restarts', visible: true, canToggle: true },
+    { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
+    { key: 'memory', label: 'Memory', visible: true, canToggle: true },
+    { key: 'node', label: 'Node', visible: true, canToggle: true },
+    { key: 'ip', label: 'IP', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
+  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig([
+      { key: 'name', label: 'Name', visible: true },
+      { key: 'namespace', label: 'Namespace', visible: true },
+      { key: 'status', label: 'Status', visible: true },
+      { key: 'ready', label: 'Ready', visible: true },
+      { key: 'restarts', label: 'Restarts', visible: true },
+      { key: 'cpu', label: 'CPU', visible: true },
+      { key: 'memory', label: 'Memory', visible: true },
+      { key: 'node', label: 'Node', visible: true },
+      { key: 'ip', label: 'IP', visible: true },
+      { key: 'age', label: 'Age', visible: true },
+      { key: 'actions', label: 'Actions', visible: true }
+    ]);
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1125,9 +1172,19 @@ const Pods: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="w-full md:w-96 flex items-end gap-2">
+          <div className="flex-1">
+            <NamespaceSelector />
+          </div>
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsFilterSidebarOpen(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title="Filter columns"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -1183,67 +1240,89 @@ const Pods: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500 w-[110px]"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status {renderSortIndicator('status')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('ready')}
-                  >
-                    Ready {renderSortIndicator('ready')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('restarts')}
-                  >
-                    Restarts {renderSortIndicator('restarts')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('cpu')}
-                  >
-                    CPU {renderSortIndicator('cpu')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500 w-[100px]"
-                    onClick={() => handleSort('memory')}
-                  >
-                    Memory {renderSortIndicator('memory')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('node')}
-                  >
-                    Node {renderSortIndicator('node')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('ip')}
-                  >
-                    IP {renderSortIndicator('ip')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500 w-[80px]"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('name') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500 w-[110px]"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('status') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status {renderSortIndicator('status')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ready') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('ready')}
+                    >
+                      Ready {renderSortIndicator('ready')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('restarts') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('restarts')}
+                    >
+                      Restarts {renderSortIndicator('restarts')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('cpu') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('cpu')}
+                    >
+                      CPU {renderSortIndicator('cpu')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('memory') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500 w-[100px]"
+                      onClick={() => handleSort('memory')}
+                    >
+                      Memory {renderSortIndicator('memory')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('node') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('node')}
+                    >
+                      Node {renderSortIndicator('node')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ip') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('ip')}
+                    >
+                      IP {renderSortIndicator('ip')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500 w-[80px]"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1259,94 +1338,114 @@ const Pods: React.FC = () => {
                       onClick={(e) => handlePodClick(e, pod)}
                       onContextMenu={(e) => handleContextMenu(e, pod)}
                     >
-                      <TableCell className="font-medium" onClick={() => handlePodDetails(pod)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {pod.metadata?.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/explore/namespaces`);
-                        }}>
-                          {pod.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(pod.status?.phase)}`}>
-                          {pod.status?.phase || 'Unknown'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {getContainerStatuses(pod)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={getTotalRestarts(pod) > 0 ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
-                          {getTotalRestarts(pod)}
-                        </span>
-                      </TableCell>
-                      <TableCell
-                        onMouseEnter={(e) => handleResourceMouseEnter(e, podKey, 'cpu')}
-                        onMouseLeave={handleResourceMouseLeave}
-                      >
-                        <div
-                          className="relative"
+                      {isColumnVisible('name') && (
+                        <TableCell className="font-medium" onClick={() => handlePodDetails(pod)}>
+                          <div className="hover:text-blue-500 hover:underline">
+                            {pod.metadata?.name}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('namespace') && (
+                        <TableCell>
+                          <div className="hover:text-blue-500 hover:underline" onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/explore/namespaces`);
+                          }}>
+                            {pod.metadata?.namespace}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('status') && (
+                        <TableCell className="text-center">
+                          <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(pod.status?.phase)}`}>
+                            {pod.status?.phase || 'Unknown'}
+                          </span>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('ready') && (
+                        <TableCell className="text-center">
+                          {getContainerStatuses(pod)}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('restarts') && (
+                        <TableCell className="text-center">
+                          <span className={getTotalRestarts(pod) > 0 ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
+                            {getTotalRestarts(pod)}
+                          </span>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('cpu') && (
+                        <TableCell
+                          onMouseEnter={(e) => handleResourceMouseEnter(e, podKey, 'cpu')}
+                          onMouseLeave={handleResourceMouseLeave}
                         >
-                          {podMetrics?.cpu ? (
-                            <div>
-                              <div className="flex items-center">
-                                <span className="text-xs">{podMetrics.cpu.value}</span>
-                                {podMetrics.cpu.percentage && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                                    ({podMetrics.cpu.percentage.toFixed(0)}%)
-                                  </span>
-                                )}
+                          <div
+                            className="relative"
+                          >
+                            {podMetrics?.cpu ? (
+                              <div>
+                                <div className="flex items-center">
+                                  <span className="text-xs">{podMetrics.cpu.value}</span>
+                                  {podMetrics.cpu.percentage && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                      ({podMetrics.cpu.percentage.toFixed(0)}%)
+                                    </span>
+                                  )}
+                                </div>
+                                {renderResourceUsageBar(podMetrics.cpu, 'cpu')}
                               </div>
-                              {renderResourceUsageBar(podMetrics.cpu, 'cpu')}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-500 dark:text-gray-400"></span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        onMouseEnter={(e) => handleResourceMouseEnter(e, podKey, 'memory')}
-                        onMouseLeave={handleResourceMouseLeave}
-
-                      >
-                        <div
-                          className="relative"
+                            ) : (
+                              <span className="text-xs text-gray-500 dark:text-gray-400"></span>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('memory') && (
+                        <TableCell
+                          onMouseEnter={(e) => handleResourceMouseEnter(e, podKey, 'memory')}
+                          onMouseLeave={handleResourceMouseLeave}
                         >
-                          {podMetrics?.memory ? (
-                            <div>
-                              <div className="flex items-center">
-                                <span className="text-xs">{podMetrics.memory.value}</span>
-                                {podMetrics.memory.percentage && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                                    ({podMetrics.memory.percentage.toFixed(0)}%)
-                                  </span>
-                                )}
+                          <div
+                            className="relative"
+                          >
+                            {podMetrics?.memory ? (
+                              <div>
+                                <div className="flex items-center">
+                                  <span className="text-xs">{podMetrics.memory.value}</span>
+                                  {podMetrics.memory.percentage && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                      ({podMetrics.memory.percentage.toFixed(0)}%)
+                                    </span>
+                                  )}
+                                </div>
+                                {renderResourceUsageBar(podMetrics.memory, 'memory')}
                               </div>
-                              {renderResourceUsageBar(podMetrics.memory, 'memory')}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-500 dark:text-gray-400"></span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="hover:text-blue-500 hover:underline" onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/dashboard/explore/nodes/${pod.spec?.nodeName}`);
-                        }}>
-                          {pod.spec?.nodeName || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">{pod.status?.podIP || '-'}</TableCell>
-                      <TableCell className="text-center">
-                        {calculateAge(pod.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                      <TableCell>
+                            ) : (
+                              <span className="text-xs text-gray-500 dark:text-gray-400"></span>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('node') && (
+                        <TableCell className="text-center">
+                          <div className="hover:text-blue-500 hover:underline" onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/explore/nodes/${pod.spec?.nodeName}`);
+                          }}>
+                            {pod.spec?.nodeName || '-'}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isColumnVisible('ip') && (
+                        <TableCell className="text-center">{pod.status?.podIP || '-'}</TableCell>
+                      )}
+                      {isColumnVisible('age') && (
+                        <TableCell className="text-center">
+                          {calculateAge(pod.metadata?.creationTimestamp?.toString())}
+                        </TableCell>
+                      )}
+                      {isColumnVisible('actions') && (
+                        <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -1415,7 +1514,8 @@ const Pods: React.FC = () => {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -1424,6 +1524,16 @@ const Pods: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Column Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={isFilterSidebarOpen}
+        onClose={() => setIsFilterSidebarOpen(false)}
+        title="Pod Columns"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   );
 };

@@ -4,12 +4,12 @@ import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { ErrorComponent } from '@/components/custom';
+import { ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Copy, Star, Sparkles } from "lucide-react";
@@ -54,6 +54,19 @@ const StorageClasses: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { addResourceContext } = useDrawer();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'provisioner', label: 'Provisioner', visible: true, canToggle: true },
+    { key: 'reclaimPolicy', label: 'Reclaim Policy', visible: true, canToggle: true },
+    { key: 'volumeBindingMode', label: 'Volume Binding Mode', visible: true, canToggle: true },
+    { key: 'allowVolumeExpansion', label: 'Allow Volume Expansion', visible: true, canToggle: true },
+    { key: 'isDefault', label: 'Default Class', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -587,6 +600,26 @@ const StorageClasses: React.FC = () => {
   };
   // --- End of Multi-select ---
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
+
   // Add sorting state
   const [sort, setSort] = useState<SortState>({
     field: null,
@@ -801,19 +834,29 @@ const StorageClasses: React.FC = () => {
       <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Storage Classes</h1>
-          <div className="w-full md:w-96 mt-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search by name, provisioner, or reclaim policy..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
+          <div className="flex items-end gap-2 mt-2">
+            <div className="w-full md:w-96">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, provisioner, or reclaim policy..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
             </div>
           </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFilterSidebar(true)}
+          className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+        >
+          <Filter className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* No results message */}
@@ -842,42 +885,54 @@ const StorageClasses: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('provisioner')}
-                  >
-                    Provisioner {renderSortIndicator('provisioner')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('reclaimPolicy')}
-                  >
-                    Reclaim Policy {renderSortIndicator('reclaimPolicy')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('volumeBindingMode')}
-                  >
-                    Volume Binding Mode {renderSortIndicator('volumeBindingMode')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('allowVolumeExpansion')}
-                  >
-                    Allow Volume Expansion {renderSortIndicator('allowVolumeExpansion')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('isDefault')}
-                  >
-                    Default Class {renderSortIndicator('isDefault')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('provisioner') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('provisioner')}
+                    >
+                      Provisioner {renderSortIndicator('provisioner')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('reclaimPolicy') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('reclaimPolicy')}
+                    >
+                      Reclaim Policy {renderSortIndicator('reclaimPolicy')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('volumeBindingMode') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('volumeBindingMode')}
+                    >
+                      Volume Binding Mode {renderSortIndicator('volumeBindingMode')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('allowVolumeExpansion') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('allowVolumeExpansion')}
+                    >
+                      Allow Volume Expansion {renderSortIndicator('allowVolumeExpansion')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('isDefault') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('isDefault')}
+                    >
+                      Default Class {renderSortIndicator('isDefault')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -895,45 +950,57 @@ const StorageClasses: React.FC = () => {
                         {storageClass.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      {storageClass.provisioner || 'Unknown'}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${storageClass.reclaimPolicy === 'Delete'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                          }`}
-                      >
-                        {storageClass.reclaimPolicy || 'Delete'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                        {storageClass.volumeBindingMode || 'Immediate'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {storageClass.allowVolumeExpansion ? (
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
-                          Yes
+                    {isColumnVisible('provisioner') && (
+                      <TableCell className="text-center">
+                        {storageClass.provisioner || 'Unknown'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('reclaimPolicy') && (
+                      <TableCell className="text-center">
+                        <span
+                          className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${storageClass.reclaimPolicy === 'Delete'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                            }`}
+                        >
+                          {storageClass.reclaimPolicy || 'Delete'}
                         </span>
-                      ) : (
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
-                          No
+                      </TableCell>
+                    )}
+                    {isColumnVisible('volumeBindingMode') && (
+                      <TableCell className="text-center">
+                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                          {storageClass.volumeBindingMode || 'Immediate'}
                         </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getDefaultIndicatorClass(isDefaultStorageClass(storageClass))}`}
-                      >
-                        {isDefaultStorageClass(storageClass) ? 'Default' : '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(storageClass.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('allowVolumeExpansion') && (
+                      <TableCell className="text-center">
+                        {storageClass.allowVolumeExpansion ? (
+                          <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                            Yes
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                            No
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('isDefault') && (
+                      <TableCell className="text-center">
+                        <span
+                          className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getDefaultIndicatorClass(isDefaultStorageClass(storageClass))}`}
+                        >
+                          {isDefaultStorageClass(storageClass) ? 'Default' : '-'}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(storageClass.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -974,6 +1041,17 @@ const StorageClasses: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Storage Classes Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

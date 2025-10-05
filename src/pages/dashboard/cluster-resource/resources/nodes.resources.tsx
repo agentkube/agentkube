@@ -9,7 +9,7 @@ import { getNodes } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNavigate } from 'react-router-dom';
 import { V1Node, V1Taint, V1NodeCondition } from '@kubernetes/client-node';
-import { ErrorComponent } from '@/components/custom';
+import { ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ import { OPERATOR_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
+import { Filter } from 'lucide-react';
 
 interface UnitToggleProps {
   activeUnit: 'MiB' | 'GiB';
@@ -140,6 +141,21 @@ const Nodes: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
+    { key: 'memory', label: 'Memory', visible: true, canToggle: true },
+    { key: 'disk', label: 'Disk', visible: true, canToggle: true },
+    { key: 'taints', label: 'Taints', visible: true, canToggle: true },
+    { key: 'roles', label: 'Roles', visible: true, canToggle: true },
+    { key: 'version', label: 'Version', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'conditions', label: 'Conditions', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
 
   useEffect(() => {
@@ -546,21 +562,54 @@ const Nodes: React.FC = () => {
     return convertUnit(value.endsWith('Ki') ? value : value + 'Ki', unit);
   };
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Nodes</h1>
-        <div className="w-full md:w-96 mt-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search by name, role, label, condition..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
+        <div>
+          <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Nodes</h1>
+          <div className="w-full md:w-96 mt-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by name, role, label, condition..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
+        </div>
+
+        <div className="flex items-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -568,7 +617,7 @@ const Nodes: React.FC = () => {
       <div className="grid grid-cols-3 gap-1">
         <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
           <CardContent className="py-2 flex flex-col h-full">
-            <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">CPU Usage</h2>
+            <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">CPU</h2>
             <div className="mt-auto">
               <div className="flex items-baseline gap-2">
                 <p className="text-5xl font-light text-blue-600 dark:text-blue-400 mb-1">{selectedNode.cpuCores}</p>
@@ -651,53 +700,69 @@ const Nodes: React.FC = () => {
                 >
                   Name {renderSortIndicator('name')}
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('cpu')}
-                >
-                  CPU {renderSortIndicator('cpu')}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('memory')}
-                >
-                  Memory {renderSortIndicator('memory')}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('disk')}
-                >
-                  Disk {renderSortIndicator('disk')}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('taints')}
-                >
-                  Taints {renderSortIndicator('taints')}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                >
-                  Roles
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('version')}
-                >
-                  Version {renderSortIndicator('version')}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('age')}
-                >
-                  Age {renderSortIndicator('age')}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('conditions')}
-                >
-                  Conditions {renderSortIndicator('conditions')}
-                </TableHead>
+                {isColumnVisible('cpu') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('cpu')}
+                  >
+                    CPU {renderSortIndicator('cpu')}
+                  </TableHead>
+                )}
+                {isColumnVisible('memory') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('memory')}
+                  >
+                    Memory {renderSortIndicator('memory')}
+                  </TableHead>
+                )}
+                {isColumnVisible('disk') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('disk')}
+                  >
+                    Disk {renderSortIndicator('disk')}
+                  </TableHead>
+                )}
+                {isColumnVisible('taints') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('taints')}
+                  >
+                    Taints {renderSortIndicator('taints')}
+                  </TableHead>
+                )}
+                {isColumnVisible('roles') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                  >
+                    Roles
+                  </TableHead>
+                )}
+                {isColumnVisible('version') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('version')}
+                  >
+                    Version {renderSortIndicator('version')}
+                  </TableHead>
+                )}
+                {isColumnVisible('age') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('age')}
+                  >
+                    Age {renderSortIndicator('age')}
+                  </TableHead>
+                )}
+                {isColumnVisible('conditions') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('conditions')}
+                  >
+                    Conditions {renderSortIndicator('conditions')}
+                  </TableHead>
+                )}
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -716,59 +781,75 @@ const Nodes: React.FC = () => {
                       {node.name}
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex flex-col items-center">
-                      {node.metrics && (
-                        <span className="text-gray-600 dark:text-blue-500">
-                          <span className='text-gray-800 dark:text-gray-500'>
-                            {node.metrics.cpuConsumed.toFixed(2)}{" "} / <span className='text-gray-800 dark:text-white'>{node.cpu}</span><br />
+                  {isColumnVisible('cpu') && (
+                    <TableCell className="text-center">
+                      <div className="flex flex-col items-center">
+                        {node.metrics && (
+                          <span className="text-gray-600 dark:text-blue-500">
+                            <span className='text-gray-800 dark:text-gray-500'>
+                              {node.metrics.cpuConsumed.toFixed(2)}{" "} / <span className='text-gray-800 dark:text-white'>{node.cpu}</span><br />
+                            </span>
+                            <span className='text-xs'>
+                              ({node.metrics.cpuUsagePercentage.toFixed(1)}%)
+                            </span>
                           </span>
-                          <span className='text-xs'>
-                            ({node.metrics.cpuUsagePercentage.toFixed(1)}%)
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
+                  {isColumnVisible('memory') && (
+                    <TableCell className="text-center">
+                      <div className="flex flex-col items-center">
+                        <span>{getDisplayValue(node.memory, 'memory')}</span>
+                        {node.metrics && (
+                          <span className="gap-2 text-xs text-gray-600 dark:text-green-400">
+                            <span className='text-gray-800 dark:text-gray-500'>
+                              {convertUnit(node.metrics.memoryConsumed.toString() + 'Ki', memoryUnit)}{" "}
+                            </span>
+                            ({node.metrics.memoryUsagePercentage.toFixed(1)}%)
                           </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
+                  {isColumnVisible('disk') && (
+                    <TableCell className="text-center">
+                      {getDisplayValue(node.disk, 'disk')}
+                    </TableCell>
+                  )}
+                  {isColumnVisible('taints') && (
+                    <TableCell className="text-center">{node.taints.length}</TableCell>
+                  )}
+                  {isColumnVisible('roles') && (
+                    <TableCell>
+                      {node.roles.includes("master") ?
+                        <span className="px-2 py-1 rounded-[0.3rem]  text-xs font-medium bg-red-500/30 dark:bg-red-800/20 text-red-800 dark:text-red-400">
+                          Control Plane
+                        </span> :
+                        <span
+                          className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-yellow-400/50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-500">
+                          worker
                         </span>
+                      }
+                    </TableCell>
+                  )}
+                  {isColumnVisible('version') && (
+                    <TableCell>{node.version}</TableCell>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableCell>{node.age}</TableCell>
+                  )}
+                  {isColumnVisible('conditions') && (
+                    <TableCell>
+                      {node.conditions.map((condition: any) =>
+                        condition.type === 'Ready' && condition.status === 'True' && (
+                          <span key={condition.type} className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-emerald-300 dark:bg-emerald-900/30 text-green-800 dark:text-green-300">
+                            {condition.type}
+                          </span>
+                        )
                       )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex flex-col items-center">
-                      <span>{getDisplayValue(node.memory, 'memory')}</span>
-                      {node.metrics && (
-                        <span className="gap-2 text-xs text-gray-600 dark:text-green-400">
-                          <span className='text-gray-800 dark:text-gray-500'>
-                            {convertUnit(node.metrics.memoryConsumed.toString() + 'Ki', memoryUnit)}{" "}
-                          </span>
-                          ({node.metrics.memoryUsagePercentage.toFixed(1)}%)
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {getDisplayValue(node.disk, 'disk')}
-                  </TableCell>
-                  <TableCell className="text-center">{node.taints.length}</TableCell>
-                  <TableCell>
-                    {node.roles.includes("master") ?
-                      <span className="px-2 py-1 rounded-[0.3rem]  text-xs font-medium bg-red-500/30 dark:bg-red-800/20 text-red-800 dark:text-red-400">
-                        Control Plane
-                      </span> :
-                      <span
-                        className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-yellow-400/50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-500">
-                        worker
-                      </span>
-                    }
-                  </TableCell>
-                  <TableCell>{node.version}</TableCell>
-                  <TableCell>{node.age}</TableCell>
-                  <TableCell>
-                    {node.conditions.map((condition: any) =>
-                      condition.type === 'Ready' && condition.status === 'True' && (
-                        <span key={condition.type} className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-emerald-300 dark:bg-emerald-900/30 text-green-800 dark:text-green-300">
-                          {condition.type}
-                        </span>
-                      )
-                    )}
-                  </TableCell>
+                    </TableCell>
+                  )}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -806,6 +887,17 @@ const Nodes: React.FC = () => {
           )}
         </div>
       </Card>
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Nodes Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

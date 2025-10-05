@@ -19,6 +19,7 @@ import RECONGIF from '@/assets/recon.gif'
 import { Button } from "./ui/button";
 import { WorkspaceSwitcher } from "./custom/workspaceswitcher/workspaceswitcher.component";
 import { HeaderComponent } from "./custom/header/header.component";
+import { Separator } from "./ui/separator";
 
 interface NavigationHistoryState {
   history: string[];
@@ -129,7 +130,7 @@ export function Menu() {
     >
       <div className="py-[3px] px-4 flex items-center w-full justify-between draggable border-b dark:border-gray-300/10">
 
-        <div className={`flex items-center gap-1.5 undraggable ${currentPlatform === 'macos' ? 'ml-[3.5rem]' : 'ml-2'}`}>
+        <div className={`flex items-center gap-2 undraggable ${currentPlatform === 'macos' ? 'ml-[3.5rem]' : 'ml-2'}`}>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -145,9 +146,7 @@ export function Menu() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <span className="dark:text-gray-400/60">
-            /
-          </span>
+          <Separator orientation="vertical" className="h-5 rounded dark:bg-gray-400/30" />
           <WorkspaceSwitcher />
 
         </div>

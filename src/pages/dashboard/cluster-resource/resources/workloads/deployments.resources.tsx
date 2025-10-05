@@ -26,6 +26,8 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
+import { Filter } from 'lucide-react';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -74,6 +76,19 @@ const Deployments: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { addResourceContext } = useDrawer();
+
+  // Column visibility state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'ready', label: 'Ready', visible: true, canToggle: true },
+    { key: 'upToDate', label: 'Up-to-date', visible: true, canToggle: true },
+    { key: 'available', label: 'Available', visible: true, canToggle: true },
+    { key: 'replicas', label: 'Replicas', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   // Add click handler for deployment selection with cmd/ctrl key
   const handleDeploymentClick = (e: React.MouseEvent, deployment: V1Deployment) => {
@@ -215,6 +230,26 @@ const Deployments: React.FC = () => {
         }
       }),
     });
+  };
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column?.visible ?? true;
   };
 
   // Handle scale action
@@ -780,9 +815,20 @@ const Deployments: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -821,42 +867,54 @@ const Deployments: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('ready')}
-                  >
-                    Ready {renderSortIndicator('ready')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('upToDate')}
-                  >
-                    Up-to-date {renderSortIndicator('upToDate')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('available')}
-                  >
-                    Available {renderSortIndicator('available')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('replicas')}
-                  >
-                    Replicas {renderSortIndicator('replicas')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('ready') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('ready')}
+                    >
+                      Ready {renderSortIndicator('ready')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('upToDate') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('upToDate')}
+                    >
+                      Up-to-date {renderSortIndicator('upToDate')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('available') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('available')}
+                    >
+                      Available {renderSortIndicator('available')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('replicas') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('replicas')}
+                    >
+                      Replicas {renderSortIndicator('replicas')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
 
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -875,33 +933,45 @@ const Deployments: React.FC = () => {
                         {deployment.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                        {deployment.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {`${deployment.status?.readyReplicas || 0}/${deployment.status?.replicas || 0}`}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {deployment.status?.updatedReplicas || 0}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {deployment.status?.availableReplicas || 0}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex flex-col items-center">
-                        <span>{deployment.spec?.replicas || 0}</span>
-                        {deployment.status?.replicas !== deployment.spec?.replicas && (
-                          <span className="text-xs text-amber-600 dark:text-amber-400">
-                            Scaling
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(deployment.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {deployment.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('ready') && (
+                      <TableCell className="text-center">
+                        {`${deployment.status?.readyReplicas || 0}/${deployment.status?.replicas || 0}`}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('upToDate') && (
+                      <TableCell className="text-center">
+                        {deployment.status?.updatedReplicas || 0}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('available') && (
+                      <TableCell className="text-center">
+                        {deployment.status?.availableReplicas || 0}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('replicas') && (
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center">
+                          <span>{deployment.spec?.replicas || 0}</span>
+                          {deployment.status?.replicas !== deployment.spec?.replicas && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400">
+                              Scaling
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(deployment.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
 
                     <TableCell>
                       <DropdownMenu>
@@ -943,6 +1013,17 @@ const Deployments: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Deployments Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

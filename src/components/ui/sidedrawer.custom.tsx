@@ -113,7 +113,7 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, children, offs
           <>
             {/* Backdrop with animation */}
             <motion.div
-              className="fixed inset-0 bg-black/20 dark:bg-gray-900/40 z-40"
+              className="fixed inset-0 bg-black/20 dark:bg-gray-900/30 z-40"
               initial="hidden"
               animate="visible"
               exit="exit"

@@ -186,7 +186,7 @@ export const HeaderComponent: React.FC = () => {
             const [, , resourceName] = match;
             return `PVCs - ${resourceName}`;
           }
-          return 'Persistent Volume Claim';
+          return 'Persistent Volume Claims';
         }
         if (pathname.includes('/persistentvolumes')) {
           const match = pathname.match(/\/persistentvolumes\/([^\/]+)/);
