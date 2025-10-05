@@ -6,6 +6,7 @@ import (
 	"github.com/agentkube/operator/pkg/config"
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/portforward"
+	"github.com/agentkube/operator/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,6 +23,16 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 	helmHandler := handlers.NewHelmHandler(kubeConfigStore, cacheSvc)
 	// Initialize Vulnerability handler
 	vulHandler := handlers.NewVulnerabilityHandler(kubeConfigStore)
+	
+	// Initialize Queue for async operations
+	queueConfig := utils.QueueConfig{
+		Workers:    3,
+		MaxRetries: 3,
+	}
+	operationQueue := utils.NewQueue(queueConfig)
+	
+	// Initialize Metrics Server handler
+	metricsServerHandler := handlers.NewMetricsServerHandler(kubeConfigStore, operationQueue)
 
 	// Create default gin router with Logger and Recovery middleware
 	router := gin.Default()
@@ -148,6 +159,14 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 				// Get pod metrics
 				metricsGroup.GET("/pods/:namespace/:podName", handlers.GetPodMetricsHandler)
 
+				// Metrics Server endpoints
+				metricsServerGroup := metricsGroup.Group("/server")
+				{
+					metricsServerGroup.GET("/status", metricsServerHandler.GetMetricsServerStatus)
+					metricsServerGroup.POST("/install", metricsServerHandler.InstallMetricsServer)
+					metricsServerGroup.POST("/uninstall", metricsServerHandler.UninstallMetricsServer)
+				}
+
 				// Prometheus endpoints
 				prometheusGroup := metricsGroup.Group("/prometheus")
 				{
@@ -226,6 +245,9 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			// Cluster-specific vulnerability scanning routes
 			v1.GET("/cluster/:clusterName/images", vulHandler.GetClusterImages)
 			v1.POST("/cluster/:clusterName/vulnerability/scan", vulHandler.TriggerClusterImageScan)
+			
+			// Operation status endpoints
+			v1.GET("/operations/:operationId", metricsServerHandler.GetOperationStatus)
 		}
 
 	}
