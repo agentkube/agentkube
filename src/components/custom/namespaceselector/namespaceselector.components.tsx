@@ -83,6 +83,31 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
 
   return (
     <div className={cn("space-y-1", className)}>
+          {/* Selected namespaces badges */}
+          {safeSelectedNamespaces.length > 0 && safeSelectedNamespaces.length < safeAvailableNamespaces.length && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {safeSelectedNamespaces.slice(0, 5).map(namespace => (
+            <Badge 
+              key={namespace} 
+              variant="secondary"
+              className="text-xs text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800/60"
+            >
+              {namespace}
+              <button 
+                className="ml-1 text-gray-500 hover:text-gray-700"
+                onClick={() => handleSelect(namespace)}
+              >
+                ×
+              </button>
+            </Badge>
+          ))}
+          {safeSelectedNamespaces.length > 5 && (
+            <Badge variant="outline" className="text-xs bg-gray-100 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800/60">
+              +{safeSelectedNamespaces.length - 5} more
+            </Badge>
+          )}
+        </div>
+      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -149,31 +174,7 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
         </PopoverContent>
       </Popover>
       
-      {/* Selected namespaces badges */}
-      {safeSelectedNamespaces.length > 0 && safeSelectedNamespaces.length < safeAvailableNamespaces.length && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {safeSelectedNamespaces.slice(0, 5).map(namespace => (
-            <Badge 
-              key={namespace} 
-              variant="secondary"
-              className="text-xs text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800/60"
-            >
-              {namespace}
-              <button 
-                className="ml-1 text-gray-500 hover:text-gray-700"
-                onClick={() => handleSelect(namespace)}
-              >
-                ×
-              </button>
-            </Badge>
-          ))}
-          {safeSelectedNamespaces.length > 5 && (
-            <Badge variant="outline" className="text-xs bg-gray-100 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800/60">
-              +{safeSelectedNamespaces.length - 5} more
-            </Badge>
-          )}
-        </div>
-      )}
+  
     </div>
   );
 };
