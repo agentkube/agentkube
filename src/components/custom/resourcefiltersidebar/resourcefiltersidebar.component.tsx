@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SideDrawer, DrawerHeader, DrawerContent } from '@/components/ui/sidedrawer.custom';
-import { Settings, RotateCcw, Table } from 'lucide-react';
+import { Settings, RotateCcw, Table, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -9,6 +9,8 @@ interface ColumnConfig {
   label: string;
   visible: boolean;
   canToggle?: boolean; // Some columns might be required and non-toggleable
+  children?: ColumnConfig[]; // For hierarchical columns
+  isExpandable?: boolean; // Whether this group can be expanded/collapsed
 }
 
 interface ResourceFilterSidebarProps {
@@ -30,6 +32,8 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
   onResetToDefault,
   className = "w-1/3"
 }) => {
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['resources']));
+
   const handleColumnChange = (columnKey: string, checked: boolean) => {
     onColumnToggle(columnKey, checked);
   };
@@ -40,8 +44,143 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
     }
   };
 
-  const visibleColumnsCount = columns?.filter(col => col.visible).length || 0;
-  const totalColumnsCount = columns?.length || 0;
+  const toggleGroupExpansion = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupKey)) {
+        newSet.delete(groupKey);
+      } else {
+        newSet.add(groupKey);
+      }
+      return newSet;
+    });
+  };
+
+  const countColumns = (cols: ColumnConfig[]): { visible: number; total: number } => {
+    let visible = 0;
+    let total = 0;
+    
+    cols.forEach(col => {
+      if (col.children) {
+        const childCounts = countColumns(col.children);
+        visible += childCounts.visible;
+        total += childCounts.total;
+      } else {
+        total += 1;
+        if (col.visible) visible += 1;
+      }
+    });
+    
+    return { visible, total };
+  };
+
+  const { visible: visibleColumnsCount, total: totalColumnsCount } = countColumns(columns || []);
+
+  const renderColumn = (column: ColumnConfig, depth: number = 0) => {
+    const isExpanded = expandedGroups.has(column.key);
+    const indentClass = depth > 0 ? `ml-${depth * 4}` : '';
+    
+    if (column.children) {
+      // Check if all children are checked
+      const allChildrenChecked = column.children.every(child => child.visible);
+      const someChildrenChecked = column.children.some(child => child.visible);
+      const isIndeterminate = someChildrenChecked && !allChildrenChecked;
+      
+      // Render group/parent column
+      return (
+        <div key={column.key} className={`space-y-2`}>
+          <div
+            className={`flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
+          >
+            <Checkbox
+              id={column.key}
+              checked={allChildrenChecked}
+              onCheckedChange={(checked) => {
+                // Toggle all children when parent is clicked
+                column.children?.forEach(child => {
+                  handleColumnChange(child.key, checked === true);
+                });
+              }}
+              disabled={column.canToggle === false}
+              className={`flex-shrink-0 ${isIndeterminate ? 'data-[state=checked]:bg-blue-500' : ''}`}
+              data-indeterminate={isIndeterminate}
+            />
+            
+            <div className="flex items-center justify-between flex-grow">
+              <label
+                htmlFor={column.key}
+                className={`text-sm font-medium cursor-pointer ${
+                  column.canToggle === false 
+                    ? 'text-gray-400 dark:text-gray-600' 
+                    : 'text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {column.label}
+              </label>
+              
+              <div 
+                className="cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                onClick={() => toggleGroupExpansion(column.key)}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                )}
+              </div>
+            </div>
+
+            {column.canToggle === false && (
+              <span className="text-xs text-gray-400 dark:text-gray-600">
+                Required
+              </span>
+            )}
+          </div>
+          
+          {isExpanded && (
+            <div className="space-y-1 ml-4 border-l">
+              {column.children.map(child => renderColumn(child, depth + 1))}
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // Render leaf/child column
+      return (
+        <div
+          key={column.key}
+          className={`flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
+        >
+          <Checkbox
+            id={column.key}
+            checked={column.visible}
+            onCheckedChange={(checked) => 
+              handleColumnChange(column.key, checked === true)
+            }
+            disabled={column.canToggle === false}
+            className="flex-shrink-0"
+          />
+          
+          <label
+            htmlFor={column.key}
+            className={`text-sm cursor-pointer flex-grow ${
+              column.canToggle === false 
+                ? 'text-gray-400 dark:text-gray-600' 
+                : 'text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            {column.label}
+          </label>
+
+          {column.canToggle === false && (
+            <span className="text-xs text-gray-400 dark:text-gray-600">
+              Required
+            </span>
+          )}
+        </div>
+      );
+    }
+  };
 
   return (
     <SideDrawer
@@ -89,39 +228,8 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
             </h4>
             
             <div className="space-y-2">
-              {columns?.map((column) => (
-                <div
-                  key={column.key}
-                  className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                >
-                  <Checkbox
-                    id={column.key}
-                    checked={column.visible}
-                    onCheckedChange={(checked) => 
-                      handleColumnChange(column.key, checked === true)
-                    }
-                    disabled={column.canToggle === false}
-                    className="flex-shrink-0"
-                  />
-                  
-                  <label
-                    htmlFor={column.key}
-                    className={`text-sm cursor-pointer flex-grow ${
-                      column.canToggle === false 
-                        ? 'text-gray-400 dark:text-gray-600' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {column.label}
-                  </label>
-
-                  {column.canToggle === false && (
-                    <span className="text-xs text-gray-400 dark:text-gray-600">
-                      Required
-                    </span>
-                  )}
-                </div>
-              )) || <div className="text-sm text-gray-500 dark:text-gray-400">No columns available</div>}
+              {columns?.map((column) => renderColumn(column)) || 
+                <div className="text-sm text-gray-500 dark:text-gray-400">No columns available</div>}
             </div>
           </div>
 

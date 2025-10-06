@@ -15,6 +15,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
 import { DeleteContextDialog, RenameContextDialog, ProvisionDrawer } from '@/components/custom';
 import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.component';
+import ClusterHealth from '@/components/custom/clusterhealth/clusterhealth.component';
 import { useTheme } from 'next-themes';
 import { toast } from '@/hooks/use-toast';
 import { deleteContext } from '@/api/cluster';
@@ -92,7 +93,8 @@ const ClusterCard = memo<{
   onUnpin: (clusterId: string) => void;
   viewMode: 'grid' | 'list';
   theme?: string;
-}>(({ cluster, isPinned = false, isSelected, onContextMenu, onClusterClick, onConnect, onRename, onDelete, onPin, onUnpin, viewMode, theme }) => {
+  onHealthStatusChange: (clusterId: string, status: 'ok' | 'bad_gateway' | 'loading') => void;
+}>(({ cluster, isPinned = false, isSelected, onContextMenu, onClusterClick, onConnect, onRename, onDelete, onPin, onUnpin, viewMode, theme, onHealthStatusChange }) => {
   // Handle double-click to immediately connect
   const handleDoubleClick = useCallback(() => {
     onConnect(cluster.id);
@@ -139,7 +141,7 @@ const ClusterCard = memo<{
 
   return (
     <div
-      className={`rounded-lg p-4 flex items-center gap-4 cursor-pointer transition-colors
+      className={`relative rounded-lg p-4 flex items-center gap-4 cursor-pointer transition-colors
         ${isSelected
           ? 'bg-gray-200 dark:bg-gray-800/20 border-r-2 border-blue-500'
           : 'hover:bg-gray-200 dark:hover:bg-gray-800/50 border-2 border-transparent'}`}
@@ -147,6 +149,7 @@ const ClusterCard = memo<{
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
+      <ClusterHealth clusterId={cluster.id} onHealthStatusChange={onHealthStatusChange} />
       <div className="w-10 h-10 rounded-full flex items-center justify-center text-white">
         <ClusterIcon type={cluster.type} theme={theme} />
       </div>
@@ -296,6 +299,9 @@ const HomePage: React.FC = () => {
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(
     currentContext ? currentContext.name : null
   );
+
+  // Track cluster health status
+  const [clusterHealthStatus, setClusterHealthStatus] = useState<Record<string, 'ok' | 'bad_gateway' | 'loading'>>({});
 
   // Initial states for clusters with localStorage fallback
   const [pinnedClusters, setPinnedClusters] = useState<ClusterItem[]>(() => {
@@ -487,8 +493,26 @@ const HomePage: React.FC = () => {
     return () => clearInterval(interval);
   }, [refreshInterval, refreshContexts]);
 
+  // Handle health status changes
+  const handleHealthStatusChange = useCallback((clusterId: string, status: 'ok' | 'bad_gateway' | 'loading') => {
+    setClusterHealthStatus(prev => ({
+      ...prev,
+      [clusterId]: status
+    }));
+  }, []);
+
   // Memoized callback functions
   const handleConnect = useCallback((clusterId: string) => {
+    // Check if cluster has bad gateway status
+    if (clusterHealthStatus[clusterId] === 'bad_gateway') {
+      toast({
+        title: "Connection Failed",
+        description: "Cannot connect to cluster with Bad Gateway status",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Find the KubeContext that corresponds to this clusterId (which is the context name)
     const contextToConnect = contexts.find(ctx => ctx.name === clusterId);
 
@@ -499,7 +523,7 @@ const HomePage: React.FC = () => {
       // Navigate to dashboard
       navigate(`/dashboard?cluster=${clusterId}`);
     }
-  }, [contexts, setCurrentContext, navigate]);
+  }, [contexts, setCurrentContext, navigate, clusterHealthStatus, toast]);
 
   const handleReload = useCallback(async () => {
     setIsReloading(true);
@@ -857,6 +881,7 @@ const HomePage: React.FC = () => {
                     onUnpin={handleDirectUnpin}
                     viewMode={viewMode}
                     theme={theme}
+                    onHealthStatusChange={handleHealthStatusChange}
                   />
                 ))
               ) : (
@@ -939,6 +964,7 @@ const HomePage: React.FC = () => {
                   onUnpin={handleDirectUnpin}
                   viewMode={viewMode}
                   theme={theme}
+                  onHealthStatusChange={handleHealthStatusChange}
                 />
               ))
             ) : (
