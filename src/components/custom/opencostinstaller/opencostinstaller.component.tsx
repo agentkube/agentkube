@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, ExternalLink, Settings, Download, Copy, Check } from "lucide-react";
+import { DollarSign, ExternalLink, Settings, Download, Copy, Check, Play } from "lucide-react";
 import Editor from '@monaco-editor/react';
 import { AWS_PROVIDER, GCP_PROVIDER, AZURE_PROVIDER } from '@/assets/providers';
 import KUBERNETES from '@/assets/kubernetes.svg';
 import ProxyConfigDialog from '../proxyconfigdialog/proxyconfigdialog.component';
+import DemoVideoDialog from '../demovideodialog/demovideodialog.component';
 import { openExternalUrl } from '@/api/external';
 import { useCluster } from '@/contexts/clusterContext';
 import { getClusterConfig, updateClusterConfig } from '@/api/settings';
@@ -29,6 +31,8 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
   const [copied, setCopied] = useState(false);
   const [yamlContent, setYamlContent] = useState('');
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const [isWatchDemoExpanded, setIsWatchDemoExpanded] = useState(false);
   const [openCostConfig, setOpenCostConfig] = useState<{
     namespace: string;
     service: string;
@@ -117,6 +121,22 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
     loadOpenCostConfig();
   }, [currentContext, toast]);
 
+  // Watch Demo button animation effect
+  useEffect(() => {
+    const expandTimer = setTimeout(() => {
+      setIsWatchDemoExpanded(true);
+    }, 500);
+    
+    const collapseTimer = setTimeout(() => {
+      setIsWatchDemoExpanded(false);
+    }, 3000); // 500ms + 2500ms = 3000ms total
+    
+    return () => {
+      clearTimeout(expandTimer);
+      clearTimeout(collapseTimer);
+    };
+  }, []);
+
   const handleInstallClick = () => {
     setIsInstallDialogOpen(true);
     updateYamlContent();
@@ -203,14 +223,52 @@ customPricing:
       <div className="p-6 mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Cost Overview</h1>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsConfigDialogOpen(true)}
-            className="flex items-center gap-1"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          
+          <div className="flex gap-2 items-center">
+            {/* Watch Demo Button */}
+            <Button
+              onClick={() => setIsDemoOpen(true)}
+              className="flex items-center justify-between gap-2 relative overflow-hidden"
+            >
+              <motion.div
+                initial={{ width: 40 }}
+                animate={{ 
+                  width: isWatchDemoExpanded ? 144 : 14 
+                }}
+                transition={{ 
+                  duration: 0.4,
+                  ease: "easeInOut"
+                }}
+                className="flex items-center justify-between gap-2"
+              >
+                <Play className="w-4 h-4 flex-shrink-0" />
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ 
+                    opacity: isWatchDemoExpanded ? 1 : 0,
+                    width: isWatchDemoExpanded ? 'auto' : 0
+                  }}
+                  transition={{ 
+                    duration: 0.3,
+                    delay: isWatchDemoExpanded ? 0.2 : 0,
+                    ease: "easeOut"
+                  }}
+                  className="whitespace-nowrap text-sm overflow-hidden"
+                >
+                  Watch Demo
+                </motion.span>
+              </motion.div>
+            </Button>
+
+            {/* Settings Button */}
+            <Button
+              variant="outline"
+              onClick={() => setIsConfigDialogOpen(true)}
+              className="flex items-center gap-1"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <ProxyConfigDialog
@@ -393,6 +451,14 @@ customPricing:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Demo Dialog */}
+      <DemoVideoDialog
+        isOpen={isDemoOpen}
+        onClose={() => setIsDemoOpen(false)}
+        videoId="B63Wx4STwXU"
+        title="OpenCost Demo - Kubernetes Cost Management Made Simple"
+      />
     </>
   );
 };

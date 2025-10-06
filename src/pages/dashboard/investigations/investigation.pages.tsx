@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, TrendingUp, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
+import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, TrendingUp, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { listTasks, getTaskDetails, deleteTask } from '@/api/task';
 import { TaskDetails } from '@/types/task';
+import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -226,6 +228,10 @@ const Investigations: React.FC = () => {
 
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // For demo dialog and animation
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const [isWatchDemoExpanded, setIsWatchDemoExpanded] = useState(false);
 
   // Add sorting state
   const [sort, setSort] = useState<SortState>({
@@ -281,6 +287,22 @@ const Investigations: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedTab]);
+
+  // Watch Demo button animation effect
+  useEffect(() => {
+    const expandTimer = setTimeout(() => {
+      setIsWatchDemoExpanded(true);
+    }, 500);
+    
+    const collapseTimer = setTimeout(() => {
+      setIsWatchDemoExpanded(false);
+    }, 3000); // 500ms + 2500ms = 3000ms total
+    
+    return () => {
+      clearTimeout(expandTimer);
+      clearTimeout(collapseTimer);
+    };
+  }, []);
 
   const getFilteredTasks = useMemo(() => {
     let filtered = tasks;
@@ -534,18 +556,55 @@ const Investigations: React.FC = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Tasks</h1>
 
-          {/* Refresh Button */}
-          <Button
-            variant="outline"
-            onClick={refreshAllData}
-            disabled={isRefreshing}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 text-gray-600 dark:text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-              Refresh
-            </span>
-          </Button>
+          <div className="flex gap-2 items-center">
+            {/* Watch Demo Button */}
+            <Button
+              onClick={() => setIsDemoOpen(true)}
+              className="flex items-center justify-between gap-2 relative overflow-hidden"
+            >
+              <motion.div
+                initial={{ width: 40 }}
+                animate={{ 
+                  width: isWatchDemoExpanded ? 144 : 14 
+                }}
+                transition={{ 
+                  duration: 0.4,
+                  ease: "easeInOut"
+                }}
+                className="flex items-center justify-between gap-2"
+              >
+                <Play className="w-4 h-4 flex-shrink-0" />
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ 
+                    opacity: isWatchDemoExpanded ? 1 : 0,
+                    width: isWatchDemoExpanded ? 'auto' : 0
+                  }}
+                  transition={{ 
+                    duration: 0.3,
+                    delay: isWatchDemoExpanded ? 0.2 : 0,
+                    ease: "easeOut"
+                  }}
+                  className="whitespace-nowrap text-sm overflow-hidden"
+                >
+                  Watch Demo
+                </motion.span>
+              </motion.div>
+            </Button>
+
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              onClick={refreshAllData}
+              disabled={isRefreshing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 text-gray-600 dark:text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Refresh
+              </span>
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -818,6 +877,14 @@ const Investigations: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Demo Dialog */}
+      <DemoVideoDialog
+        isOpen={isDemoOpen}
+        onClose={() => setIsDemoOpen(false)}
+        videoId="B63Wx4STwXU"
+        title="Tasks and Investigation Demo - Kubernetes Monitoring Made Simple"
+      />
     </div>
   );
 };

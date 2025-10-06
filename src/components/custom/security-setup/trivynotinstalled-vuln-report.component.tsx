@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from "framer-motion";
 import { AlertCircle, Info, ArrowUpDown, ArrowUp, ArrowDown, ArrowUpRight, Download, Play } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,6 +51,9 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
 
   // For the demo dialog
   const [isDemoOpen, setIsDemoOpen] = useState(false);
+  
+  // For button animation
+  const [isButtonExpanded, setIsButtonExpanded] = useState(false);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,6 +62,22 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
   // Sorting states
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Button animation effect
+  useEffect(() => {
+    const expandTimer = setTimeout(() => {
+      setIsButtonExpanded(true);
+    }, 500);
+    
+    const collapseTimer = setTimeout(() => {
+      setIsButtonExpanded(false);
+    }, 3000); // 500ms + 2500ms = 3000ms total
+    
+    return () => {
+      clearTimeout(expandTimer);
+      clearTimeout(collapseTimer);
+    };
+  }, []);
 
   const handleInstallTrivy = async () => {
     if (!currentContext?.name) {
@@ -244,10 +263,36 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
             <div className="flex gap-2 items-start">
               <Button
                 onClick={() => setIsDemoOpen(true)}
-                className="flex items-center justify-between min-w-36 gap-2"
+                className="flex items-center justify-between gap-2 relative overflow-hidden"
               >
-                <Play />
-                Watch Demo
+                <motion.div
+                  initial={{ width: 40 }}
+                  animate={{ 
+                    width: isButtonExpanded ? 144 : 14 
+                  }}
+                  transition={{ 
+                    duration: 0.4,
+                    ease: "easeInOut"
+                  }}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <Play className="w-4 h-4 flex-shrink-0" />
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ 
+                      opacity: isButtonExpanded ? 1 : 0,
+                      width: isButtonExpanded ? 'auto' : 0
+                    }}
+                    transition={{ 
+                      duration: 0.3,
+                      delay: isButtonExpanded ? 0.2 : 0,
+                      ease: "easeOut"
+                    }}
+                    className="whitespace-nowrap text-sm overflow-hidden"
+                  >
+                    Watch Demo
+                  </motion.span>
+                </motion.div>
               </Button>
 
               <Button>

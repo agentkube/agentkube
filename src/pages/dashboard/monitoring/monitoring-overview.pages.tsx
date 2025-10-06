@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { motion } from "framer-motion";
 import { SiGrafana, SiDatadog, SiNewrelic, SiPrometheus } from '@icons-pack/react-simple-icons';
 import { SigNoz } from '@/assets/icons';
-import { Check, ArrowUpRight, TriangleAlert, TrendingUp, Server, Network, Settings, Cpu, RefreshCw, ChevronDown } from 'lucide-react';
+import { Check, ArrowUpRight, TriangleAlert, TrendingUp, Server, Network, Settings, Cpu, RefreshCw, ChevronDown, Play } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ import { getClusterConfig, updateClusterConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
 import MemoryDrilldown from './drilldowns/memory.drilldown';
 import CpuDrilldown from './drilldowns/cpu.drilldown';
+import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
 import {
   ChartTooltip,
 } from "@/components/ui/chart";
@@ -77,6 +79,10 @@ const MonitoringOverview = () => {
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isMemoryDrilldownOpen, setIsMemoryDrilldownOpen] = useState<boolean>(false);
   const [isCpuDrilldownOpen, setIsCpuDrilldownOpen] = useState<boolean>(false);
+  
+  // For demo dialog and animation
+  const [isDemoOpen, setIsDemoOpen] = useState<boolean>(false);
+  const [isWatchDemoExpanded, setIsWatchDemoExpanded] = useState<boolean>(false);
 
   const loadMonitoringConfig = useCallback(async () => {
     if (!currentContext) return;
@@ -671,6 +677,22 @@ const MonitoringOverview = () => {
     };
   }, []);
 
+  // Watch Demo button animation effect
+  useEffect(() => {
+    const expandTimer = setTimeout(() => {
+      setIsWatchDemoExpanded(true);
+    }, 500);
+    
+    const collapseTimer = setTimeout(() => {
+      setIsWatchDemoExpanded(false);
+    }, 3000); // 500ms + 2500ms = 3000ms total
+    
+    return () => {
+      clearTimeout(expandTimer);
+      clearTimeout(collapseTimer);
+    };
+  }, []);
+
   const handleManualRefresh = () => {
     refreshAllMetrics();
   };
@@ -689,6 +711,41 @@ const MonitoringOverview = () => {
           <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Monitoring</h1>
 
           <div className="flex items-center gap-2">
+                {/* Watch Demo Button */}
+                <Button
+              onClick={() => setIsDemoOpen(true)}
+              className="flex items-center justify-between gap-2 relative overflow-hidden"
+            >
+              <motion.div
+                initial={{ width: 40 }}
+                animate={{ 
+                  width: isWatchDemoExpanded ? 144 : 14 
+                }}
+                transition={{ 
+                  duration: 0.4,
+                  ease: "easeInOut"
+                }}
+                className="flex items-center justify-between gap-2"
+              >
+                <Play className="w-4 h-4 flex-shrink-0" />
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ 
+                    opacity: isWatchDemoExpanded ? 1 : 0,
+                    width: isWatchDemoExpanded ? 'auto' : 0
+                  }}
+                  transition={{ 
+                    duration: 0.3,
+                    delay: isWatchDemoExpanded ? 0.2 : 0,
+                    ease: "easeOut"
+                  }}
+                  className="whitespace-nowrap text-sm overflow-hidden"
+                >
+                  Watch Demo
+                </motion.span>
+              </motion.div>
+            </Button>
+
             {/* Data Source Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -778,6 +835,8 @@ const MonitoringOverview = () => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+        
 
             {/* Settings Button */}
             <Button
@@ -1141,6 +1200,14 @@ const MonitoringOverview = () => {
           isOpen={isCpuDrilldownOpen}
           onClose={() => setIsCpuDrilldownOpen(false)}
           monitoringConfig={monitoringConfig}
+        />
+
+        {/* Demo Dialog */}
+        <DemoVideoDialog
+          isOpen={isDemoOpen}
+          onClose={() => setIsDemoOpen(false)}
+          videoId="B63Wx4STwXU"
+          title="Monitoring Demo - Kubernetes Monitoring Made Simple"
         />
       </div>
     </div>
