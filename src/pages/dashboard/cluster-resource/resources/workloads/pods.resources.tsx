@@ -138,12 +138,20 @@ const Pods: React.FC = () => {
   // Column configuration state
   const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
-    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'status', label: 'Status', visible: true, canToggle: false }, // Required column
     { key: 'ready', label: 'Ready', visible: true, canToggle: true },
     { key: 'restarts', label: 'Restarts', visible: true, canToggle: true },
-    { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
-    { key: 'memory', label: 'Memory', visible: true, canToggle: true },
+    { 
+      key: 'resources', 
+      label: 'Resources', 
+      visible: true, 
+      canToggle: true,
+      children: [
+        { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
+        { key: 'memory', label: 'Memory', visible: true, canToggle: true }
+      ]
+    },
     { key: 'node', label: 'Node', visible: true, canToggle: true },
     { key: 'ip', label: 'IP', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
@@ -154,31 +162,71 @@ const Pods: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+      prev.map(col => {
+        // Check if it's a top-level column
+        if (col.key === columnKey) {
+          return { ...col, visible };
+        }
+        
+        // Check if it's a child column
+        if (col.children) {
+          const updatedChildren = col.children.map(child => 
+            child.key === columnKey ? { ...child, visible } : child
+          );
+          
+          // Check if any child was updated
+          if (updatedChildren.some((child, index) => child !== col.children![index])) {
+            return { ...col, children: updatedChildren };
+          }
+        }
+        
+        return col;
+      })
     );
   };
 
   const handleResetToDefault = () => {
     setColumnConfig([
-      { key: 'name', label: 'Name', visible: true },
-      { key: 'namespace', label: 'Namespace', visible: true },
-      { key: 'status', label: 'Status', visible: true },
-      { key: 'ready', label: 'Ready', visible: true },
-      { key: 'restarts', label: 'Restarts', visible: true },
-      { key: 'cpu', label: 'CPU', visible: true },
-      { key: 'memory', label: 'Memory', visible: true },
-      { key: 'node', label: 'Node', visible: true },
-      { key: 'ip', label: 'IP', visible: true },
-      { key: 'age', label: 'Age', visible: true },
-      { key: 'actions', label: 'Actions', visible: true }
+      { key: 'name', label: 'Name', visible: true, canToggle: false },
+      { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+      { key: 'status', label: 'Status', visible: true, canToggle: false },
+      { key: 'ready', label: 'Ready', visible: true, canToggle: true },
+      { key: 'restarts', label: 'Restarts', visible: true, canToggle: true },
+      { 
+        key: 'resources', 
+        label: 'Resources', 
+        visible: true, 
+        canToggle: true,
+        children: [
+          { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
+          { key: 'memory', label: 'Memory', visible: true, canToggle: true }
+        ]
+      },
+      { key: 'node', label: 'Node', visible: true, canToggle: true },
+      { key: 'ip', label: 'IP', visible: true, canToggle: true },
+      { key: 'age', label: 'Age', visible: true, canToggle: true },
+      { key: 'actions', label: 'Actions', visible: true, canToggle: false }
     ]);
   };
 
   const isColumnVisible = (columnKey: string) => {
-    const column = columnConfig.find(col => col.key === columnKey);
-    return column ? column.visible : true;
+    // Check if it's a top-level column
+    const topLevelColumn = columnConfig.find(col => col.key === columnKey);
+    if (topLevelColumn) {
+      return topLevelColumn.visible;
+    }
+    
+    // Check if it's a child column
+    for (const col of columnConfig) {
+      if (col.children) {
+        const childColumn = col.children.find(child => child.key === columnKey);
+        if (childColumn) {
+          return childColumn.visible;
+        }
+      }
+    }
+    
+    return true;
   };
 
   useEffect(() => {

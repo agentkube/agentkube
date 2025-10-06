@@ -5,12 +5,13 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
+import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -120,6 +121,19 @@ const VerticalPodAutoscalers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Column filtering state
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false },
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'target', label: 'Target', visible: true, canToggle: true },
+    { key: 'mode', label: 'Mode', visible: true, canToggle: true },
+    { key: 'conditions', label: 'Conditions', visible: true, canToggle: true },
+    { key: 'recommendations', label: 'Recommendations', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+  ]);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
 
@@ -440,6 +454,28 @@ const VerticalPodAutoscalers: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev =>
+      prev.map(col =>
+        col.key === columnKey && col.canToggle !== false
+          ? { ...col, visible }
+          : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev =>
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string): boolean => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
 
   // Fetch VPAs for all selected namespaces
   useEffect(() => {
@@ -854,9 +890,20 @@ const VerticalPodAutoscalers: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            <div className="text-sm font-medium mb-2">Namespaces</div>
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -882,46 +929,62 @@ const VerticalPodAutoscalers: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('target')}
-                  >
-                    Target {renderSortIndicator('target')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('mode')}
-                  >
-                    Mode {renderSortIndicator('mode')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('conditions')}
-                  >
-                    Conditions {renderSortIndicator('conditions')}
-                  </TableHead>
-                  <TableHead>
-                    Recommendations
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('name') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('target') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('target')}
+                    >
+                      Target {renderSortIndicator('target')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('mode') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('mode')}
+                    >
+                      Mode {renderSortIndicator('mode')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('conditions') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('conditions')}
+                    >
+                      Conditions {renderSortIndicator('conditions')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('recommendations') && (
+                    <TableHead>
+                      Recommendations
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -933,32 +996,47 @@ const VerticalPodAutoscalers: React.FC = () => {
                     onClick={(e) => handleVpaClick(e, vpa)}
                     onContextMenu={(e) => handleContextMenu(e, vpa)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleVpaDetails(vpa)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {vpa.metadata?.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                        {vpa.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {formatTargetRef(vpa)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatUpdateMode(vpa)}
-                    </TableCell>
-                    <TableCell>
-                      {formatConditions(vpa)}
-                    </TableCell>
-                    <TableCell>
-                      {formatRecommendations(vpa)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(vpa.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
+                    {isColumnVisible('name') && (
+                      <TableCell className="font-medium" onClick={() => handleVpaDetails(vpa)}>
+                        <div className="hover:text-blue-500 hover:underline">
+                          {vpa.metadata?.name}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {vpa.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('target') && (
+                      <TableCell>
+                        {formatTargetRef(vpa)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('mode') && (
+                      <TableCell className="text-center">
+                        {formatUpdateMode(vpa)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('conditions') && (
+                      <TableCell>
+                        {formatConditions(vpa)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('recommendations') && (
+                      <TableCell>
+                        {formatRecommendations(vpa)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(vpa.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -983,7 +1061,8 @@ const VerticalPodAutoscalers: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -991,6 +1070,16 @@ const VerticalPodAutoscalers: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Vertical Pod Autoscalers Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   );
 };

@@ -5,12 +5,13 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { ErrorComponent, NamespaceSelector } from '@/components/custom';
+import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -76,6 +77,19 @@ const ResourceQuotas: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isReconMode } = useReconMode();
+
+  // Column filtering state
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false },
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'scopes', label: 'Scopes', visible: true, canToggle: true },
+    { key: 'resources', label: 'Resources', visible: true, canToggle: true },
+    { key: 'usage', label: 'Usage Details', visible: true, canToggle: true },
+    { key: 'avgUsage', label: 'Avg Usage', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+  ]);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
   const [selectedQuotas, setSelectedQuotas] = useState<Set<string>>(new Set());
@@ -381,6 +395,28 @@ const ResourceQuotas: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev =>
+      prev.map(col =>
+        col.key === columnKey && col.canToggle !== false
+          ? { ...col, visible }
+          : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev =>
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string): boolean => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
 
   // Fetch resource quotas for all selected namespaces
   useEffect(() => {
@@ -771,9 +807,20 @@ const ResourceQuotas: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            <div className="text-sm font-medium mb-2">Namespaces</div>
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -799,43 +846,59 @@ const ResourceQuotas: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead>
-                    Scopes
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500 text-center"
-                    onClick={() => handleSort('resourceCount')}
-                  >
-                    Resources {renderSortIndicator('resourceCount')}
-                  </TableHead>
-                  <TableHead>
-                    Usage Details
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('usagePercent')}
-                  >
-                    Avg Usage {renderSortIndicator('usagePercent')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('name') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('scopes') && (
+                    <TableHead>
+                      Scopes
+                    </TableHead>
+                  )}
+                  {isColumnVisible('resources') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500 text-center"
+                      onClick={() => handleSort('resourceCount')}
+                    >
+                      Resources {renderSortIndicator('resourceCount')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('usage') && (
+                    <TableHead>
+                      Usage Details
+                    </TableHead>
+                  )}
+                  {isColumnVisible('avgUsage') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('usagePercent')}
+                    >
+                      Avg Usage {renderSortIndicator('usagePercent')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -847,34 +910,49 @@ const ResourceQuotas: React.FC = () => {
                     onClick={(e) => handleQuotaClick(e, quota)}
                     onContextMenu={(e) => handleContextMenu(e, quota)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleResourceQuotaDetails(quota)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {quota.metadata?.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                        {quota.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {formatScopes(quota)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                        {Object.keys(quota.spec?.hard || {}).length}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {formatResourcesWithUsage(quota)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {getUsageDisplay(quota)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(quota.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
+                    {isColumnVisible('name') && (
+                      <TableCell className="font-medium" onClick={() => handleResourceQuotaDetails(quota)}>
+                        <div className="hover:text-blue-500 hover:underline">
+                          {quota.metadata?.name}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+                          {quota.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('scopes') && (
+                      <TableCell>
+                        {formatScopes(quota)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('resources') && (
+                      <TableCell className="text-center">
+                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                          {Object.keys(quota.spec?.hard || {}).length}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('usage') && (
+                      <TableCell>
+                        {formatResourcesWithUsage(quota)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('avgUsage') && (
+                      <TableCell className="text-center">
+                        {getUsageDisplay(quota)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(quota.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -899,7 +977,8 @@ const ResourceQuotas: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -907,6 +986,16 @@ const ResourceQuotas: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Resource Quotas Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   );
 };

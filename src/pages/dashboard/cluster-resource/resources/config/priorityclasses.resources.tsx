@@ -4,12 +4,13 @@ import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { ErrorComponent } from '@/components/custom';
+import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -58,6 +59,17 @@ const PriorityClasses: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isReconMode } = useReconMode();
+
+  // Column filtering state
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false },
+    { key: 'value', label: 'Priority Value', visible: true, canToggle: true },
+    { key: 'preemption', label: 'Preemption', visible: true, canToggle: true },
+    { key: 'description', label: 'Description', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+  ]);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
   const [selectedPriorityClasses, setSelectedPriorityClasses] = useState<Set<string>>(new Set());
@@ -403,6 +415,28 @@ const PriorityClasses: React.FC = () => {
     direction: 'desc'
   });
 
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev =>
+      prev.map(col =>
+        col.key === columnKey && col.canToggle !== false
+          ? { ...col, visible }
+          : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev =>
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string): boolean => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
+
   // Fetch PriorityClasses (these are cluster-scoped resources)
   useEffect(() => {
     const fetchPriorityClasses = async () => {
@@ -667,20 +701,31 @@ const PriorityClasses: React.FC = () => {
           [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-      <div>
-        <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Priority Classes</h1>
-        <div className="w-full md:w-96 mt-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search by name, value, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
+      <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
+        <div>
+          <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Priority Classes</h1>
+          <div className="w-full md:w-96 mt-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by name, value, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFilterSidebar(true)}
+          className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+        >
+          <Filter className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* No results message */}
@@ -703,34 +748,46 @@ const PriorityClasses: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('value')}
-                  >
-                    Priority Value {renderSortIndicator('value')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('preemption')}
-                  >
-                    Preemption {renderSortIndicator('preemption')}
-                  </TableHead>
-                  <TableHead>
-                    Description
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('name') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('value') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('value')}
+                    >
+                      Priority Value {renderSortIndicator('value')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('preemption') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('preemption')}
+                    >
+                      Preemption {renderSortIndicator('preemption')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('description') && (
+                    <TableHead>
+                      Description
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -742,24 +799,35 @@ const PriorityClasses: React.FC = () => {
                     onClick={(e) => handlePriorityClassClick(e, priorityClass)}
                     onContextMenu={(e) => handleContextMenu(e, priorityClass)}
                   >
-                    <TableCell className="font-medium" onClick={() => handlePriorityClassDetails(priorityClass)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {priorityClass.metadata?.name}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatPriorityValue(priorityClass)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatPreemptionPolicy(priorityClass)}
-                    </TableCell>
-                    <TableCell>
-                      {formatDescription(priorityClass)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(priorityClass.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
+                    {isColumnVisible('name') && (
+                      <TableCell className="font-medium" onClick={() => handlePriorityClassDetails(priorityClass)}>
+                        <div className="hover:text-blue-500 hover:underline">
+                          {priorityClass.metadata?.name}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('value') && (
+                      <TableCell className="text-center">
+                        {formatPriorityValue(priorityClass)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('preemption') && (
+                      <TableCell className="text-center">
+                        {formatPreemptionPolicy(priorityClass)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('description') && (
+                      <TableCell>
+                        {formatDescription(priorityClass)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(priorityClass.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -784,7 +852,8 @@ const PriorityClasses: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -792,6 +861,16 @@ const PriorityClasses: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Priority Classes Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   );
 };

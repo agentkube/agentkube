@@ -5,12 +5,12 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
-import { ErrorComponent, NamespaceSelector } from '@/components/custom';
+import { ErrorComponent, NamespaceSelector, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -74,6 +74,19 @@ const Leases: React.FC = () => {
   const [activeLease, setActiveLease] = useState<V1Lease | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // Column configuration state
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'holder', label: 'Holder', visible: true, canToggle: true },
+    { key: 'duration', label: 'Duration', visible: true, canToggle: true },
+    { key: 'renewTime', label: 'Last Renewed', visible: true, canToggle: true },
+    { key: 'transitions', label: 'Transitions', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -368,6 +381,65 @@ const Leases: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
     );
+  };
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => 
+      prev.map(col => {
+        // Check if it's a top-level column
+        if (col.key === columnKey) {
+          return { ...col, visible };
+        }
+        
+        // Check if it's a child column
+        if (col.children) {
+          const updatedChildren = col.children.map(child => 
+            child.key === columnKey ? { ...child, visible } : child
+          );
+          
+          // Check if any child was updated
+          if (updatedChildren.some((child, index) => child !== col.children![index])) {
+            return { ...col, children: updatedChildren };
+          }
+        }
+        
+        return col;
+      })
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig([
+      { key: 'name', label: 'Name', visible: true, canToggle: false },
+      { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+      { key: 'holder', label: 'Holder', visible: true, canToggle: true },
+      { key: 'duration', label: 'Duration', visible: true, canToggle: true },
+      { key: 'renewTime', label: 'Last Renewed', visible: true, canToggle: true },
+      { key: 'transitions', label: 'Transitions', visible: true, canToggle: true },
+      { key: 'age', label: 'Age', visible: true, canToggle: true },
+      { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+    ]);
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    // Check if it's a top-level column
+    const topLevelColumn = columnConfig.find(col => col.key === columnKey);
+    if (topLevelColumn) {
+      return topLevelColumn.visible;
+    }
+    
+    // Check if it's a child column
+    for (const col of columnConfig) {
+      if (col.children) {
+        const childColumn = col.children.find(child => child.key === columnKey);
+        if (childColumn) {
+          return childColumn.visible;
+        }
+      }
+    }
+    
+    return true;
   };
 
   // --- End of Multi-select ---
@@ -740,9 +812,21 @@ const Leases: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            <div className="text-sm font-medium mb-2">Namespaces</div>
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title="Filter columns"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -774,40 +858,54 @@ const Leases: React.FC = () => {
                   >
                     Name {renderSortIndicator('name')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('holder')}
-                  >
-                    Holder {renderSortIndicator('holder')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('duration')}
-                  >
-                    Duration {renderSortIndicator('duration')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('renewTime')}
-                  >
-                    Last Renewed {renderSortIndicator('renewTime')}
-                  </TableHead>
-                  <TableHead>
-                    Transitions
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('holder') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('holder')}
+                    >
+                      Holder {renderSortIndicator('holder')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('duration') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('duration')}
+                    >
+                      Duration {renderSortIndicator('duration')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('renewTime') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('renewTime')}
+                    >
+                      Last Renewed {renderSortIndicator('renewTime')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('transitions') && (
+                    <TableHead>
+                      Transitions
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -824,27 +922,40 @@ const Leases: React.FC = () => {
                         {lease.metadata?.name}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${lease.metadata?.namespace}`)}>
-                        {lease.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {formatHolder(lease)}
-                    </TableCell>
-                    <TableCell>
-                      {formatDuration(lease)}
-                    </TableCell>
-                    <TableCell>
-                      {formatRenewTime(lease)}
-                    </TableCell>
-                    <TableCell>
-                      {formatTransitions(lease)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(lease.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${lease.metadata?.namespace}`)}>
+                          {lease.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('holder') && (
+                      <TableCell>
+                        {formatHolder(lease)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('duration') && (
+                      <TableCell>
+                        {formatDuration(lease)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('renewTime') && (
+                      <TableCell>
+                        {formatRenewTime(lease)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('transitions') && (
+                      <TableCell>
+                        {formatTransitions(lease)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(lease.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -869,7 +980,8 @@ const Leases: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -877,6 +989,17 @@ const Leases: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Resource Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Lease Columns"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+        className="w-1/3"
+      />
     </div>
   );
 };

@@ -5,12 +5,13 @@ import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector } from '@/components/custom';
+import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -84,6 +85,18 @@ const PodDisruptionBudgets: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // Column filtering state
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+    { key: 'name', label: 'Name', visible: true, canToggle: false },
+    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+    { key: 'selector', label: 'Selector', visible: true, canToggle: true },
+    { key: 'budget', label: 'Budget', visible: true, canToggle: true },
+    { key: 'healthy', label: 'Healthy Pods', visible: true, canToggle: true },
+    { key: 'disruptions', label: 'Disruptions', visible: true, canToggle: true },
+    { key: 'age', label: 'Age', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+  ]);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
   const [selectedPdbs, setSelectedPdbs] = useState<Set<string>>(new Set());
@@ -414,6 +427,28 @@ const PodDisruptionBudgets: React.FC = () => {
     field: null,
     direction: null
   });
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev =>
+      prev.map(col =>
+        col.key === columnKey && col.canToggle !== false
+          ? { ...col, visible }
+          : col
+      )
+    );
+  };
+
+  const handleResetToDefault = () => {
+    setColumnConfig(prev =>
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const isColumnVisible = (columnKey: string): boolean => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
 
   // Fetch PDBs for all selected namespaces
   useEffect(() => {
@@ -902,9 +937,20 @@ const PodDisruptionBudgets: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full md:w-96">
-          <div className="text-sm font-medium mb-2">Namespaces</div>
-          <NamespaceSelector />
+        <div className="flex items-end gap-2">
+          <div className="w-full md:w-96">
+            <div className="text-sm font-medium mb-2">Namespaces</div>
+            <NamespaceSelector />
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -930,46 +976,62 @@ const PodDisruptionBudgets: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('selector')}
-                  >
-                    Selector {renderSortIndicator('selector')}
-                  </TableHead>
-                  <TableHead>
-                    Budget
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('healthy')}
-                  >
-                    Healthy Pods {renderSortIndicator('healthy')}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('disruptions')}
-                  >
-                    Disruptions {renderSortIndicator('disruptions')}
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  {isColumnVisible('name') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('namespace') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('namespace')}
+                    >
+                      Namespace {renderSortIndicator('namespace')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('selector') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('selector')}
+                    >
+                      Selector {renderSortIndicator('selector')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('budget') && (
+                    <TableHead>
+                      Budget
+                    </TableHead>
+                  )}
+                  {isColumnVisible('healthy') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('healthy')}
+                    >
+                      Healthy Pods {renderSortIndicator('healthy')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('disruptions') && (
+                    <TableHead
+                      className="cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('disruptions')}
+                    >
+                      Disruptions {renderSortIndicator('disruptions')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('age') && (
+                    <TableHead
+                      className="text-center cursor-pointer hover:text-blue-500"
+                      onClick={() => handleSort('age')}
+                    >
+                      Age {renderSortIndicator('age')}
+                    </TableHead>
+                  )}
+                  {isColumnVisible('actions') && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -981,32 +1043,47 @@ const PodDisruptionBudgets: React.FC = () => {
                     onClick={(e) => handlePdbClick(e, pdb)}
                     onContextMenu={(e) => handleContextMenu(e, pdb)}
                   >
-                    <TableCell className="font-medium" onClick={() => handlePdbDetails(pdb)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {pdb.metadata?.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${pdb.metadata?.namespace}`)}>
-                        {pdb.metadata?.namespace}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {formatSelector(pdb)}
-                    </TableCell>
-                    <TableCell>
-                      {formatBudget(pdb)}
-                    </TableCell>
-                    <TableCell>
-                      {formatPodStatus(pdb)}
-                    </TableCell>
-                    <TableCell>
-                      {formatDisruptions(pdb)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {calculateAge(pdb.metadata?.creationTimestamp?.toString())}
-                    </TableCell>
-                    <TableCell>
+                    {isColumnVisible('name') && (
+                      <TableCell className="font-medium" onClick={() => handlePdbDetails(pdb)}>
+                        <div className="hover:text-blue-500 hover:underline">
+                          {pdb.metadata?.name}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('namespace') && (
+                      <TableCell>
+                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${pdb.metadata?.namespace}`)}>
+                          {pdb.metadata?.namespace}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('selector') && (
+                      <TableCell>
+                        {formatSelector(pdb)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('budget') && (
+                      <TableCell>
+                        {formatBudget(pdb)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('healthy') && (
+                      <TableCell>
+                        {formatPodStatus(pdb)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('disruptions') && (
+                      <TableCell>
+                        {formatDisruptions(pdb)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('age') && (
+                      <TableCell className="text-center">
+                        {calculateAge(pdb.metadata?.creationTimestamp?.toString())}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1031,7 +1108,8 @@ const PodDisruptionBudgets: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -1039,6 +1117,16 @@ const PodDisruptionBudgets: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={showFilterSidebar}
+        onClose={() => setShowFilterSidebar(false)}
+        title="Pod Disruption Budgets Table"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   );
 };
