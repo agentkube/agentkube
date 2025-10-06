@@ -11,6 +11,7 @@ interface CustomMonacoEditorProps {
   onChange: (value: string | undefined) => void;
   theme: string;
   onCodeSelection?: () => void; // Optional callback for when code is selected
+  height?: string; // Optional height prop
 }
 
 let highlighterInstance: Highlighter | null = null;
@@ -37,6 +38,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   onChange,
   theme,
   onCodeSelection,
+  height = "81vh",
 }) => {
   const { addStructuredContent, setIsOpen } = useDrawer();
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -313,7 +315,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
 
   return (
     <MonacoEditor
-      height="81vh"
+      height={height}
       defaultLanguage="yaml"
       value={value}
       onChange={onChange}

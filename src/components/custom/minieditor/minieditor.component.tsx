@@ -418,6 +418,7 @@ export const MiniEditor = ({ isOpen, onToggle }: MiniEditorProps) => {
                 value={content}
                 onChange={handleEditorChange}
                 theme={editorTheme}
+                height={`${editorHeight - 42}px`}
               />
             </div>
 
