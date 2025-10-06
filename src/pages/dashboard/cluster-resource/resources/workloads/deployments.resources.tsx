@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getDeployments } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
@@ -21,7 +21,7 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogFooter, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogCancel, AlertDialogAction, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { createPortal } from 'react-dom';
-import { OPERATOR_URL } from '@/config';
+import { OPERATOR_URL, OPERATOR_WS_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
@@ -51,6 +51,11 @@ const Deployments: React.FC = () => {
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [selectedResourcesForScaling, setSelectedResourcesForScaling] = useState<V1Deployment[]>([]);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -600,6 +605,172 @@ const Deployments: React.FC = () => {
     direction: null
   });
 
+  // Handle incoming Kubernetes deployment events
+  const handleDeploymentEvent = useCallback((kubeEvent: any) => {
+    const { type, object: deployment } = kubeEvent;
+    
+    if (!deployment || !deployment.metadata) return;
+    
+    // Filter: only process deployments from selected namespaces
+    if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(deployment.metadata.namespace)) {
+      return; // Skip deployments not in selected namespaces
+    }
+
+    setDeployments(prevDeployments => {
+      const newDeployments = [...prevDeployments];
+      const existingIndex = newDeployments.findIndex(
+        d => d.metadata?.namespace === deployment.metadata.namespace && 
+             d.metadata?.name === deployment.metadata.name
+      );
+
+      switch (type) {
+        case 'ADDED':
+          if (existingIndex === -1) {
+            newDeployments.push(deployment);
+          }
+          break;
+
+        case 'MODIFIED':
+          if (existingIndex !== -1) {
+            // Check if deployment is being terminated
+            if (deployment.metadata.deletionTimestamp) {
+              // Update the deployment to show terminating state
+              const updatedDeployment = {
+                ...deployment,
+                status: {
+                  ...deployment.status,
+                  phase: 'Terminating'
+                }
+              };
+              newDeployments[existingIndex] = updatedDeployment;
+            } else {
+              // Normal modification
+              newDeployments[existingIndex] = deployment;
+            }
+          } else {
+            // Sometimes MODIFIED events come before ADDED
+            if (!deployment.metadata.deletionTimestamp) {
+              newDeployments.push(deployment);
+            }
+          }
+          break;
+
+        case 'DELETED':
+          if (existingIndex !== -1) {
+            newDeployments.splice(existingIndex, 1);
+          }
+          break;
+
+        case 'ERROR':
+          setWsError(`Watch error: ${deployment.message || 'Unknown error'}`);
+          break;
+
+        default:
+          break;
+      }
+
+      return newDeployments;
+    });
+  }, [selectedNamespaces]);
+
+  // WebSocket connection management
+  const connectWebSocket = useCallback(() => {
+    if (!currentContext) {
+      return;
+    }
+
+    // Create a connection ID based only on context (one connection per cluster)
+    const connectionId = currentContext.name;
+    
+    // Don't create a new connection if we already have one for the same cluster
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
+      return;
+    }
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // Clear any existing reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    try {
+      // Create single WebSocket connection to watch ALL namespaces
+      // We'll filter client-side to show only selected namespaces
+      const clusterUrl = `${OPERATOR_WS_URL}/clusters/${currentContext.name}/apis/apps/v1/deployments?watch=1`;
+      const ws = new WebSocket(clusterUrl);
+      wsRef.current = ws;
+      connectionIdRef.current = connectionId;
+
+      ws.onopen = () => {
+        // Only proceed if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(true);
+          setWsError(null);
+          setLoading(false);
+          // Direct connection - no need to send REQUEST messages, 
+          // WebSocket will automatically start receiving Kubernetes watch events
+        }
+      };
+
+      ws.onmessage = (event) => {
+        // Only process messages if this is still the current connection
+        if (connectionIdRef.current !== connectionId) {
+          return;
+        }
+
+        try {
+          // Direct Kubernetes API watch response (no multiplexer wrapping)
+          const kubeEvent = JSON.parse(event.data);
+          
+          // Handle Kubernetes watch event directly
+          if (kubeEvent.type && kubeEvent.object) {
+            handleDeploymentEvent(kubeEvent);
+          } else if (kubeEvent.type === 'ERROR') {
+            setWsError(kubeEvent.object?.message || 'WebSocket error');
+          }
+        } catch (err) {
+          console.warn('Failed to parse WebSocket message:', err);
+        }
+      };
+
+      ws.onclose = (event) => {
+        // Only handle close if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(false);
+          wsRef.current = null;
+          connectionIdRef.current = null;
+          
+          // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
+          if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, 5000);
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        // Only handle error if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          console.error('WebSocket error:', error);
+          setWsError('WebSocket connection failed');
+          setWsConnected(false);
+        }
+      };
+
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err);
+      setWsError(err instanceof Error ? err.message : 'Failed to connect WebSocket');
+      setLoading(false);
+    }
+  }, [currentContext, handleDeploymentEvent]);
+
   // Fetch deployments for all selected namespaces
   const fetchAllDeployments = async () => {
     if (!currentContext || selectedNamespaces.length === 0) {
@@ -637,9 +808,100 @@ const Deployments: React.FC = () => {
     }
   };
 
+  // Initialize WebSocket connection when context or namespaces change
   useEffect(() => {
-    fetchAllDeployments();
-  }, [currentContext, selectedNamespaces]);
+    if (!currentContext) {
+      setDeployments([]);
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    // Clear existing deployments when switching contexts/namespaces
+    setDeployments([]);
+    
+    // If no namespaces selected, don't connect and show empty state
+    if (selectedNamespaces.length === 0) {
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    setLoading(true);
+    
+    // First load existing deployments, then start WebSocket for real-time updates
+    const initializeDeployments = async () => {
+      try {
+        // Load initial data using HTTP API
+        await fetchAllDeployments();
+        // Then start WebSocket watching for changes
+        setTimeout(() => {
+          connectWebSocket();
+        }, 200);
+      } catch (error) {
+        console.error('Failed to initialize deployments:', error);
+        setLoading(false);
+      }
+    };
+    
+    initializeDeployments();
+
+    // Cleanup function  
+    return () => {
+      // Close WebSocket if component unmounts
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [currentContext, selectedNamespaces.join(',')]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Filter existing deployments when namespace selection changes
+  useEffect(() => {
+    if (selectedNamespaces.length === 0) {
+      // No namespaces selected - show nothing
+      setDeployments([]);
+      return;
+    }
+    
+    // Filter existing deployments based on new namespace selection
+    setDeployments(prevDeployments => 
+      prevDeployments.filter(deployment => 
+        deployment.metadata?.namespace && selectedNamespaces.includes(deployment.metadata.namespace)
+      )
+    );
+  }, [selectedNamespaces]);
 
   // Filter deployments based on search query
   const filteredDeployments = useMemo(() => {
@@ -821,6 +1083,24 @@ const Deployments: React.FC = () => {
             <NamespaceSelector />
           </div>
           
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              if (!wsConnected) {
+                // Fallback to HTTP fetch if WebSocket is not connected
+                fetchAllDeployments();
+              } else {
+                // Reconnect WebSocket
+                connectWebSocket();
+              }
+            }}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title={wsConnected ? "Reconnect WebSocket" : "Refresh deployments"}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
           <Button
             variant="outline"
             size="sm"

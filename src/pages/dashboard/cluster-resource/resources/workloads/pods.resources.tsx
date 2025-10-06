@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getPods } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogHeader, AlertDialogCancel, AlertDialogFooter, AlertDialogDescription, AlertDialogTitle, AlertDialogContent, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { OPERATOR_URL } from '@/config';
+import { OPERATOR_URL, OPERATOR_WS_URL } from '@/config';
 import { toast } from '@/hooks/use-toast';
 import { toast as sooner } from "sonner"
 import { useDrawer } from '@/contexts/useDrawer';
@@ -54,16 +54,6 @@ interface ContainerMetrics {
   };
 }
 
-interface PodMetrics {
-  metadata: {
-    name: string;
-    namespace: string;
-    creationTimestamp?: string;
-  };
-  timestamp: string;
-  window: string;
-  containers: ContainerMetrics[];
-}
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -119,6 +109,11 @@ const Pods: React.FC = () => {
   const [podsMetrics, setPodsMetrics] = useState<Record<string, PodResourceMetrics>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionIdRef = useRef<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -348,8 +343,7 @@ const Pods: React.FC = () => {
         }
       }
 
-      // Refresh pod list after restart
-      await fetchAllPods();
+      // No need to manually refresh with WebSocket - data updates automatically
 
     } catch (error) {
       console.error('Failed to restart pod(s):', error);
@@ -460,8 +454,7 @@ const Pods: React.FC = () => {
       // Clear selection after deletion
       setSelectedPods(new Set());
 
-      // Refresh pod list immediately after deletion
-      await fetchAllPods();
+      // No need to manually refresh with WebSocket - data updates automatically
 
     } catch (error) {
       console.error('Failed to delete pod(s):', error);
@@ -471,7 +464,173 @@ const Pods: React.FC = () => {
     }
   };
 
-  // Extract fetchAllPods as a separate function
+  // Handle incoming Kubernetes pod events
+  const handlePodEvent = useCallback((kubeEvent: any) => {
+    const { type, object: pod } = kubeEvent;
+    
+    if (!pod || !pod.metadata) return;
+    
+    // Filter: only process pods from selected namespaces
+    if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(pod.metadata.namespace)) {
+      return; // Skip pods not in selected namespaces
+    }
+
+    setPods(prevPods => {
+      const newPods = [...prevPods];
+      const existingIndex = newPods.findIndex(
+        p => p.metadata?.namespace === pod.metadata.namespace && 
+             p.metadata?.name === pod.metadata.name
+      );
+
+      switch (type) {
+        case 'ADDED':
+          if (existingIndex === -1) {
+            newPods.push(pod);
+          }
+          break;
+
+        case 'MODIFIED':
+          if (existingIndex !== -1) {
+            // Check if pod is being terminated
+            if (pod.metadata.deletionTimestamp) {
+              // Update the pod to show terminating state
+              const updatedPod = {
+                ...pod,
+                status: {
+                  ...pod.status,
+                  phase: 'Terminating'
+                }
+              };
+              newPods[existingIndex] = updatedPod;
+            } else {
+              // Normal modification
+              newPods[existingIndex] = pod;
+            }
+          } else {
+            // Sometimes MODIFIED events come before ADDED
+            if (!pod.metadata.deletionTimestamp) {
+              newPods.push(pod);
+            }
+          }
+          break;
+
+        case 'DELETED':
+          if (existingIndex !== -1) {
+            newPods.splice(existingIndex, 1);
+          }
+          break;
+
+        case 'ERROR':
+          setWsError(`Watch error: ${pod.message || 'Unknown error'}`);
+          break;
+
+        default:
+          break;
+      }
+
+      return newPods;
+    });
+  }, [selectedNamespaces]);
+
+  // WebSocket connection management
+  const connectWebSocket = useCallback(() => {
+    if (!currentContext) {
+      return;
+    }
+
+    // Create a connection ID based only on context (one connection per cluster)
+    const connectionId = currentContext.name;
+    
+    // Don't create a new connection if we already have one for the same cluster
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
+      return;
+    }
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // Clear any existing reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    try {
+      // Create single WebSocket connection to watch ALL namespaces
+      // We'll filter client-side to show only selected namespaces
+      const clusterUrl = `${OPERATOR_WS_URL}/clusters/${currentContext.name}/api/v1/pods?watch=1`;
+      const ws = new WebSocket(clusterUrl);
+      wsRef.current = ws;
+      connectionIdRef.current = connectionId;
+
+      ws.onopen = () => {
+        // Only proceed if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(true);
+          setWsError(null);
+          setLoading(false);
+          // Direct connection - no need to send REQUEST messages, 
+          // WebSocket will automatically start receiving Kubernetes watch events
+        }
+      };
+
+      ws.onmessage = (event) => {
+        // Only process messages if this is still the current connection
+        if (connectionIdRef.current !== connectionId) {
+          return;
+        }
+
+        try {
+          // Direct Kubernetes API watch response (no multiplexer wrapping)
+          const kubeEvent = JSON.parse(event.data);
+          
+          // Handle Kubernetes watch event directly
+          if (kubeEvent.type && kubeEvent.object) {
+            handlePodEvent(kubeEvent);
+          } else if (kubeEvent.type === 'ERROR') {
+            setWsError(kubeEvent.object?.message || 'WebSocket error');
+          }
+        } catch (err) {
+          console.warn('Failed to parse WebSocket message:', err);
+        }
+      };
+
+      ws.onclose = (event) => {
+        // Only handle close if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(false);
+          wsRef.current = null;
+          connectionIdRef.current = null;
+          
+          // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
+          if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, 5000);
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        // Only handle error if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          console.error('WebSocket error:', error);
+          setWsError('WebSocket connection failed');
+          setWsConnected(false);
+        }
+      };
+
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err);
+      setWsError(err instanceof Error ? err.message : 'Failed to connect WebSocket');
+      setLoading(false);
+    }
+  }, [currentContext, handlePodEvent]);
+
+  // Fallback function for HTTP-based fetching (in case WebSocket fails)
   const fetchAllPods = async () => {
     if (!currentContext || selectedNamespaces.length === 0) {
       setPods([]);
@@ -501,7 +660,6 @@ const Pods: React.FC = () => {
       setPods(allPods);
       setError(null);
     } catch (err) {
-      console.error('Failed to fetch pods:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch pods');
     } finally {
       setLoading(false);
@@ -701,46 +859,100 @@ const Pods: React.FC = () => {
     }
   };
 
-  // Fetch pods for all selected namespaces
+  // Initialize WebSocket connection when context or namespaces change
   useEffect(() => {
-    const fetchAllPods = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setPods([]);
-        setLoading(false);
-        return;
+    if (!currentContext) {
+      setPods([]);
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
 
+    // Clear existing pods when switching contexts/namespaces
+    setPods([]);
+    
+    // If no namespaces selected, don't connect and show empty state
+    if (selectedNamespaces.length === 0) {
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    setLoading(true);
+    
+    // First load existing pods, then start WebSocket for real-time updates
+    const initializePods = async () => {
       try {
-        setLoading(true);
-
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const podsData = await getPods(currentContext.name);
-          setPods(podsData);
-          return;
-        }
-
-        // Fetch pods for each selected namespace
-        const podPromises = selectedNamespaces.map(namespace =>
-          getPods(currentContext.name, namespace)
-        );
-
-        const results = await Promise.all(podPromises);
-
-        // Flatten the array of pod arrays
-        const allPods = results.flat();
-        setPods(allPods);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch pods:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch pods');
-      } finally {
+        // Load initial data using HTTP API
+        await fetchAllPods();
+        // Then start WebSocket watching for changes
+        setTimeout(() => {
+          connectWebSocket();
+        }, 200);
+      } catch (error) {
+        console.error('Failed to initialize pods:', error);
         setLoading(false);
       }
     };
+    
+    initializePods();
 
-    fetchAllPods();
-  }, [currentContext, selectedNamespaces]);
+    // Cleanup function  
+    return () => {
+      // Close WebSocket if component unmounts
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [currentContext, selectedNamespaces.join(',')]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Filter existing pods when namespace selection changes
+  useEffect(() => {
+    if (selectedNamespaces.length === 0) {
+      // No namespaces selected - show nothing
+      setPods([]);
+      return;
+    }
+    
+    // Filter existing pods based on new namespace selection
+    setPods(prevPods => 
+      prevPods.filter(pod => 
+        pod.metadata?.namespace && selectedNamespaces.includes(pod.metadata.namespace)
+      )
+    );
+  }, [selectedNamespaces]);
 
   // Fetch metrics when pods change
   useEffect(() => {
@@ -971,6 +1183,8 @@ const Pods: React.FC = () => {
         return 'bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'failed':
         return 'bg-red-200 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'terminating':
+        return 'bg-orange-200 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
       case 'unknown':
         return 'bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
       default:
@@ -1190,6 +1404,24 @@ const Pods: React.FC = () => {
           <Button
             variant="outline" 
             size="sm"
+            onClick={() => {
+              if (!wsConnected) {
+                // Fallback to HTTP fetch if WebSocket is not connected
+                fetchAllPods();
+              } else {
+                // Reconnect WebSocket
+                connectWebSocket();
+              }
+            }}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title={wsConnected ? "Reconnect WebSocket" : "Refresh pods"}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="outline" 
+            size="sm"
             onClick={() => setIsFilterSidebarOpen(true)}
             className="flex items-center gap-2 h-10 dark:text-gray-300/80"
             title="Filter columns"
@@ -1199,8 +1431,9 @@ const Pods: React.FC = () => {
         </div>
       </div>
 
+
       {/* No results message */}
-      {sortedPods.length === 0 && (
+      {sortedPods.length === 0 && !loading && (
         <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <AlertDescription>
             {searchQuery
