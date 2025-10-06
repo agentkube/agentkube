@@ -996,6 +996,17 @@ const Pods: React.FC = () => {
     return hasRestarts || hasContainerIssues || isNotRunning;
   };
 
+  // Function to check if pod is in a failing state (should show sparkle icon)
+  const isPodFailing = (pod: V1Pod): boolean => {
+    const phase = pod.status?.phase?.toLowerCase();
+    return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' || 
+           (pod.status?.containerStatuses || []).some(status => 
+             status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+             status.state?.waiting?.reason === 'ImagePullBackOff' ||
+             status.state?.waiting?.reason === 'ErrImagePull'
+           );
+  };
+
   // Get total restart count for a pod
   const getTotalRestarts = (pod: V1Pod): number => {
     return (pod.status?.containerStatuses || []).reduce(
@@ -1340,8 +1351,19 @@ const Pods: React.FC = () => {
                     >
                       {isColumnVisible('name') && (
                         <TableCell className="font-medium" onClick={() => handlePodDetails(pod)}>
-                          <div className="hover:text-blue-500 hover:underline">
-                            {pod.metadata?.name}
+                          <div className="flex items-center gap-2">
+                            <div className="hover:text-blue-500 hover:underline">
+                              {pod.metadata?.name}
+                            </div>
+                            {isPodFailing(pod) && (
+                              <Sparkles 
+                                className="h-4 w-4 text-yellow-500 hover:text-yellow-600 cursor-pointer transition-colors" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAskAI(pod);
+                                }}
+                              />
+                            )}
                           </div>
                         </TableCell>
                       )}
