@@ -305,6 +305,13 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
     fetchLogs();
   }, [selectedContainer]);
 
+  // Effect to fetch logs when timeFilter or tail changes
+  useEffect(() => {
+    if (selectedContainer) {
+      fetchLogs();
+    }
+  }, [timeFilter, tail]);
+
   // Parse a log line to extract timestamp
   const parseLogLine = (line: string): LogLine => {
     // Try to match ISO timestamp at beginning of line
@@ -465,7 +472,6 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   // Update time filter
   const handleTimeFilterChange = (value: string) => {
     setTimeFilter(value);
-    fetchLogs();
   };
   
   // Close search
