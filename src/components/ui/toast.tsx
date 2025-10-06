@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
-import { X } from "lucide-react"
+import { X, Copy, Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -70,6 +70,39 @@ const ToastAction = React.forwardRef<
 ))
 ToastAction.displayName = ToastPrimitives.Action.displayName
 
+const ToastCopy = React.forwardRef<
+  HTMLButtonElement,
+  React.HTMLAttributes<HTMLButtonElement> & { content?: string }
+>(({ className, content, ...props }, ref) => {
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = () => {
+    if (content) {
+      navigator.clipboard.writeText(content).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        console.error('Failed to copy to clipboard');
+      });
+    }
+  };
+
+  return (
+    <button
+      ref={ref}
+      className={cn(
+        "absolute right-8 top-1 rounded-md p-1 text-slate-950/50 opacity-0 transition-opacity hover:text-slate-950 focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600 dark:text-slate-50/50 dark:hover:text-slate-50",
+        className
+      )}
+      onClick={handleCopy}
+      {...props}
+    >
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+    </button>
+  );
+});
+ToastCopy.displayName = "ToastCopy";
+
 const ToastClose = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Close>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
@@ -125,5 +158,6 @@ export {
   ToastTitle,
   ToastDescription,
   ToastClose,
+  ToastCopy,
   ToastAction,
 }

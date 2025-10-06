@@ -22,7 +22,7 @@ interface VulnScanFooterToolProps {
 }
 
 const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) => {
-  const { clusterImages, scanResults, loading, scanning, fetchClusterImages, reScan } = useScan();
+  const { clusterImages, scanResults, loading, scanning, error, fetchClusterImages, reScan } = useScan();
   const { currentContext } = useCluster();
 
   // Get unique image count
@@ -65,10 +65,10 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
 
   // Fetch cluster images when component mounts or cluster changes
   useEffect(() => {
-    if (currentContext && clusterImages.length === 0 && !loading) {
+    if (currentContext && clusterImages.length === 0 && !loading && !error) {
       fetchClusterImages();
     }
-  }, [currentContext, clusterImages.length, loading, fetchClusterImages]);
+  }, [currentContext, clusterImages.length, loading, error, fetchClusterImages]);
 
   return (
     <DropdownMenu>

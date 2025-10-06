@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
   ToastClose,
+  ToastCopy,
   ToastDescription,
   ToastProvider,
   ToastTitle,
@@ -20,10 +21,13 @@ export function Toaster() {
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (
-                <ToastDescription>{description}</ToastDescription>
+                <ToastDescription className="truncate">{description}</ToastDescription>
               )}
             </div>
             {action}
+            {description && (
+              <ToastCopy content={typeof description === 'string' ? description : ''} />
+            )}
             <ToastClose />
           </Toast>
         )
