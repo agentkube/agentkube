@@ -793,7 +793,8 @@ const Nodes: React.FC = () => {
                               ({node.metrics.cpuUsagePercentage.toFixed(1)}%)
                             </span>
                           </span>
-                        )}
+                        )} 
+                        {!node.metrics && (<>{node.cpu}</>)}
                       </div>
                     </TableCell>
                   )}

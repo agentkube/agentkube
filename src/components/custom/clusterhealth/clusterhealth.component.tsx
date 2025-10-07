@@ -6,6 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { OPERATOR_URL } from '@/config';
 
 interface ClusterHealthProps {
   clusterId: string;
@@ -18,7 +19,7 @@ const ClusterHealth: React.FC<ClusterHealthProps> = ({ clusterId, onHealthStatus
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch(`http://localhost:4688/api/v1/clusters/${clusterId}/healthz`, {
+        const response = await fetch(`${OPERATOR_URL}/clusters/${clusterId}/healthz`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

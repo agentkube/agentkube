@@ -126,9 +126,14 @@ export interface KubeContext {
     user: string;
   };
   meta_data: {
+    clusterID: string;
     extensions: Record<string, unknown>;
     namespace: string;
-    source: string;
+    origin: {
+      kubeconfig: string;
+    };
+    originalName: string;
+    source: 'kubeconfig' | 'dynamic_cluster';
   };
 }
 

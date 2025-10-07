@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw, Edit3, Settings2, Unplug } from 'lucide-react';
+import { Search, ArrowRight, Grid, List, Pin, Trash2, Link, AlignVerticalJustifyEnd, RefreshCw, Edit3, Settings2, FolderTree } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,25 +10,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import LOGO from '@/assets/logo.png';
-import KUBERNETES_LOGO from '@/assets/kubernetes-blue.png';
 import { useCluster } from '@/contexts/clusterContext';
-import { AWS_PROVIDER, AWS_PROVIDER_DARK, AZURE_PROVIDER, DOCKER_PROVIDER, GCP_PROVIDER, KIND_PROVIDER, MINIKUBE_PROVIDER } from '@/assets/providers';
 import { DeleteContextDialog, RenameContextDialog, ProvisionDrawer } from '@/components/custom';
 import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.component';
-import ClusterHealth from '@/components/custom/clusterhealth/clusterhealth.component';
+import ClusterCard, { ClusterItem } from '@/components/cluster/ClusterCard';
+import ClusterTreeView from '@/components/cluster/ClusterTreeView';
 import { useTheme } from 'next-themes';
 import { toast } from '@/hooks/use-toast';
 import { deleteContext } from '@/api/cluster';
 import { useAuth } from '@/contexts/useAuth';
 import { getUserProfile } from '@/api/auth';
 
-// Interface for our cluster UI data
-interface ClusterItem {
-  id: string;
-  name: string;
-  description: string;
-  type: 'kind' | 'docker' | 'aws' | 'local' | 'gcp' | 'azure' | 'civo' | 'linode' | 'digitalocean' | 'orcale' | 'minikube';
-}
 
 // Interface for context menu position
 interface ContextMenuPosition {
@@ -55,217 +47,6 @@ const determineClusterType = (name: string): ClusterItem['type'] => {
   return 'local';
 };
 
-// Memoized ClusterIcon component
-const ClusterIcon = memo<{ type: ClusterItem['type']; theme?: string }>(({ type, theme }) => {
-  const iconProps = { className: 'h-10 w-10' };
-
-  switch (type) {
-    case 'kind':
-      return <img {...iconProps} src={KUBERNETES_LOGO} alt="Kubernetes logo" />;
-    case 'docker':
-      return <img {...iconProps} src={DOCKER_PROVIDER} alt="Docker logo" />;
-    case 'minikube':
-      return <img {...iconProps} src={MINIKUBE_PROVIDER} alt="Minikube logo" />;
-    case 'aws':
-      return <img {...iconProps} src={theme === 'dark' ? AWS_PROVIDER_DARK : AWS_PROVIDER} alt="AWS logo" />;
-    case 'gcp':
-      return <img {...iconProps} src={GCP_PROVIDER} alt="GCP logo" />;
-    case 'azure':
-      return <img {...iconProps} src={AZURE_PROVIDER} alt="Azure logo" />;
-    default:
-      return <img {...iconProps} src={KUBERNETES_LOGO} alt="Kubernetes logo" />;
-  }
-});
-
-ClusterIcon.displayName = 'ClusterIcon';
-
-// Memoized ClusterCard component
-const ClusterCard = memo<{
-  cluster: ClusterItem;
-  isPinned?: boolean;
-  isSelected: boolean;
-  onContextMenu: (e: React.MouseEvent, clusterId: string, isPinned: boolean) => void;
-  onClusterClick: (clusterId: string) => void;
-  onConnect: (clusterId: string) => void;
-  onRename: (clusterId: string) => void;
-  onDelete: (clusterId: string) => void;
-  onPin: (clusterId: string) => void;
-  onUnpin: (clusterId: string) => void;
-  viewMode: 'grid' | 'list';
-  theme?: string;
-  onHealthStatusChange: (clusterId: string, status: 'ok' | 'bad_gateway' | 'loading') => void;
-}>(({ cluster, isPinned = false, isSelected, onContextMenu, onClusterClick, onConnect, onRename, onDelete, onPin, onUnpin, viewMode, theme, onHealthStatusChange }) => {
-  // Handle double-click to immediately connect
-  const handleDoubleClick = useCallback(() => {
-    onConnect(cluster.id);
-  }, [onConnect, cluster.id]);
-
-  const handleClick = useCallback(() => {
-    onClusterClick(cluster.id);
-  }, [onClusterClick, cluster.id]);
-
-  const handleRightClick = useCallback((e: React.MouseEvent) => {
-    onContextMenu(e, cluster.id, isPinned);
-  }, [onContextMenu, cluster.id, isPinned]);
-
-  const handleConnectClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onConnect(cluster.id);
-  }, [onConnect, cluster.id]);
-
-  const handleRenameClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onRename(cluster.id);
-  }, [onRename, cluster.id]);
-
-  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete(cluster.id);
-  }, [onDelete, cluster.id]);
-
-  const handlePinClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isPinned) {
-      onUnpin(cluster.id);
-    } else {
-      onPin(cluster.id);
-    }
-  }, [isPinned, onPin, onUnpin, cluster.id]);
-
-  // Determine if we need to truncate the text
-  const isTruncatedName = cluster.name.length > 35;
-  const isTruncatedDescription = cluster.description.length > 35;
-
-  const displayName = isTruncatedName ? cluster.name.slice(0, 35) + '...' : cluster.name;
-  const displayDescription = isTruncatedDescription ? cluster.description.slice(0, 35) + '...' : cluster.description;
-
-  return (
-    <div
-      className={`relative rounded-lg p-4 flex items-center gap-4 cursor-pointer transition-colors
-        ${isSelected
-          ? 'bg-gray-200 dark:bg-gray-800/20 border-r-2 border-blue-500'
-          : 'hover:bg-gray-200 dark:hover:bg-gray-800/50 border-2 border-transparent'}`}
-      onContextMenu={handleRightClick}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-    >
-      <ClusterHealth clusterId={cluster.id} onHealthStatusChange={onHealthStatusChange} />
-      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white">
-        <ClusterIcon type={cluster.type} theme={theme} />
-      </div>
-      <div className="flex-1">
-        <h3
-          className={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'dark:text-white'}`}
-        >
-          {displayName}
-        </h3>
-
-        {isTruncatedDescription ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <p className="dark:text-gray-400 text-sm">
-                  {displayDescription}
-                </p>
-              </TooltipTrigger>
-              <TooltipContent className="bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md border border-gray-300 dark:border-gray-800/60 p-3 rounded-md shadow-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <ClusterIcon type={cluster.type} theme={theme} />
-                </div>
-                <div className="text-gray-700 dark:text-gray-300">
-                  <div className="mb-1">
-                    <span className="font-semibold">Name: </span>
-                    <span>{cluster.name}</span>
-                  </div>
-                  <div className="mb-1">
-                    <span className="font-semibold">Context: </span>
-                    <span>{cluster.description}</span>
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          <p className="dark:text-gray-400 text-sm">
-            {displayDescription}
-          </p>
-        )}
-      </div>
-
-      {/* Action Icons - Only show in list view and when selected */}
-      {viewMode === 'list' && isSelected && (
-        <div className="flex items-center gap-2 ml-auto">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleConnectClick}
-                  className="p-1.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Unplug size={16} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className='p-1'>
-                <p>Connect</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handlePinClick}
-                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Pin size={16} className={`text-gray-600 dark:text-gray-400 ${isPinned ? '-rotate-45' : 'rotate-45'}`} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className='p-1'>
-                <p>{isPinned ? 'Unpin' : 'Pin'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleRenameClick}
-                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Edit3 size={16} className="text-gray-600 dark:text-gray-400" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className='p-1'>
-                <p>Rename</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleDeleteClick}
-                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <Trash2 size={16} className="text-red-500" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent  className='p-1'>
-                <p>Delete</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      )}
-    </div>
-  );
-});
-
-ClusterCard.displayName = 'ClusterCard';
-
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [isReloading, setIsReloading] = useState(false);
@@ -280,10 +61,10 @@ const HomePage: React.FC = () => {
   const [isProvisionDrawerOpen, setIsProvisionDrawerOpen] = useState(false);
   const [isAddKubeConfigOpen, setIsAddKubeConfigOpen] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>(() => {
     // Load view mode from localStorage
     const savedViewMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-    return (savedViewMode as 'grid' | 'list') || 'grid';
+    return (savedViewMode as 'grid' | 'list' | 'tree') || 'grid';
   });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -861,7 +642,7 @@ const HomePage: React.FC = () => {
                 Pinned <span className="text-gray-500">/</span>
               </h2>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-4">
               {pinnedClusters.length > 0 ? (
                 pinnedClusters.map(cluster => (
                   <ClusterCard
@@ -882,6 +663,7 @@ const HomePage: React.FC = () => {
                     viewMode={viewMode}
                     theme={theme}
                     onHealthStatusChange={handleHealthStatusChange}
+                    contexts={contexts}
                   />
                 ))
               ) : (
@@ -905,6 +687,12 @@ const HomePage: React.FC = () => {
               onClick={() => setViewMode('grid')}
             >
               <Grid size={20} />
+            </button>
+            <button
+              className={`p-2 rounded-md ${viewMode === 'tree' ? 'bg-gray-200 dark:bg-gray-700' : 'bg-transparent'}`}
+              onClick={() => setViewMode('tree')}
+            >
+              <FolderTree size={20} />
             </button>
             <Button
               variant="outline"
@@ -945,34 +733,70 @@ const HomePage: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-1 max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'}`}>
-            {filteredClusters.length > 0 ? (
-              filteredClusters.map(cluster => (
-                <ClusterCard
-                  key={cluster.id}
-                  cluster={cluster}
-                  isSelected={selectedClusterId === cluster.id}
+          <div className={`${
+            viewMode === 'grid' 
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
+              : viewMode === 'tree'
+              ? 'w-full'
+              : 'space-y-1 max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'
+          }`}>
+            {viewMode === 'tree' ? (
+              filteredClusters.length > 0 ? (
+                <ClusterTreeView
+                  clusters={filteredClusters}
+                  contexts={contexts}
+                  pinnedClusterIds={pinnedClusterIds}
+                  selectedClusterId={selectedClusterId}
                   onContextMenu={handleContextMenu}
                   onClusterClick={handleClusterClick}
                   onConnect={handleConnect}
-                  onRename={() => {
-                    setContextToRename(cluster.id);
+                  onRename={(clusterId) => {
+                    setContextToRename(clusterId);
                     setRenameDialogOpen(true);
                   }}
                   onDelete={handleDirectDelete}
                   onPin={handleDirectPin}
                   onUnpin={handleDirectUnpin}
-                  viewMode={viewMode}
                   theme={theme}
                   onHealthStatusChange={handleHealthStatusChange}
                 />
-              ))
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    {searchQuery ? 'No clusters match your search criteria.' : 'No available Kubernetes contexts found.'}
+                  </p>
+                </div>
+              )
             ) : (
-              <div className="col-span-full py-8 text-center">
-                <p className="text-gray-500 dark:text-gray-400">
-                  {searchQuery ? 'No clusters match your search criteria.' : 'No available Kubernetes contexts found.'}
-                </p>
-              </div>
+              filteredClusters.length > 0 ? (
+                filteredClusters.map(cluster => (
+                  <ClusterCard
+                    key={cluster.id}
+                    cluster={cluster}
+                    isSelected={selectedClusterId === cluster.id}
+                    onContextMenu={handleContextMenu}
+                    onClusterClick={handleClusterClick}
+                    onConnect={handleConnect}
+                    onRename={() => {
+                      setContextToRename(cluster.id);
+                      setRenameDialogOpen(true);
+                    }}
+                    onDelete={handleDirectDelete}
+                    onPin={handleDirectPin}
+                    onUnpin={handleDirectUnpin}
+                    viewMode={viewMode}
+                    theme={theme}
+                    onHealthStatusChange={handleHealthStatusChange}
+                    contexts={contexts}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full py-8 text-center">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    {searchQuery ? 'No clusters match your search criteria.' : 'No available Kubernetes contexts found.'}
+                  </p>
+                </div>
+              )
             )}
           </div>
         )}
