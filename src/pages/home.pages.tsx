@@ -20,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { deleteContext } from '@/api/cluster';
 import { useAuth } from '@/contexts/useAuth';
 import { getUserProfile } from '@/api/auth';
+import { ClusterNavigationStorage } from '@/utils/clusterNavigation';
 
 
 // Interface for context menu position
@@ -160,7 +161,7 @@ const HomePage: React.FC = () => {
       console.log('Fetching user profile...');
       const profile = await getUserProfile();
       
-      console.log('User profile loaded:', profile);
+      console.log('User profile loaded:', profile.email);
       // If we get a valid profile, user is authenticated
       setUser(prevUser => {
         return {
@@ -301,8 +302,17 @@ const HomePage: React.FC = () => {
       // Update current context in the context provider
       setCurrentContext(contextToConnect);
 
-      // Navigate to dashboard
-      navigate(`/dashboard?cluster=${clusterId}`);
+      // Check for last visited location for this specific cluster
+      const lastVisitedLocation = ClusterNavigationStorage.getLastVisitedLocation(clusterId);
+      
+      if (lastVisitedLocation) {
+        // Navigate to last visited location for this specific cluster
+        navigate(lastVisitedLocation);
+      } else {
+        // Navigate to default dashboard
+        // navigate('/dashboard');
+        navigate(`/dashboard?cluster=${clusterId}`);
+      }
     }
   }, [contexts, setCurrentContext, navigate, clusterHealthStatus, toast]);
 

@@ -1,9 +1,13 @@
 import React from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { useClusterNavigation } from '@/hooks/use-cluster-navigation';
 
 export const HeaderComponent: React.FC = () => {
   const location = useLocation();
   const params = useParams();
+  
+  // Track cluster navigation for last visited locations
+  useClusterNavigation();
 
   const getPageTitle = (): string => {
     const pathname = location.pathname;
