@@ -1,70 +1,91 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, ExternalLink, Download, Copy, Check, Package, Star, Clock, Shield, FileCode, AlertCircle, CheckCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Download, DollarSign, AlertCircle, CheckCircle, Copy, Check, FileCode } from 'lucide-react';
+import { Alert } from "@/components/ui/alert";
 import Editor from '@monaco-editor/react';
-import { getChartVersions, getChartDefaultValues, installHelmRelease, getHelmActionStatus, encodeHelmValues, addHelmRepository } from '@/api/internal/helm';
-import { openExternalUrl } from '@/api/external';
+import { addHelmRepository, installHelmRelease, getHelmActionStatus, getChartVersions, getChartDefaultValues, encodeHelmValues } from '@/api/internal/helm';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
-import { ArtifactHubChart, ChartVersion } from '@/types/helm';
+import { AWS_PROVIDER, GCP_PROVIDER, AZURE_PROVIDER } from '@/assets/providers';
+import { ChartVersion } from '@/types/helm';
 
-interface HelmChartDialogProps {
-  chart: ArtifactHubChart | null;
+interface OpenCostInstallDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onInstallSuccess: () => void;
 }
 
-const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClose }) => {
+const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, onClose, onInstallSuccess }) => {
   const { currentContext } = useCluster();
   const { availableNamespaces } = useNamespace();
   
-  const [activeTab, setActiveTab] = useState("details");
-  const [chartValues, setChartValues] = useState<string>('# Loading values...');
-  const [loading, setLoading] = useState(false);
-  const [versions, setVersions] = useState<ChartVersion[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState<string>('');
-  const [copied, setCopied] = useState(false);
-  
   // Installation form state
-  const [releaseName, setReleaseName] = useState('');
-  const [namespace, setNamespace] = useState('default');
-  const [createNamespace, setCreateNamespace] = useState(false);
-  const [customNamespace, setCustomNamespace] = useState('');
-  const [customValues, setCustomValues] = useState('');
-  const [useCustomValues, setUseCustomValues] = useState(false);
+  const [releaseName, setReleaseName] = useState('opencost');
+  const [namespace, setNamespace] = useState('opencost');
+  const [createNamespace, setCreateNamespace] = useState(true);
+  const [customNamespace, setCustomNamespace] = useState('opencost');
   const [installing, setInstalling] = useState(false);
   const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'success' | 'error'>('idle');
   const [installError, setInstallError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [selectedCloudProvider, setSelectedCloudProvider] = useState('aws');
+  const [activeTab, setActiveTab] = useState('details');
+  const [chartValues, setChartValues] = useState<string>('# Loading values...');
+  const [versions, setVersions] = useState<ChartVersion[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<string>('');
+  const [customValues, setCustomValues] = useState('');
+  const [useCustomValues, setUseCustomValues] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Initialize when chart changes
+  // Chart details - using the correct Artifact Hub package ID
+  const openCostChart = {
+    name: 'opencost',
+    repository: {
+      name: 'opencost',
+      url: 'https://opencost.github.io/opencost-helm-chart'
+    },
+    version: '2.3.1',
+    description: 'OpenCost and OpenCost UI',
+    package_id: 'a7cfe5e7-b5c5-4ef5-86f6-8d35d2bf6e1f' // Correct Artifact Hub package ID for OpenCost
+  };
+
+  // Initialize when dialog opens
   useEffect(() => {
-    if (chart && isOpen) {
-      fetchChartVersions();
-      setSelectedVersion(chart.version);
-      setReleaseName(chart.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
-      setCustomValues('');
-      setUseCustomValues(false);
-      setCreateNamespace(false);
-      setCustomNamespace('');
-      setNamespace(availableNamespaces.includes('default') ? 'default' : availableNamespaces[0] || 'default');
+    if (isOpen) {
+      setReleaseName('opencost');
+      setNamespace(availableNamespaces.includes('opencost') ? 'opencost' : availableNamespaces[0] || 'default');
+      setCreateNamespace(true);
+      setCustomNamespace('opencost');
       setInstallStatus('idle');
       setInstallError('');
+      setSelectedCloudProvider('aws');
+      setSelectedVersion(openCostChart.version);
+      setCustomValues('');
+      setUseCustomValues(false);
+      setActiveTab('details');
+      fetchChartVersions();
+      fetchChartValues(openCostChart.package_id, openCostChart.version);
     }
-  }, [chart, isOpen, availableNamespaces]);
+  }, [isOpen, availableNamespaces]);
 
   // Fetch values when version changes
   useEffect(() => {
-    if (chart && selectedVersion) {
-      fetchChartValues(chart.package_id, selectedVersion);
+    if (selectedVersion && isOpen) {
+      fetchChartValues(openCostChart.package_id, selectedVersion);
     }
-  }, [selectedVersion, chart]);
+  }, [selectedVersion, isOpen]);
 
   // Manual status check function
   const handleCheckStatus = async () => {
@@ -86,12 +107,12 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
       if (status.status === 'success') {
         setInstallStatus('success');
         setInstalling(false);
+        onInstallSuccess();
       } else if (status.status === 'failed') {
         setInstallStatus('error');
         setInstallError(status.message || 'Installation failed');
         setInstalling(false);
       } else if (status.status === 'processing') {
-        // Keep the installing state if still processing
         setInstallStatus('installing');
       }
     } catch (error) {
@@ -102,12 +123,11 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
     }
   };
 
+  // Fetch chart versions
   const fetchChartVersions = async () => {
-    if (!chart) return;
-
     try {
       setLoading(true);
-      const xmlText = await getChartVersions(chart.repository.name, chart.name);
+      const xmlText = await getChartVersions(openCostChart.repository.name, openCostChart.name);
 
       if (xmlText) {
         const parser = new DOMParser();
@@ -130,15 +150,16 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
         }
       }
 
-      setVersions([{ version: chart.version, publishedAt: new Date().toISOString() }]);
+      setVersions([{ version: openCostChart.version, publishedAt: new Date().toISOString() }]);
     } catch (error) {
       console.error('Error fetching chart versions:', error);
-      setVersions([{ version: chart.version, publishedAt: new Date().toISOString() }]);
+      setVersions([{ version: openCostChart.version, publishedAt: new Date().toISOString() }]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch chart values
   const fetchChartValues = async (packageId: string, version: string) => {
     try {
       setLoading(true);
@@ -148,18 +169,95 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
       if (values && values.includes(':')) {
         setChartValues(values);
       } else {
-        setChartValues(`# Unable to fetch values for ${chart?.name} version ${version}\n# Please check the Artifact Hub website for values.yaml`);
+        setChartValues(`# Unable to fetch values for ${openCostChart.name} version ${version}\n# Please check the Artifact Hub website for values.yaml`);
       }
     } catch (error) {
       console.error('Error fetching chart values:', error);
-      setChartValues(`# Error fetching values for ${chart?.name} version ${version}\n# Please check the Artifact Hub website for values.yaml`);
+      setChartValues(`# Error fetching values for ${openCostChart.name} version ${version}\n# Please check the Artifact Hub website for values.yaml`);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCopyValues = () => {
+    navigator.clipboard.writeText(useCustomValues ? customValues : chartValues);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleUseCustomValues = (checked: boolean) => {
+    setUseCustomValues(checked);
+    if (checked && !customValues.trim()) {
+      setCustomValues(chartValues);
+    }
+  };
+
+  const generateHelmValues = () => {
+    const baseValues: any = {
+      opencost: {
+        exporter: {
+          cloudProviderApiKey: selectedCloudProvider === 'aws' ? 'AWS_ACCESS_KEY' :
+                               selectedCloudProvider === 'gcp' ? 'GOOGLE_APPLICATION_CREDENTIALS' :
+                               'AZURE_SERVICE_KEY'
+        },
+        prometheus: {
+          internal: {
+            enabled: false
+          },
+          external: {
+            url: 'http://prometheus-server.monitoring.svc.cluster.local:80'
+          }
+        }
+      },
+      productAnalytics: {
+        enabled: false
+      },
+      service: {
+        type: 'ClusterIP',
+        port: 9003
+      },
+      resources: {
+        requests: {
+          cpu: '100m',
+          memory: '128Mi'
+        },
+        limits: {
+          cpu: '500m',
+          memory: '256Mi'
+        }
+      }
+    };
+
+    // Add cloud provider specific settings
+    if (selectedCloudProvider === 'aws') {
+      baseValues.opencost.exporter = {
+        ...baseValues.opencost.exporter,
+        aws: {
+          region: 'us-east-1'
+        }
+      };
+    } else if (selectedCloudProvider === 'gcp') {
+      baseValues.opencost.exporter = {
+        ...baseValues.opencost.exporter,
+        gcp: {
+          projectID: 'your-gcp-project-id'
+        }
+      };
+    } else if (selectedCloudProvider === 'azure') {
+      baseValues.opencost.exporter = {
+        ...baseValues.opencost.exporter,
+        azure: {
+          subscriptionId: 'your-subscription-id',
+          tenantId: 'your-tenant-id'
+        }
+      };
+    }
+
+    return JSON.stringify(baseValues, null, 2);
+  };
+
   const handleInstall = async () => {
-    if (!chart || !currentContext || !releaseName) {
+    if (!currentContext || !releaseName) {
       setInstallError('Please fill in all required fields');
       return;
     }
@@ -175,121 +273,65 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
       setInstallStatus('installing');
       setInstallError('');
 
-      // Step 1: Add the repository first to ensure it's available
+      // Step 1: Add the repository first
       try {
         await addHelmRepository(
           currentContext.name,
-          chart.repository.name,
-          chart.repository.url
+          openCostChart.repository.name,
+          openCostChart.repository.url
         );
-        console.log(`Repository ${chart.repository.name} added successfully`);
+        console.log(`Repository ${openCostChart.repository.name} added successfully`);
       } catch (repoError) {
-        // If repository already exists, that's okay, continue with installation
         console.log(`Repository might already exist: ${repoError}`);
       }
 
       // Step 2: Prepare values
       const valuesToUse = useCustomValues && customValues.trim() 
         ? encodeHelmValues(customValues) 
-        : '';
+        : generateHelmValues();
 
+      // Step 3: Install the release with values
       const installRequest = {
         name: releaseName,
         namespace: targetNamespace,
-        description: `Install ${chart.name} chart`,
-        chart: `${chart.repository.name}/${chart.name}`,
+        description: `Install ${openCostChart.name} cost monitoring`,
+        chart: `${openCostChart.repository.name}/${openCostChart.name}`,
         version: selectedVersion,
         values: valuesToUse,
         createNamespace: createNamespace,
         dependencyUpdate: true
       };
 
-      console.log('Installing chart with request:', installRequest);
+      console.log('Installing OpenCost with request:', installRequest);
 
-      // Step 3: Install the release
       await installHelmRelease(currentContext.name, installRequest);
       
-      console.log('Installation request submitted successfully');
+      console.log('OpenCost installation request submitted successfully');
     } catch (error) {
-      console.error('Error installing chart:', error);
+      console.error('Error installing OpenCost:', error);
       setInstallStatus('error');
       setInstallError(error instanceof Error ? error.message : 'Installation failed');
       setInstalling(false);
     }
   };
 
-  const handleUseCustomValues = (checked: boolean) => {
-    setUseCustomValues(checked);
-    if (checked && !customValues.trim()) {
-      setCustomValues(chartValues);
-    }
-  };
-
-  const formatRelativeTime = (timestamp: number) => {
-    if (!timestamp) return 'Unknown';
-
-    try {
-      const now = Math.floor(Date.now() / 1000);
-      const secondsAgo = now - timestamp;
-
-      if (secondsAgo < 60) return 'just now';
-      if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
-      if (secondsAgo < 86400) return `${Math.floor(secondsAgo / 3600)}h ago`;
-      if (secondsAgo < 2592000) return `${Math.floor(secondsAgo / 86400)}d ago`;
-      if (secondsAgo < 31536000) return `${Math.floor(secondsAgo / 2592000)}mo ago`;
-      return `${Math.floor(secondsAgo / 31536000)}y ago`;
-    } catch (error) {
-      console.error('Error formatting timestamp:', error);
-      return 'Unknown';
-    }
-  };
-
-  const handleCopyValues = () => {
-    navigator.clipboard.writeText(useCustomValues ? customValues : chartValues);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  if (!chart) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-5xl bg-gray-100 dark:bg-[#0B0D13]/50 border-gray-200 dark:border-gray-900/10 backdrop-blur-lg">
+      <DialogContent className="sm:max-w-3xl bg-gray-100 dark:bg-[#0B0D13]/50 border-gray-200 dark:border-gray-900/10 backdrop-blur-lg">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
-            {chart.logo_image_id ? (
-              <img
-                src={`https://artifacthub.io/image/${chart.logo_image_id}`}
-                alt={`${chart.name} logo`}
-                className="w-10 h-10 rounded"
-              />
-            ) : (
-              <Package className="w-8 h-8 text-gray-500 dark:text-gray-400" />
-            )}
-            <DialogTitle className="text-xl">{chart.display_name || chart.name}</DialogTitle>
+            <DollarSign className="w-8 h-8 text-green-500" />
+            <DialogTitle className="text-xl">Install OpenCost</DialogTitle>
           </div>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
-            {chart.description}
-          </DialogDescription>
+          <p className="text-gray-600 dark:text-gray-400">
+            Open source cost monitoring for Kubernetes workloads
+          </p>
         </DialogHeader>
 
         <div className="flex justify-between items-center mt-2">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
-              <Star className="h-4 w-4" />
-              <span className="text-sm">{chart.stars}</span>
-            </div>
-            {chart.repository.verified_publisher && (
-              <span className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs px-2 py-1 rounded-full">
-                Verified Publisher
-              </span>
-            )}
-            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              {formatRelativeTime(chart.ts)}
-            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Version:</span>
           </div>
-
           <Select value={selectedVersion} onValueChange={setSelectedVersion}>
             <SelectTrigger className="w-36 bg-transparent dark:text-white dark:border-gray-500/40">
               <SelectValue placeholder="Version" />
@@ -306,101 +348,55 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid grid-cols-3">
-            <TabsTrigger value="details">Chart Details</TabsTrigger>
+            <TabsTrigger value="details">Configuration</TabsTrigger>
             <TabsTrigger value="values">Default Values</TabsTrigger>
             <TabsTrigger value="install">Install</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="mt-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
-                  <h3 className="text-sm font-medium mb-2">Chart Information</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Version:</span>
-                      <span className="font-medium">{chart.version}</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">App Version:</span>
-                      <span className="font-medium">{chart.app_version}</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Repository:</span>
-                      <span className="font-medium">{chart.repository.display_name || chart.repository.name}</span>
-                    </li>
-                    {chart.license && (
-                      <li className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">License:</span>
-                        <span className="font-medium">{chart.license}</span>
-                      </li>
-                    )}
-                    {chart.production_organizations_count !== undefined && (
-                      <li className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Production Use:</span>
-                        <span className="font-medium">{chart.production_organizations_count} organizations</span>
-                      </li>
-                    )}
-                  </ul>
-                </div>
-
-                {chart.security_report_summary && (
-                  <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
-                    <h3 className="text-sm font-medium mb-2 flex items-center gap-1">
-                      <Shield className="h-4 w-4" />
-                      Security Report
-                    </h3>
-                    <div className="grid grid-cols-5 gap-2 mt-3">
-                      {['critical', 'high', 'medium', 'low', 'unknown'].map((level) => (
-                        <div key={level} className="flex flex-col items-center">
-                          <span className={`text-lg font-bold ${
-                            level === 'critical' && chart.security_report_summary!.critical > 0 ? 'text-red-600' :
-                            level === 'high' && chart.security_report_summary!.high > 0 ? 'text-orange-500' :
-                            level === 'medium' && chart.security_report_summary!.medium > 0 ? 'text-yellow-600' :
-                            level === 'low' && chart.security_report_summary!.low > 0 ? 'text-blue-500' :
-                            'text-gray-500'
-                          }`}>
-                            {chart.security_report_summary![level as keyof typeof chart.security_report_summary]}
-                          </span>
-                          <span className="text-xs text-gray-500 capitalize">{level}</span>
-                        </div>
-                      ))}
-                    </div>
+            <div className="bg-white dark:bg-transparent p-6 rounded-md space-y-4">
+              <h3 className="text-lg font-medium">Chart Information</h3>
+              
+              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md">
+                <h4 className="text-sm font-medium mb-2">Chart Details</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Chart:</span>
+                    <span className="ml-2 font-medium">{openCostChart.name}</span>
                   </div>
-                )}
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Version:</span>
+                    <span className="ml-2 font-medium">{selectedVersion}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500 dark:text-gray-400">Repository:</span>
+                    <span className="ml-2 font-medium">{openCostChart.repository.url}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500 dark:text-gray-400">Description:</span>
+                    <span className="ml-2 font-medium">{openCostChart.description}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
-                  <h3 className="text-sm font-medium mb-2">Installation</h3>
-                  <div className="mt-3 bg-gray-50 dark:bg-gray-900/50 p-3 rounded border border-gray-200 dark:border-gray-700">
-                    <code className="text-sm text-gray-700 dark:text-gray-300 block whitespace-pre overflow-x-auto">
-                      helm repo add {chart.repository.name} {chart.repository.url}
-                      <br />
-                      helm install {chart.name} {chart.repository.name}/{chart.name} --version {selectedVersion}
-                    </code>
+              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md">
+                <h4 className="text-sm font-medium mb-2">Recent Versions</h4>
+                {versions.length > 1 ? (
+                  <ul className="space-y-2 text-sm max-h-48 overflow-y-auto scrollbar-thin">
+                    {versions.slice(0, 10).map((v) => (
+                      <li key={v.version} className={`flex justify-between ${v.version === selectedVersion ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}`}>
+                        <span>{v.version}</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-xs">
+                          {new Date(v.publishedAt).toLocaleDateString()}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-sm text-gray-500 dark:text-gray-400 p-2">
+                    Currently showing version {selectedVersion}.
                   </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
-                  <h3 className="text-sm font-medium mb-2">Recent Versions</h3>
-                  {versions.length > 1 ? (
-                    <ul className="space-y-2 text-sm max-h-48 overflow-y-auto scrollbar-thin">
-                      {versions.slice(0, 10).map((v) => (
-                        <li key={v.version} className={`flex justify-between ${v.version === selectedVersion ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}`}>
-                          <span>{v.version}</span>
-                          <span className="text-gray-500 dark:text-gray-400 text-xs">
-                            {new Date(v.publishedAt).toLocaleDateString()}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 p-2">
-                      Currently showing version {chart.version}.
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -426,7 +422,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${chart.name}-${selectedVersion}-values.yaml`;
+                    a.download = `${openCostChart.name}-${selectedVersion}-values.yaml`;
                     a.click();
                   }}
                   disabled={loading}
@@ -464,7 +460,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
 
             <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center">
               <FileCode className="h-4 w-4 mr-1" />
-              These are the default values for the {chart.name} chart (version {selectedVersion}).
+              These are the default values for the {openCostChart.name} chart (version {selectedVersion}).
             </div>
           </TabsContent>
 
@@ -517,7 +513,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                     id="release-name"
                     value={releaseName}
                     onChange={(e) => setReleaseName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                    placeholder="my-release"
+                    placeholder="opencost"
                     disabled={installing}
                   />
                 </div>
@@ -529,7 +525,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                       id="custom-namespace"
                       value={customNamespace}
                       onChange={(e) => setCustomNamespace(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                      placeholder="my-namespace"
+                      placeholder="opencost"
                       disabled={installing}
                     />
                   ) : (
@@ -600,6 +596,37 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                   </div>
                 )}
               </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="cloud-provider">Cloud Provider *</Label>
+                </div>
+                <Select value={selectedCloudProvider} onValueChange={setSelectedCloudProvider} disabled={installing}>
+                  <SelectTrigger className="bg-transparent backdrop-blur-sm dark:text-white dark:border-gray-500/40">
+                    <SelectValue placeholder="Select cloud provider" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
+                    <SelectItem value="aws">
+                      <div className="flex items-center gap-2">
+                        <img src={AWS_PROVIDER} alt="AWS" className="h-5 w-5" />
+                        AWS
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gcp">
+                      <div className="flex items-center gap-2">
+                        <img src={GCP_PROVIDER} alt="GCP" className="h-5 w-5" />
+                        Google Cloud
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="azure">
+                      <div className="flex items-center gap-2">
+                        <img src={AZURE_PROVIDER} alt="Azure" className="h-5 w-5" />
+                        Azure
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -609,14 +636,14 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
             <Button
               onClick={handleInstall}
               disabled={installing || !releaseName || (!namespace && !createNamespace) || (createNamespace && !customNamespace) || !currentContext || installStatus === 'success'}
-              className=" flex items-center"
+              className="flex items-center"
             >
               {installing ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Download className="h-4 w-4 mr-2" />
               )}
-              {installStatus === 'success' ? 'Installed' : installing ? 'Installing...' : 'Install Chart'}
+              {installStatus === 'success' ? 'Installed' : installing ? 'Installing...' : 'Install OpenCost'}
             </Button>
           ) : (
             <Button
@@ -629,15 +656,6 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
             </Button>
           )}
           
-          <Button
-            onClick={() => openExternalUrl(`https://artifacthub.io/packages/helm/${chart.repository.name}/${chart.name}`)}
-            className="flex items-center"
-            variant="outline"
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            View on Artifact Hub
-          </Button>
-          
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
@@ -647,4 +665,4 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
   );
 };
 
-export default HelmChartDialog;
+export default OpenCostInstallDialog;

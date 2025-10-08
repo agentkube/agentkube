@@ -1033,104 +1033,82 @@ const Events: React.FC = () => {
           </div>
         )}
 
-      {/* No events message */}
-      {events.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            {searchQuery
-              ? `No events matching "${searchQuery}"`
-              : selectedNamespaces.length === 0
-                ? "Please select at least one namespace"
-                : "No events found in the selected namespaces"}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Events found but filtered out */}
-      {events.length > 0 && filteredEvents.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            No events match the current filters. Try adjusting your search criteria or filters.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Events table */}
-      {filteredEvents.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader className='text-xs'>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('type') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('type')}
-                    >
-                      Type {renderSortIndicator('type')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('reason') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('reason')}
-                    >
-                      Reason {renderSortIndicator('reason')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('object') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500 w-[200px]"
-                      onClick={() => handleSort('involvedObject')}
-                    >
-                      Object {renderSortIndicator('involvedObject')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('message') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('message')}
-                    >
-                      Message {renderSortIndicator('message')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('count') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('count')}
-                    >
-                      Count {renderSortIndicator('count')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('source') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('source')}
-                    >
-                      Source {renderSortIndicator('source')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('time')}
-                    >
-                      Age {renderSortIndicator('time')}
-                    </TableHead>
-                  )}
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedEvents.map((event) => (
+      {/* Events table - Always shown, even when empty */}
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader className='text-xs'>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {isColumnVisible('type') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('type')}
+                  >
+                    Type {renderSortIndicator('type')}
+                  </TableHead>
+                )}
+                {isColumnVisible('reason') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('reason')}
+                  >
+                    Reason {renderSortIndicator('reason')}
+                  </TableHead>
+                )}
+                {isColumnVisible('object') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500 w-[200px]"
+                    onClick={() => handleSort('involvedObject')}
+                  >
+                    Object {renderSortIndicator('involvedObject')}
+                  </TableHead>
+                )}
+                {isColumnVisible('message') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('message')}
+                  >
+                    Message {renderSortIndicator('message')}
+                  </TableHead>
+                )}
+                {isColumnVisible('count') && (
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('count')}
+                  >
+                    Count {renderSortIndicator('count')}
+                  </TableHead>
+                )}
+                {isColumnVisible('source') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('source')}
+                  >
+                    Source {renderSortIndicator('source')}
+                  </TableHead>
+                )}
+                {isColumnVisible('namespace') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('namespace')}
+                  >
+                    Namespace {renderSortIndicator('namespace')}
+                  </TableHead>
+                )}
+                {isColumnVisible('age') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('time')}
+                  >
+                    Age {renderSortIndicator('time')}
+                  </TableHead>
+                )}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEvents.length > 0 ? (
+                sortedEvents.map((event) => (
                   <TableRow
                     key={`${event.metadata?.namespace}-${event.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${event.type === 'Warning' ? 'bg-amber-50/30 dark:bg-amber-900/5' : ''
@@ -1228,12 +1206,24 @@ const Events: React.FC = () => {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {events.length === 0
+                      ? (searchQuery
+                          ? `No events matching "${searchQuery}"`
+                          : selectedNamespaces.length === 0
+                            ? "Please select at least one namespace to view events"
+                            : "No events found in the selected namespaces")
+                      : "No events match the current filters. Try adjusting your search criteria or filters."}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Resource Filter Sidebar */}
       <ResourceFilterSidebar

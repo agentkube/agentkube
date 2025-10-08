@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import MemoryDrilldown from './drilldowns/memory.drilldown';
 import CpuDrilldown from './drilldowns/cpu.drilldown';
 import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
+import MonitoringDashDialog from '@/components/custom/monitoringdash-dialog/monitoringdash-dialog.component';
 import {
   ChartTooltip,
 } from "@/components/ui/chart";
@@ -83,6 +84,10 @@ const MonitoringOverview = () => {
   // For demo dialog and animation
   const [isDemoOpen, setIsDemoOpen] = useState<boolean>(false);
   const [isWatchDemoExpanded, setIsWatchDemoExpanded] = useState<boolean>(false);
+  
+  // For monitoring dashboard dialog
+  const [isDashboardDialogOpen, setIsDashboardDialogOpen] = useState<boolean>(false);
+  const [selectedDashboardTool, setSelectedDashboardTool] = useState<string>('');
 
   const loadMonitoringConfig = useCallback(async () => {
     if (!currentContext) return;
@@ -697,6 +702,11 @@ const MonitoringOverview = () => {
     refreshAllMetrics();
   };
 
+  const handleOpenDashboard = (toolId: string) => {
+    setSelectedDashboardTool(toolId);
+    setIsDashboardDialogOpen(true);
+  };
+
   return (
     <div className="
 		      max-h-[93vh] overflow-y-auto
@@ -785,8 +795,8 @@ const MonitoringOverview = () => {
             </DropdownMenu>
             <Button
               variant="outline"
-              
-              className="flex justify-between w-56  "
+              onClick={() => handleOpenDashboard(selectedDataSource.id)}
+              className="flex justify-between w-56"
             >
               Open {selectedDataSource.name} Dashboard
               <ArrowUpRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />
@@ -1208,6 +1218,14 @@ const MonitoringOverview = () => {
           onClose={() => setIsDemoOpen(false)}
           videoId="B63Wx4STwXU"
           title="Monitoring Demo - Kubernetes Monitoring Made Simple"
+        />
+
+        {/* Monitoring Dashboard Dialog */}
+        <MonitoringDashDialog
+          isOpen={isDashboardDialogOpen}
+          onClose={() => setIsDashboardDialogOpen(false)}
+          clusterName={currentContext?.name || ''}
+          selectedTool={selectedDashboardTool}
         />
       </div>
     </div>

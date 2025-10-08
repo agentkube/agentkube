@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2, Info, ArrowUpDown, ArrowUp, ArrowDown, ArrowUpRight } from "lucide-react";
+import { Loader2, Info, ArrowUpDown, ArrowUp, ArrowDown, ArrowUpRight, Play } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,6 +32,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { NamespaceSelector } from '@/components/custom';
 import { useDrawer } from '@/contexts/useDrawer';
 import { toast } from '@/hooks/use-toast';
+import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
 
 const SEVERITY_LEVELS = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 
@@ -57,6 +58,12 @@ const AuditReport = () => {
   const [individualReport, setIndividualReport] = useState<IndividualConfigAuditReport | null>(null);
   const [loadingIndividualReport, setLoadingIndividualReport] = useState(false);
 
+  // For the demo dialog
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
+  
+  // For button animation
+  const [isButtonExpanded, setIsButtonExpanded] = useState(false);
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeverity, setSelectedSeverity] = useState<SeverityLevel | "all">("all");
@@ -65,6 +72,22 @@ const AuditReport = () => {
   // Sorting states
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Button animation effect
+  useEffect(() => {
+    const expandTimer = setTimeout(() => {
+      setIsButtonExpanded(true);
+    }, 500);
+    
+    const collapseTimer = setTimeout(() => {
+      setIsButtonExpanded(false);
+    }, 3000); // 500ms + 2500ms = 3000ms total
+    
+    return () => {
+      clearTimeout(expandTimer);
+      clearTimeout(collapseTimer);
+    };
+  }, []);
 
   useEffect(() => {
     const checkTrivyStatus = async () => {
@@ -80,8 +103,9 @@ const AuditReport = () => {
         }
       } catch (err) {
         console.error('Error checking Trivy status:', err);
+        // Assume Trivy is not installed if we can't check status
         setIsTrivyInstalled(false);
-        setError(err instanceof Error ? err.message : 'Failed to check Trivy status');
+        setError(null); // Don't show error, just assume not installed
       } finally {
         setLoading(false);
       }
@@ -319,16 +343,6 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
     );
   }
 
-  if (error && !isDrawerOpen) {
-    return (
-      <div className="p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-red-500 mb-2">Error</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-        <Button onClick={() => window.location.reload()}>Refresh Page</Button>
-      </div>
-    );
-  }
 
   if (!isTrivyInstalled) {
     return (
@@ -365,10 +379,44 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
               <p className="dark:text-gray-500">Security overview of your Kubernetes cluster, view your cluster vulnerabilities and compliance.</p>
             </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="text-xs text-gray-500 border border-gray-400 dark:border-gray-800/50 h-fit py-2 px-4 rounded-lg">
+            <div className="flex gap-2 items-start">
+              <Button
+                onClick={() => setIsDemoOpen(true)}
+                className="flex items-center justify-between gap-2 relative overflow-hidden"
+              >
+                <motion.div
+                  initial={{ width: 40 }}
+                  animate={{ 
+                    width: isButtonExpanded ? 144 : 14 
+                  }}
+                  transition={{ 
+                    duration: 0.4,
+                    ease: "easeInOut"
+                  }}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <Play className="w-4 h-4 flex-shrink-0" />
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ 
+                      opacity: isButtonExpanded ? 1 : 0,
+                      width: isButtonExpanded ? 'auto' : 0
+                    }}
+                    transition={{ 
+                      duration: 0.3,
+                      delay: isButtonExpanded ? 0.2 : 0,
+                      ease: "easeOut"
+                    }}
+                    className="whitespace-nowrap text-sm overflow-hidden"
+                  >
+                    Watch Demo
+                  </motion.span>
+                </motion.div>
+              </Button>
+
+              <Button>
                 {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
-              </div>
+              </Button>
             </div>
           </div>
         </motion.div>
@@ -444,10 +492,10 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
               value={selectedSeverity}
               onValueChange={(value) => setSelectedSeverity(value as SeverityLevel | "all")}
             >
-              <SelectTrigger className="w-32 border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
+              <SelectTrigger className="w-32 h-full border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-[#0B0D13]/30 backdrop-blur-md">
+              <SelectContent className="dark:bg-[#0B0D13]/30 backdrop-blur-md ">
                 <SelectItem value="all">All</SelectItem>
                 {SEVERITY_LEVELS.map((severity) => (
                   <SelectItem key={severity} value={severity}>
@@ -820,6 +868,14 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
           )}
         </DrawerContent>
       </SideDrawer>
+
+      {/* Demo Dialog */}
+      <DemoVideoDialog
+        isOpen={isDemoOpen}
+        onClose={() => setIsDemoOpen(false)}
+        videoId="B63Wx4STwXU"
+        title="Trivy Security Scanner Demo - Kubernetes Security Made Simple"
+      />
     </motion.div>
   );
 };

@@ -19,8 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { installTrivyOperator } from '@/api/scanner/security';
-import { useCluster } from '@/contexts/clusterContext';
+import TrivyInstallDialog from './security-setup-dialog.component';
 import { AUDIT_REPORT_DEMO_DATA } from '@/constants/audit-report-demo-data.constant';
 import { TrivyConfigAuditReport, TrivyConfigAuditCheck, SeverityLevel } from "@/types/trivy";
 import { containerVariants, itemVariants } from "@/utils/styles.utils";
@@ -41,9 +40,7 @@ interface TrivyNotInstalledAuditReportProps {
 }
 
 const TrivyNotInstalledAuditReport: React.FC<TrivyNotInstalledAuditReportProps> = ({ title, subtitle, onInstallSuccess }) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { currentContext } = useCluster();
+  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { addStructuredContent } = useDrawer();
 
@@ -84,24 +81,9 @@ const TrivyNotInstalledAuditReport: React.FC<TrivyNotInstalledAuditReportProps> 
     };
   }, []);
 
-  const handleInstallTrivy = async () => {
-    if (!currentContext?.name) {
-      setError("No cluster selected");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      await installTrivyOperator(currentContext.name);
-      onInstallSuccess();
-    } catch (err) {
-      console.error('Installation error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to install Trivy operator');
-    } finally {
-      setLoading(false);
-    }
+  const handleInstallSuccess = () => {
+    setIsInstallDialogOpen(false);
+    onInstallSuccess();
   };
 
   const handleCheckClick = (report: TrivyConfigAuditReport) => {
@@ -320,21 +302,15 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                 {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
               </Button>
               <Button
-                onClick={handleInstallTrivy}
-                disabled={loading}
+                onClick={() => setIsInstallDialogOpen(true)}
                 className="flex items-center justify-between min-w-44 gap-2 dark:bg-white dark:hover:text-white dark:text-gray-800"
               >
                 <Download />
-                {loading ? 'Installing...' : 'Install Trivy'}
+                Install Trivy
               </Button>
             </div>
           </div>
 
-          {error && (
-            <div className="text-sm mt-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-md">
-              {error}
-            </div>
-          )}
         </motion.div>
 
         <motion.div variants={itemVariants} className="col-span-3 dark:bg-transparent rounded-2xl">
@@ -774,6 +750,13 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
         onClose={() => setIsDemoOpen(false)}
         videoId="B63Wx4STwXU"
         title="Trivy Security Scanner Demo - Kubernetes Security Made Simple"
+      />
+
+      {/* Install Dialog */}
+      <TrivyInstallDialog
+        isOpen={isInstallDialogOpen}
+        onClose={() => setIsInstallDialogOpen(false)}
+        onInstallSuccess={handleInstallSuccess}
       />
     </motion.div>
   );

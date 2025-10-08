@@ -249,8 +249,7 @@ const CostOverview: React.FC = () => {
 
 
   if (isOpenCostInstalled === false) {
-    return <OpenCostInstaller loading={loading} onInstall={handleInstallComplete}
-    />;
+    return <OpenCostInstaller loading={loading} onInstallSuccess={handleInstallComplete} />;
   }
 
   return (
