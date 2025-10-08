@@ -24,18 +24,15 @@ interface Workspace {
   isActive: boolean
 }
 
+const homeView = {
+  id: "home",
+  name: "Home",
+  isActive: true,
+}
+
 const dummyWorkspaces: Workspace[] = [
   {
     id: "1",
-    name: "Home",
-    clusters: [
-      { name: "docker-desktop", context: "docker-desktop", server: "https://127.0.0.1:6443" },
-      { name: "kind-local", context: "kind-local", server: "https://127.0.0.1:52701" }
-    ],
-    isActive: true,
-  },
-  {
-    id: "2",
     name: "production",
     clusters: [
       { name: "exciting-classical-badger", context: "eks-cluster", server: "https://4D4BFC24E115E478674CA878D291C58C.gr7.us-east-1.eks.amazonaws.com" },
@@ -62,6 +59,14 @@ const dummyWorkspaces: Workspace[] = [
   },
 ]
 
+const getAllClusters = (): ClusterContext[] => {
+  const localClusters = [
+    { name: "docker-desktop", context: "docker-desktop", server: "https://127.0.0.1:6443" },
+    { name: "kind-local", context: "kind-local", server: "https://127.0.0.1:52701" }
+  ]
+  return [...localClusters, ...dummyWorkspaces.flatMap(w => w.clusters)]
+}
+
 // Generate color class based on workspace name using predefined colors
 const generateColorFromName = (name: string): string => {
   const colors = [
@@ -84,12 +89,12 @@ const generateColorFromName = (name: string): string => {
 }
 
 export function WorkspaceSwitcher() {
-  const [selectedWorkspace, setSelectedWorkspace] = useState(
-    dummyWorkspaces.find(w => w.isActive)?.id || dummyWorkspaces[0].id
-  )
+  const [selectedWorkspace, setSelectedWorkspace] = useState("home")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
-  const currentWorkspace = dummyWorkspaces.find(w => w.id === selectedWorkspace)
+  const currentWorkspace = selectedWorkspace === "home" 
+    ? homeView 
+    : dummyWorkspaces.find(w => w.id === selectedWorkspace)
 
   const handleWorkspaceChange = (workspaceId: string) => {
     if (workspaceId === 'create-workspace') {
@@ -97,7 +102,11 @@ export function WorkspaceSwitcher() {
       return
     }
     setSelectedWorkspace(workspaceId)
-    console.log('Switching to workspace:', dummyWorkspaces.find(w => w.id === workspaceId)?.name)
+    if (workspaceId === 'home') {
+      console.log('Switching to Home - showing all clusters')
+    } else {
+      console.log('Switching to workspace:', dummyWorkspaces.find(w => w.id === workspaceId)?.name)
+    }
   }
 
   const handleCreateWorkspace = (workspace: { name: string; description: string }) => {
@@ -122,6 +131,25 @@ export function WorkspaceSwitcher() {
         </div>
       </SelectTrigger>
       <SelectContent className="w-64 dark:bg-[#0B0D13]/40 backdrop-blur-md dark:border-gray-600/20">
+        <SelectItem
+          value="home"
+          className="cursor-pointer dark:hover:bg-gray-500/30"
+        >
+          <div className="flex items-center space-x-3 w-full">
+            <div className="w-5 h-5 rounded-sm flex items-center justify-center text-gray-300/80 text-xs font-bold bg-gray-500/50">
+              H
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                Home
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-44">
+                All clusters - {getAllClusters().length} clusters
+              </div>
+            </div>
+          </div>
+        </SelectItem>
+        <div className="border-t border-gray-200 dark:border-gray-700/40" />
         <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           Workspaces
         </div>
