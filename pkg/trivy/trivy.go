@@ -69,8 +69,9 @@ func (c *Controller) InstallOperator(ctx context.Context, namespace string) erro
 		Version:         getEnvOrDefault("TRIVY_CHART_VERSION", defaultChartVersion),
 		UpgradeCRDs:     true,
 		Wait:            true,
-		Timeout:         300,
+		Timeout:         time.Duration(300) * time.Second, // Fix: explicit duration instead of raw int
 		CreateNamespace: true,
+		WaitForJobs:     true, // Also wait for jobs to complete
 	}
 
 	// Install/upgrade the chart

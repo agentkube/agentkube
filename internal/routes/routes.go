@@ -23,6 +23,8 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 	helmHandler := handlers.NewHelmHandler(kubeConfigStore, cacheSvc)
 	// Initialize Vulnerability handler
 	vulHandler := handlers.NewVulnerabilityHandler(kubeConfigStore)
+	// Initialize Lookup handler
+	lookupHandler := handlers.NewLookupHandler(kubeConfigStore)
 	
 	// Initialize Queue for async operations
 	queueConfig := utils.QueueConfig{
@@ -248,6 +250,17 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			
 			// Operation status endpoints
 			v1.GET("/operations/:operationId", metricsServerHandler.GetOperationStatus)
+
+			// Tool lookup endpoints
+			lookupGroup := v1.Group("/lookup")
+			{
+				// Get supported tools
+				lookupGroup.GET("/tools", lookupHandler.GetSupportedTools)
+				// Find tool in specific cluster
+				lookupGroup.GET("/cluster/:clusterName/tool/:toolName", lookupHandler.FindToolInCluster)
+				// Find tools in specific cluster
+				lookupGroup.POST("/cluster/:clusterName/tools", lookupHandler.FindToolsInCluster)
+			}
 		}
 
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/agentkube/operator/pkg/logger"
 	"github.com/go-playground/validator/v10"
@@ -184,6 +185,11 @@ func (h *Handler) InstallRelease(req InstallRequest) {
 	installClient.Description = req.Description
 	installClient.CreateNamespace = req.CreateNamespace
 	installClient.ChartPathOptions.Version = req.Version
+	
+	// Configure timeout and wait settings
+	installClient.Wait = true
+	installClient.WaitForJobs = true
+	installClient.Timeout = 10 * time.Minute  // Set reasonable timeout for complex charts
 
 	chart, err := h.getChart("install", req.Chart, req.Name,
 		installClient.ChartPathOptions, req.DependencyUpdate, h.EnvSettings)
@@ -234,6 +240,11 @@ func (h *Handler) UpgradeRelease(req UpgradeReleaseRequest) {
 	upgradeClient.Namespace = req.Namespace
 	upgradeClient.Description = req.Description
 	upgradeClient.ChartPathOptions.Version = req.Version
+	
+	// Configure timeout and wait settings
+	upgradeClient.Wait = true
+	upgradeClient.WaitForJobs = true
+	upgradeClient.Timeout = 10 * time.Minute  // Set reasonable timeout for complex charts
 
 	chart, err := h.getChart("upgrade", req.Chart, req.Name, upgradeClient.ChartPathOptions, true, h.EnvSettings)
 	if err != nil {
@@ -269,6 +280,10 @@ func (h *Handler) UpgradeRelease(req UpgradeReleaseRequest) {
 func (h *Handler) UninstallRelease(req UninstallReleaseRequest) {
 	// Get uninstall client
 	uninstallClient := action.NewUninstall(h.Configuration)
+	
+	// Configure timeout and wait settings
+	uninstallClient.Wait = true
+	uninstallClient.Timeout = 5 * time.Minute  // Reasonable timeout for uninstall
 
 	status := Success
 

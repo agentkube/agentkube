@@ -97,7 +97,17 @@ type restConfigGetter struct {
 }
 
 func (r *restConfigGetter) ToRESTConfig() (*rest.Config, error) {
-	return r.clientConfig.ClientConfig()
+	config, err := r.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	
+	// Configure timeouts to prevent premature failures
+	config.Timeout = 5 * time.Minute         // Overall timeout for requests
+	config.QPS = 50                          // Increase queries per second
+	config.Burst = 100                       // Increase burst capacity
+	
+	return config, nil
 }
 
 func (r *restConfigGetter) ToRawKubeConfigLoader() clientcmd.ClientConfig {
@@ -112,8 +122,10 @@ func (r *restConfigGetter) ToDiscoveryClient() (discovery.CachedDiscoveryInterfa
 
 	// The more groups you have, the more discovery requests you need to make.
 	// given 25 groups (our groups + a few custom conf) with one-ish version each, discovery needs to make 50 requests
-	// double it just so we don't end up here again for a while.  This config is only used for discovery.
-	config.Burst = 100
+	// Increase limits significantly to handle complex charts like Trivy with many CRDs
+	config.Burst = 200
+	config.QPS = 100
+	config.Timeout = 2 * time.Minute  // Discovery timeout
 
 	discoveryClient, _ := discovery.NewDiscoveryClientForConfig(config)
 
