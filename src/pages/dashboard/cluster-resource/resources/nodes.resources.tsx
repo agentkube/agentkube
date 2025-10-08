@@ -133,7 +133,7 @@ const Nodes: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [memoryUnit, setMemoryUnit] = useState<'MiB' | 'GiB'>('GiB');
   const [diskUnit, setDiskUnit] = useState<'MiB' | 'GiB'>('GiB');
-  const { currentContext } = useCluster();
+  const { currentContext, isMetricsServerInstalled } = useCluster();
   const { addResourceContext } = useDrawer();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -342,7 +342,7 @@ const Nodes: React.FC = () => {
 
   // Function to fetch metrics and update nodes
   const fetchNodeMetrics = async () => {
-    if (!currentContext) return;
+    if (!currentContext || !isMetricsServerInstalled) return;
 
     try {
       setRefreshing(true);
@@ -472,8 +472,10 @@ const Nodes: React.FC = () => {
         setNodes(enhancedNodes);
         setError(null);
 
-        // Fetch initial metrics after nodes are loaded
-        await fetchNodeMetrics();
+        // Fetch initial metrics after nodes are loaded (only if metrics server is installed)
+        if (isMetricsServerInstalled) {
+          await fetchNodeMetrics();
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch nodes');
         console.error('Error fetching nodes:', err);
@@ -488,13 +490,13 @@ const Nodes: React.FC = () => {
   // Set up metrics refresh interval
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (nodes.length > 0) {
+      if (nodes.length > 0 && isMetricsServerInstalled) {
         fetchNodeMetrics();
       }
     }, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [nodes, currentContext]);
+  }, [nodes, currentContext, isMetricsServerInstalled]);
 
   if (loading) {
     return (

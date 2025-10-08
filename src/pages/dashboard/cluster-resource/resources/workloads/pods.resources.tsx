@@ -102,7 +102,7 @@ const formatResourceValue = (value: number, type: 'cpu' | 'memory'): string => {
 
 const Pods: React.FC = () => {
   const navigate = useNavigate();
-  const { currentContext } = useCluster();
+  const { currentContext, isMetricsServerInstalled } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const { isReconMode } = useReconMode();
   const [pods, setPods] = useState<V1Pod[]>([]);
@@ -815,7 +815,7 @@ const Pods: React.FC = () => {
 
   // Fetch pods metrics
   const fetchPodsMetrics = async () => {
-    if (!currentContext || selectedNamespaces.length === 0 || pods.length === 0) {
+    if (!currentContext || selectedNamespaces.length === 0 || pods.length === 0 || !isMetricsServerInstalled) {
       return;
     }
 
@@ -1004,21 +1004,21 @@ const Pods: React.FC = () => {
 
   // Fetch metrics when pods change
   useEffect(() => {
-    if (pods.length > 0) {
+    if (pods.length > 0 && isMetricsServerInstalled) {
       fetchPodsMetrics();
     }
-  }, [pods]);
+  }, [pods, isMetricsServerInstalled]);
 
   // Set up metrics refresh interval
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (pods.length > 0) {
+      if (pods.length > 0 && isMetricsServerInstalled) {
         fetchPodsMetrics();
       }
     }, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [pods]);
+  }, [pods, isMetricsServerInstalled]);
 
   // Filter pods based on search query
   const filteredPods = useMemo(() => {
