@@ -4,6 +4,8 @@ import { Settings, RotateCcw, Table, ChevronDown, ChevronRight } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
+// TODO use https://reui.io/docs/sortable to arrange the table rows and columns
+
 interface ColumnConfig {
   key: string;
   label: string;

@@ -20,7 +20,7 @@ const Shortcuts = () => {
   // All shortcuts organized by category
   const shortcutCategories = {
     general: [
-      { macos: '⌘ H', windows: 'Ctrl+H', linux: 'Ctrl+H', description: 'Navigate to Home' },
+      { macos: '⌘ D', windows: 'Ctrl+D', linux: 'Ctrl+D', description: 'Navigate to Home' },
       { macos: '⌘ K', windows: 'Ctrl+K', linux: 'Ctrl+K', description: 'Kube spotlight' },
       { macos: '⌘ L', windows: 'Ctrl+L', linux: 'Ctrl+L', description: 'Talk to cluster Panel' },
       { macos: '⌘ ←', windows: 'Alt+←', linux: 'Alt+←', description: 'Navigate Back' },

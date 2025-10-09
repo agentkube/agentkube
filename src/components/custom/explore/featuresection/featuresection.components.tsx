@@ -34,12 +34,12 @@ const advancedFeatures: FeatureItem[] = [
     label: 'AI Editor',
     path: '/dashboard/editor'
   },
-  {
-    id: 'talk-to-cluster',
-    icon: <BotMessageSquare className="w-4 h-4" />,
-    label: 'Talk to Cluster',
-    path: '/dashboard/talk2cluster'
-  },
+  // {
+  //   id: 'talk-to-cluster',
+  //   icon: <BotMessageSquare className="w-4 h-4" />,
+  //   label: 'Talk to Cluster',
+  //   path: '/dashboard/talk2cluster'
+  // },
   {
     id: 'monitoring',
     icon: <ChartLine className="w-4 h-4" />,

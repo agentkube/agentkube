@@ -636,21 +636,35 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
                 </DropdownMenu>
 
 
-                <Button
-                  variant="ghost"
-                  className="h-8 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                  onClick={handleSave}
-                  disabled={isSaving || !getCurrentTab()}
-                >
-                  {isSaving ? 'Creating...' : <><Save className="h-4 w-4 mr-2" /> Save</>}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="h-4 w-6 ml-2 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                  onClick={handleClear}
-                >
-                  <RotateCcw className="h-3 w-3" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="h-8 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                      onClick={handleSave}
+                      disabled={isSaving || !getCurrentTab()}
+                    >
+                      {isSaving ? 'Creating...' : <><Save className="h-4 w-4 mr-2" /> Save</>}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="px-2 py-1">
+                    <p className="text-xs">Apply Changes</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="h-4 w-6 ml-2 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                      onClick={handleClear}
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="px-2 py-1">
+                    <p className="text-xs">Reset</p>
+                  </TooltipContent>
+                </Tooltip>
                 <Button
                   onClick={onToggle}
                   variant="ghost"

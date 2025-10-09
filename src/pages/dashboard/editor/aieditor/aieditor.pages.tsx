@@ -82,11 +82,11 @@ const AIResourceEditor: React.FC = () => {
 
 
   // State for sidebar visibility
-  const [showSidebar, setShowSidebar] = useState<boolean>(false);
+  const [showSidebar, setShowSidebar] = useState<boolean>(true);
 
 
   // State for layout
-  const [editorWidth, setEditorWidth] = useState<string>('100%');
+  const [editorWidth, setEditorWidth] = useState<string>('60%');
   const isDragging = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isResizing, setIsResizing] = useState<boolean>(false);
@@ -282,7 +282,7 @@ const AIResourceEditor: React.FC = () => {
       });
       return;
     }
-    
+
     if (!currentContext?.name) {
       toast({
         title: "Error",
@@ -587,8 +587,8 @@ const AIResourceEditor: React.FC = () => {
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
                   >
-                      <SiKubernetes className='h-3.5 w-3.5 mr-2' />
-                    <span className="truncate max-w-[150px] text-xs"> 
+                    <SiKubernetes className='h-3.5 w-3.5 mr-2' />
+                    <span className="truncate max-w-[150px] text-xs">
                       {tab.name}
                     </span>
                     <button
@@ -681,17 +681,15 @@ const AIResourceEditor: React.FC = () => {
                 className="border-l border-gray-200 dark:border-gray-800 h-full flex-grow overflow-hidden"
               >
                 <div className="p-4 h-full w-full overflow-hidden flex flex-col">
-                  <Tabs defaultValue="chat" className="w-full h-full flex flex-col ">
+                  <Tabs defaultValue="template" className="w-full h-full flex flex-col ">
                     <TabsList className="mb-2 w-full flex-shrink-0 text-sm dark:bg-transparent">
-                      <TabsTrigger value="chat" className="flex-1">
-                        <Wand2 className="h-4 w-4 mr-2" /> Chat
+                      <TabsTrigger value="template" className="flex-1">
+                        <Code className="h-4 w-4 mr-2" /> Template
                       </TabsTrigger>
                       <TabsTrigger value="security" className="flex-1">
                         <Shield className="h-4 w-4 mr-2" /> Security
                       </TabsTrigger>
-                      <TabsTrigger value="template" className="flex-1">
-                        <Code className="h-4 w-4 mr-2" /> Template
-                      </TabsTrigger>
+
                       <TabsTrigger value="gui" className="flex-1">
                         <LayoutGrid className="h-4 w-4 mr-2" /> GUI
                       </TabsTrigger>
