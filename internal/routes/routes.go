@@ -25,6 +25,8 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 	vulHandler := handlers.NewVulnerabilityHandler(kubeConfigStore)
 	// Initialize Lookup handler
 	lookupHandler := handlers.NewLookupHandler(kubeConfigStore)
+	// Initialize Workspace handler
+	workspaceHandler := handlers.NewWorkspaceHandler()
 	
 	// Initialize Queue for async operations
 	queueConfig := utils.QueueConfig{
@@ -261,6 +263,17 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 				// Find tools in specific cluster
 				lookupGroup.POST("/cluster/:clusterName/tools", lookupHandler.FindToolsInCluster)
 			}
+
+			// Workspace management endpoints
+			v1.GET("/workspaces", workspaceHandler.ListWorkspaces)
+			v1.POST("/workspaces", workspaceHandler.CreateWorkspace)
+			v1.GET("/workspaces/:name", workspaceHandler.GetWorkspace)
+			v1.PATCH("/workspaces/:name", workspaceHandler.UpdateWorkspace)
+			v1.DELETE("/workspaces/:name", workspaceHandler.DeleteWorkspace)
+
+			// Cluster operations within workspace
+			v1.POST("/workspaces/:name/clusters", workspaceHandler.AddClusterToWorkspace)
+			v1.DELETE("/workspaces/:name/clusters/:clusterName", workspaceHandler.RemoveClusterFromWorkspace)
 		}
 
 	}

@@ -197,6 +197,12 @@ func New() (*Config, error) {
 		return c, err
 	}
 
+	// Initialize workspace.json file if it doesn't exist
+	if err := initializeWorkspaceFile(); err != nil {
+		// Log error but don't fail startup
+		// TODO: Add proper logging here
+	}
+
 	return c, nil
 }
 
@@ -277,4 +283,22 @@ func configDir() string {
 		os.MkdirAll(agentKubeDir, 0755)
 	}
 	return agentKubeDir
+}
+
+func initializeWorkspaceFile() error {
+	workspaceFile := filepath.Join(configDir(), "workspace.json")
+	if _, err := os.Stat(workspaceFile); os.IsNotExist(err) {
+		file, err := os.Create(workspaceFile)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		
+		// Write empty workspace structure
+		emptyWorkspace := `{"workspaces": []}`
+		if _, err := file.WriteString(emptyWorkspace); err != nil {
+			return err
+		}
+	}
+	return nil
 }
