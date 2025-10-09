@@ -30,10 +30,25 @@ export const getStoredColumnConfig = (resourceType: string, defaultConfig: Colum
     const storedConfig = allConfigs[resourceType];
     
     if (storedConfig) {
-      // Merge stored config with default config to handle new columns
+      // Merge stored config with default config to handle new columns and nested structures
       const mergedConfig = defaultConfig.map(defaultCol => {
         const storedCol = storedConfig.find(col => col.key === defaultCol.key);
-        return storedCol ? { ...defaultCol, visible: storedCol.visible } : defaultCol;
+        
+        if (storedCol) {
+          const merged = { ...defaultCol, visible: storedCol.visible };
+          
+          // Handle nested children
+          if (defaultCol.children) {
+            merged.children = defaultCol.children.map(defaultChild => {
+              const storedChild = storedConfig.find(col => col.key === defaultChild.key);
+              return storedChild ? { ...defaultChild, visible: storedChild.visible } : defaultChild;
+            });
+          }
+          
+          return merged;
+        }
+        
+        return defaultCol;
       });
       
       return mergedConfig;
@@ -49,8 +64,21 @@ export const saveColumnConfig = (resourceType: string, config: ColumnConfig[]): 
   try {
     const allConfigs = getAllStoredConfigs();
     
-    // Only store the essential data (key and visible state)
-    const configToStore = config.map(({ key, visible }) => ({ key, visible }));
+    // Flatten the config to store both parent and child columns
+    const configToStore: { key: string; visible: boolean }[] = [];
+    
+    config.forEach(col => {
+      // Store the parent column
+      configToStore.push({ key: col.key, visible: col.visible });
+      
+      // Store child columns if they exist
+      if (col.children) {
+        col.children.forEach(child => {
+          configToStore.push({ key: child.key, visible: child.visible });
+        });
+      }
+    });
+    
     allConfigs[resourceType] = configToStore;
     
     saveAllConfigs(allConfigs);

@@ -179,8 +179,12 @@ const Pods: React.FC = () => {
             child.key === columnKey ? { ...child, visible } : child
           );
           
-          // Check if any child was updated
-          if (updatedChildren.some((child, index) => child !== col.children![index])) {
+          // Check if any child was actually updated by comparing the visible property
+          const hasChanges = updatedChildren.some((child, index) => 
+            child.visible !== col.children![index].visible
+          );
+          
+          if (hasChanges) {
             return { ...col, children: updatedChildren };
           }
         }
