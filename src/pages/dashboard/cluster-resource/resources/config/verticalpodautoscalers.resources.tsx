@@ -26,6 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { deleteResource } from '@/api/internal/resources';
 import { useReconMode } from '@/contexts/useRecon';
 import { toast } from '@/hooks/use-toast';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define types for VerticalPodAutoscaler
 interface CrossVersionObjectReference {
@@ -123,7 +124,7 @@ const VerticalPodAutoscalers: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false },
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'target', label: 'Target', visible: true, canToggle: true },
@@ -132,7 +133,11 @@ const VerticalPodAutoscalers: React.FC = () => {
     { key: 'recommendations', label: 'Recommendations', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('verticalpodautoscalers', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
@@ -457,19 +462,23 @@ const VerticalPodAutoscalers: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
         col.key === columnKey && col.canToggle !== false
           ? { ...col, visible }
           : col
-      )
-    );
+      );
+      // Save to localStorage
+      saveColumnConfig('verticalpodautoscalers', updated);
+      return updated;
+    });
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    // Clear from localStorage to use defaults
+    clearColumnConfig('verticalpodautoscalers');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -1079,6 +1088,7 @@ const VerticalPodAutoscalers: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="verticalpodautoscalers"
       />
     </div>
   );

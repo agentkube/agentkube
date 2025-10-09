@@ -27,6 +27,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 // Define types for ServiceAccount
 interface ServiceAccountSecret {
   name: string;
@@ -82,7 +83,8 @@ const ServiceAccounts: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'secrets', label: 'Secrets', visible: true, canToggle: true },
@@ -90,7 +92,11 @@ const ServiceAccounts: React.FC = () => {
     { key: 'automount', label: 'Automount Token', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('serviceaccounts', defaultColumnConfig)
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -455,17 +461,17 @@ const ServiceAccounts: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+    const newConfig = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(newConfig);
+    saveColumnConfig('serviceaccounts', newConfig);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('serviceaccounts');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -978,6 +984,7 @@ const ServiceAccounts: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="serviceaccounts"
         className="w-1/3"
       />
     </div>

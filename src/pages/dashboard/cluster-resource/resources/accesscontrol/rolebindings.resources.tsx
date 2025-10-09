@@ -29,6 +29,7 @@ import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.uti
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 // Define types for Subject and RoleBinding
 interface Subject {
   kind: string;
@@ -57,6 +58,17 @@ interface V1RoleBinding {
   subjects?: Subject[];
   roleRef: RoleRef;
 }
+
+// Default column configuration
+const defaultColumnConfig: ColumnConfig[] = [
+  { key: 'name', label: 'Name', visible: true, canToggle: false },
+  { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+  { key: 'role', label: 'Role', visible: true, canToggle: true },
+  { key: 'subjects', label: 'Subjects', visible: true, canToggle: true },
+  { key: 'subjectDetail', label: 'Subject Detail', visible: true, canToggle: true },
+  { key: 'age', label: 'Age', visible: true, canToggle: true },
+  { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+];
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -518,32 +530,25 @@ const RoleBindings: React.FC = () => {
     direction: null
   });
 
-  // Column configuration state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
-    { key: 'name', label: 'Name', visible: true, canToggle: false },
-    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
-    { key: 'role', label: 'Role', visible: true, canToggle: true },
-    { key: 'subjects', label: 'Subjects', visible: true, canToggle: true },
-    { key: 'subjectDetail', label: 'Subject Detail', visible: true, canToggle: true },
-    { key: 'age', label: 'Age', visible: true, canToggle: true },
-    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  // Column configuration state with localStorage persistence
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('rolebindings', defaultColumnConfig)
+  );
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
-        col.key === columnKey && col.canToggle !== false
-          ? { ...col, visible }
-          : col
-      )
+    const updated = columnConfig.map(col =>
+      col.key === columnKey && col.canToggle !== false
+        ? { ...col, visible }
+        : col
     );
+    setColumnConfig(updated);
+    saveColumnConfig('rolebindings', updated);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    setColumnConfig(defaultColumnConfig);
+    clearColumnConfig('rolebindings');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -1068,6 +1073,7 @@ const RoleBindings: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="rolebindings"
       />
     </div>
   );

@@ -27,6 +27,7 @@ import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.uti
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 // Define types for Subject and ClusterRoleBinding
 interface Subject {
   kind: string;
@@ -74,14 +75,18 @@ const ClusterRoleBindings: React.FC = () => {
   const { isReconMode } = useReconMode();
 
   // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false },
     { key: 'role', label: 'Role', visible: true, canToggle: true },
     { key: 'subjects', label: 'Subjects', visible: true, canToggle: true },
     { key: 'subjectDetail', label: 'Subject Detail', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('clusterrolebindings', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   // --- Start of Multi-select ---
   const [selectedBindings, setSelectedBindings] = useState<Set<string>>(new Set());
@@ -530,19 +535,23 @@ const ClusterRoleBindings: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
         col.key === columnKey && col.canToggle !== false
           ? { ...col, visible }
           : col
-      )
-    );
+      );
+      // Save to localStorage
+      saveColumnConfig('clusterrolebindings', updated);
+      return updated;
+    });
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    // Clear from localStorage to use defaults
+    clearColumnConfig('clusterrolebindings');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -1009,6 +1018,7 @@ const ClusterRoleBindings: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="clusterrolebindings"
       />
     </div>
   );

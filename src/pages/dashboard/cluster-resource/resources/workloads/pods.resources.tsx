@@ -32,6 +32,7 @@ import Telemetry from '@/components/custom/telemetry/telemetry.component';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { useReconMode } from '@/contexts/useRecon';
 import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -135,8 +136,8 @@ const Pods: React.FC = () => {
   const [isTelemetryDrawerOpen, setIsTelemetryDrawerOpen] = useState(false);
   const [telemetryPod, setTelemetryPod] = useState<V1Pod | null>(null);
 
-  // Column configuration state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  // Default column configuration
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'status', label: 'Status', visible: true, canToggle: false }, // Required column
@@ -156,13 +157,17 @@ const Pods: React.FC = () => {
     { key: 'ip', label: 'IP', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('pods', defaultColumnConfig)
+  );
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => {
+    setColumnConfig(prev => {
+      const updated = prev.map(col => {
         // Check if it's a top-level column
         if (col.key === columnKey) {
           return { ...col, visible };
@@ -181,32 +186,18 @@ const Pods: React.FC = () => {
         }
         
         return col;
-      })
-    );
+      });
+      // Save to localStorage
+      saveColumnConfig('pods', updated);
+      return updated;
+    });
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig([
-      { key: 'name', label: 'Name', visible: true, canToggle: false },
-      { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
-      { key: 'status', label: 'Status', visible: true, canToggle: false },
-      { key: 'ready', label: 'Ready', visible: true, canToggle: true },
-      { key: 'restarts', label: 'Restarts', visible: true, canToggle: true },
-      { 
-        key: 'resources', 
-        label: 'Resources', 
-        visible: true, 
-        canToggle: true,
-        children: [
-          { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
-          { key: 'memory', label: 'Memory', visible: true, canToggle: true }
-        ]
-      },
-      { key: 'node', label: 'Node', visible: true, canToggle: true },
-      { key: 'ip', label: 'IP', visible: true, canToggle: true },
-      { key: 'age', label: 'Age', visible: true, canToggle: true },
-      { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-    ]);
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    // Clear from localStorage to use defaults
+    clearColumnConfig('pods');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -1836,6 +1827,7 @@ const Pods: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="pods"
       />
     </div>
   );

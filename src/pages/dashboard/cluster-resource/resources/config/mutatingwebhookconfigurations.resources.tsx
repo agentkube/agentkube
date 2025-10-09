@@ -25,6 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { deleteResource } from '@/api/internal/resources';
 import { useReconMode } from '@/contexts/useRecon';
 import { toast } from '@/hooks/use-toast';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 // Define types for MutatingWebhookConfiguration
 interface Rule {
   apiGroups?: string[];
@@ -108,7 +109,7 @@ const MutatingWebhookConfigurations: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false },
     { key: 'webhooks', label: 'Webhooks', visible: true, canToggle: true },
     { key: 'rules', label: 'Rules', visible: true, canToggle: true },
@@ -116,7 +117,11 @@ const MutatingWebhookConfigurations: React.FC = () => {
     { key: 'failurePolicy', label: 'Failure Policy', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('mutatingwebhookconfigurations', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
@@ -434,19 +439,23 @@ const MutatingWebhookConfigurations: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
         col.key === columnKey && col.canToggle !== false
           ? { ...col, visible }
           : col
-      )
-    );
+      );
+      // Save to localStorage
+      saveColumnConfig('mutatingwebhookconfigurations', updated);
+      return updated;
+    });
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    // Clear from localStorage to use defaults
+    clearColumnConfig('mutatingwebhookconfigurations');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -1047,6 +1056,7 @@ const MutatingWebhookConfigurations: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="mutatingwebhookconfigurations"
       />
     </div>
   );

@@ -27,6 +27,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -36,6 +37,19 @@ interface SortState {
   field: SortField;
   direction: SortDirection;
 }
+
+// Default column configuration
+const defaultColumnConfig: ColumnConfig[] = [
+  { key: 'name', label: 'Name', visible: true, canToggle: false },
+  { key: 'status', label: 'Status', visible: true, canToggle: true },
+  { key: 'claim', label: 'Claim', visible: true, canToggle: true },
+  { key: 'capacity', label: 'Capacity', visible: true, canToggle: true },
+  { key: 'accessModes', label: 'Access Modes', visible: true, canToggle: true },
+  { key: 'storageClass', label: 'Storage Class', visible: true, canToggle: true },
+  { key: 'reclaimPolicy', label: 'Reclaim Policy', visible: true, canToggle: true },
+  { key: 'age', label: 'Age', visible: true, canToggle: true },
+  { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+];
 // Helper function to determine the volume type from the spec
 const getVolumeType = (volume: V1PersistentVolume): string => {
   const spec = volume.spec;
@@ -136,17 +150,9 @@ const PersistentVolumes: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
-    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
-    { key: 'status', label: 'Status', visible: true, canToggle: true },
-    { key: 'claim', label: 'Claim', visible: true, canToggle: true },
-    { key: 'capacity', label: 'Capacity', visible: true, canToggle: true },
-    { key: 'accessModes', label: 'Access Modes', visible: true, canToggle: true },
-    { key: 'storageClass', label: 'Storage Class', visible: true, canToggle: true },
-    { key: 'reclaimPolicy', label: 'Reclaim Policy', visible: true, canToggle: true },
-    { key: 'age', label: 'Age', visible: true, canToggle: true },
-    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('persistentvolumes', defaultColumnConfig)
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -448,17 +454,16 @@ const PersistentVolumes: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+    const updated = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(updated);
+    saveColumnConfig('persistentvolumes', updated);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    setColumnConfig(defaultColumnConfig);
+    clearColumnConfig('persistentvolumes');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -968,6 +973,7 @@ const PersistentVolumes: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="persistentvolumes"
         className="w-1/3"
       />
     </div>

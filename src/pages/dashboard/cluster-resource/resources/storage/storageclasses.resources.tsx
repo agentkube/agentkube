@@ -27,6 +27,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -36,6 +37,18 @@ interface SortState {
   field: SortField;
   direction: SortDirection;
 }
+
+// Default column configuration
+const defaultColumnConfig: ColumnConfig[] = [
+  { key: 'name', label: 'Name', visible: true, canToggle: false },
+  { key: 'provisioner', label: 'Provisioner', visible: true, canToggle: true },
+  { key: 'reclaimPolicy', label: 'Reclaim Policy', visible: true, canToggle: true },
+  { key: 'volumeBindingMode', label: 'Volume Binding Mode', visible: true, canToggle: true },
+  { key: 'allowVolumeExpansion', label: 'Allow Volume Expansion', visible: true, canToggle: true },
+  { key: 'isDefault', label: 'Default Class', visible: true, canToggle: true },
+  { key: 'age', label: 'Age', visible: true, canToggle: true },
+  { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+];
 
 const StorageClasses: React.FC = () => {
   const navigate = useNavigate();
@@ -57,16 +70,9 @@ const StorageClasses: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
-    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
-    { key: 'provisioner', label: 'Provisioner', visible: true, canToggle: true },
-    { key: 'reclaimPolicy', label: 'Reclaim Policy', visible: true, canToggle: true },
-    { key: 'volumeBindingMode', label: 'Volume Binding Mode', visible: true, canToggle: true },
-    { key: 'allowVolumeExpansion', label: 'Allow Volume Expansion', visible: true, canToggle: true },
-    { key: 'isDefault', label: 'Default Class', visible: true, canToggle: true },
-    { key: 'age', label: 'Age', visible: true, canToggle: true },
-    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('storageclasses', defaultColumnConfig)
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -602,17 +608,16 @@ const StorageClasses: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+    const updated = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(updated);
+    saveColumnConfig('storageclasses', updated);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    setColumnConfig(defaultColumnConfig);
+    clearColumnConfig('storageclasses');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -1050,6 +1055,7 @@ const StorageClasses: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="storageclasses"
         className="w-1/3"
       />
     </div>

@@ -26,6 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { deleteResource } from '@/api/internal/resources';
 import { useReconMode } from '@/contexts/useRecon';
 import { toast } from '@/hooks/use-toast';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define types for ResourceQuota
 interface ResourceQuotaSpec {
@@ -68,6 +69,18 @@ interface SortState {
   direction: SortDirection;
 }
 
+// Default column configuration
+const defaultColumnConfig: ColumnConfig[] = [
+  { key: 'name', label: 'Name', visible: true, canToggle: false },
+  { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+  { key: 'scopes', label: 'Scopes', visible: true, canToggle: true },
+  { key: 'resources', label: 'Resources', visible: true, canToggle: true },
+  { key: 'usage', label: 'Usage Details', visible: true, canToggle: true },
+  { key: 'avgUsage', label: 'Avg Usage', visible: true, canToggle: true },
+  { key: 'age', label: 'Age', visible: true, canToggle: true },
+  { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+];
+
 const ResourceQuotas: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
@@ -78,17 +91,10 @@ const ResourceQuotas: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isReconMode } = useReconMode();
 
-  // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
-    { key: 'name', label: 'Name', visible: true, canToggle: false },
-    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
-    { key: 'scopes', label: 'Scopes', visible: true, canToggle: true },
-    { key: 'resources', label: 'Resources', visible: true, canToggle: true },
-    { key: 'usage', label: 'Usage Details', visible: true, canToggle: true },
-    { key: 'avgUsage', label: 'Avg Usage', visible: true, canToggle: true },
-    { key: 'age', label: 'Age', visible: true, canToggle: true },
-    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  // Column configuration state with localStorage persistence
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('resourcequotas', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
@@ -398,19 +404,18 @@ const ResourceQuotas: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
-        col.key === columnKey && col.canToggle !== false
-          ? { ...col, visible }
-          : col
-      )
+    const updated = columnConfig.map(col =>
+      col.key === columnKey && col.canToggle !== false
+        ? { ...col, visible }
+        : col
     );
+    setColumnConfig(updated);
+    saveColumnConfig('resourcequotas', updated);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    setColumnConfig(defaultColumnConfig);
+    clearColumnConfig('resourcequotas');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -995,6 +1000,7 @@ const ResourceQuotas: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="resourcequotas"
       />
     </div>
   );

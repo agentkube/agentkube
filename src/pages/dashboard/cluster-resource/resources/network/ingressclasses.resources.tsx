@@ -29,6 +29,7 @@ import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { Filter } from 'lucide-react';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 
 // Define types for IngressClass (not directly exported from kubernetes-client-node)
@@ -75,14 +76,19 @@ const IngressClasses: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'controller', label: 'Controller', visible: true, canToggle: true },
     { key: 'parameters', label: 'Parameters', visible: true, canToggle: true },
     { key: 'default', label: 'Default', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('ingressclasses', defaultColumnConfig)
+  );
   // --- Start of Multi-select ---
   const [selectedIngressClasses, setSelectedIngressClasses] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -533,17 +539,17 @@ const IngressClasses: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+    const newConfig = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(newConfig);
+    saveColumnConfig('ingressclasses', newConfig);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('ingressclasses');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -946,6 +952,7 @@ const IngressClasses: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="ingressclasses"
         className="w-1/3"
       />
     </div>

@@ -28,6 +28,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 
 // Define types for NetworkPolicy (not directly exported from kubernetes-client-node)
@@ -119,7 +120,7 @@ const NetworkPolicies: React.FC = () => {
   const { isReconMode } = useReconMode();
 
   // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false },
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'podSelector', label: 'Pod Selector', visible: true, canToggle: true },
@@ -127,7 +128,11 @@ const NetworkPolicies: React.FC = () => {
     { key: 'rules', label: 'Rules Summary', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('networkpolicies', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   useEffect(() => {
@@ -467,19 +472,19 @@ const NetworkPolicies: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
-        col.key === columnKey && col.canToggle !== false
-          ? { ...col, visible }
-          : col
-      )
+    const newConfig = columnConfig.map(col =>
+      col.key === columnKey && col.canToggle !== false
+        ? { ...col, visible }
+        : col
     );
+    setColumnConfig(newConfig);
+    saveColumnConfig('networkpolicies', newConfig);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('networkpolicies');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -1133,6 +1138,7 @@ const NetworkPolicies: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="networkpolicies"
       />
     </div>
   );

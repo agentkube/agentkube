@@ -29,6 +29,7 @@ import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.uti
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define types for PolicyRule and Role
 interface PolicyRule {
@@ -62,6 +63,17 @@ interface SortState {
   direction: SortDirection;
 }
 
+// Default column configuration
+const defaultColumnConfig: ColumnConfig[] = [
+  { key: 'name', label: 'Name', visible: true, canToggle: false },
+  { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+  { key: 'rules', label: 'Rules', visible: true, canToggle: true },
+  { key: 'apiGroups', label: 'API Groups / Resources', visible: true, canToggle: true },
+  { key: 'permissions', label: 'Permissions', visible: true, canToggle: true },
+  { key: 'age', label: 'Age', visible: true, canToggle: true },
+  { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+];
+
 const Roles: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
@@ -72,16 +84,10 @@ const Roles: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isReconMode } = useReconMode();
 
-  // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
-    { key: 'name', label: 'Name', visible: true, canToggle: false },
-    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
-    { key: 'rules', label: 'Rules', visible: true, canToggle: true },
-    { key: 'apiGroups', label: 'API Groups / Resources', visible: true, canToggle: true },
-    { key: 'permissions', label: 'Permissions', visible: true, canToggle: true },
-    { key: 'age', label: 'Age', visible: true, canToggle: true },
-    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  // Column configuration state with localStorage persistence
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('roles', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   // --- Start of Multi-select ---
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
@@ -528,19 +534,18 @@ const Roles: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
-        col.key === columnKey && col.canToggle !== false
-          ? { ...col, visible }
-          : col
-      )
+    const updated = columnConfig.map(col =>
+      col.key === columnKey && col.canToggle !== false
+        ? { ...col, visible }
+        : col
     );
+    setColumnConfig(updated);
+    saveColumnConfig('roles', updated);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    setColumnConfig(defaultColumnConfig);
+    clearColumnConfig('roles');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -1083,6 +1088,7 @@ const Roles: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="roles"
       />
     </div>
   );

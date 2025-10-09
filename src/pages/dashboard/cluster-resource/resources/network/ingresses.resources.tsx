@@ -30,6 +30,7 @@ import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { Filter } from 'lucide-react';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -52,7 +53,8 @@ const Ingresses: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'class', label: 'Class', visible: true, canToggle: true },
@@ -60,7 +62,11 @@ const Ingresses: React.FC = () => {
     { key: 'address', label: 'Address', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('ingresses', defaultColumnConfig)
+  );
   // --- Start of Multi-select ---
   const [selectedIngresses, setSelectedIngresses] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -392,17 +398,17 @@ const Ingresses: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+    const newConfig = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(newConfig);
+    saveColumnConfig('ingresses', newConfig);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('ingresses');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -941,6 +947,7 @@ const Ingresses: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="ingresses"
         className="w-1/3"
       />
     </div>

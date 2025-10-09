@@ -29,6 +29,7 @@ import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { Filter } from 'lucide-react';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -53,7 +54,8 @@ const ReplicationControllers: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'ready', label: 'Ready', visible: true, canToggle: true },
@@ -62,7 +64,11 @@ const ReplicationControllers: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'labels', label: 'Labels', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('replicationcontrollers', defaultColumnConfig)
+  );
   // --- Start of Multi-select ---
   const [selectedReplicationControllers, setSelectedReplicationControllers] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -463,17 +469,17 @@ const ReplicationControllers: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+    const newConfig = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(newConfig);
+    saveColumnConfig('replicationcontrollers', newConfig);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('replicationcontrollers');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -942,6 +948,7 @@ const ReplicationControllers: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="replicationcontrollers"
         className="w-1/3"
       />
     </div>

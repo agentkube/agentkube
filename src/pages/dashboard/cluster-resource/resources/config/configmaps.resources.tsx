@@ -29,6 +29,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -81,7 +82,7 @@ const ConfigMaps: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false },
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'data', label: 'Data', visible: true, canToggle: true },
@@ -89,7 +90,11 @@ const ConfigMaps: React.FC = () => {
     { key: 'size', label: 'Size', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('configmaps', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
@@ -419,19 +424,23 @@ const ConfigMaps: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
         col.key === columnKey && col.canToggle !== false
           ? { ...col, visible }
           : col
-      )
-    );
+      );
+      // Save to localStorage
+      saveColumnConfig('configmaps', updated);
+      return updated;
+    });
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    // Clear from localStorage to use defaults
+    clearColumnConfig('configmaps');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -883,6 +892,7 @@ const ConfigMaps: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="configmaps"
       />
     </div>
   );

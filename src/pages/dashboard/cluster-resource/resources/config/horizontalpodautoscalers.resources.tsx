@@ -25,6 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { deleteResource } from '@/api/internal/resources';
 import { useReconMode } from '@/contexts/useRecon';
 import { toast } from '@/hooks/use-toast';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define types for HorizontalPodAutoscaler (both v1 and v2)
 interface CrossVersionObjectReference {
@@ -213,7 +214,8 @@ const HorizontalPodAutoscalers: React.FC = () => {
 
   // Column configuration state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'target', label: 'Target', visible: true, canToggle: true },
@@ -221,7 +223,11 @@ const HorizontalPodAutoscalers: React.FC = () => {
     { key: 'metrics', label: 'Metrics', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('horizontalpodautoscalers', defaultColumnConfig)
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -522,40 +528,34 @@ const HorizontalPodAutoscalers: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => {
-        // Check if it's a top-level column
-        if (col.key === columnKey) {
-          return { ...col, visible };
-        }
+    const newConfig = columnConfig.map(col => {
+      // Check if it's a top-level column
+      if (col.key === columnKey) {
+        return { ...col, visible };
+      }
+      
+      // Check if it's a child column
+      if (col.children) {
+        const updatedChildren = col.children.map(child => 
+          child.key === columnKey ? { ...child, visible } : child
+        );
         
-        // Check if it's a child column
-        if (col.children) {
-          const updatedChildren = col.children.map(child => 
-            child.key === columnKey ? { ...child, visible } : child
-          );
-          
-          // Check if any child was updated
-          if (updatedChildren.some((child, index) => child !== col.children![index])) {
-            return { ...col, children: updatedChildren };
-          }
+        // Check if any child was updated
+        if (updatedChildren.some((child, index) => child !== col.children![index])) {
+          return { ...col, children: updatedChildren };
         }
-        
-        return col;
-      })
-    );
+      }
+      
+      return col;
+    });
+    setColumnConfig(newConfig);
+    saveColumnConfig('horizontalpodautoscalers', newConfig);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig([
-      { key: 'name', label: 'Name', visible: true, canToggle: false },
-      { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
-      { key: 'target', label: 'Target', visible: true, canToggle: true },
-      { key: 'replicas', label: 'Replicas (Min/Max)', visible: true, canToggle: true },
-      { key: 'metrics', label: 'Metrics', visible: true, canToggle: true },
-      { key: 'age', label: 'Age', visible: true, canToggle: true },
-      { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-    ]);
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('horizontalpodautoscalers');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -1227,6 +1227,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="horizontalpodautoscalers"
         className="w-1/3"
       />
     </div>

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SideDrawer, DrawerHeader, DrawerContent } from '@/components/ui/sidedrawer.custom';
 import { Settings, RotateCcw, Table, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { saveColumnConfig } from '@/utils/columnConfigStorage';
 
 // TODO use https://reui.io/docs/sortable to arrange the table rows and columns
 
@@ -23,6 +24,7 @@ interface ResourceFilterSidebarProps {
   onColumnToggle: (columnKey: string, visible: boolean) => void;
   onResetToDefault?: () => void;
   className?: string;
+  resourceType?: string; // For localStorage caching
 }
 
 const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
@@ -32,13 +34,21 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
   columns,
   onColumnToggle,
   onResetToDefault,
-  className = "w-1/3"
+  className = "w-1/3",
+  resourceType
 }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['resources']));
 
   const handleColumnChange = (columnKey: string, checked: boolean) => {
     onColumnToggle(columnKey, checked);
   };
+
+  // Save to localStorage when columns change
+  useEffect(() => {
+    if (resourceType && columns.length > 0) {
+      saveColumnConfig(resourceType, columns);
+    }
+  }, [columns, resourceType]);
 
   const handleResetToDefault = () => {
     if (onResetToDefault) {

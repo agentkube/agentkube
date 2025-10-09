@@ -26,6 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { deleteResource } from '@/api/internal/resources';
 import { useReconMode } from '@/contexts/useRecon';
 import { toast } from '@/hooks/use-toast';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define types for LimitRange
 interface LimitRangeItem {
@@ -63,6 +64,17 @@ interface SortState {
   direction: SortDirection;
 }
 
+// Default column configuration
+const defaultColumnConfig: ColumnConfig[] = [
+  { key: 'name', label: 'Name', visible: true, canToggle: false },
+  { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
+  { key: 'types', label: 'Types', visible: true, canToggle: true },
+  { key: 'limitCount', label: 'Limit Count', visible: true, canToggle: true },
+  { key: 'constraints', label: 'Constraints', visible: true, canToggle: true },
+  { key: 'age', label: 'Age', visible: true, canToggle: true },
+  { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+];
+
 const LimitRanges: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
@@ -74,15 +86,9 @@ const LimitRanges: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
-    { key: 'name', label: 'Name', visible: true, canToggle: false },
-    { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
-    { key: 'types', label: 'Types', visible: true, canToggle: true },
-    { key: 'limitCount', label: 'Limit Count', visible: true, canToggle: true },
-    { key: 'constraints', label: 'Constraints', visible: true, canToggle: true },
-    { key: 'age', label: 'Age', visible: true, canToggle: true },
-    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
-  ]);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('limitranges', defaultColumnConfig)
+  );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
   // --- Start of Multi-select ---
@@ -383,19 +389,16 @@ const LimitRanges: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
-        col.key === columnKey && col.canToggle !== false
-          ? { ...col, visible }
-          : col
-      )
+    const updated = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(updated);
+    saveColumnConfig('limitranges', updated);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    setColumnConfig(defaultColumnConfig);
+    clearColumnConfig('limitranges');
   };
 
   const isColumnVisible = (columnKey: string): boolean => {
@@ -919,6 +922,7 @@ const LimitRanges: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="limitranges"
       />
     </div>
   );

@@ -28,6 +28,7 @@ import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { Filter } from 'lucide-react';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -84,7 +85,9 @@ const Deployments: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+  
+  // Default column configuration
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'ready', label: 'Ready', visible: true, canToggle: true },
@@ -93,7 +96,11 @@ const Deployments: React.FC = () => {
     { key: 'replicas', label: 'Replicas', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+  
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('deployments', defaultColumnConfig)
+  );
 
   // Add click handler for deployment selection with cmd/ctrl key
   const handleDeploymentClick = (e: React.MouseEvent, deployment: V1Deployment) => {
@@ -239,17 +246,21 @@ const Deployments: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
+    setColumnConfig(prev => {
+      const updated = prev.map(col => 
         col.key === columnKey ? { ...col, visible } : col
-      )
-    );
+      );
+      // Save to localStorage
+      saveColumnConfig('deployments', updated);
+      return updated;
+    });
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    // Clear from localStorage to use defaults
+    clearColumnConfig('deployments');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -1303,6 +1314,7 @@ const Deployments: React.FC = () => {
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
         className="w-1/3"
+        resourceType="deployments"
       />
     </div>
   );

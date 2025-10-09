@@ -21,6 +21,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { Filter } from 'lucide-react';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 interface UnitToggleProps {
   activeUnit: 'MiB' | 'GiB';
@@ -34,6 +35,20 @@ interface SortState {
   field: SortField;
   direction: SortDirection;
 }
+
+// Default column configuration
+const defaultColumnConfig: ColumnConfig[] = [
+  { key: 'name', label: 'Name', visible: true, canToggle: false },
+  { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
+  { key: 'memory', label: 'Memory', visible: true, canToggle: true },
+  { key: 'disk', label: 'Disk', visible: true, canToggle: true },
+  { key: 'taints', label: 'Taints', visible: true, canToggle: true },
+  { key: 'roles', label: 'Roles', visible: true, canToggle: true },
+  { key: 'version', label: 'Version', visible: true, canToggle: true },
+  { key: 'age', label: 'Age', visible: true, canToggle: true },
+  { key: 'conditions', label: 'Conditions', visible: true, canToggle: true },
+  { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+];
 
 
 const UnitToggle: React.FC<UnitToggleProps> = ({ activeUnit, onUnitChange }) => (
@@ -144,18 +159,9 @@ const Nodes: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
-    { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
-    { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
-    { key: 'memory', label: 'Memory', visible: true, canToggle: true },
-    { key: 'disk', label: 'Disk', visible: true, canToggle: true },
-    { key: 'taints', label: 'Taints', visible: true, canToggle: true },
-    { key: 'roles', label: 'Roles', visible: true, canToggle: true },
-    { key: 'version', label: 'Version', visible: true, canToggle: true },
-    { key: 'age', label: 'Age', visible: true, canToggle: true },
-    { key: 'conditions', label: 'Conditions', visible: true, canToggle: true },
-    { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+    getStoredColumnConfig('nodes', defaultColumnConfig)
+  );
 
 
   useEffect(() => {
@@ -566,17 +572,16 @@ const Nodes: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
+    const updated = columnConfig.map(col => 
+      col.key === columnKey ? { ...col, visible } : col
     );
+    setColumnConfig(updated);
+    saveColumnConfig('nodes', updated);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev => 
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    setColumnConfig(defaultColumnConfig);
+    clearColumnConfig('nodes');
   };
 
   const isColumnVisible = (columnKey: string) => {
@@ -899,6 +904,7 @@ const Nodes: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        resourceType="nodes"
         className="w-1/3"
       />
     </div>
