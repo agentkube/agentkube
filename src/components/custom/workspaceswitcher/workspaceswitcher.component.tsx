@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Plus } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, Settings } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -10,61 +10,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CreateWorkspaceDialog } from "@/components/workspace/createworkspacedialog.component"
-
-interface ClusterContext {
-  name: string
-  context: string
-  server: string
-}
-
-interface Workspace {
-  id: string
-  name: string
-  clusters: ClusterContext[]
-  isActive: boolean
-}
+import { ManageWorkspacesDialog } from "@/components/workspace/manageworkspacesdialog.component"
+import { useWorkspace } from "@/contexts/workspaceContext"
+import { useCluster } from "@/contexts/clusterContext"
+import type { ClusterInfo } from "@/types/workspace"
 
 const homeView = {
-  id: "home",
   name: "Home",
-  isActive: true,
-}
-
-const dummyWorkspaces: Workspace[] = [
-  {
-    id: "1",
-    name: "production",
-    clusters: [
-      { name: "exciting-classical-badger", context: "eks-cluster", server: "https://4D4BFC24E115E478674CA878D291C58C.gr7.us-east-1.eks.amazonaws.com" },
-      { name: "interesting-lofi-otter", context: "eks-cluster-2", server: "https://51F838D95BE58C88CF8B657B99131F99.gr7.us-east-1.eks.amazonaws.com" }
-    ],
-    isActive: false,
-  },
-  {
-    id: "3",
-    name: "testing-space",
-    clusters: [
-      { name: "kind-genspark-dino", context: "kind-genspark-dino", server: "https://127.0.0.1:52701" }
-    ],
-    isActive: false,
-  },
-  {
-    id: "4",
-    name: "agentkube-demo",
-    clusters: [
-      { name: "kind-test-cluster", context: "kind-test-cluster", server: "https://127.0.0.1:51651" },
-      { name: "kind-sub-zero", context: "kind-sub-zero", server: "https://127.0.0.1:58645" }
-    ],
-    isActive: false,
-  },
-]
-
-const getAllClusters = (): ClusterContext[] => {
-  const localClusters = [
-    { name: "docker-desktop", context: "docker-desktop", server: "https://127.0.0.1:6443" },
-    { name: "kind-local", context: "kind-local", server: "https://127.0.0.1:52701" }
-  ]
-  return [...localClusters, ...dummyWorkspaces.flatMap(w => w.clusters)]
 }
 
 // Generate color class based on workspace name using predefined colors
@@ -89,35 +41,63 @@ const generateColorFromName = (name: string): string => {
 }
 
 export function WorkspaceSwitcher() {
-  const [selectedWorkspace, setSelectedWorkspace] = useState("home")
+  const { selectedWorkspace, workspaces, selectWorkspace, createWorkspace } = useWorkspace()
+  const { allContexts } = useCluster()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false)
 
-  const currentWorkspace = selectedWorkspace === "home" 
+  // Fallback to "home" if selectedWorkspace is empty or invalid
+  const safeSelectedWorkspace = selectedWorkspace || "home"
+  
+  // If the selected workspace doesn't exist in the workspaces list (and it's not "home"), fallback to "home"
+  const validSelectedWorkspace = safeSelectedWorkspace === "home" || workspaces.find(w => w.name === safeSelectedWorkspace)
+    ? safeSelectedWorkspace 
+    : "home"
+
+  const currentWorkspace = validSelectedWorkspace === "home" 
     ? homeView 
-    : dummyWorkspaces.find(w => w.id === selectedWorkspace)
+    : workspaces.find(w => w.name === validSelectedWorkspace)
+
+  // Auto-correct invalid workspace selection
+  useEffect(() => {
+    if (validSelectedWorkspace !== selectedWorkspace) {
+      console.log(`Workspace "${selectedWorkspace}" not found, switching to "home"`)
+      selectWorkspace("home")
+    }
+  }, [validSelectedWorkspace, selectedWorkspace, selectWorkspace])
 
   const handleWorkspaceChange = (workspaceId: string) => {
     if (workspaceId === 'create-workspace') {
       setIsCreateDialogOpen(true)
       return
     }
-    setSelectedWorkspace(workspaceId)
+    if (workspaceId === 'manage-workspaces') {
+      setIsManageDialogOpen(true)
+      return
+    }
+    selectWorkspace(workspaceId)
     if (workspaceId === 'home') {
       console.log('Switching to Home - showing all clusters')
     } else {
-      console.log('Switching to workspace:', dummyWorkspaces.find(w => w.id === workspaceId)?.name)
+      console.log('Switching to workspace:', workspaces.find(w => w.name === workspaceId)?.name)
     }
   }
 
-  const handleCreateWorkspace = (workspace: { name: string; description: string }) => {
-    console.log('Creating workspace:', workspace)
-    // TODO: Add API call to create workspace
-    // For now, just log the workspace data
+  const handleCreateWorkspace = async (workspace: { name: string; description: string; clusters: ClusterInfo[] }) => {
+    try {
+      await createWorkspace({
+        name: workspace.name,
+        description: workspace.description,
+        clusters: workspace.clusters
+      })
+    } catch (error) {
+      console.error('Failed to create workspace:', error)
+    }
   }
 
   return (
     <>
-    <Select value={selectedWorkspace} onValueChange={handleWorkspaceChange}>
+    <Select value={validSelectedWorkspace} onValueChange={handleWorkspaceChange}>
       <SelectTrigger className="w-40 h-7 p-1.5 text-xs border-none border-gray-300 dark:border-gray-500/10 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50  focus:ring-0 focus:ring-offset-0">
         <div className="flex items-center space-x-2 ">
           {/* <div className="w-5 h-5 rounded-sm bg-gray-500/40 flex items-center justify-center text-white/50 text-xs font-bold">
@@ -144,7 +124,7 @@ export function WorkspaceSwitcher() {
                 Home
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-44">
-                All clusters - {getAllClusters().length} clusters
+                All clusters - {allContexts.length} clusters
               </div>
             </div>
           </div>
@@ -153,10 +133,10 @@ export function WorkspaceSwitcher() {
         <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           Workspaces
         </div>
-        {dummyWorkspaces.map((workspace) => (
+        {workspaces.map((workspace) => (
           <SelectItem
-            key={workspace.id}
-            value={workspace.id}
+            key={workspace.name}
+            value={workspace.name}
             className="cursor-pointer  dark:hover:bg-gray-500/30"
           >
             <div className="flex items-center space-x-3 w-full">
@@ -168,7 +148,7 @@ export function WorkspaceSwitcher() {
                   {workspace.name}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-44">
-                  {workspace.clusters.length} {workspace.clusters.length === 1 ? 'cluster' : 'clusters'} - {workspace.clusters.map(c => c.name).join(', ')}
+                  {workspace.clusters?.length || 0} {(workspace.clusters?.length || 0) === 1 ? 'cluster' : 'clusters'} - {workspace.clusters?.map(c => c.name).join(', ') || 'No clusters'}
                 </div>
               </div>
             </div>
@@ -183,6 +163,14 @@ export function WorkspaceSwitcher() {
             </span>
           </div>
         </SelectItem>
+        <SelectItem value="manage-workspaces" className="cursor-pointer">
+          <div className="flex items-center space-x-3 w-full">
+            <Settings className="h-4 w-4 text-gray-500" />
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              Manage Workspaces
+            </span>
+          </div>
+        </SelectItem>
       </SelectContent>
     </Select>
     
@@ -190,6 +178,11 @@ export function WorkspaceSwitcher() {
       open={isCreateDialogOpen}
       onOpenChange={setIsCreateDialogOpen}
       onCreateWorkspace={handleCreateWorkspace}
+    />
+    
+    <ManageWorkspacesDialog
+      open={isManageDialogOpen}
+      onOpenChange={setIsManageDialogOpen}
     />
     </>
   )

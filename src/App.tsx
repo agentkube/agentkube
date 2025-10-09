@@ -20,6 +20,7 @@ import {
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Provisioner, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
 import { ClusterProvider } from '@/contexts/clusterContext';
+import { WorkspaceProvider } from '@/contexts/workspaceContext';
 import {
   Namespaces, Nodes,
   // Workloads 
@@ -103,8 +104,9 @@ function App() {
       <AuthProvider>
         <AnalyticsProvider>
           <ModelsProvider>
-            <ClusterProvider>
-              <ScanProvider>
+            <WorkspaceProvider>
+              <ClusterProvider>
+                <ScanProvider>
                 <ReconModeProvider>
                   <DrawerProvider>
                   <NamespaceProvider>
@@ -291,8 +293,9 @@ function App() {
                   </NamespaceProvider>
                   </DrawerProvider>
                 </ReconModeProvider>
-              </ScanProvider>
-            </ClusterProvider>
+                </ScanProvider>
+              </ClusterProvider>
+            </WorkspaceProvider>
           </ModelsProvider>
         </AnalyticsProvider>
       </AuthProvider>

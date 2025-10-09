@@ -119,11 +119,14 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
       onContextMenu={handleClusterRightClick}
       onClick={() => navigate('/')}
     >
-      {currentContext ? (
-        <ClusterIcon type={determineClusterType(currentContext.kubeContext?.cluster)} size="h-8 w-8" />
-      ) : (
-        <img src={KUBERNETES_LOGO} className="h-8 w-8" alt="Kubernetes logo" />
-      )}
+
+      <div className='rounded-xl dark:bg-gray-700/30 p-1.5'>
+        {currentContext ? (
+          <ClusterIcon type={determineClusterType(currentContext.kubeContext?.cluster)} size="h-8 w-8" />
+        ) : (
+          <img src={KUBERNETES_LOGO} className="h-8 w-8" alt="Kubernetes logo" />
+        )}
+      </div>
 
       {!isCollapsed && currentContext && (
         <div className="text-sm font-medium">
@@ -181,7 +184,9 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
                 }`}
                 onClick={() => handleClusterSelect(ctx.name)}
               >
-                <ClusterIcon type={determineClusterType(ctx.kubeContext?.cluster)} />
+                <div className='rounded-xl dark:bg-gray-700/30 p-2'>
+                  <ClusterIcon type={determineClusterType(ctx.kubeContext?.cluster)} />
+                </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-300">{ctx.name}</p>
                   <p className="text-xs text-gray-600 dark:text-gray-500 truncate max-w-40">

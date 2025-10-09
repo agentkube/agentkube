@@ -126,36 +126,9 @@ const ClusterCard = memo<{
           {displayName}
         </h3>
 
-        {isTruncatedDescription ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <p className="dark:text-gray-400 text-xs">
-                  {displayDescription}
-                </p>
-              </TooltipTrigger>
-              <TooltipContent className="bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md border border-gray-300 dark:border-gray-800/60 p-3 rounded-md shadow-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <ClusterIcon type={cluster.type} theme={theme} />
-                </div>
-                <div className="text-gray-700 dark:text-gray-300">
-                  <div className="mb-1">
-                    <span className="font-semibold">Name: </span>
-                    <span>{cluster.name}</span>
-                  </div>
-                  <div className="mb-1">
-                    <span className="font-semibold">Context: </span>
-                    <span>{cluster.description}</span>
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          <p className="dark:text-gray-400 text-xs">
-            {displayDescription}
-          </p>
-        )}
+        <p className="dark:text-gray-400 text-xs">
+          {displayDescription}
+        </p>
       </div>
 
       {/* Action Icons - Only show in list/tree view and when selected */}

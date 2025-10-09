@@ -1,11 +1,13 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import { KubeContext, RecentConnection } from '@/types/cluster';
 import { getKubeContexts } from '@/api/cluster';
 import { useToast } from '@/hooks/use-toast';
 import { getMetricsServerStatus } from '@/api/internal/metrics_svr';
+import { useWorkspace } from './workspaceContext';
 
 interface ClusterContextType {
   contexts: KubeContext[];
+  allContexts: KubeContext[];
   currentContext: KubeContext | null;
   loading: boolean;
   error: string | null;
@@ -32,11 +34,27 @@ interface ClusterProviderProps {
 }
 
 export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) => {
+  const { selectedWorkspace, getCurrentWorkspace } = useWorkspace();
+  
   const [refreshInterval, setRefreshIntervalState] = useState<number>(() => {
     const stored = localStorage.getItem('refresh_interval');
     return stored ? JSON.parse(stored) : 50000;
   });
-  const [contexts, setContexts] = useState<KubeContext[]>([]);
+  const [allContexts, setAllContexts] = useState<KubeContext[]>([]);
+  
+  // Filter contexts based on selected workspace
+  const contexts = useMemo(() => {
+    if (selectedWorkspace === 'home') {
+      return allContexts;
+    }
+    
+    const currentWorkspace = getCurrentWorkspace();
+    if (!currentWorkspace) return [];
+    
+    const allowedContextNames = currentWorkspace.clusters?.map(c => c.context) || [];
+    return allContexts.filter(ctx => allowedContextNames.includes(ctx.name));
+  }, [selectedWorkspace, allContexts, getCurrentWorkspace]);
+  
   const [currentContext, setCurrentContext] = useState<KubeContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,7 +158,7 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
       setError(null);
       
       const fetchedContexts = await getKubeContexts();
-      setContexts(fetchedContexts);
+      setAllContexts(fetchedContexts);
       
       // Check if we have a stored context
       const storedContextName = localStorage.getItem(storageKey);
@@ -206,6 +224,7 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
 
   const value = {
     contexts,
+    allContexts,
     currentContext,
     loading,
     error,

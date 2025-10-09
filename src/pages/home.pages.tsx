@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 import LOGO from '@/assets/logo.png';
 import { useCluster } from '@/contexts/clusterContext';
+import { useWorkspace } from '@/contexts/workspaceContext';
+import { RecentConnection } from '@/types/cluster';
 import { DeleteContextDialog, RenameContextDialog, ProvisionDrawer } from '@/components/custom';
 import AddKubeConfigDialog from '@/components/custom/kubeconfig/addkubeconfig.component';
 import ClusterCard, { ClusterItem } from '@/components/cluster/ClusterCard';
@@ -33,8 +35,11 @@ interface ContextMenuPosition {
 }
 
 const STORAGE_KEYS = {
-  PINNED_CLUSTERS: 'pinned-clusters',
-  VIEW_MODE: 'view-mode'
+  VIEW_MODE: 'view-mode',
+  HOME_PINNED_CLUSTERS: 'home.pinned-clusters',
+  HOME_RECENT_CONNECTIONS: 'home.recent-connected-clusters',
+  workspacePinnedClusters: (workspace: string) => `${workspace}.pinned-clusters`,
+  workspaceRecentConnections: (workspace: string) => `${workspace}.recent-connected-clusters`,
 };
 
 // Helper function to determine cluster type from context name - memoized
@@ -51,7 +56,8 @@ const determineClusterType = (name: string): ClusterItem['type'] => {
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [isReloading, setIsReloading] = useState(false);
-  const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval, recentConnections, removeFromRecentConnections, updateRecentConnectionName } = useCluster();
+  const { contexts, currentContext, loading: isContextsLoading, error: contextsError, refreshContexts, setCurrentContext, refreshInterval } = useCluster();
+  const { selectedWorkspace } = useWorkspace();
   const { user, setUser } = useAuth();
   const [hasReloaded, setHasReloaded] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -85,12 +91,22 @@ const HomePage: React.FC = () => {
   // Track cluster health status
   const [clusterHealthStatus, setClusterHealthStatus] = useState<Record<string, 'ok' | 'bad_gateway' | 'loading'>>({});
 
-  // Initial states for clusters with localStorage fallback
+  // Workspace-specific pinned clusters
   const [pinnedClusters, setPinnedClusters] = useState<ClusterItem[]>(() => {
-    const savedPinnedClusters = localStorage.getItem(STORAGE_KEYS.PINNED_CLUSTERS);
-    return savedPinnedClusters
-      ? JSON.parse(savedPinnedClusters)
-      : [];
+    const key = selectedWorkspace === 'home' 
+      ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
+      : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
+    const savedPinnedClusters = localStorage.getItem(key);
+    return savedPinnedClusters ? JSON.parse(savedPinnedClusters) : [];
+  });
+
+  // Workspace-specific recent connections  
+  const [recentConnections, setRecentConnections] = useState<RecentConnection[]>(() => {
+    const key = selectedWorkspace === 'home'
+      ? STORAGE_KEYS.HOME_RECENT_CONNECTIONS
+      : STORAGE_KEYS.workspaceRecentConnections(selectedWorkspace);
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : [];
   });
 
   // Memoize cluster items creation to prevent unnecessary recalculations
@@ -105,7 +121,7 @@ const HomePage: React.FC = () => {
 
   // Memoize recent cluster items from recent connections
   const recentClusterItems = useMemo(() => {
-    return recentConnections.map(conn => ({
+    return recentConnections.map((conn: RecentConnection) => ({
       id: conn.kubeContext.name,
       name: conn.kubeContext.name,
       description: `${conn.kubeContext.kubeContext.cluster}`,
@@ -115,12 +131,12 @@ const HomePage: React.FC = () => {
 
   // Memoize pinned cluster IDs
   const pinnedClusterIds = useMemo(() => {
-    return new Set(pinnedClusters.map(c => c.id));
+    return new Set(pinnedClusters.map((c: ClusterItem) => c.id));
   }, [pinnedClusters]);
 
   // Memoize recent cluster IDs
   const recentClusterIds = useMemo(() => {
-    return new Set(recentClusterItems.map(c => c.id));
+    return new Set(recentClusterItems.map((c: ClusterItem) => c.id));
   }, [recentClusterItems]);
 
   // Memoize available clusters (exclude pinned and recent)
@@ -239,10 +255,37 @@ const HomePage: React.FC = () => {
     }
   }, [hasReloaded, contexts.length, isContextsLoading, user]);
 
+  // Update workspace-specific data when workspace changes
+  useEffect(() => {
+    const pinnedKey = selectedWorkspace === 'home' 
+      ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
+      : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
+    const recentKey = selectedWorkspace === 'home'
+      ? STORAGE_KEYS.HOME_RECENT_CONNECTIONS
+      : STORAGE_KEYS.workspaceRecentConnections(selectedWorkspace);
+    
+    const storedPinned = localStorage.getItem(pinnedKey);
+    const storedRecent = localStorage.getItem(recentKey);
+    
+    setPinnedClusters(storedPinned ? JSON.parse(storedPinned) : []);
+    setRecentConnections(storedRecent ? JSON.parse(storedRecent) : []);
+  }, [selectedWorkspace]);
+
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PINNED_CLUSTERS, JSON.stringify(pinnedClusters));
-  }, [pinnedClusters]);
+    const key = selectedWorkspace === 'home' 
+      ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
+      : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
+    localStorage.setItem(key, JSON.stringify(pinnedClusters));
+  }, [pinnedClusters, selectedWorkspace]);
+
+  // Save recent connections to localStorage
+  useEffect(() => {
+    const key = selectedWorkspace === 'home'
+      ? STORAGE_KEYS.HOME_RECENT_CONNECTIONS
+      : STORAGE_KEYS.workspaceRecentConnections(selectedWorkspace);
+    localStorage.setItem(key, JSON.stringify(recentConnections));
+  }, [recentConnections, selectedWorkspace]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
@@ -275,6 +318,32 @@ const HomePage: React.FC = () => {
     return () => clearInterval(interval);
   }, [refreshInterval, refreshContexts]);
 
+  // Workspace-specific recent connections management
+  const addToRecentConnections = useCallback((context: any) => {
+    setRecentConnections((prev: RecentConnection[]) => {
+      const filtered = prev.filter((conn: RecentConnection) => conn.kubeContext.name !== context.name);
+      const newConnection: RecentConnection = {
+        kubeContext: context,
+        connectedAt: new Date().toISOString()
+      };
+      return [newConnection, ...filtered].slice(0, 3);
+    });
+  }, []);
+
+  const removeFromRecentConnections = useCallback((contextName: string) => {
+    setRecentConnections((prev: RecentConnection[]) => prev.filter((conn: RecentConnection) => conn.kubeContext.name !== contextName));
+  }, []);
+
+  const updateRecentConnectionName = useCallback((oldName: string, newName: string) => {
+    setRecentConnections((prev: RecentConnection[]) => 
+      prev.map((conn: RecentConnection) => 
+        conn.kubeContext.name === oldName 
+          ? { ...conn, kubeContext: { ...conn.kubeContext, name: newName }}
+          : conn
+      )
+    );
+  }, []);
+
   // Handle health status changes
   const handleHealthStatusChange = useCallback((clusterId: string, status: 'ok' | 'bad_gateway' | 'loading') => {
     setClusterHealthStatus(prev => ({
@@ -302,6 +371,9 @@ const HomePage: React.FC = () => {
       // Update current context in the context provider
       setCurrentContext(contextToConnect);
 
+      // Add to workspace-specific recent connections
+      addToRecentConnections(contextToConnect);
+
       // Check for last visited location for this specific cluster
       const lastVisitedLocation = ClusterNavigationStorage.getLastVisitedLocation(clusterId);
       
@@ -314,7 +386,7 @@ const HomePage: React.FC = () => {
         navigate(`/dashboard?cluster=${clusterId}`);
       }
     }
-  }, [contexts, setCurrentContext, navigate, clusterHealthStatus, toast]);
+  }, [contexts, setCurrentContext, navigate, clusterHealthStatus, toast, addToRecentConnections]);
 
   const handleReload = useCallback(async () => {
     setIsReloading(true);
@@ -347,8 +419,8 @@ const HomePage: React.FC = () => {
   const handlePin = useCallback(() => {
     if (contextMenu.clusterId) {
       // Check in recent connections first, then available clusters
-      const clusterToPin = recentClusterItems.find(c => c.id === contextMenu.clusterId) || 
-                          availableClusters.find(c => c.id === contextMenu.clusterId);
+      const clusterToPin = recentClusterItems.find((c: ClusterItem) => c.id === contextMenu.clusterId) || 
+                          availableClusters.find((c: ClusterItem) => c.id === contextMenu.clusterId);
       if (clusterToPin) {
         // Add to pinned clusters
         setPinnedClusters(prev => [...prev, clusterToPin]);
@@ -513,8 +585,8 @@ const HomePage: React.FC = () => {
 
   const handleDirectPin = useCallback((clusterId: string) => {
     // Check in recent connections first, then available clusters
-    const clusterToPin = recentClusterItems.find(c => c.id === clusterId) || 
-                        availableClusters.find(c => c.id === clusterId);
+    const clusterToPin = recentClusterItems.find((c: ClusterItem) => c.id === clusterId) || 
+                        availableClusters.find((c: ClusterItem) => c.id === clusterId);
     if (clusterToPin) {
       setPinnedClusters(prev => [...prev, clusterToPin]);
     }
@@ -748,7 +820,7 @@ const HomePage: React.FC = () => {
               ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
               : viewMode === 'tree'
               ? 'w-full'
-              : 'space-y-1 max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'
+              : 'space-y-1 max-h-96 pb-16 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'
           }`}>
             {viewMode === 'tree' ? (
               filteredClusters.length > 0 ? (
