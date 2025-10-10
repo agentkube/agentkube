@@ -87,6 +87,31 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     localStorage.setItem('full-width', JSON.stringify(isFullWidth));
   };
 
+  // Function to clean invalid contexts from cache
+  const cleanInvalidContextsFromCache = useCallback((validContextNames: string[]) => {
+    const validNameSet = new Set(validContextNames);
+    
+    // Clean recent connections
+    const storedRecent = localStorage.getItem('recent-connected-clusters');
+    if (storedRecent) {
+      try {
+        const recentConnections: RecentConnection[] = JSON.parse(storedRecent);
+        const validRecentConnections = recentConnections.filter(conn => 
+          validNameSet.has(conn.kubeContext.name)
+        );
+        
+        // Only update if there were invalid entries
+        if (validRecentConnections.length !== recentConnections.length) {
+          localStorage.setItem('recent-connected-clusters', JSON.stringify(validRecentConnections));
+          console.log(`Cleaned ${recentConnections.length - validRecentConnections.length} invalid recent connections from cache`);
+        }
+      } catch (error) {
+        console.error('Error cleaning recent connections cache:', error);
+        localStorage.removeItem('recent-connected-clusters');
+      }
+    }
+  }, []);
+
   // Recent connections cache management
   const addToRecentConnections = useCallback((context: KubeContext) => {
     setRecentConnections(prev => {
@@ -160,6 +185,10 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
       const fetchedContexts = await getKubeContexts();
       setAllContexts(fetchedContexts);
       
+      // Clean invalid contexts from cache
+      const validContextNames = fetchedContexts.map(ctx => ctx.name);
+      cleanInvalidContextsFromCache(validContextNames);
+      
       // Check if we have a stored context
       const storedContextName = localStorage.getItem(storageKey);
       
@@ -172,6 +201,10 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
           // If stored context not found, set the first available one
           setCurrentContext(fetchedContexts[0]);
           localStorage.setItem(storageKey, fetchedContexts[0].name);
+        } else {
+          // No contexts available, clear current context
+          setCurrentContext(null);
+          localStorage.removeItem(storageKey);
         }
       } else if (fetchedContexts.length > 0) {
         // If no stored context, set the first available one
@@ -189,7 +222,7 @@ export const ClusterProvider: React.FC<ClusterProviderProps> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, cleanInvalidContextsFromCache]);
 
   // Function to refresh contexts
   const refreshContexts = useCallback(async () => {

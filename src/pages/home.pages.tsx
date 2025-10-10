@@ -91,6 +91,61 @@ const HomePage: React.FC = () => {
   // Track cluster health status
   const [clusterHealthStatus, setClusterHealthStatus] = useState<Record<string, 'ok' | 'bad_gateway' | 'loading'>>({});
 
+  // Function to clean invalid contexts from workspace cache
+  const cleanWorkspaceCache = useCallback((validContextNames: string[]) => {
+    const validNameSet = new Set(validContextNames);
+    
+    // Clean pinned clusters
+    const pinnedKey = selectedWorkspace === 'home' 
+      ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
+      : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
+    
+    const storedPinned = localStorage.getItem(pinnedKey);
+    if (storedPinned) {
+      try {
+        const pinnedClusters: ClusterItem[] = JSON.parse(storedPinned);
+        const validPinnedClusters = pinnedClusters.filter(cluster => 
+          validNameSet.has(cluster.id)
+        );
+        
+        if (validPinnedClusters.length !== pinnedClusters.length) {
+          localStorage.setItem(pinnedKey, JSON.stringify(validPinnedClusters));
+          setPinnedClusters(validPinnedClusters);
+          console.log(`Cleaned ${pinnedClusters.length - validPinnedClusters.length} invalid pinned clusters from ${selectedWorkspace} workspace cache`);
+        }
+      } catch (error) {
+        console.error('Error cleaning pinned clusters cache:', error);
+        localStorage.removeItem(pinnedKey);
+        setPinnedClusters([]);
+      }
+    }
+    
+    // Clean recent connections
+    const recentKey = selectedWorkspace === 'home'
+      ? STORAGE_KEYS.HOME_RECENT_CONNECTIONS
+      : STORAGE_KEYS.workspaceRecentConnections(selectedWorkspace);
+    
+    const storedRecent = localStorage.getItem(recentKey);
+    if (storedRecent) {
+      try {
+        const recentConnections: RecentConnection[] = JSON.parse(storedRecent);
+        const validRecentConnections = recentConnections.filter(conn => 
+          validNameSet.has(conn.kubeContext.name)
+        );
+        
+        if (validRecentConnections.length !== recentConnections.length) {
+          localStorage.setItem(recentKey, JSON.stringify(validRecentConnections));
+          setRecentConnections(validRecentConnections);
+          console.log(`Cleaned ${recentConnections.length - validRecentConnections.length} invalid recent connections from ${selectedWorkspace} workspace cache`);
+        }
+      } catch (error) {
+        console.error('Error cleaning recent connections cache:', error);
+        localStorage.removeItem(recentKey);
+        setRecentConnections([]);
+      }
+    }
+  }, [selectedWorkspace]);
+
   // Workspace-specific pinned clusters
   const [pinnedClusters, setPinnedClusters] = useState<ClusterItem[]>(() => {
     const key = selectedWorkspace === 'home' 
@@ -255,6 +310,14 @@ const HomePage: React.FC = () => {
     }
   }, [hasReloaded, contexts.length, isContextsLoading, user]);
 
+  // Clean workspace cache when contexts change
+  useEffect(() => {
+    if (contexts.length > 0) {
+      const validContextNames = contexts.map(ctx => ctx.name);
+      cleanWorkspaceCache(validContextNames);
+    }
+  }, [contexts, cleanWorkspaceCache]);
+
   // Update workspace-specific data when workspace changes
   useEffect(() => {
     const pinnedKey = selectedWorkspace === 'home' 
@@ -269,7 +332,13 @@ const HomePage: React.FC = () => {
     
     setPinnedClusters(storedPinned ? JSON.parse(storedPinned) : []);
     setRecentConnections(storedRecent ? JSON.parse(storedRecent) : []);
-  }, [selectedWorkspace]);
+    
+    // Clean cache for the new workspace if we have contexts
+    if (contexts.length > 0) {
+      const validContextNames = contexts.map(ctx => ctx.name);
+      cleanWorkspaceCache(validContextNames);
+    }
+  }, [selectedWorkspace, contexts, cleanWorkspaceCache]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
