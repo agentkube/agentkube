@@ -103,37 +103,24 @@ impl NetworkMonitor {
     }
 }
 
-// Linux implementation using NetworkManager D-Bus
+// Linux implementation - using polling for now
 #[cfg(target_os = "linux")]
 impl NetworkMonitor {
     async fn start_linux_monitoring(&self) {
         let self_clone = Arc::new(self.clone());
-        
+
         tokio::spawn(async move {
-            match zbus::Connection::system().await {
-                Ok(connection) => {
-                    match zbus::proxy::ProxyBuilder::new(&connection)
-                        .interface("org.freedesktop.NetworkManager")
-                        .path("/org/freedesktop/NetworkManager")
-                        .build()
-                        .await
-                    {
-                        Ok(proxy) => {
-                            if let Ok(mut stream) = proxy.receive_signal("StateChanged").await {
-                                while let Some(signal) = stream.next().await {
-                                    if let Ok(args) = signal.body::<(u32,)>() {
-                                        let state = args.0;
-                                        // NetworkManager states: 20=DISCONNECTED, 70=CONNECTED_GLOBAL
-                                        let online = state >= 70;
-                                        self_clone.update_status(online);
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => log::error!("Failed to create NetworkManager proxy: {}", e),
-                    }
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(3));
+            let mut last_status = true;
+
+            loop {
+                interval.tick().await;
+                let current_status = self_clone.check_connectivity().await;
+
+                if current_status != last_status {
+                    self_clone.update_status(current_status);
+                    last_status = current_status;
                 }
-                Err(e) => log::error!("Failed to connect to D-Bus: {}", e),
             }
         });
     }
