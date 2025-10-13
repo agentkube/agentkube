@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 interface YouTubePlayerProps {
-  videoId: string
+  videoId?: string
+  videoUrl?: string
   title?: string
   defaultExpanded?: boolean
   customThumbnail?: string
@@ -42,6 +43,7 @@ interface YouTubePlayerProps {
 
 export function YouTubePlayer({
   videoId,
+  videoUrl,
   title,
   defaultExpanded = false,
   customThumbnail,
@@ -64,25 +66,72 @@ export function YouTubePlayer({
   const [playing, setPlaying] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
-  // Extract video ID from full URL if needed
-  const extractVideoId = (id: string) => {
-    if (id.includes("youtube.com") || id.includes("youtu.be")) {
+  // Extract video ID and embed URL from various YouTube formats
+  const processYouTubeUrl = (id?: string, url?: string) => {
+    const sourceUrl = url || id || ""
+    
+    // Handle YouTube clip URLs
+    if (sourceUrl.includes("/clip/")) {
       try {
-        const url = new URL(id)
-        if (id.includes("youtube.com")) {
-          return url.searchParams.get("v") || ""
+        const urlObj = new URL(sourceUrl)
+        const clipId = urlObj.pathname.split('/clip/')[1]
+        // For clips, we use the clip URL directly for embedding
+        return {
+          videoId: clipId,
+          embedUrl: sourceUrl,
+          isClip: true
+        }
+      } catch (error) {
+        console.error("Invalid YouTube clip URL:", error)
+        return {
+          videoId: sourceUrl,
+          embedUrl: sourceUrl,
+          isClip: true
+        }
+      }
+    }
+    
+    // Handle regular YouTube URLs
+    if (sourceUrl.includes("youtube.com") || sourceUrl.includes("youtu.be")) {
+      try {
+        const urlObj = new URL(sourceUrl)
+        let videoId = ""
+        
+        if (sourceUrl.includes("youtube.com")) {
+          videoId = urlObj.searchParams.get("v") || ""
         } else {
-          return url.pathname.substring(1)
+          videoId = urlObj.pathname.substring(1)
+        }
+        
+        // Preserve query parameters for regular videos too
+        const queryString = urlObj.search
+        return {
+          videoId,
+          embedUrl: `https://www.youtube.com/embed/${videoId}${queryString}`,
+          isClip: false
         }
       } catch (error) {
         console.error("Invalid YouTube URL:", error)
-        return id
+        return {
+          videoId: sourceUrl,
+          embedUrl: `https://www.youtube.com/embed/${sourceUrl}`,
+          isClip: false
+        }
       }
     }
-    return id
+    
+    // Assume it's a video ID
+    return {
+      videoId: sourceUrl,
+      embedUrl: `https://www.youtube.com/embed/${sourceUrl}`,
+      isClip: false
+    }
   }
 
-  const actualVideoId = extractVideoId(videoId)
+  const { videoId: actualVideoId, embedUrl, isClip } = processYouTubeUrl(videoId, videoUrl)
+  
+  // Create a unique identifier for layout animations
+  const playerId = videoId || videoUrl || actualVideoId
 
   const handlePlay = () => {
     setPlaying(true)
@@ -125,20 +174,20 @@ export function YouTubePlayer({
         )}
       >
         <motion.div
-          layoutId={`youtube-player-${videoId}`}
+          layoutId={`youtube-player-${playerId}`}
           className={cn(
             "overflow-hidden border bg-card text-card-foreground shadow-lg rounded-xl",
             containerClassName
           )}
         >
           <motion.div
-            layoutId={`youtube-player-content-${videoId}`}
+            layoutId={`youtube-player-content-${playerId}`}
             className={cn("relative aspect-video bg-muted", playerClassName)}
           >
             {!playing && (
               <>
                 <motion.div
-                  layoutId={`youtube-player-thumbnail-container-${videoId}`}
+                  layoutId={`youtube-player-thumbnail-container-${playerId}`}
                   className={cn(
                     "absolute inset-0 bg-gradient-to-br from-muted to-muted/80",
                     thumbnailClassName
@@ -146,7 +195,7 @@ export function YouTubePlayer({
                 >
                   {getThumbnailUrl() && (
                     <motion.img
-                      layoutId={`youtube-player-thumbnail-${videoId}`}
+                      layoutId={`youtube-player-thumbnail-${playerId}`}
                       src={getThumbnailUrl()}
                       alt={title || "Video thumbnail"}
                       className={cn(
@@ -158,7 +207,7 @@ export function YouTubePlayer({
                 </motion.div>
 
                 <motion.div
-                  layoutId={`youtube-player-content-overlay-${videoId}`}
+                  layoutId={`youtube-player-content-overlay-${playerId}`}
                   className="absolute inset-0 flex flex-col items-center justify-center z-10"
                 >
                   <Button
@@ -182,7 +231,7 @@ export function YouTubePlayer({
 
                   {title && (
                     <motion.h3
-                      layoutId={`youtube-player-title-${videoId}`}
+                      layoutId={`youtube-player-title-${playerId}`}
                       className={cn(
                         "mt-4 max-w-xs text-center text-sm font-medium text-secondary/90 md:max-w-md md:text-base",
                         titleClassName
@@ -197,7 +246,7 @@ export function YouTubePlayer({
 
             {playing && (
               <iframe
-                src={`https://www.youtube.com/embed/${actualVideoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0&controls=1`}
+                src={`${embedUrl}${embedUrl.includes('?') ? '&' : '?'}autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0&controls=1`}
                 title={title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
@@ -207,7 +256,7 @@ export function YouTubePlayer({
 
             {/* Controls Overlay */}
             <YouTubePlayerControls
-              videoId={videoId}
+              videoId={playerId}
               expanded={expanded}
               playing={playing}
               isHovered={isHovered}
@@ -238,7 +287,7 @@ export function YouTubePlayer({
 
             <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
               <motion.div
-                layoutId={`youtube-player-${videoId}`}
+                layoutId={`youtube-player-${playerId}`}
                 className={cn(
                   "overflow-hidden border bg-card text-card-foreground shadow-xl rounded-lg pointer-events-auto",
                   "w-[90vw] max-w-[1200px] max-h-[90vh] aspect-video",
@@ -246,7 +295,7 @@ export function YouTubePlayer({
                 )}
               >
                 <motion.div
-                  layoutId={`youtube-player-content-${videoId}`}
+                  layoutId={`youtube-player-content-${playerId}`}
                   className={cn(
                     "relative aspect-video bg-muted",
                     playerClassName
@@ -255,7 +304,7 @@ export function YouTubePlayer({
                   {!playing && (
                     <>
                       <motion.div
-                        layoutId={`youtube-player-thumbnail-container-${videoId}`}
+                        layoutId={`youtube-player-thumbnail-container-${playerId}`}
                         className={cn(
                           "absolute inset-0 bg-gradient-to-br from-muted to-muted/80",
                           thumbnailClassName
@@ -263,7 +312,7 @@ export function YouTubePlayer({
                       >
                         {getThumbnailUrl() && (
                           <motion.img
-                            layoutId={`youtube-player-thumbnail-${videoId}`}
+                            layoutId={`youtube-player-thumbnail-${playerId}`}
                             src={getThumbnailUrl()}
                             alt={title || "Video thumbnail"}
                             className={cn(
@@ -275,7 +324,7 @@ export function YouTubePlayer({
                       </motion.div>
 
                       <motion.div
-                        layoutId={`youtube-player-content-overlay-${videoId}`}
+                        layoutId={`youtube-player-content-overlay-${playerId}`}
                         className="absolute inset-0 flex flex-col items-center justify-center z-10"
                       >
                         <Button
@@ -299,7 +348,7 @@ export function YouTubePlayer({
 
                         {title && (
                           <motion.h3
-                            layoutId={`youtube-player-title-${videoId}`}
+                            layoutId={`youtube-player-title-${playerId}`}
                             className={cn(
                               "mt-4 max-w-xs text-center text-sm font-medium text-foreground/90 md:max-w-md md:text-base",
                               titleClassName
@@ -314,7 +363,7 @@ export function YouTubePlayer({
 
                   {playing && (
                     <iframe
-                      src={`https://www.youtube.com/embed/${actualVideoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0&controls=1`}
+                      src={`${embedUrl}${embedUrl.includes('?') ? '&' : '?'}autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0&controls=1`}
                       title={title}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
@@ -324,7 +373,7 @@ export function YouTubePlayer({
 
                   {/* Controls Overlay */}
                   <YouTubePlayerControls
-                    videoId={videoId}
+                    videoId={playerId}
                     expanded={expanded}
                     playing={playing}
                     isHovered={isHovered}

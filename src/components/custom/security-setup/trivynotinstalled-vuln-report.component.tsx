@@ -26,6 +26,7 @@ import { containerVariants, itemVariants } from "@/utils/styles.utils";
 import { SideDrawer, DrawerHeader, DrawerContent } from '@/components/ui/sidedrawer.custom';
 import { useNavigate } from "react-router-dom";
 import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
+import { DEMO_VIDEOS } from '@/constants/demo.constants';
 
 const SEVERITY_LEVELS = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"] as const;
 
@@ -724,8 +725,8 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
       <DemoVideoDialog
         isOpen={isDemoOpen}
         onClose={() => setIsDemoOpen(false)}
-        videoId="B63Wx4STwXU"
-        title="Trivy Security Scanner Demo - Kubernetes Security Made Simple"
+        videoUrl={DEMO_VIDEOS.SECURITY_DEMO.videoUrl}
+        title={DEMO_VIDEOS.SECURITY_DEMO.title}
       />
 
       {/* Install Dialog */}

@@ -24,6 +24,7 @@ import {
   ChartTooltip,
 } from "@/components/ui/chart";
 import { useNavigate } from 'react-router-dom';
+import { DEMO_VIDEOS } from '@/constants/demo.constants';
 
 interface DataSource {
   id: string;
@@ -1216,8 +1217,8 @@ const MonitoringOverview = () => {
         <DemoVideoDialog
           isOpen={isDemoOpen}
           onClose={() => setIsDemoOpen(false)}
-          videoId="B63Wx4STwXU"
-          title="Monitoring Demo - Kubernetes Monitoring Made Simple"
+          videoUrl={DEMO_VIDEOS.MONITORING_DEMO.videoUrl}
+          title={DEMO_VIDEOS.MONITORING_DEMO.title}
         />
 
         {/* Monitoring Dashboard Dialog */}

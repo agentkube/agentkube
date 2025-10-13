@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { listTasks, getTaskDetails, deleteTask } from '@/api/task';
 import { TaskDetails } from '@/types/task';
 import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
+import { DEMO_VIDEOS } from '@/constants/demo.constants';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -882,8 +883,8 @@ const Investigations: React.FC = () => {
       <DemoVideoDialog
         isOpen={isDemoOpen}
         onClose={() => setIsDemoOpen(false)}
-        videoId="B63Wx4STwXU"
-        title="Tasks and Investigation Demo - Kubernetes Monitoring Made Simple"
+        videoUrl={DEMO_VIDEOS.INVESTIGATION_CLIP_DEMO.videoUrl}
+        title={DEMO_VIDEOS.INVESTIGATION_CLIP_DEMO.title}
       />
     </div>
   );

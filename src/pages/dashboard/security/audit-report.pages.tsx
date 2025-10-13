@@ -33,6 +33,7 @@ import { NamespaceSelector } from '@/components/custom';
 import { useDrawer } from '@/contexts/useDrawer';
 import { toast } from '@/hooks/use-toast';
 import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
+import { DEMO_VIDEOS } from '@/constants/demo.constants';
 
 const SEVERITY_LEVELS = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 
@@ -873,8 +874,8 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
       <DemoVideoDialog
         isOpen={isDemoOpen}
         onClose={() => setIsDemoOpen(false)}
-        videoId="B63Wx4STwXU"
-        title="Trivy Security Scanner Demo - Kubernetes Security Made Simple"
+        videoUrl={DEMO_VIDEOS.SECURITY_DEMO.videoUrl}
+        title={DEMO_VIDEOS.SECURITY_DEMO.title}
       />
     </motion.div>
   );

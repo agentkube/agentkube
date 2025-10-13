@@ -10,7 +10,8 @@ import {
 interface DemoVideoDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  videoId: string;
+  videoId?: string;
+  videoUrl?: string;
   title: string;
   className?: string;
   maxWidth?: string;
@@ -19,7 +20,8 @@ interface DemoVideoDialogProps {
 const DemoVideoDialog: React.FC<DemoVideoDialogProps> = ({ 
   isOpen, 
   onClose, 
-  videoId, 
+  videoId,
+  videoUrl, 
   title,
   className = "",
   maxWidth = "max-w-4xl"
@@ -30,6 +32,7 @@ const DemoVideoDialog: React.FC<DemoVideoDialogProps> = ({
         <div className="flex-1 flex items-center justify-center">
           <YouTubePlayer
             videoId={videoId}
+            videoUrl={videoUrl}
             title={title}
             className="w-full"
             containerClassName="border-transparent rounded-2xl shadow-2xl bg-transparent"

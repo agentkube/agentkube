@@ -10,6 +10,7 @@ import { openExternalUrl } from '@/api/external';
 import { useCluster } from '@/contexts/clusterContext';
 import { getClusterConfig, updateClusterConfig } from '@/api/settings';
 import { useToast } from '@/hooks/use-toast';
+import { DEMO_VIDEOS } from '@/constants/demo.constants';
 
 
 interface OpenCostInstallerProps {
@@ -244,8 +245,8 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
       <DemoVideoDialog
         isOpen={isDemoOpen}
         onClose={() => setIsDemoOpen(false)}
-        videoId="B63Wx4STwXU"
-        title="OpenCost Demo - Kubernetes Cost Management Made Simple"
+        videoUrl={DEMO_VIDEOS.COST_DEMO.videoUrl}
+        title={DEMO_VIDEOS.COST_DEMO.title}
       />
     </>
   );
