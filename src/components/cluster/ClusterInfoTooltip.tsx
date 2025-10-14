@@ -199,7 +199,6 @@ const ClusterInfoTooltip: React.FC<ClusterInfoTooltipProps> = ({ cluster, childr
               {/* Health Status */}
               <div className="flex items-center justify-between  gap-2">
                 {getHealthIcon()}
-                <span className="text-sm font-medium">Status:</span>
                 <span className={`text-sm ${clusterInfo.health === 'ok' ? 'text-green-600 dark:text-green-400' :
                     clusterInfo.health === 'bad_gateway' ? 'text-red-600 dark:text-red-400' :
                       'text-blue-600 dark:text-blue-400'
@@ -214,7 +213,7 @@ const ClusterInfoTooltip: React.FC<ClusterInfoTooltipProps> = ({ cluster, childr
                 <div className="flex items-center justify-between gap-2">
                   <Server className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                   <div className="flex items-center justify-between ">
-                    <span className="text-sm font-medium">Server:</span>
+                    
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">
                         {truncateServerUrl(clusterInfo.server)}
@@ -240,7 +239,6 @@ const ClusterInfoTooltip: React.FC<ClusterInfoTooltipProps> = ({ cluster, childr
               {clusterInfo.source && (
                 <div className="flex items-center justify-between gap-2">
                   <Folder className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm font-medium">Source:</span>
                   <span className={`text-sm px-1.5 py-0.5 rounded text-xs font-medium ${clusterInfo.source === 'kubeconfig'
                       ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                       : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
