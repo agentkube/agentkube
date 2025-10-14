@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, TrendingUp, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Play } from 'lucide-react';
+import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, TrendingUp, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Play, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -26,6 +26,8 @@ import { listTasks, getTaskDetails, deleteTask } from '@/api/task';
 import { TaskDetails } from '@/types/task';
 import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
 import { DEMO_VIDEOS } from '@/constants/demo.constants';
+import { useBackgroundTask } from '@/contexts/useBackgroundTask';
+import BackgroundTaskDialog from '@/components/custom/backgroundtaskdialog/backgroundtaskdialog.component';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -221,6 +223,7 @@ const Investigations: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('all');
 
   const navigate = useNavigate();
+  const { isOpen: isBackgroundTaskOpen, onClose: closeBackgroundTask, setIsOpen } = useBackgroundTask();
 
   // Search and pagination states
   const [searchQuery, setSearchQuery] = useState('');
@@ -676,14 +679,6 @@ const Investigations: React.FC = () => {
                 </div>
               ) : error ? (
                 <div className="text-center text-red-500 py-8">{error}</div>
-              ) : getFilteredTasks.length === 0 ? (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                  {searchQuery ? (
-                    <>No tasks found matching "{searchQuery}"</>
-                  ) : (
-                    <>No tasks found for the selected filter</>
-                  )}
-                </div>
               ) : (
                 <>
                   {/* Tasks Table using Shadcn components */}
@@ -727,7 +722,33 @@ const Investigations: React.FC = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {sortedTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((task: Task) => (
+                          {getFilteredTasks.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-12">
+                                <div className="flex flex-col items-center gap-4">
+                                  <div className="text-gray-500 dark:text-gray-400">
+                                    {searchQuery ? (
+                                      <>No tasks found matching "{searchQuery}"</>
+                                    ) : (
+                                      <>No tasks found for the selected filter</>
+                                    )}
+                                  </div>
+                                  {!searchQuery && selectedTab === 'all' && (
+                                    <Button
+                                      onClick={() => setIsOpen(true)}
+                                      className="flex items-center justify-between min-w-44 gap-2"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      <span className="text-sm">
+                                        Investigation Task
+                                      </span>
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            sortedTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((task: Task) => (
                             <TableRow
                               key={task.task_id}
                               className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
@@ -834,7 +855,8 @@ const Investigations: React.FC = () => {
                               </TableCell>
 
                             </TableRow>
-                          ))}
+                          ))
+                          )}
                         </TableBody>
                       </Table>
                     </div>
@@ -885,6 +907,12 @@ const Investigations: React.FC = () => {
         onClose={() => setIsDemoOpen(false)}
         videoUrl={DEMO_VIDEOS.INVESTIGATION_CLIP_DEMO.videoUrl}
         title={DEMO_VIDEOS.INVESTIGATION_CLIP_DEMO.title}
+      />
+
+      {/* Background Task Dialog */}
+      <BackgroundTaskDialog
+        isOpen={isBackgroundTaskOpen}
+        onClose={closeBackgroundTask}
       />
     </div>
   );
