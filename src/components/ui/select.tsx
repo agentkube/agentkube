@@ -79,12 +79,22 @@ const SelectContent = React.forwardRef<
         className
       )}
       position={position}
+      sideOffset={4}
+      onCloseAutoFocus={(e) => {
+        e.preventDefault()
+      }}
+      onPointerDownOutside={(e) => {
+        const target = e.target as HTMLElement
+        if (target.closest('[role="option"]')) {
+          e.preventDefault()
+        }
+      }}
       {...props}
     >
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
-          "",
+          "p-1",
           position === "popper" &&
             "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
         )}
@@ -116,9 +126,15 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-slate-100 focus:text-slate-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-gray-700/30 dark:focus:text-gray-100",
+      "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-slate-100 focus:text-slate-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-gray-700/30 dark:focus:text-gray-100",
       className
     )}
+    onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
+      // Prevent default only if clicking on child elements to ensure proper event bubbling
+      if (e.target !== e.currentTarget) {
+        e.stopPropagation()
+      }
+    }}
     {...props}
   >
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
