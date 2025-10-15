@@ -63,6 +63,16 @@ func (c *Controller) GetGraphNodes(ctx context.Context, resource ResourceIdentif
 			err = c.processCronJobGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 		case "nodes":
 			err = c.processNodeGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "roles":
+			err = c.processRoleGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "clusterroles":
+			err = c.processClusterRoleGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "rolebindings":
+			err = c.processRoleBindingGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "clusterrolebindings":
+			err = c.processClusterRoleBindingGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "serviceaccounts":
+			err = c.processServiceAccountGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
 		default:
 			// For other resource types, just return the single node
 			return response, nil
@@ -431,6 +441,357 @@ func (c *Controller) processNodeGraph(ctx context.Context, client dynamic.Interf
 	return nil
 }
 
+// processRoleGraph handles graph generation for Roles
+func (c *Controller) processRoleGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Find RoleBindings that reference this Role
+	roleBindings, err := c.findRoleBindingsForRole(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	for _, rb := range roleBindings {
+		rbNode, err := c.buildResourceNode(ctx, client, rb)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, rbNode)
+
+		// Add edge from rolebinding to role
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: rbNode.ID,
+			Target: parentID,
+			Type:   "smoothstep",
+			Label:  "uses-permissions",
+		})
+
+		// Find ServiceAccounts bound by this RoleBinding
+		serviceAccounts, err := c.findServiceAccountsForRoleBinding(ctx, client, rb)
+		if err != nil {
+			continue
+		}
+
+		for _, sa := range serviceAccounts {
+			saNode, err := c.buildResourceNode(ctx, client, sa)
+			if err != nil {
+				continue
+			}
+			response.Nodes = append(response.Nodes, saNode)
+
+			// Add edge from rolebinding to serviceaccount
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: rbNode.ID,
+				Target: saNode.ID,
+				Type:   "smoothstep",
+				Label:  "binds-to",
+			})
+		}
+	}
+
+	return nil
+}
+
+// processClusterRoleGraph handles graph generation for ClusterRoles
+func (c *Controller) processClusterRoleGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Find RoleBindings and ClusterRoleBindings that reference this ClusterRole
+	roleBindings, err := c.findRoleBindingsForClusterRole(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	clusterRoleBindings, err := c.findClusterRoleBindingsForClusterRole(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	// Process RoleBindings
+	for _, rb := range roleBindings {
+		rbNode, err := c.buildResourceNode(ctx, client, rb)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, rbNode)
+
+		// Add edge from rolebinding to clusterrole
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: rbNode.ID,
+			Target: parentID,
+			Type:   "smoothstep",
+			Label:  "uses-permissions",
+		})
+
+		// Find ServiceAccounts bound by this RoleBinding
+		serviceAccounts, err := c.findServiceAccountsForRoleBinding(ctx, client, rb)
+		if err != nil {
+			continue
+		}
+
+		for _, sa := range serviceAccounts {
+			saNode, err := c.buildResourceNode(ctx, client, sa)
+			if err != nil {
+				continue
+			}
+			response.Nodes = append(response.Nodes, saNode)
+
+			// Add edge from rolebinding to serviceaccount
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: rbNode.ID,
+				Target: saNode.ID,
+				Type:   "smoothstep",
+				Label:  "binds-to",
+			})
+		}
+	}
+
+	// Process ClusterRoleBindings
+	for _, crb := range clusterRoleBindings {
+		crbNode, err := c.buildResourceNode(ctx, client, crb)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, crbNode)
+
+		// Add edge from clusterrolebinding to clusterrole
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: parentID,
+			Target: crbNode.ID,
+			Type:   "smoothstep",
+			Label:  "uses-permissions",
+		})
+
+		// Find ServiceAccounts bound by this ClusterRoleBinding
+		serviceAccounts, err := c.findServiceAccountsForClusterRoleBinding(ctx, client, crb)
+		if err != nil {
+			continue
+		}
+
+		for _, sa := range serviceAccounts {
+			saNode, err := c.buildResourceNode(ctx, client, sa)
+			if err != nil {
+				continue
+			}
+			response.Nodes = append(response.Nodes, saNode)
+
+			// Add edge from clusterrolebinding to serviceaccount
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: crbNode.ID,
+				Target: saNode.ID,
+				Type:   "smoothstep",
+				Label:  "binds-to",
+			})
+		}
+	}
+
+	return nil
+}
+
+// processRoleBindingGraph handles graph generation for RoleBindings
+func (c *Controller) processRoleBindingGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Find the Role referenced by this RoleBinding
+	role, err := c.getRoleFromRoleBinding(ctx, client, resource)
+	if err == nil && role != nil {
+		roleNode, err := c.buildResourceNode(ctx, client, *role)
+		if err == nil {
+			response.Nodes = append(response.Nodes, roleNode)
+
+			// Add edge from rolebinding to role
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: parentID,
+				Target: roleNode.ID,
+				Type:   "smoothstep",
+				Label:  "uses-permissions",
+			})
+		}
+	}
+
+	// Find ServiceAccounts bound by this RoleBinding
+	serviceAccounts, err := c.findServiceAccountsForRoleBinding(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	for _, sa := range serviceAccounts {
+		saNode, err := c.buildResourceNode(ctx, client, sa)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, saNode)
+
+		// Add edge from rolebinding to serviceaccount
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: parentID,
+			Target: saNode.ID,
+			Type:   "smoothstep",
+			Label:  "binds-to",
+		})
+	}
+
+	return nil
+}
+
+// processClusterRoleBindingGraph handles graph generation for ClusterRoleBindings
+func (c *Controller) processClusterRoleBindingGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Find the ClusterRole referenced by this ClusterRoleBinding
+	clusterRole, err := c.getClusterRoleFromClusterRoleBinding(ctx, client, resource)
+	if err == nil && clusterRole != nil {
+		crNode, err := c.buildResourceNode(ctx, client, *clusterRole)
+		if err == nil {
+			response.Nodes = append(response.Nodes, crNode)
+
+			// Add edge from clusterrolebinding to clusterrole
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: parentID,
+				Target: crNode.ID,
+				Type:   "smoothstep",
+				Label:  "uses-permissions",
+			})
+		}
+	}
+
+	// Find ServiceAccounts bound by this ClusterRoleBinding
+	serviceAccounts, err := c.findServiceAccountsForClusterRoleBinding(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	for _, sa := range serviceAccounts {
+		saNode, err := c.buildResourceNode(ctx, client, sa)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, saNode)
+
+		// Add edge from clusterrolebinding to serviceaccount
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: parentID,
+			Target: saNode.ID,
+			Type:   "smoothstep",
+			Label:  "binds-to",
+		})
+	}
+
+	return nil
+}
+
+// processServiceAccountGraph handles graph generation for ServiceAccounts
+func (c *Controller) processServiceAccountGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Find RoleBindings that reference this ServiceAccount
+	roleBindings, err := c.findRoleBindingsForServiceAccount(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	for _, rb := range roleBindings {
+		rbNode, err := c.buildResourceNode(ctx, client, rb)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, rbNode)
+
+		// Add edge from serviceaccount to rolebinding
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: parentID,
+			Target: rbNode.ID,
+			Type:   "smoothstep",
+			Label:  "bound-by",
+		})
+
+		// Find the Role referenced by this RoleBinding
+		role, err := c.getRoleFromRoleBinding(ctx, client, rb)
+		if err == nil && role != nil {
+			roleNode, err := c.buildResourceNode(ctx, client, *role)
+			if err == nil {
+				response.Nodes = append(response.Nodes, roleNode)
+
+				// Add edge from rolebinding to role
+				response.Edges = append(response.Edges, Edge{
+					ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+					Source: roleNode.ID,
+					Target: rbNode.ID,
+					Type:   "smoothstep",
+					Label:  "grant-permissions",
+				})
+			}
+		}
+	}
+
+	// Find ClusterRoleBindings that reference this ServiceAccount
+	clusterRoleBindings, err := c.findClusterRoleBindingsForServiceAccount(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	for _, crb := range clusterRoleBindings {
+		crbNode, err := c.buildResourceNode(ctx, client, crb)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, crbNode)
+
+		// Add edge from serviceaccount to clusterrolebinding
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: parentID,
+			Target: crbNode.ID,
+			Type:   "smoothstep",
+			Label:  "bound-by",
+		})
+
+		// Find the ClusterRole referenced by this ClusterRoleBinding
+		clusterRole, err := c.getClusterRoleFromClusterRoleBinding(ctx, client, crb)
+		if err == nil && clusterRole != nil {
+			crNode, err := c.buildResourceNode(ctx, client, *clusterRole)
+			if err == nil {
+				response.Nodes = append(response.Nodes, crNode)
+
+				// Add edge from clusterrolebinding to clusterrole
+				response.Edges = append(response.Edges, Edge{
+					ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+					Source: crNode.ID,
+					Target: crbNode.ID,
+					Type:   "smoothstep",
+					Label:  "grant-permissions",
+				})
+			}
+		}
+	}
+
+	// Find pods that use this ServiceAccount
+	pods, err := c.findPodsUsingServiceAccount(ctx, client, resource)
+	if err != nil {
+		return err
+	}
+
+	for _, pod := range pods {
+		podNode, err := c.buildResourceNode(ctx, client, pod)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, podNode)
+
+		// Add edge from serviceaccount to pod
+		response.Edges = append(response.Edges, Edge{
+			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+			Source: parentID,
+			Target: podNode.ID,
+			Type:   "smoothstep",
+			Label:  "used-by",
+		})
+	}
+
+	return nil
+}
+
 // processCustomResourceGraph handles graph generation for custom resources
 func (c *Controller) processCustomResourceGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
 	// Get the custom resource object to extract its UID
@@ -451,8 +812,11 @@ func (c *Controller) processCustomResourceGraph(ctx context.Context, client dyna
 		return fmt.Errorf("failed to find owned resources: %v", err)
 	}
 
-	// Process each owned resource
-	for _, ownedResource := range ownedResources {
+	// Sort owned resources by hierarchy (services, deployments/statefulsets/daemonsets, replicasets, pods)
+	sortedResources := c.sortResourcesByHierarchy(ownedResources)
+
+	// Process each owned resource in hierarchical order
+	for _, ownedResource := range sortedResources {
 		err := c.processOwnedResource(ctx, client, parentID, ownedResource, response, attackPath)
 		if err != nil {
 			// Log but don't fail - continue processing other resources
@@ -1420,4 +1784,378 @@ func (c *Controller) getResourcePods(ctx context.Context, client dynamic.Interfa
 	default:
 		return nil, nil
 	}
+}
+
+// sortResourcesByHierarchy sorts resources in a logical hierarchy for display
+// Order: services, deployments/statefulsets/daemonsets, replicasets, pods, configmaps/secrets/serviceaccounts
+func (c *Controller) sortResourcesByHierarchy(resources []ResourceIdentifier) []ResourceIdentifier {
+	// Define hierarchy order
+	hierarchyOrder := map[string]int{
+		"services":               1,
+		"deployments":            2,
+		"statefulsets":           2,
+		"daemonsets":             2,
+		"jobs":                   2,
+		"cronjobs":               2,
+		"replicasets":            3,
+		"pods":                   4,
+		"configmaps":             5,
+		"secrets":                5,
+		"serviceaccounts":        5,
+		"persistentvolumeclaims": 5,
+		"endpoints":              6,
+		"endpointslices":         6,
+		"controllerrevisions":    7,
+	}
+
+	// Sort based on hierarchy order
+	sortedResources := make([]ResourceIdentifier, len(resources))
+	copy(sortedResources, resources)
+
+	// Simple insertion sort based on hierarchy
+	for i := 1; i < len(sortedResources); i++ {
+		key := sortedResources[i]
+		keyOrder := hierarchyOrder[key.ResourceType]
+		if keyOrder == 0 {
+			keyOrder = 10 // Unknown resources go to the end
+		}
+
+		j := i - 1
+		for j >= 0 {
+			currentOrder := hierarchyOrder[sortedResources[j].ResourceType]
+			if currentOrder == 0 {
+				currentOrder = 10
+			}
+			if currentOrder <= keyOrder {
+				break
+			}
+			sortedResources[j+1] = sortedResources[j]
+			j--
+		}
+		sortedResources[j+1] = key
+	}
+
+	return sortedResources
+}
+
+// RBAC Helper Functions
+
+// findRoleBindingsForRole finds RoleBindings that reference a specific Role
+func (c *Controller) findRoleBindingsForRole(ctx context.Context, client dynamic.Interface, role ResourceIdentifier) ([]ResourceIdentifier, error) {
+	var roleBindings []ResourceIdentifier
+
+	rbList, err := client.Resource(schema.GroupVersionResource{
+		Group:    "rbac.authorization.k8s.io",
+		Version:  "v1",
+		Resource: "rolebindings",
+	}).Namespace(role.Namespace).List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return roleBindings, err
+	}
+
+	for _, rb := range rbList.Items {
+		roleRefKind, found, _ := unstructured.NestedString(rb.Object, "roleRef", "kind")
+		if !found || roleRefKind != "Role" {
+			continue
+		}
+
+		roleRefName, found, _ := unstructured.NestedString(rb.Object, "roleRef", "name")
+		if found && roleRefName == role.ResourceName {
+			roleBindings = append(roleBindings, ResourceIdentifier{
+				Namespace:    rb.GetNamespace(),
+				Group:        "rbac.authorization.k8s.io",
+				Version:      "v1",
+				ResourceType: "rolebindings",
+				ResourceName: rb.GetName(),
+			})
+		}
+	}
+
+	return roleBindings, nil
+}
+
+// findRoleBindingsForClusterRole finds RoleBindings that reference a specific ClusterRole
+func (c *Controller) findRoleBindingsForClusterRole(ctx context.Context, client dynamic.Interface, clusterRole ResourceIdentifier) ([]ResourceIdentifier, error) {
+	var roleBindings []ResourceIdentifier
+
+	// Check all namespaces for RoleBindings that reference this ClusterRole
+	namespaceList, err := client.Resource(schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "namespaces",
+	}).List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return roleBindings, err
+	}
+
+	for _, ns := range namespaceList.Items {
+		rbList, err := client.Resource(schema.GroupVersionResource{
+			Group:    "rbac.authorization.k8s.io",
+			Version:  "v1",
+			Resource: "rolebindings",
+		}).Namespace(ns.GetName()).List(ctx, metav1.ListOptions{})
+
+		if err != nil {
+			continue
+		}
+
+		for _, rb := range rbList.Items {
+			roleRefKind, found, _ := unstructured.NestedString(rb.Object, "roleRef", "kind")
+			if !found || roleRefKind != "ClusterRole" {
+				continue
+			}
+
+			roleRefName, found, _ := unstructured.NestedString(rb.Object, "roleRef", "name")
+			if found && roleRefName == clusterRole.ResourceName {
+				roleBindings = append(roleBindings, ResourceIdentifier{
+					Namespace:    rb.GetNamespace(),
+					Group:        "rbac.authorization.k8s.io",
+					Version:      "v1",
+					ResourceType: "rolebindings",
+					ResourceName: rb.GetName(),
+				})
+			}
+		}
+	}
+
+	return roleBindings, nil
+}
+
+// findClusterRoleBindingsForClusterRole finds ClusterRoleBindings that reference a specific ClusterRole
+func (c *Controller) findClusterRoleBindingsForClusterRole(ctx context.Context, client dynamic.Interface, clusterRole ResourceIdentifier) ([]ResourceIdentifier, error) {
+	var clusterRoleBindings []ResourceIdentifier
+
+	crbList, err := client.Resource(schema.GroupVersionResource{
+		Group:    "rbac.authorization.k8s.io",
+		Version:  "v1",
+		Resource: "clusterrolebindings",
+	}).List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return clusterRoleBindings, err
+	}
+
+	for _, crb := range crbList.Items {
+		roleRefKind, found, _ := unstructured.NestedString(crb.Object, "roleRef", "kind")
+		if !found || roleRefKind != "ClusterRole" {
+			continue
+		}
+
+		roleRefName, found, _ := unstructured.NestedString(crb.Object, "roleRef", "name")
+		if found && roleRefName == clusterRole.ResourceName {
+			clusterRoleBindings = append(clusterRoleBindings, ResourceIdentifier{
+				Namespace:    "",
+				Group:        "rbac.authorization.k8s.io",
+				Version:      "v1",
+				ResourceType: "clusterrolebindings",
+				ResourceName: crb.GetName(),
+			})
+		}
+	}
+
+	return clusterRoleBindings, nil
+}
+
+// findServiceAccountsForRoleBinding finds ServiceAccounts bound by a specific RoleBinding
+func (c *Controller) findServiceAccountsForRoleBinding(ctx context.Context, client dynamic.Interface, roleBinding ResourceIdentifier) ([]ResourceIdentifier, error) {
+	var serviceAccounts []ResourceIdentifier
+
+	rbObj, err := client.Resource(schema.GroupVersionResource{
+		Group:    "rbac.authorization.k8s.io",
+		Version:  "v1",
+		Resource: "rolebindings",
+	}).Namespace(roleBinding.Namespace).Get(ctx, roleBinding.ResourceName, metav1.GetOptions{})
+
+	if err != nil {
+		return serviceAccounts, err
+	}
+
+	subjects, found, _ := unstructured.NestedSlice(rbObj.Object, "subjects")
+	if !found {
+		return serviceAccounts, nil
+	}
+
+	for _, subject := range subjects {
+		subjectMap, ok := subject.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		kind, _, _ := unstructured.NestedString(subjectMap, "kind")
+		name, _, _ := unstructured.NestedString(subjectMap, "name")
+		namespace, _, _ := unstructured.NestedString(subjectMap, "namespace")
+
+		if kind == "ServiceAccount" && name != "" {
+			if namespace == "" {
+				namespace = roleBinding.Namespace
+			}
+
+			serviceAccounts = append(serviceAccounts, ResourceIdentifier{
+				Namespace:    namespace,
+				Group:        "",
+				Version:      "v1",
+				ResourceType: "serviceaccounts",
+				ResourceName: name,
+			})
+		}
+	}
+
+	return serviceAccounts, nil
+}
+
+// findServiceAccountsForClusterRoleBinding finds ServiceAccounts bound by a specific ClusterRoleBinding
+func (c *Controller) findServiceAccountsForClusterRoleBinding(ctx context.Context, client dynamic.Interface, clusterRoleBinding ResourceIdentifier) ([]ResourceIdentifier, error) {
+	var serviceAccounts []ResourceIdentifier
+
+	crbObj, err := client.Resource(schema.GroupVersionResource{
+		Group:    "rbac.authorization.k8s.io",
+		Version:  "v1",
+		Resource: "clusterrolebindings",
+	}).Get(ctx, clusterRoleBinding.ResourceName, metav1.GetOptions{})
+
+	if err != nil {
+		return serviceAccounts, err
+	}
+
+	subjects, found, _ := unstructured.NestedSlice(crbObj.Object, "subjects")
+	if !found {
+		return serviceAccounts, nil
+	}
+
+	for _, subject := range subjects {
+		subjectMap, ok := subject.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		kind, _, _ := unstructured.NestedString(subjectMap, "kind")
+		name, _, _ := unstructured.NestedString(subjectMap, "name")
+		namespace, _, _ := unstructured.NestedString(subjectMap, "namespace")
+
+		if kind == "ServiceAccount" && name != "" && namespace != "" {
+			serviceAccounts = append(serviceAccounts, ResourceIdentifier{
+				Namespace:    namespace,
+				Group:        "",
+				Version:      "v1",
+				ResourceType: "serviceaccounts",
+				ResourceName: name,
+			})
+		}
+	}
+
+	return serviceAccounts, nil
+}
+
+// getRoleFromRoleBinding gets the Role referenced by a RoleBinding
+func (c *Controller) getRoleFromRoleBinding(ctx context.Context, client dynamic.Interface, roleBinding ResourceIdentifier) (*ResourceIdentifier, error) {
+	rbObj, err := client.Resource(schema.GroupVersionResource{
+		Group:    "rbac.authorization.k8s.io",
+		Version:  "v1",
+		Resource: "rolebindings",
+	}).Namespace(roleBinding.Namespace).Get(ctx, roleBinding.ResourceName, metav1.GetOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	roleRefKind, found, _ := unstructured.NestedString(rbObj.Object, "roleRef", "kind")
+	if !found {
+		return nil, fmt.Errorf("roleRef not found in rolebinding")
+	}
+
+	roleRefName, found, _ := unstructured.NestedString(rbObj.Object, "roleRef", "name")
+	if !found {
+		return nil, fmt.Errorf("roleRef name not found in rolebinding")
+	}
+
+	if roleRefKind == "Role" {
+		return &ResourceIdentifier{
+			Namespace:    roleBinding.Namespace,
+			Group:        "rbac.authorization.k8s.io",
+			Version:      "v1",
+			ResourceType: "roles",
+			ResourceName: roleRefName,
+		}, nil
+	} else if roleRefKind == "ClusterRole" {
+		return &ResourceIdentifier{
+			Namespace:    "",
+			Group:        "rbac.authorization.k8s.io",
+			Version:      "v1",
+			ResourceType: "clusterroles",
+			ResourceName: roleRefName,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("unknown roleRef kind: %s", roleRefKind)
+}
+
+// getClusterRoleFromClusterRoleBinding gets the ClusterRole referenced by a ClusterRoleBinding
+func (c *Controller) getClusterRoleFromClusterRoleBinding(ctx context.Context, client dynamic.Interface, clusterRoleBinding ResourceIdentifier) (*ResourceIdentifier, error) {
+	crbObj, err := client.Resource(schema.GroupVersionResource{
+		Group:    "rbac.authorization.k8s.io",
+		Version:  "v1",
+		Resource: "clusterrolebindings",
+	}).Get(ctx, clusterRoleBinding.ResourceName, metav1.GetOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	roleRefKind, found, _ := unstructured.NestedString(crbObj.Object, "roleRef", "kind")
+	if !found || roleRefKind != "ClusterRole" {
+		return nil, fmt.Errorf("roleRef not found or not a ClusterRole")
+	}
+
+	roleRefName, found, _ := unstructured.NestedString(crbObj.Object, "roleRef", "name")
+	if !found {
+		return nil, fmt.Errorf("roleRef name not found in clusterrolebinding")
+	}
+
+	return &ResourceIdentifier{
+		Namespace:    "",
+		Group:        "rbac.authorization.k8s.io",
+		Version:      "v1",
+		ResourceType: "clusterroles",
+		ResourceName: roleRefName,
+	}, nil
+}
+
+// findPodsUsingServiceAccount finds pods that use a specific ServiceAccount
+func (c *Controller) findPodsUsingServiceAccount(ctx context.Context, client dynamic.Interface, serviceAccount ResourceIdentifier) ([]ResourceIdentifier, error) {
+	var pods []ResourceIdentifier
+
+	podList, err := client.Resource(schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "pods",
+	}).Namespace(serviceAccount.Namespace).List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return pods, err
+	}
+
+	for _, pod := range podList.Items {
+		// Check if pod uses this ServiceAccount
+		podSAName, found, _ := unstructured.NestedString(pod.Object, "spec", "serviceAccountName")
+		if !found {
+			podSAName, found, _ = unstructured.NestedString(pod.Object, "spec", "serviceAccount")
+		}
+
+		// Default ServiceAccount is "default"
+		if !found || podSAName == "" {
+			podSAName = "default"
+		}
+
+		if podSAName == serviceAccount.ResourceName {
+			pods = append(pods, ResourceIdentifier{
+				Namespace:    pod.GetNamespace(),
+				Group:        "",
+				Version:      "v1",
+				ResourceType: "pods",
+				ResourceName: pod.GetName(),
+			})
+		}
+	}
+
+	return pods, nil
 }

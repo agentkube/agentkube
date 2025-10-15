@@ -37,21 +37,30 @@ func (c *Controller) findResourcesByOwnerUID(
 ) ([]ResourceIdentifier, error) {
 	var ownedResources []ResourceIdentifier
 
-	// Resource types to check for ownership
+	// Resource types to check for ownership in hierarchical order
 	// These are the most common resources that can be owned by custom resources
 	resourceTypes := []schema.GroupVersionResource{
-		{Group: "apps", Version: "v1", Resource: "statefulsets"},
-		{Group: "apps", Version: "v1", Resource: "deployments"},
-		{Group: "apps", Version: "v1", Resource: "daemonsets"},
+		// Core workloads (ordered by typical hierarchy)
 		{Group: "", Version: "v1", Resource: "services"},
-		{Group: "", Version: "v1", Resource: "secrets"},
-		{Group: "", Version: "v1", Resource: "configmaps"},
-		{Group: "", Version: "v1", Resource: "serviceaccounts"},
-		{Group: "apps", Version: "v1", Resource: "controllerrevisions"},
+		{Group: "apps", Version: "v1", Resource: "deployments"},
+		{Group: "apps", Version: "v1", Resource: "statefulsets"},
+		{Group: "apps", Version: "v1", Resource: "daemonsets"},
 		{Group: "batch", Version: "v1", Resource: "jobs"},
+		{Group: "batch", Version: "v1", Resource: "cronjobs"},
+		{Group: "apps", Version: "v1", Resource: "replicasets"},
+		{Group: "", Version: "v1", Resource: "pods"},
+		// Configuration and storage
+		{Group: "", Version: "v1", Resource: "configmaps"},
+		{Group: "", Version: "v1", Resource: "secrets"},
+		{Group: "", Version: "v1", Resource: "serviceaccounts"},
 		{Group: "", Version: "v1", Resource: "persistentvolumeclaims"},
-		{Group: "discovery.k8s.io", Version: "v1", Resource: "endpointslices"},
+		// Networking
 		{Group: "", Version: "v1", Resource: "endpoints"},
+		{Group: "discovery.k8s.io", Version: "v1", Resource: "endpointslices"},
+		{Group: "networking.k8s.io", Version: "v1", Resource: "ingresses"},
+		{Group: "networking.k8s.io", Version: "v1", Resource: "networkpolicies"},
+		// Controller tracking
+		{Group: "apps", Version: "v1", Resource: "controllerrevisions"},
 	}
 
 	for _, gvr := range resourceTypes {
