@@ -459,10 +459,10 @@ func (c *Controller) processRoleGraph(ctx context.Context, client dynamic.Interf
 		// Add edge from rolebinding to role
 		response.Edges = append(response.Edges, Edge{
 			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
-			Source: rbNode.ID,
-			Target: parentID,
+			Source: parentID,
+			Target: rbNode.ID,
 			Type:   "smoothstep",
-			Label:  "uses-permissions",
+			Label:  "grant-permissions",
 		})
 
 		// Find ServiceAccounts bound by this RoleBinding
@@ -481,8 +481,8 @@ func (c *Controller) processRoleGraph(ctx context.Context, client dynamic.Interf
 			// Add edge from rolebinding to serviceaccount
 			response.Edges = append(response.Edges, Edge{
 				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
-				Source: rbNode.ID,
-				Target: saNode.ID,
+				Source: saNode.ID,
+				Target: rbNode.ID,
 				Type:   "smoothstep",
 				Label:  "binds-to",
 			})
@@ -579,8 +579,8 @@ func (c *Controller) processClusterRoleGraph(ctx context.Context, client dynamic
 			// Add edge from clusterrolebinding to serviceaccount
 			response.Edges = append(response.Edges, Edge{
 				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
-				Source: crbNode.ID,
-				Target: saNode.ID,
+				Source: saNode.ID,
+				Target: crbNode.ID,
 				Type:   "smoothstep",
 				Label:  "binds-to",
 			})
@@ -602,10 +602,10 @@ func (c *Controller) processRoleBindingGraph(ctx context.Context, client dynamic
 			// Add edge from rolebinding to role
 			response.Edges = append(response.Edges, Edge{
 				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
-				Source: parentID,
-				Target: roleNode.ID,
+				Source: roleNode.ID,
+				Target: parentID,
 				Type:   "smoothstep",
-				Label:  "uses-permissions",
+				Label:  "grant-permissions",
 			})
 		}
 	}
@@ -626,8 +626,8 @@ func (c *Controller) processRoleBindingGraph(ctx context.Context, client dynamic
 		// Add edge from rolebinding to serviceaccount
 		response.Edges = append(response.Edges, Edge{
 			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
-			Source: parentID,
-			Target: saNode.ID,
+			Source: saNode.ID,
+			Target: parentID,
 			Type:   "smoothstep",
 			Label:  "binds-to",
 		})
@@ -648,8 +648,8 @@ func (c *Controller) processClusterRoleBindingGraph(ctx context.Context, client 
 			// Add edge from clusterrolebinding to clusterrole
 			response.Edges = append(response.Edges, Edge{
 				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
-				Source: parentID,
-				Target: crNode.ID,
+				Source: crNode.ID,
+				Target: parentID,
 				Type:   "smoothstep",
 				Label:  "uses-permissions",
 			})
@@ -672,8 +672,8 @@ func (c *Controller) processClusterRoleBindingGraph(ctx context.Context, client 
 		// Add edge from clusterrolebinding to serviceaccount
 		response.Edges = append(response.Edges, Edge{
 			ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
-			Source: parentID,
-			Target: saNode.ID,
+			Source: saNode.ID,
+			Target: parentID,
 			Type:   "smoothstep",
 			Label:  "binds-to",
 		})
