@@ -10,7 +10,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Key, Shield, FileText, User, Trash } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, Key, Shield, FileText, User, Trash, Crosshair } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,7 +24,7 @@ import { useReconMode } from '@/contexts/useRecon';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab, ResourceCanvas } from '@/components/custom';
 import ServiceAccountRoles from '../components/serviceAccountroles.viewer';
 
 // Define interface for service account data (extending V1ServiceAccount with events)
@@ -46,6 +46,9 @@ const ServiceAccountViewer: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { isReconMode } = useReconMode();
+  // Get attack path mode from URL params
+  const attackPathParam = searchParams.get('attackPath');
+  const [attackPathMode, setAttackPathMode] = useState(attackPathParam === 'true');
   // Fetch events for the service account
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -71,6 +74,14 @@ const ServiceAccountViewer: React.FC = () => {
       console.error('Error fetching events:', err);
     }
   };
+
+  // Sync attack path mode with URL parameter
+  useEffect(() => {
+    const urlAttackPath = searchParams.get('attackPath') === 'true';
+    if (urlAttackPath !== attackPathMode) {
+      setAttackPathMode(urlAttackPath);
+    }
+  }, [searchParams, attackPathMode]);
 
   // Fetch service account data and events
   useEffect(() => {
@@ -344,12 +355,39 @@ const ServiceAccountViewer: React.FC = () => {
             });
           }}
           className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="yaml">YAML</TabsTrigger>
-            <TabsTrigger value="events">Events</TabsTrigger>
-            <TabsTrigger value="roles">Roles</TabsTrigger>
-          </TabsList>
+          <div className='flex justify-between items-center'>
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="yaml">YAML</TabsTrigger>
+              <TabsTrigger value="canvas">Canvas</TabsTrigger>
+              <TabsTrigger value="events">Events</TabsTrigger>
+              <TabsTrigger value="roles">Roles</TabsTrigger>
+            </TabsList>
+
+            {defaultTab === 'canvas' && (
+              <Button
+                variant={attackPathMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const newAttackPathMode = !attackPathMode;
+                  setAttackPathMode(newAttackPathMode);
+                  setSearchParams(params => {
+                    if (newAttackPathMode) {
+                      params.set('attackPath', 'true');
+                    } else {
+                      params.delete('attackPath');
+                    }
+                    return params;
+                  });
+                }}
+                className={`ml-2 h-9 ${attackPathMode ? 'bg-orange-500/20 dark:bg-orange-700/20 text-orange-500 dark:text-orange-400 border-none' : ''}`}
+                title={attackPathMode ? "Disable Attack Path Analysis" : "Enable Attack Path Analysis"}
+              >
+                <Crosshair className="h-4 w-4 mr-1.5" />
+                Attack Path
+              </Button>
+            )}
+          </div>
 
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* ServiceAccount Status Cards */}
@@ -500,6 +538,23 @@ const ServiceAccountViewer: React.FC = () => {
               namespace={serviceAccountData.metadata.namespace || ''}
               currentContext={currentContext}
             />
+          </TabsContent>
+
+          <TabsContent value="canvas" className="space-y-6">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              {serviceAccountData && (
+                <ResourceCanvas
+                  resourceDetails={{
+                    namespace: serviceAccountData.metadata?.namespace || '',
+                    group: '',
+                    version: 'v1',
+                    resourceType: 'serviceaccounts',
+                    resourceName: serviceAccountData.metadata?.name || '',
+                  }}
+                  attackPath={attackPathMode}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6">

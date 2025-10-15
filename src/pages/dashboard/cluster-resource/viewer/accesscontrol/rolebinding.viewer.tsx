@@ -6,7 +6,7 @@ import { useCluster } from '@/contexts/clusterContext';
 
 // Component imports
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, ShieldCheck, Users, Link2, UserPlus, Trash } from "lucide-react";
+import { ChevronRight, AlertCircle, Clock, ArrowLeft, RefreshCw, ShieldCheck, Users, Link2, UserPlus, Trash, Crosshair } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,7 +20,7 @@ import { useReconMode } from '@/contexts/useRecon';
 // Custom component imports
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
-import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
+import { DeletionDialog, ResourceViewerYamlTab, ResourceCanvas } from '@/components/custom';
 
 // Define interface for RoleBinding data with events
 interface RoleBindingData extends V1RoleBinding {
@@ -42,6 +42,9 @@ const RoleBindingViewer: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { isReconMode } = useReconMode();
+  // Get attack path mode from URL params
+  const attackPathParam = searchParams.get('attackPath');
+  const [attackPathMode, setAttackPathMode] = useState(attackPathParam === 'true');
   // Fetch events for the RoleBinding
   const fetchEvents = async () => {
     if (!currentContext || !namespace) return;
@@ -98,6 +101,14 @@ const RoleBindingViewer: React.FC = () => {
       console.error('Error fetching referenced role:', err);
     }
   };
+
+  // Sync attack path mode with URL parameter
+  useEffect(() => {
+    const urlAttackPath = searchParams.get('attackPath') === 'true';
+    if (urlAttackPath !== attackPathMode) {
+      setAttackPathMode(urlAttackPath);
+    }
+  }, [searchParams, attackPathMode]);
 
   // Fetch RoleBinding data and related resources
   useEffect(() => {
@@ -392,13 +403,40 @@ const RoleBindingViewer: React.FC = () => {
             });
           }}
           className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="subjects">Subjects</TabsTrigger>
-            <TabsTrigger value="role">Referenced Role</TabsTrigger>
-            <TabsTrigger value="yaml">YAML</TabsTrigger>
-            <TabsTrigger value="events">Events</TabsTrigger>
-          </TabsList>
+          <div className='flex justify-between items-center'>
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="subjects">Subjects</TabsTrigger>
+              <TabsTrigger value="role">Referenced Role</TabsTrigger>
+              <TabsTrigger value="yaml">YAML</TabsTrigger>
+              <TabsTrigger value="canvas">Canvas</TabsTrigger>
+              <TabsTrigger value="events">Events</TabsTrigger>
+            </TabsList>
+
+            {defaultTab === 'canvas' && (
+              <Button
+                variant={attackPathMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const newAttackPathMode = !attackPathMode;
+                  setAttackPathMode(newAttackPathMode);
+                  setSearchParams(params => {
+                    if (newAttackPathMode) {
+                      params.set('attackPath', 'true');
+                    } else {
+                      params.delete('attackPath');
+                    }
+                    return params;
+                  });
+                }}
+                className={`ml-2 h-9 ${attackPathMode ? 'bg-orange-500/20 dark:bg-orange-700/20 text-orange-500 dark:text-orange-400 border-none' : ''}`}
+                title={attackPathMode ? "Disable Attack Path Analysis" : "Enable Attack Path Analysis"}
+              >
+                <Crosshair className="h-4 w-4 mr-1.5" />
+                Attack Path
+              </Button>
+            )}
+          </div>
 
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* RoleBinding Status Cards */}
@@ -794,6 +832,23 @@ const RoleBindingViewer: React.FC = () => {
               namespace={bindingData.metadata.namespace || ''}
               currentContext={currentContext}
             />
+          </TabsContent>
+
+          <TabsContent value="canvas" className="space-y-6">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              {bindingData && (
+                <ResourceCanvas
+                  resourceDetails={{
+                    namespace: bindingData.metadata?.namespace || '',
+                    group: 'rbac.authorization.k8s.io',
+                    version: 'v1',
+                    resourceType: 'rolebindings',
+                    resourceName: bindingData.metadata?.name || '',
+                  }}
+                  attackPath={attackPathMode}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6">

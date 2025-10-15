@@ -75,16 +75,19 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
   };
 
   const calculateNodePositions = (graphData: K8sGraphData): Node<K8sResourceData>[] => {
-    const VERTICAL_SPACING = 120;
-    const HORIZONTAL_SPACING = 400;
+    const VERTICAL_SPACING = 140;
+    const HORIZONTAL_SPACING = 450;
 
     // Define the logical order/layers for Kubernetes resources
     const resourceOrder = {
       // External/Ingress layer (leftmost)
       'ingresses': 0,
+      'networkpolicies': 0,
       
       // Service layer (left side)
       'services': 1,
+      'endpoints': 1,
+      'endpointslices': 1,
       
       // Main workload layer (center)
       'deployments': 2,
@@ -95,6 +98,7 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
       
       // Replica management layer
       'replicasets': 3,
+      'controllerrevisions': 3,
       
       // Pod layer (right side)
       'pods': 4,
@@ -105,13 +109,25 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
       // Image layer (attack path)
       'image': 6,
       
-      // Config layer (top/bottom to avoid conflicts)
+      // Config layer (positioned strategically to avoid conflicts)
       'configmaps': 1,
       'secrets': 1,
+      'persistentvolumeclaims': 1,
+      
+      // RBAC layer - ServiceAccount should be leftmost, then roles and bindings
+      'serviceaccounts': 0,
+      'roles': 1,
+      'rolebindings': 2,
+      'clusterroles': 1,
+      'clusterrolebindings': 2,
+      
+      // Node layer (infrastructure)
+      'nodes': -1,
     };
 
-    // Group nodes by their logical layer
+    // Group nodes by their logical layer and count occurrences
     const nodesByLayer = new Map<number, K8sResourceData[]>();
+    const resourceTypeCounters = new Map<string, number>();
     
     graphData.nodes.forEach(node => {
       const resourceType = node.data.resourceType || node.type; // fallback for attack path nodes
@@ -121,35 +137,79 @@ export const ResourceCanvas = ({ resourceDetails, attackPath }: ResourceCanvasPr
         nodesByLayer.set(layer, []);
       }
       nodesByLayer.get(layer)?.push(node.data);
+      
+      // Count resource types for better spacing
+      const count = resourceTypeCounters.get(resourceType) || 0;
+      resourceTypeCounters.set(resourceType, count + 1);
     });
 
-    // Create positioned nodes
+    // Create positioned nodes with better spacing logic
     const positionedNodes: Node<K8sResourceData>[] = [];
     
     nodesByLayer.forEach((nodes, layer) => {
-      nodes.forEach((nodeData, index) => {
-        const node = graphData.nodes.find(n => n.data === nodeData);
-        if (node) {
-          // Special positioning for config resources (configmaps, secrets)
-          let yPosition = index * VERTICAL_SPACING;
-          const resourceType = nodeData.resourceType || node.type;
-          
-          if (resourceType === 'configmaps') {
-            yPosition = -150; // Position above the main flow
-          } else if (resourceType === 'secrets') {
-            yPosition = -50; // Position above the main flow, but below configmaps
-          }
-
-          positionedNodes.push({
-            id: node.id,
-            type: node.type,
-            position: {
-              x: layer * HORIZONTAL_SPACING,
-              y: yPosition
-            },
-            data: nodeData,
-          });
+      // Group nodes by resource type within the layer for better organization
+      const nodesByType = new Map<string, K8sResourceData[]>();
+      
+      nodes.forEach(nodeData => {
+        const resourceType = nodeData.resourceType || 'unknown';
+        if (!nodesByType.has(resourceType)) {
+          nodesByType.set(resourceType, []);
         }
+        nodesByType.get(resourceType)?.push(nodeData);
+      });
+
+      let currentYOffset = 0;
+      
+      nodesByType.forEach((typeNodes, resourceType) => {
+        typeNodes.forEach((nodeData, index) => {
+          const node = graphData.nodes.find(n => n.data === nodeData);
+          if (node) {
+            let yPosition = currentYOffset + (index * VERTICAL_SPACING);
+            
+            // Special positioning for different resource types
+            if (resourceType === 'configmaps') {
+              yPosition = -300 + (index * 100); // Position far above the main flow
+            } else if (resourceType === 'secrets') {
+              yPosition = -200 + (index * 100); // Position above the main flow
+            } else if (resourceType === 'serviceaccounts') {
+              yPosition = -100 + (index * 100); // Position above the main flow
+            } else if (resourceType === 'persistentvolumeclaims') {
+              yPosition = 400 + (index * 120); // Position below the main flow
+            }
+            
+            // Position RBAC resources strategically
+            else if (resourceType === 'roles' || resourceType === 'clusterroles') {
+              yPosition = -500 + (index * 120); // Position far above for clarity
+            } else if (resourceType === 'rolebindings' || resourceType === 'clusterrolebindings') {
+              yPosition = -400 + (index * 120); // Position above roles
+            }
+            
+            // Position networking resources
+            else if (resourceType === 'networkpolicies') {
+              yPosition = 300 + (index * 120); // Position below main flow
+            } else if (resourceType === 'endpoints' || resourceType === 'endpointslices') {
+              yPosition = 80 + (index * 100); // Position slightly below services
+            }
+            
+            // Position infrastructure resources
+            else if (resourceType === 'nodes') {
+              yPosition = 600 + (index * 150); // Position at bottom for infrastructure
+            }
+
+            positionedNodes.push({
+              id: node.id,
+              type: node.type,
+              position: {
+                x: layer * HORIZONTAL_SPACING,
+                y: yPosition
+              },
+              data: nodeData,
+            });
+          }
+        });
+        
+        // Update offset for next resource type in this layer
+        currentYOffset += typeNodes.length * VERTICAL_SPACING + 50;
       });
     });
 

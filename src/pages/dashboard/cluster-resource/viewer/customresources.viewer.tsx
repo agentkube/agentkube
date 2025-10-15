@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, Edit, Clock, Tag, List, FileJson, Trash, ChevronRight } from "lucide-react";
+import { Loader2, ArrowLeft, Edit, Clock, Tag, List, FileJson, Trash, ChevronRight, Crosshair } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { calculateAge } from '@/utils/age';
-import { ErrorComponent, ResourceViewerYamlTab, DeletionDialog } from '@/components/custom';
+import { ErrorComponent, ResourceViewerYamlTab, DeletionDialog, ResourceCanvas } from '@/components/custom';
 import { YamlViewer } from '@/utils/yaml.utils';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
@@ -58,6 +58,17 @@ const CustomResourceViewer = () => {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // Get attack path mode from URL params
+  const attackPathParam = searchParams.get('attackPath');
+  const [attackPathMode, setAttackPathMode] = useState(attackPathParam === 'true');
+
+  // Sync attack path mode with URL parameter
+  useEffect(() => {
+    const urlAttackPath = searchParams.get('attackPath') === 'true';
+    if (urlAttackPath !== attackPathMode) {
+      setAttackPathMode(urlAttackPath);
+    }
+  }, [searchParams, attackPathMode]);
 
   useEffect(() => {
     const fetchResource = async () => {
@@ -391,17 +402,59 @@ const CustomResourceViewer = () => {
               });
             }}
             className="w-full">
-            <TabsList className="grid grid-cols-3 w-full max-w-md">
-              <TabsTrigger value="yaml">YAML</TabsTrigger>
-              <TabsTrigger value="spec">Spec</TabsTrigger>
-              <TabsTrigger value="status">Status</TabsTrigger>
-            </TabsList>
+            <div className='flex justify-between items-center'>
+              <TabsList className="grid grid-cols-4 w-full max-w-lg">
+                <TabsTrigger value="yaml">YAML</TabsTrigger>
+                <TabsTrigger value="canvas">Canvas</TabsTrigger>
+                <TabsTrigger value="spec">Spec</TabsTrigger>
+                <TabsTrigger value="status">Status</TabsTrigger>
+              </TabsList>
+
+              {defaultTab === 'canvas' && (
+                <Button
+                  variant={attackPathMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const newAttackPathMode = !attackPathMode;
+                    setAttackPathMode(newAttackPathMode);
+                    setSearchParams(params => {
+                      if (newAttackPathMode) {
+                        params.set('attackPath', 'true');
+                      } else {
+                        params.delete('attackPath');
+                      }
+                      return params;
+                    });
+                  }}
+                  className={`ml-2 h-9 ${attackPathMode ? 'bg-orange-500/20 dark:bg-orange-700/20 text-orange-500 dark:text-orange-400 border-none' : ''}`}
+                  title={attackPathMode ? "Disable Attack Path Analysis" : "Enable Attack Path Analysis"}
+                >
+                  <Crosshair className="h-4 w-4 mr-1.5" />
+                  Attack Path
+                </Button>
+              )}
+            </div>
 
             <TabsContent value="yaml" className="mt-4">
               <ResourceViewerYamlTab resourceData={resource} currentContext={currentContext} />
             </TabsContent>
 
-
+            <TabsContent value="canvas" className="mt-4">
+              <div className="h-[calc(100vh-400px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                {resource && (
+                  <ResourceCanvas
+                    resourceDetails={{
+                      namespace: resource.metadata?.namespace || '',
+                      group: displayApiInfo.group,
+                      version: displayApiInfo.version,
+                      resourceType: plural,
+                      resourceName: resource.metadata?.name || '',
+                    }}
+                    attackPath={attackPathMode}
+                  />
+                )}
+              </div>
+            </TabsContent>
 
             <TabsContent value="spec" className="mt-4">
               {resource.spec ? (

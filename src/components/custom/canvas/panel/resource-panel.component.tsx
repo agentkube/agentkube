@@ -1142,30 +1142,35 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
               </div>
 
               <div className="space-y-3">
-                {/* Resource name and namespace - only for regular k8s resources */}
-                {resource.resourceName && resource.namespace && (
-                  <div className="grid grid-cols-2 gap-x-2 ">
+                {/* Resource name and namespace - handle namespaced vs cluster-scoped resources */}
+                {resource.resourceName && (
+                  <div className={`grid gap-x-2 ${resource.namespace ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <div className='group'>
                       <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300/50">Name</h4>
                       <p 
                         className="text-sm text-blue-600 dark:text-white hover:text-blue-400 dark:hover:text-blue-400 break-all cursor-pointer hover:underline flex items-center gap-1"
-                        onClick={() => navigate(`/dashboard/explore/${resource.resourceType}/${resource.namespace}/${resource.resourceName}`)}
+                        onClick={() => navigate(resource.namespace 
+                          ? `/dashboard/explore/${resource.resourceType}/${resource.namespace}/${resource.resourceName}`
+                          : `/dashboard/explore/${resource.resourceType}/${resource.resourceName}`
+                        )}
                       >
                         {resource.resourceName}
                       </p>
                       <ArrowUpRight className="h-4 w-4  opacity-0 group-hover:opacity-100 text-blue-400 transition-opacity" />
                     </div>
 
-                    <div className='group'>
-                      <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300/50">Namespace</h4>
-                      <p 
-                        className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:underline flex items-center gap-1"
-                        onClick={() => navigate(`/dashboard/explore/namespaces/${resource.namespace}`)}
-                      >
-                         <span>{resource.namespace}</span>
-                        <ArrowUpRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </p>
-                    </div>
+                    {resource.namespace && (
+                      <div className='group'>
+                        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300/50">Namespace</h4>
+                        <p 
+                          className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:underline flex items-center gap-1"
+                          onClick={() => navigate(`/dashboard/explore/namespaces/${resource.namespace}`)}
+                        >
+                           <span>{resource.namespace}</span>
+                          <ArrowUpRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
