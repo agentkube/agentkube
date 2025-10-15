@@ -43,25 +43,30 @@ func (c *Controller) GetGraphNodes(ctx context.Context, resource ResourceIdentif
 	}
 	response.Nodes = append(response.Nodes, mainNode)
 
-	// Process related resources based on type
-	switch resource.ResourceType {
-	case "deployments":
-		err = c.processDeploymentGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
-	case "statefulsets":
-		err = c.processStatefulSetGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
-	case "daemonsets":
-		err = c.processDaemonSetGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
-	case "services":
-		err = c.processServiceGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
-	case "jobs":
-		err = c.processJobGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
-	case "cronjobs":
-		err = c.processCronJobGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
-	case "nodes":
-		err = c.processNodeGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
-	default:
-		// For other resource types, just return the single node
-		return response, nil
+	// Check if this is a custom resource
+	if c.isCustomResource(resource) {
+		err = c.processCustomResourceGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+	} else {
+		// Process related resources based on type for core resources
+		switch resource.ResourceType {
+		case "deployments":
+			err = c.processDeploymentGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "statefulsets":
+			err = c.processStatefulSetGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "daemonsets":
+			err = c.processDaemonSetGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "services":
+			err = c.processServiceGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "jobs":
+			err = c.processJobGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "cronjobs":
+			err = c.processCronJobGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		case "nodes":
+			err = c.processNodeGraph(ctx, dynamicClient, mainNode.ID, resource, response, attackPath)
+		default:
+			// For other resource types, just return the single node
+			return response, nil
+		}
 	}
 
 	if err != nil {
@@ -141,6 +146,38 @@ func (c *Controller) processDeploymentGraph(ctx context.Context, client dynamic.
 }
 
 func (c *Controller) processStatefulSetGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Get the StatefulSet object to extract its UID
+	stsObj, err := client.Resource(schema.GroupVersionResource{
+		Group:    resource.Group,
+		Version:  resource.Version,
+		Resource: resource.ResourceType,
+	}).Namespace(resource.Namespace).Get(ctx, resource.ResourceName, metav1.GetOptions{})
+	if err == nil {
+		stsUID := stsObj.GetUID()
+
+		// Find ControllerRevisions owned by this StatefulSet
+		controllerRevisions, err := c.findResourcesByOwnerUID(ctx, client, stsUID, resource.Namespace)
+		if err == nil {
+			for _, cr := range controllerRevisions {
+				if cr.ResourceType == "controllerrevisions" {
+					crNode, err := c.buildResourceNode(ctx, client, cr)
+					if err != nil {
+						continue
+					}
+					response.Nodes = append(response.Nodes, crNode)
+
+					response.Edges = append(response.Edges, Edge{
+						ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+						Source: parentID,
+						Target: crNode.ID,
+						Type:   "smoothstep",
+						Label:  "tracks",
+					})
+				}
+			}
+		}
+	}
+
 	// Find controlled pods
 	pods, err := c.findControlledPods(ctx, client, resource)
 	if err != nil {
@@ -211,6 +248,26 @@ func (c *Controller) processDaemonSetGraph(ctx context.Context, client dynamic.I
 }
 
 func (c *Controller) processServiceGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, _ bool) error {
+	// Find EndpointSlices for this service
+	endpointSlices, err := c.findEndpointSlicesForService(ctx, client, resource)
+	if err == nil {
+		for _, eps := range endpointSlices {
+			epsNode, err := c.buildResourceNode(ctx, client, eps)
+			if err != nil {
+				continue
+			}
+			response.Nodes = append(response.Nodes, epsNode)
+
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: parentID,
+				Target: epsNode.ID,
+				Type:   "smoothstep",
+				Label:  "tracks-endpoints",
+			})
+		}
+	}
+
 	// Find pods that match service selector
 	pods, err := c.findServicePods(ctx, client, resource)
 	if err != nil {
@@ -374,6 +431,86 @@ func (c *Controller) processNodeGraph(ctx context.Context, client dynamic.Interf
 	return nil
 }
 
+// processCustomResourceGraph handles graph generation for custom resources
+func (c *Controller) processCustomResourceGraph(ctx context.Context, client dynamic.Interface, parentID string, resource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Get the custom resource object to extract its UID
+	crObj, err := client.Resource(schema.GroupVersionResource{
+		Group:    resource.Group,
+		Version:  resource.Version,
+		Resource: resource.ResourceType,
+	}).Namespace(resource.Namespace).Get(ctx, resource.ResourceName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get custom resource: %v", err)
+	}
+
+	crUID := crObj.GetUID()
+
+	// Find all resources owned by this custom resource
+	ownedResources, err := c.findResourcesByOwnerUID(ctx, client, crUID, resource.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to find owned resources: %v", err)
+	}
+
+	// Process each owned resource
+	for _, ownedResource := range ownedResources {
+		err := c.processOwnedResource(ctx, client, parentID, ownedResource, response, attackPath)
+		if err != nil {
+			// Log but don't fail - continue processing other resources
+			continue
+		}
+	}
+
+	// If attack-path mode, add RBAC and security-related resources
+	if attackPath {
+		err = c.addCRDAttackPathResources(ctx, client, resource, response)
+		if err != nil {
+			// Log but don't fail
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// processOwnedResource processes a resource owned by a custom resource
+func (c *Controller) processOwnedResource(ctx context.Context, client dynamic.Interface, parentID string, ownedResource ResourceIdentifier, response *GraphResponse, attackPath bool) error {
+	// Build node for the owned resource
+	resourceNode, err := c.buildResourceNode(ctx, client, ownedResource)
+	if err != nil {
+		return err
+	}
+	response.Nodes = append(response.Nodes, resourceNode)
+
+	// Add edge from parent (custom resource) to owned resource
+	response.Edges = append(response.Edges, Edge{
+		ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+		Source: parentID,
+		Target: resourceNode.ID,
+		Type:   "smoothstep",
+		Label:  "owns",
+	})
+
+	// Recursively process based on the owned resource type
+	// This allows us to discover pods from deployments, endpoints from services, etc.
+	switch ownedResource.ResourceType {
+	case "statefulsets":
+		return c.processStatefulSetGraph(ctx, client, resourceNode.ID, ownedResource, response, attackPath)
+	case "deployments":
+		return c.processDeploymentGraph(ctx, client, resourceNode.ID, ownedResource, response, attackPath)
+	case "daemonsets":
+		return c.processDaemonSetGraph(ctx, client, resourceNode.ID, ownedResource, response, attackPath)
+	case "services":
+		return c.processServiceGraph(ctx, client, resourceNode.ID, ownedResource, response, attackPath)
+	case "jobs":
+		return c.processJobGraph(ctx, client, resourceNode.ID, ownedResource, response, attackPath)
+	case "cronjobs":
+		return c.processCronJobGraph(ctx, client, resourceNode.ID, ownedResource, response, attackPath)
+	// Secrets, ConfigMaps, ServiceAccounts don't need further processing
+	default:
+		return nil
+	}
+}
+
 // #######################
 // Helper Functions
 // #######################
@@ -426,22 +563,22 @@ func (c *Controller) getResourceStatus(obj *unstructured.Unstructured) map[strin
 		if replicas == nil {
 			replicas = make(map[string]interface{})
 		}
-		
+
 		// Add service type
 		if serviceType, found, _ := unstructured.NestedString(obj.Object, "spec", "type"); found {
 			replicas["type"] = serviceType
 		}
-		
+
 		// Add cluster IP
 		if clusterIP, found, _ := unstructured.NestedString(obj.Object, "spec", "clusterIP"); found {
 			replicas["clusterIP"] = clusterIP
 		}
-		
+
 		// Add ports
 		if ports, found, _ := unstructured.NestedSlice(obj.Object, "spec", "ports"); found {
 			replicas["ports"] = ports
 		}
-		
+
 		status["replicas"] = replicas
 	}
 
@@ -633,6 +770,35 @@ func matchLabels(selector, labels map[string]string) bool {
 		}
 	}
 	return len(selector) > 0
+}
+
+// findEndpointSlicesForService finds EndpointSlices associated with a service
+func (c *Controller) findEndpointSlicesForService(ctx context.Context, client dynamic.Interface, service ResourceIdentifier) ([]ResourceIdentifier, error) {
+	// EndpointSlices are labeled with kubernetes.io/service-name
+	epsList, err := client.Resource(schema.GroupVersionResource{
+		Group:    "discovery.k8s.io",
+		Version:  "v1",
+		Resource: "endpointslices",
+	}).Namespace(service.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("kubernetes.io/service-name=%s", service.ResourceName),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var endpointSlices []ResourceIdentifier
+	for _, eps := range epsList.Items {
+		endpointSlices = append(endpointSlices, ResourceIdentifier{
+			Namespace:    eps.GetNamespace(),
+			Group:        "discovery.k8s.io",
+			Version:      "v1",
+			ResourceType: "endpointslices",
+			ResourceName: eps.GetName(),
+		})
+	}
+
+	return endpointSlices, nil
 }
 
 // addAttackPathResources adds security-related resources for attack path analysis
@@ -1035,6 +1201,194 @@ func (c *Controller) findAndAddConfigResources(ctx context.Context, client dynam
 			Type:   "smoothstep",
 			Label:  "provides-secrets",
 		})
+	}
+
+	return nil
+}
+
+// addCRDAttackPathResources adds RBAC and security-related resources for custom resources in attack-path mode
+func (c *Controller) addCRDAttackPathResources(ctx context.Context, client dynamic.Interface, resource ResourceIdentifier, response *GraphResponse) error {
+	// Find all pods controlled by this custom resource (through the graph we've already built)
+	pods := c.findAllControlledPods(ctx, client, resource, response)
+
+	// Track unique ServiceAccounts, RoleBindings, and Roles to avoid duplicates
+	serviceAccounts := make(map[string]ResourceIdentifier)
+	roleBindings := make(map[string]ResourceIdentifier)
+	clusterRoleBindings := make(map[string]ResourceIdentifier)
+	roles := make(map[string]ResourceIdentifier)
+	clusterRoles := make(map[string]ResourceIdentifier)
+
+	// For each pod, find its ServiceAccount and RBAC resources
+	for _, pod := range pods {
+		sa, err := c.extractServiceAccount(ctx, client, pod)
+		if err != nil || sa == nil {
+			continue
+		}
+
+		// Track the ServiceAccount
+		saKey := fmt.Sprintf("%s/%s", sa.Namespace, sa.ResourceName)
+		if _, exists := serviceAccounts[saKey]; !exists {
+			serviceAccounts[saKey] = *sa
+		}
+
+		// Find RoleBindings for this ServiceAccount
+		rbs, err := c.findRoleBindingsForServiceAccount(ctx, client, *sa)
+		if err == nil {
+			for _, rb := range rbs {
+				rbKey := fmt.Sprintf("%s/%s", rb.Namespace, rb.ResourceName)
+				if _, exists := roleBindings[rbKey]; !exists {
+					roleBindings[rbKey] = rb
+
+					// Get the Role referenced by this RoleBinding
+					role, err := c.getRoleFromBinding(ctx, client, rb)
+					if err == nil && role != nil {
+						roleKey := fmt.Sprintf("%s/%s", role.Namespace, role.ResourceName)
+						if role.ResourceType == "clusterroles" {
+							clusterRoles[roleKey] = *role
+						} else {
+							roles[roleKey] = *role
+						}
+					}
+				}
+			}
+		}
+
+		// Find ClusterRoleBindings for this ServiceAccount
+		crbs, err := c.findClusterRoleBindingsForServiceAccount(ctx, client, *sa)
+		if err == nil {
+			for _, crb := range crbs {
+				crbKey := crb.ResourceName
+				if _, exists := clusterRoleBindings[crbKey]; !exists {
+					clusterRoleBindings[crbKey] = crb
+
+					// Get the ClusterRole referenced by this ClusterRoleBinding
+					role, err := c.getRoleFromBinding(ctx, client, crb)
+					if err == nil && role != nil {
+						roleKey := role.ResourceName
+						clusterRoles[roleKey] = *role
+					}
+				}
+			}
+		}
+	}
+
+	// Add ServiceAccount nodes and edges
+	for _, sa := range serviceAccounts {
+		saNode, err := c.buildResourceNode(ctx, client, sa)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, saNode)
+
+		// Find pods using this ServiceAccount and add edges
+		for _, pod := range pods {
+			podSA, err := c.extractServiceAccount(ctx, client, pod)
+			if err == nil && podSA != nil && podSA.ResourceName == sa.ResourceName {
+				// Add edge from pod to ServiceAccount
+				response.Edges = append(response.Edges, Edge{
+					ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+					Source: fmt.Sprintf("node-pod-%s", pod.ResourceName),
+					Target: saNode.ID,
+					Type:   "smoothstep",
+					Label:  "uses-account",
+				})
+			}
+		}
+	}
+
+	// Add RoleBinding nodes and edges
+	for _, rb := range roleBindings {
+		rbNode, err := c.buildResourceNode(ctx, client, rb)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, rbNode)
+
+		// Add edge from RoleBinding to ServiceAccount
+		for _, sa := range serviceAccounts {
+			// Check if this RoleBinding references this ServiceAccount
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: rbNode.ID,
+				Target: fmt.Sprintf("node-serviceaccount-%s", sa.ResourceName),
+				Type:   "smoothstep",
+				Label:  "binds-to",
+			})
+			break // Only add one edge per RoleBinding
+		}
+	}
+
+	// Add ClusterRoleBinding nodes and edges
+	for _, crb := range clusterRoleBindings {
+		crbNode, err := c.buildResourceNode(ctx, client, crb)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, crbNode)
+
+		// Add edge from ClusterRoleBinding to ServiceAccount
+		for _, sa := range serviceAccounts {
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: crbNode.ID,
+				Target: fmt.Sprintf("node-serviceaccount-%s", sa.ResourceName),
+				Type:   "smoothstep",
+				Label:  "binds-to",
+			})
+			break
+		}
+	}
+
+	// Add Role nodes and edges
+	for _, role := range roles {
+		roleNode, err := c.buildResourceNode(ctx, client, role)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, roleNode)
+
+		// Add edge from Role to RoleBinding
+		for _, rb := range roleBindings {
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: roleNode.ID,
+				Target: fmt.Sprintf("node-rolebinding-%s", rb.ResourceName),
+				Type:   "smoothstep",
+				Label:  "permits",
+			})
+			break
+		}
+	}
+
+	// Add ClusterRole nodes and edges
+	for _, clusterRole := range clusterRoles {
+		crNode, err := c.buildResourceNode(ctx, client, clusterRole)
+		if err != nil {
+			continue
+		}
+		response.Nodes = append(response.Nodes, crNode)
+
+		// Add edges from ClusterRole to both RoleBindings and ClusterRoleBindings
+		for _, rb := range roleBindings {
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: crNode.ID,
+				Target: fmt.Sprintf("node-rolebinding-%s", rb.ResourceName),
+				Type:   "smoothstep",
+				Label:  "permits",
+			})
+			break
+		}
+		for _, crb := range clusterRoleBindings {
+			response.Edges = append(response.Edges, Edge{
+				ID:     fmt.Sprintf("edge-%d", len(response.Edges)+1),
+				Source: crNode.ID,
+				Target: fmt.Sprintf("node-clusterrolebinding-%s", crb.ResourceName),
+				Type:   "smoothstep",
+				Label:  "permits",
+			})
+			break
+		}
 	}
 
 	return nil
