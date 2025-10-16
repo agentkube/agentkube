@@ -26,6 +26,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { CoreV1Event as V1Event } from '@kubernetes/client-node';
 import EventAnalyzer from '@/components/custom/eventanalyzer/eventanalyzer.component';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -107,7 +108,9 @@ const Events: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([
+
+  // Default column configuration
+  const defaultColumnConfig: ColumnConfig[] = [
     { key: 'type', label: 'Type', visible: true, canToggle: true },
     { key: 'reason', label: 'Reason', visible: true, canToggle: true },
     { key: 'object', label: 'Object', visible: true, canToggle: true },
@@ -117,7 +120,11 @@ const Events: React.FC = () => {
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
-  ]);
+  ];
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
+    getStoredColumnConfig('events', defaultColumnConfig)
+  );
 
   // Calculate time cutoff based on selected time range
   const getTimeCutoff = (timeRange: string): Date | null => {
@@ -633,22 +640,147 @@ const Events: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    setColumnConfig(prev =>
-      prev.map(col =>
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
-      )
-    );
+      );
+      // Save to localStorage
+      saveColumnConfig('events', updated);
+      return updated;
+    });
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('events', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(prev =>
-      prev.map(col => ({ ...col, visible: true }))
-    );
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    // Clear from localStorage to use defaults
+    clearColumnConfig('events');
   };
 
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      type: 'type',
+      reason: 'reason',
+      object: 'involvedObject',
+      message: 'message',
+      count: 'count',
+      source: 'source',
+      namespace: 'namespace',
+      age: 'time'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = column.key === 'count';
+    const widthClass = column.key === 'object' ? 'w-[200px]' : '';
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''} ${widthClass}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (event: V1Event, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'type':
+        return (
+          <TableCell key={column.key}>
+            {formatEventType(event)}
+          </TableCell>
+        );
+
+      case 'reason':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleEventDetails(event)}>
+            <div className="hover:text-blue-500 hover:underline text-xs">
+              {event.reason}
+            </div>
+          </TableCell>
+        );
+
+      case 'object':
+        return (
+          <TableCell key={column.key}>
+            {formatInvolvedObject(event)}
+          </TableCell>
+        );
+
+      case 'message':
+        return (
+          <TableCell key={column.key} className="">
+            <div className="w-[350px] text-xs truncate hover:truncate-none hover:overflow-visible hover:whitespace-normal transition-all" title={event.message}>
+              {event.message}
+            </div>
+          </TableCell>
+        );
+
+      case 'count':
+        return (
+          <TableCell key={column.key} className="text-center text-xs">
+            {formatCount(event)}
+          </TableCell>
+        );
+
+      case 'source':
+        return (
+          <TableCell key={column.key} className='text-xs w-56'>
+            {formatSource(event)}
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline text-xs" onClick={(e) => {
+              e.stopPropagation();
+              if (event.metadata?.namespace) {
+                // Add this namespace to filter if not already selected
+                if (!selectedNamespaces.includes(event.metadata.namespace)) {
+                  // This would ideally update the namespace context but depends on your implementation
+                  // updateSelectedNamespaces([...selectedNamespaces, event.metadata.namespace]);
+                }
+              }
+            }}>
+              {event.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className='text-xs w-[70px]'>
+            {formatEventTime(event)}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -1039,70 +1171,7 @@ const Events: React.FC = () => {
           <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
             <TableHeader className='text-xs'>
               <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                {isColumnVisible('type') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('type')}
-                  >
-                    Type {renderSortIndicator('type')}
-                  </TableHead>
-                )}
-                {isColumnVisible('reason') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('reason')}
-                  >
-                    Reason {renderSortIndicator('reason')}
-                  </TableHead>
-                )}
-                {isColumnVisible('object') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500 w-[200px]"
-                    onClick={() => handleSort('involvedObject')}
-                  >
-                    Object {renderSortIndicator('involvedObject')}
-                  </TableHead>
-                )}
-                {isColumnVisible('message') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('message')}
-                  >
-                    Message {renderSortIndicator('message')}
-                  </TableHead>
-                )}
-                {isColumnVisible('count') && (
-                  <TableHead
-                    className="text-center cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('count')}
-                  >
-                    Count {renderSortIndicator('count')}
-                  </TableHead>
-                )}
-                {isColumnVisible('source') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('source')}
-                  >
-                    Source {renderSortIndicator('source')}
-                  </TableHead>
-                )}
-                {isColumnVisible('namespace') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('namespace')}
-                  >
-                    Namespace {renderSortIndicator('namespace')}
-                  </TableHead>
-                )}
-                {isColumnVisible('age') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('time')}
-                  >
-                    Age {renderSortIndicator('time')}
-                  </TableHead>
-                )}
+                {columnConfig.map(col => renderTableHeader(col))}
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -1114,61 +1183,7 @@ const Events: React.FC = () => {
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${event.type === 'Warning' ? 'bg-amber-50/30 dark:bg-amber-900/5' : ''
                       }`}
                   >
-                    {isColumnVisible('type') && (
-                      <TableCell>
-                        {formatEventType(event)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('reason') && (
-                      <TableCell className="font-medium" onClick={() => handleEventDetails(event)}>
-                        <div className="hover:text-blue-500 hover:underline text-xs">
-                          {event.reason}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('object') && (
-                      <TableCell>
-                        {formatInvolvedObject(event)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('message') && (
-                      <TableCell className="">
-                        <div className="w-[350px] text-xs truncate hover:truncate-none hover:overflow-visible hover:whitespace-normal transition-all" title={event.message}>
-                          {event.message}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('count') && (
-                      <TableCell className="text-center text-xs">
-                        {formatCount(event)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('source') && (
-                      <TableCell className='text-xs w-56'>
-                        {formatSource(event)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline text-xs" onClick={(e) => {
-                          e.stopPropagation();
-                          if (event.metadata?.namespace) {
-                            // Add this namespace to filter if not already selected
-                            if (!selectedNamespaces.includes(event.metadata.namespace)) {
-                              // This would ideally update the namespace context but depends on your implementation
-                              // updateSelectedNamespaces([...selectedNamespaces, event.metadata.namespace]);
-                            }
-                          }
-                        }}>
-                          {event.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className='text-xs w-[70px]'>
-                        {formatEventTime(event)}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(event, col))}
                     <TableCell>
                       {event.type === 'Warning' ? (
                         <EventAnalyzer
@@ -1232,7 +1247,9 @@ const Events: React.FC = () => {
         title="Events Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
+        resourceType="events"
         className="w-1/3"
       />
     </div>
