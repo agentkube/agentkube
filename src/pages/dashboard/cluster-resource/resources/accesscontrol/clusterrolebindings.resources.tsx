@@ -547,6 +547,11 @@ const ClusterRoleBindings: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('clusterrolebindings', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -783,6 +788,82 @@ const ClusterRoleBindings: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      role: 'role',
+      subjects: 'subjects',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${sortField ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (binding: V1ClusterRoleBinding, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleClusterRoleBindingDetails(binding)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {binding.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'role':
+        return (
+          <TableCell key={column.key}>
+            {formatRoleRef(binding)}
+          </TableCell>
+        );
+
+      case 'subjects':
+        return (
+          <TableCell key={column.key}>
+            {formatSubjectCounts(binding)}
+          </TableCell>
+        );
+
+      case 'subjectDetail':
+        return (
+          <TableCell key={column.key}>
+            {formatSubjects(binding)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(binding.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   // Format Subject Counts by Type
   const formatSubjectCounts = (binding: V1ClusterRoleBinding): JSX.Element => {
     const subjects = binding.subjects || [];
@@ -885,46 +966,8 @@ const ClusterRoleBindings: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('role') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('role')}
-                    >
-                      Role {renderSortIndicator('role')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('subjects') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('subjects')}
-                    >
-                      Subjects {renderSortIndicator('subjects')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('subjectDetail') && (
-                    <TableHead>
-                      Subject Detail
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -939,35 +982,8 @@ const ClusterRoleBindings: React.FC = () => {
                     onClick={(e) => handleBindingClick(e, binding)}
                     onContextMenu={(e) => handleContextMenu(e, binding)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleClusterRoleBindingDetails(binding)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {binding.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('role') && (
-                      <TableCell>
-                        {formatRoleRef(binding)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('subjects') && (
-                      <TableCell>
-                        {formatSubjectCounts(binding)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('subjectDetail') && (
-                      <TableCell>
-                        {formatSubjects(binding)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(binding.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(binding, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1000,8 +1016,7 @@ const ClusterRoleBindings: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1017,6 +1032,7 @@ const ClusterRoleBindings: React.FC = () => {
         title="ClusterRoleBindings Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="clusterrolebindings"
       />

@@ -546,6 +546,11 @@ const RoleBindings: React.FC = () => {
     saveColumnConfig('rolebindings', updated);
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('rolebindings', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     setColumnConfig(defaultColumnConfig);
     clearColumnConfig('rolebindings');
@@ -818,6 +823,92 @@ const RoleBindings: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      role: 'role',
+      subjects: 'subjects',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${sortField ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (binding: V1RoleBinding, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleRoleBindingDetails(binding)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {binding.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {binding.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'role':
+        return (
+          <TableCell key={column.key}>
+            {formatRoleRef(binding)}
+          </TableCell>
+        );
+
+      case 'subjects':
+        return (
+          <TableCell key={column.key}>
+            {formatSubjectCounts(binding)}
+          </TableCell>
+        );
+
+      case 'subjectDetail':
+        return (
+          <TableCell key={column.key}>
+            {formatSubjects(binding)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(binding.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   // Format Subject Counts by Type
   const formatSubjectCounts = (binding: V1RoleBinding): JSX.Element => {
     const subjects = binding.subjects || [];
@@ -927,54 +1018,8 @@ const RoleBindings: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('role') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('role')}
-                    >
-                      Role {renderSortIndicator('role')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('subjects') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('subjects')}
-                    >
-                      Subjects {renderSortIndicator('subjects')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('subjectDetail') && (
-                    <TableHead>
-                      Subject Detail
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -989,75 +1034,40 @@ const RoleBindings: React.FC = () => {
                     onClick={(e) => handleRoleBindingClick(e, binding)}
                     onContextMenu={(e) => handleContextMenu(e, binding)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleRoleBindingDetails(binding)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {binding.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {binding.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('role') && (
-                      <TableCell>
-                        {formatRoleRef(binding)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('subjects') && (
-                      <TableCell>
-                        {formatSubjectCounts(binding)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('subjectDetail') && (
-                      <TableCell>
-                        {formatSubjects(binding)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(binding.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleAskAI(binding);
-                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Ask AI
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleViewRoleBindingMenuItem(e, binding)} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
-                              onClick={(e) => handleDeleteRoleBindingMenuItem(e, binding)}
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(binding, col))}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(binding);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Ask AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleViewRoleBindingMenuItem(e, binding)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                            onClick={(e) => handleDeleteRoleBindingMenuItem(e, binding)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1072,6 +1082,7 @@ const RoleBindings: React.FC = () => {
         title="Role Bindings Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="rolebindings"
       />

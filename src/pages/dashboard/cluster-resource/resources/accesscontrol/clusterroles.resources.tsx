@@ -476,6 +476,11 @@ const ClusterRoles: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('clusterroles', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -821,6 +826,90 @@ const ClusterRoles: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      type: 'type',
+      rules: 'rulesCount',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['type', 'age'].includes(column.key);
+    const isRulesColumn = column.key === 'rules';
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${sortField ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''} ${isRulesColumn ? 'w-[100px]' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (clusterRole: V1ClusterRole, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleClusterRoleDetails(clusterRole)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {clusterRole.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'type':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatRoleType(clusterRole)}
+          </TableCell>
+        );
+
+      case 'rules':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {clusterRole.rules?.length || 0}
+          </TableCell>
+        );
+
+      case 'apiGroups':
+        return (
+          <TableCell key={column.key}>
+            {formatApisAndResources(clusterRole)}
+          </TableCell>
+        );
+
+      case 'permissions':
+        return (
+          <TableCell key={column.key}>
+            {formatVerbs(clusterRole)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(clusterRole.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -895,51 +984,8 @@ const ClusterRoles: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('type') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('type')}
-                    >
-                      Type {renderSortIndicator('type')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('rules') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500 w-[100px]"
-                      onClick={() => handleSort('rulesCount')}
-                    >
-                      Rules {renderSortIndicator('rulesCount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('apiGroups') && (
-                    <TableHead>
-                      API Groups / Resources
-                    </TableHead>
-                  )}
-                  {isColumnVisible('permissions') && (
-                    <TableHead>
-                      Permissions
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -954,40 +1000,8 @@ const ClusterRoles: React.FC = () => {
                     onClick={(e) => handleClusterRoleClick(e, clusterRole)}
                     onContextMenu={(e) => handleContextMenu(e, clusterRole)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleClusterRoleDetails(clusterRole)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {clusterRole.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('type') && (
-                      <TableCell className="text-center">
-                        {formatRoleType(clusterRole)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('rules') && (
-                      <TableCell className="text-center">
-                        {clusterRole.rules?.length || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('apiGroups') && (
-                      <TableCell>
-                        {formatApisAndResources(clusterRole)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('permissions') && (
-                      <TableCell>
-                        {formatVerbs(clusterRole)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(clusterRole.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(clusterRole, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1020,8 +1034,7 @@ const ClusterRoles: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1037,6 +1050,7 @@ const ClusterRoles: React.FC = () => {
         title="ClusterRoles Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="clusterroles"
       />

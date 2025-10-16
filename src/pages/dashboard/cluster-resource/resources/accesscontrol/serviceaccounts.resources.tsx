@@ -461,11 +461,16 @@ const ServiceAccounts: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const newConfig = columnConfig.map(col => 
+    const newConfig = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(newConfig);
     saveColumnConfig('serviceaccounts', newConfig);
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('serviceaccounts', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -761,6 +766,93 @@ const ServiceAccounts: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      secrets: 'secrets',
+      imagePullSecrets: 'imagePullSecrets',
+      automount: 'automount',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['automount', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (serviceAccount: V1ServiceAccount, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleServiceAccountDetails(serviceAccount)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {serviceAccount.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {serviceAccount.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'secrets':
+        return (
+          <TableCell key={column.key}>
+            {formatSecrets(serviceAccount)}
+          </TableCell>
+        );
+
+      case 'imagePullSecrets':
+        return (
+          <TableCell key={column.key}>
+            {formatImagePullSecrets(serviceAccount)}
+          </TableCell>
+        );
+
+      case 'automount':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatAutomountToken(serviceAccount)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(serviceAccount.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -842,52 +934,7 @@ const ServiceAccounts: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('secrets') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('secrets')}
-                    >
-                      Secrets {renderSortIndicator('secrets')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('imagePullSecrets') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('imagePullSecrets')}
-                    >
-                      Image Pull Secrets {renderSortIndicator('imagePullSecrets')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('automount') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('automount')}
-                    >
-                      Automount Token {renderSortIndicator('automount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -903,38 +950,7 @@ const ServiceAccounts: React.FC = () => {
                     onClick={(e) => handleServiceAccountClick(e, serviceAccount)}
                     onContextMenu={(e) => handleContextMenu(e, serviceAccount)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleServiceAccountDetails(serviceAccount)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {serviceAccount.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {serviceAccount.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('secrets') && (
-                      <TableCell>
-                        {formatSecrets(serviceAccount)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('imagePullSecrets') && (
-                      <TableCell>
-                        {formatImagePullSecrets(serviceAccount)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('automount') && (
-                      <TableCell className="text-center">
-                        {formatAutomountToken(serviceAccount)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(serviceAccount.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(serviceAccount, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -983,6 +999,7 @@ const ServiceAccounts: React.FC = () => {
         title="Service Accounts Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="serviceaccounts"
         className="w-1/3"

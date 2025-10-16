@@ -543,6 +543,11 @@ const Roles: React.FC = () => {
     saveColumnConfig('roles', updated);
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('roles', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     setColumnConfig(defaultColumnConfig);
     clearColumnConfig('roles');
@@ -863,6 +868,91 @@ const Roles: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      rules: 'rulesCount',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['rules', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${sortField ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (role: V1Role, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleRoleDetails(role)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {role.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {role.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'rules':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {role.rules?.length || 0}
+          </TableCell>
+        );
+
+      case 'apiGroups':
+        return (
+          <TableCell key={column.key}>
+            {formatApisAndResources(role)}
+          </TableCell>
+        );
+
+      case 'permissions':
+        return (
+          <TableCell key={column.key}>
+            {formatVerbs(role)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(role.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -944,51 +1034,8 @@ const Roles: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('rules') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('rulesCount')}
-                    >
-                      Rules {renderSortIndicator('rulesCount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('apiGroups') && (
-                    <TableHead>
-                      API Groups / Resources
-                    </TableHead>
-                  )}
-                  {isColumnVisible('permissions') && (
-                    <TableHead>
-                      Permissions
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1003,42 +1050,8 @@ const Roles: React.FC = () => {
                     onClick={(e) => handleRoleClick(e, role)}
                     onContextMenu={(e) => handleContextMenu(e, role)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleRoleDetails(role)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {role.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {role.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('rules') && (
-                      <TableCell className="text-center">
-                        {role.rules?.length || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('apiGroups') && (
-                      <TableCell>
-                        {formatApisAndResources(role)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('permissions') && (
-                      <TableCell>
-                        {formatVerbs(role)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(role.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(role, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1070,8 +1083,7 @@ const Roles: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1087,6 +1099,7 @@ const Roles: React.FC = () => {
         title="Roles Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="roles"
       />
