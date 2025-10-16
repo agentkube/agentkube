@@ -436,11 +436,17 @@ const PodDisruptionBudgets: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const updated = columnConfig.map(col => 
+    const updated = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(updated);
     saveColumnConfig('poddisruptionbudgets', updated);
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('poddisruptionbudgets', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -451,6 +457,102 @@ const PodDisruptionBudgets: React.FC = () => {
   const isColumnVisible = (columnKey: string): boolean => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column ? column.visible : true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      selector: 'selector',
+      healthy: 'healthy',
+      disruptions: 'disruptions',
+      age: 'age'
+      // Note: 'budget' is not sortable
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['budget', 'healthy', 'disruptions', 'age'].includes(column.key);
+    const isSortable = sortField !== undefined;
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${isSortable ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (pdb: V1PodDisruptionBudget, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handlePdbDetails(pdb)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {pdb.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${pdb.metadata?.namespace}`)}>
+              {pdb.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'selector':
+        return (
+          <TableCell key={column.key}>
+            {formatSelector(pdb)}
+          </TableCell>
+        );
+
+      case 'budget':
+        return (
+          <TableCell key={column.key}>
+            {formatBudget(pdb)}
+          </TableCell>
+        );
+
+      case 'healthy':
+        return (
+          <TableCell key={column.key}>
+            {formatPodStatus(pdb)}
+          </TableCell>
+        );
+
+      case 'disruptions':
+        return (
+          <TableCell key={column.key}>
+            {formatDisruptions(pdb)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(pdb.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Fetch PDBs for all selected namespaces
@@ -979,62 +1081,8 @@ const PodDisruptionBudgets: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('selector') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('selector')}
-                    >
-                      Selector {renderSortIndicator('selector')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('budget') && (
-                    <TableHead>
-                      Budget
-                    </TableHead>
-                  )}
-                  {isColumnVisible('healthy') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('healthy')}
-                    >
-                      Healthy Pods {renderSortIndicator('healthy')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('disruptions') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('disruptions')}
-                    >
-                      Disruptions {renderSortIndicator('disruptions')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1046,47 +1094,8 @@ const PodDisruptionBudgets: React.FC = () => {
                     onClick={(e) => handlePdbClick(e, pdb)}
                     onContextMenu={(e) => handleContextMenu(e, pdb)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handlePdbDetails(pdb)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {pdb.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${pdb.metadata?.namespace}`)}>
-                          {pdb.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('selector') && (
-                      <TableCell>
-                        {formatSelector(pdb)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('budget') && (
-                      <TableCell>
-                        {formatBudget(pdb)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('healthy') && (
-                      <TableCell>
-                        {formatPodStatus(pdb)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('disruptions') && (
-                      <TableCell>
-                        {formatDisruptions(pdb)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(pdb.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(pdb, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1111,8 +1120,7 @@ const PodDisruptionBudgets: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1128,6 +1136,7 @@ const PodDisruptionBudgets: React.FC = () => {
         title="Pod Disruption Budgets Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="poddisruptionbudgets"
       />

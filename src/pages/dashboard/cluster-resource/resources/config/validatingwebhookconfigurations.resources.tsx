@@ -3,7 +3,6 @@ import { listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -453,6 +452,12 @@ const ValidatingWebhookConfigurations: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('validatingwebhookconfigurations', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -463,6 +468,89 @@ const ValidatingWebhookConfigurations: React.FC = () => {
   const isColumnVisible = (columnKey: string): boolean => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column ? column.visible : true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      webhooks: 'webhookCount',
+      rules: 'apiGroups',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isNumericColumn = ['webhooks', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isNumericColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (webhook: V1ValidatingWebhookConfiguration, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleWebhookDetails(webhook)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {webhook.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'webhooks':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatWebhookCount(webhook)}
+          </TableCell>
+        );
+
+      case 'rules':
+        return (
+          <TableCell key={column.key}>
+            {formatRulesSummary(webhook)}
+          </TableCell>
+        );
+
+      case 'endpoints':
+        return (
+          <TableCell key={column.key}>
+            {formatEndpoints(webhook)}
+          </TableCell>
+        );
+
+      case 'failurePolicy':
+        return (
+          <TableCell key={column.key}>
+            {formatFailurePolicies(webhook)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(webhook.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Fetch ValidatingWebhookConfigurations (these are cluster-scoped resources)
@@ -905,75 +993,29 @@ const ValidatingWebhookConfigurations: React.FC = () => {
         </Button>
       </div>
 
-      {/* No results message */}
-      {sortedWebhooks.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none ">
-          <AlertDescription>
-            {searchQuery
-              ? `No validating webhook configurations matching "${searchQuery}"`
-              : "No validating webhook configurations found in the cluster. These are typically created by admission controller extensions."}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* ValidatingWebhookConfiguration table */}
-      {sortedWebhooks.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('webhooks') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('webhookCount')}
-                    >
-                      Webhooks {renderSortIndicator('webhookCount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('rules') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('apiGroups')}
-                    >
-                      Rules {renderSortIndicator('apiGroups')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('endpoints') && (
-                    <TableHead>
-                      Endpoints
-                    </TableHead>
-                  )}
-                  {isColumnVisible('failurePolicy') && (
-                    <TableHead>
-                      Failure Policy
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedWebhooks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No validating webhook configurations matching "${searchQuery}"`
+                      : "No validating webhook configurations found in the cluster. These are typically created by admission controller extensions."}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedWebhooks.map((webhook) => (
+              ) : (
+                sortedWebhooks.map((webhook) => (
                   <TableRow
                     key={webhook.metadata?.name}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedWebhooks.has(webhook.metadata?.name || '') ? 'bg-blue-50 dark:bg-gray-800/30' : ''
@@ -981,40 +1023,8 @@ const ValidatingWebhookConfigurations: React.FC = () => {
                     onClick={(e) => handleWebhookClick(e, webhook)}
                     onContextMenu={(e) => handleContextMenu(e, webhook)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleWebhookDetails(webhook)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {webhook.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('webhooks') && (
-                      <TableCell className="text-center">
-                        {formatWebhookCount(webhook)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('rules') && (
-                      <TableCell>
-                        {formatRulesSummary(webhook)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('endpoints') && (
-                      <TableCell>
-                        {formatEndpoints(webhook)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('failurePolicy') && (
-                      <TableCell>
-                        {formatFailurePolicies(webhook)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(webhook.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(webhook, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1039,15 +1049,14 @@ const ValidatingWebhookConfigurations: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Filter Sidebar */}
       <ResourceFilterSidebar
@@ -1056,6 +1065,7 @@ const ValidatingWebhookConfigurations: React.FC = () => {
         title="Validating Webhook Configurations Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="validatingwebhookconfigurations"
       />

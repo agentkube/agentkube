@@ -436,6 +436,12 @@ const ConfigMaps: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('configmaps', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -446,6 +452,92 @@ const ConfigMaps: React.FC = () => {
   const isColumnVisible = (columnKey: string): boolean => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column ? column.visible : true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      dataCount: 'dataCount',
+      size: 'size',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['data', 'keys', 'size', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (configMap: V1ConfigMap, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleConfigMapDetails(configMap)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {configMap.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {configMap.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'data':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {countDataEntries(configMap)}
+          </TableCell>
+        );
+
+      case 'keys':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatDataKeys(configMap)}
+          </TableCell>
+        );
+
+      case 'size':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatSize(calculateConfigMapSize(configMap))}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(configMap.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Fetch configmaps for all selected namespaces
@@ -746,54 +838,7 @@ const ConfigMaps: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('data') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500 w-[100px]"
-                      onClick={() => handleSort('dataCount')}
-                    >
-                      Data {renderSortIndicator('dataCount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('keys') && (
-                    <TableHead>
-                      Keys
-                    </TableHead>
-                  )}
-                  {isColumnVisible('size') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                      onClick={() => handleSort('size')}
-                    >
-                      Size {renderSortIndicator('size')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[70px]"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -805,77 +850,7 @@ const ConfigMaps: React.FC = () => {
                     onClick={(e) => handleConfigMapClick(e, configMap)}
                     onContextMenu={(e) => handleContextMenu(e, configMap)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleConfigMapDetails(configMap)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {configMap.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {configMap.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('data') && (
-                      <TableCell className="text-center">
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          {countDataEntries(configMap)}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('keys') && (
-                      <TableCell>
-                        {formatDataKeys(configMap)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('size') && (
-                      <TableCell className="text-center">
-                        {formatSize(calculateConfigMapSize(configMap))}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(configMap.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleAskAI(configMap);
-                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Ask AI
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleViewConfigMap} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
-                              onClick={(e) => handleDeleteConfigMapMenuItem(e, configMap)}
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(configMap, col))}
                   </TableRow>
                 ))}
               </TableBody>
@@ -892,6 +867,7 @@ const ConfigMaps: React.FC = () => {
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
         onResetToDefault={handleResetToDefault}
+        onColumnReorder={handleColumnReorder}
         resourceType="configmaps"
       />
     </div>

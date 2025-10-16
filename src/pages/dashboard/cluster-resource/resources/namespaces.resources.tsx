@@ -285,13 +285,19 @@ const Namespaces: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
       saveColumnConfig('namespaces', updated);
       return updated;
     });
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('namespaces', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -304,6 +310,93 @@ const Namespaces: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      status: 'status',
+      age: 'age',
+      labels: 'labels'
+    };
+
+    const sortField = sortFieldMap[column.key];
+
+    return (
+      <TableHead
+        key={column.key}
+        className="cursor-pointer hover:text-blue-500"
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (namespace: V1Namespace, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell
+            key={column.key}
+            className="font-medium"
+            onClick={() => navigate(`/dashboard/explore/namespaces/${namespace.metadata?.name}`)}
+          >
+            {namespace.metadata?.name}
+          </TableCell>
+        );
+
+      case 'status':
+        return (
+          <TableCell key={column.key}>
+            <span
+              className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${
+                namespace.status?.phase === 'Active'
+                  ? 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                  : 'border border-yellow-800/40 dark:border-yellow-400/20 bg-yellow-400/50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-800'
+              }`}
+            >
+              {namespace.status?.phase || 'Unknown'}
+            </span>
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key}>
+            {calculateAge(namespace.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      case 'labels':
+        return (
+          <TableCell key={column.key}>
+            <div className="flex flex-wrap gap-1">
+              {namespace.metadata?.labels && Object.entries(namespace.metadata.labels).map(([key, value]) => (
+                <span
+                  key={key}
+                  className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-gray-200 dark:bg-transparent dark:hover:bg-gray-800/50 border border-gray-300 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                >
+                  {key}: {value}
+                </span>
+              ))}
+            </div>
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -381,36 +474,7 @@ const Namespaces: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('status') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status {renderSortIndicator('status')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('labels') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('labels')}
-                    >
-                      Labels {renderSortIndicator('labels')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -420,38 +484,7 @@ const Namespaces: React.FC = () => {
                     key={namespace.metadata?.uid}
                     className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
                   >
-                    <TableCell className="font-medium"
-                      onClick={() => navigate(`/dashboard/explore/namespaces/${namespace.metadata?.name}`)}
-                    >{namespace.metadata?.name}</TableCell>
-                    {isColumnVisible('status') && (
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${namespace.status?.phase === 'Active'
-                            ? 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            : 'border border-yellow-800/40 dark:border-yellow-400/20 bg-yellow-400/50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-800'
-                            }`}
-                        >
-                          {namespace.status?.phase || 'Unknown'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell>{calculateAge(namespace.metadata?.creationTimestamp?.toString())}</TableCell>
-                    )}
-                    {isColumnVisible('labels') && (
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {namespace.metadata?.labels && Object.entries(namespace.metadata.labels).map(([key, value]) => (
-                            <span
-                              key={key}
-                              className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-gray-200 dark:bg-transparent dark:hover:bg-gray-800/50 border border-gray-300 dark:border-gray-800 text-gray-700 dark:text-gray-300"
-                            >
-                              {key}: {value}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(namespace, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -501,6 +534,7 @@ const Namespaces: React.FC = () => {
         title="Namespaces Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="namespaces"
         className="w-1/3"

@@ -389,11 +389,17 @@ const LimitRanges: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const updated = columnConfig.map(col => 
+    const updated = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(updated);
     saveColumnConfig('limitranges', updated);
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('limitranges', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -404,6 +410,94 @@ const LimitRanges: React.FC = () => {
   const isColumnVisible = (columnKey: string): boolean => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column ? column.visible : true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      types: 'types',
+      limitCount: 'limitCount',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isNumericColumn = ['limitCount', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isNumericColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (limitRange: V1LimitRange, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleLimitRangeDetails(limitRange)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {limitRange.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {limitRange.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'types':
+        return (
+          <TableCell key={column.key}>
+            {formatLimitTypes(limitRange)}
+          </TableCell>
+        );
+
+      case 'limitCount':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              {limitRange.spec?.limits?.length || 0}
+            </span>
+          </TableCell>
+        );
+
+      case 'constraints':
+        return (
+          <TableCell key={column.key}>
+            {formatLimits(limitRange)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(limitRange.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Fetch limit ranges for all selected namespaces
@@ -783,54 +877,8 @@ const LimitRanges: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('types') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('types')}
-                    >
-                      Types {renderSortIndicator('types')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('limitCount') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('limitCount')}
-                    >
-                      Limit Count {renderSortIndicator('limitCount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('constraints') && (
-                    <TableHead>
-                      Constraints
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -842,44 +890,8 @@ const LimitRanges: React.FC = () => {
                     onClick={(e) => handleLimitRangeClick(e, limitRange)}
                     onContextMenu={(e) => handleContextMenu(e, limitRange)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleLimitRangeDetails(limitRange)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {limitRange.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {limitRange.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('types') && (
-                      <TableCell>
-                        {formatLimitTypes(limitRange)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('limitCount') && (
-                      <TableCell className="text-center">
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          {limitRange.spec?.limits?.length || 0}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('constraints') && (
-                      <TableCell>
-                        {formatLimits(limitRange)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(limitRange.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(limitRange, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -904,8 +916,7 @@ const LimitRanges: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -921,6 +932,7 @@ const LimitRanges: React.FC = () => {
         title="Limit Ranges Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="limitranges"
       />

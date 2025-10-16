@@ -413,6 +413,12 @@ const ResourceQuotas: React.FC = () => {
     saveColumnConfig('resourcequotas', updated);
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('resourcequotas', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     setColumnConfig(defaultColumnConfig);
     clearColumnConfig('resourcequotas');
@@ -999,6 +1005,7 @@ const ResourceQuotas: React.FC = () => {
         title="Resource Quotas Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="resourcequotas"
       />

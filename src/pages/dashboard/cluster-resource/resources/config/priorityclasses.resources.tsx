@@ -434,6 +434,12 @@ const PriorityClasses: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('priorityclasses', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -444,6 +450,84 @@ const PriorityClasses: React.FC = () => {
   const isColumnVisible = (columnKey: string): boolean => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column ? column.visible : true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      value: 'value',
+      preemption: 'preemption',
+      age: 'age'
+      // Note: 'description' is not sortable
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['value', 'preemption', 'age'].includes(column.key);
+    const isSortable = sortField !== undefined;
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${isSortable ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (priorityClass: V1PriorityClass, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handlePriorityClassDetails(priorityClass)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {priorityClass.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'value':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatPriorityValue(priorityClass)}
+          </TableCell>
+        );
+
+      case 'preemption':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatPreemptionPolicy(priorityClass)}
+          </TableCell>
+        );
+
+      case 'description':
+        return (
+          <TableCell key={column.key}>
+            {formatDescription(priorityClass)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(priorityClass.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Fetch PriorityClasses (these are cluster-scoped resources)
@@ -757,46 +841,8 @@ const PriorityClasses: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('value') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('value')}
-                    >
-                      Priority Value {renderSortIndicator('value')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('preemption') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('preemption')}
-                    >
-                      Preemption {renderSortIndicator('preemption')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('description') && (
-                    <TableHead>
-                      Description
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -808,35 +854,8 @@ const PriorityClasses: React.FC = () => {
                     onClick={(e) => handlePriorityClassClick(e, priorityClass)}
                     onContextMenu={(e) => handleContextMenu(e, priorityClass)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handlePriorityClassDetails(priorityClass)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {priorityClass.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('value') && (
-                      <TableCell className="text-center">
-                        {formatPriorityValue(priorityClass)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('preemption') && (
-                      <TableCell className="text-center">
-                        {formatPreemptionPolicy(priorityClass)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('description') && (
-                      <TableCell>
-                        {formatDescription(priorityClass)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(priorityClass.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(priorityClass, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -861,8 +880,7 @@ const PriorityClasses: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -878,6 +896,7 @@ const PriorityClasses: React.FC = () => {
         title="Priority Classes Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="priorityclasses"
       />

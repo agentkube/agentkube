@@ -386,13 +386,19 @@ const Secrets: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
       saveColumnConfig('secrets', updated);
       return updated;
     });
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('secrets', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -405,6 +411,100 @@ const Secrets: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      type: 'type',
+      dataCount: 'dataCount',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isNumericColumn = ['dataCount', 'age'].includes(column.key);
+    const isCenterColumn = ['type', 'dataCount', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (secret: V1Secret, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleSecretDetails(secret)}>
+            <div className="hover:text-blue-500 hover:underline flex items-center">
+              {isSystemSecret(secret) && (
+                <LockIcon className="w-4 h-4 mr-1 text-gray-500 dark:text-gray-400" />
+              )}
+              {secret.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {secret.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'type':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getSecretTypeBadgeClass(secret.type)}`}>
+              {formatSecretType(secret.type)}
+            </span>
+          </TableCell>
+        );
+
+      case 'dataCount':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              {Object.keys(secret.data || {}).length}
+            </span>
+          </TableCell>
+        );
+
+      case 'keys':
+        return (
+          <TableCell key={column.key}>
+            {formatDataKeys(secret)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(secret.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Add sorting state
@@ -743,49 +843,7 @@ const Secrets: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('type') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('type')}
-                    >
-                      Type {renderSortIndicator('type')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('dataCount') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500 text-center"
-                      onClick={() => handleSort('dataCount')}
-                    >
-                      Data {renderSortIndicator('dataCount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('keys') && (
-                    <TableHead>
-                      Keys
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -799,45 +857,7 @@ const Secrets: React.FC = () => {
                     onClick={(e) => handleSecretClick(e, secret)}
                     onContextMenu={(e) => handleContextMenu(e, secret)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleSecretDetails(secret)}>
-                      <div className="hover:text-blue-500 hover:underline flex items-center">
-                        {isSystemSecret(secret) && (
-                          <LockIcon className="w-4 h-4 mr-1 text-gray-500 dark:text-gray-400" />
-                        )}
-                        {secret.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {secret.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('type') && (
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getSecretTypeBadgeClass(secret.type)}`}>
-                          {formatSecretType(secret.type)}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('dataCount') && (
-                      <TableCell className="text-center">
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          {Object.keys(secret.data || {}).length}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('keys') && (
-                      <TableCell>
-                        {formatDataKeys(secret)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(secret.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(secret, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -879,6 +899,7 @@ const Secrets: React.FC = () => {
         title="Secrets Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="secrets"
         className="w-1/3"

@@ -3,7 +3,6 @@ import { listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -425,6 +424,12 @@ const RuntimeClasses: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('runtimeclasses', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -435,6 +440,83 @@ const RuntimeClasses: React.FC = () => {
   const isColumnVisible = (columnKey: string): boolean => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column ? column.visible : true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      handler: 'handler',
+      overhead: 'overhead',
+      scheduling: 'scheduling',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isNumericColumn = ['age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isNumericColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (runtimeClass: V1RuntimeClass, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleRuntimeClassDetails(runtimeClass)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {runtimeClass.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'handler':
+        return (
+          <TableCell key={column.key}>
+            {formatHandler(runtimeClass)}
+          </TableCell>
+        );
+
+      case 'overhead':
+        return (
+          <TableCell key={column.key}>
+            {formatOverhead(runtimeClass)}
+          </TableCell>
+        );
+
+      case 'scheduling':
+        return (
+          <TableCell key={column.key}>
+            {formatScheduling(runtimeClass)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(runtimeClass.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Fetch RuntimeClasses (these are cluster-scoped resources)
@@ -805,73 +887,29 @@ const RuntimeClasses: React.FC = () => {
         </Button>
       </div>
 
-      {/* No results message */}
-      {sortedRuntimeClasses.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            {searchQuery
-              ? `No runtime classes matching "${searchQuery}"`
-              : "No runtime classes found in the cluster."}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* RuntimeClass table */}
-      {sortedRuntimeClasses.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('handler') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('handler')}
-                    >
-                      Handler {renderSortIndicator('handler')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('overhead') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('overhead')}
-                    >
-                      Overhead {renderSortIndicator('overhead')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('scheduling') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('scheduling')}
-                    >
-                      Scheduling {renderSortIndicator('scheduling')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedRuntimeClasses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No runtime classes matching "${searchQuery}"`
+                      : "No runtime classes found in the cluster."}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedRuntimeClasses.map((runtimeClass) => (
+              ) : (
+                sortedRuntimeClasses.map((runtimeClass) => (
                   <TableRow
                     key={runtimeClass.metadata?.name}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedRuntimeClasses.has(runtimeClass.metadata?.name || '') ? 'bg-blue-50 dark:bg-gray-800/30' : ''
@@ -879,35 +917,8 @@ const RuntimeClasses: React.FC = () => {
                     onClick={(e) => handleRuntimeClassClick(e, runtimeClass)}
                     onContextMenu={(e) => handleContextMenu(e, runtimeClass)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleRuntimeClassDetails(runtimeClass)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {runtimeClass.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('handler') && (
-                      <TableCell>
-                        {formatHandler(runtimeClass)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('overhead') && (
-                      <TableCell>
-                        {formatOverhead(runtimeClass)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('scheduling') && (
-                      <TableCell>
-                        {formatScheduling(runtimeClass)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(runtimeClass.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(runtimeClass, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -932,15 +943,14 @@ const RuntimeClasses: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Filter Sidebar */}
       <ResourceFilterSidebar
@@ -949,6 +959,7 @@ const RuntimeClasses: React.FC = () => {
         title="Runtime Classes Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="runtimeclasses"
       />
