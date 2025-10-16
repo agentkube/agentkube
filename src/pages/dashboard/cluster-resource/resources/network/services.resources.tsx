@@ -717,6 +717,12 @@ const Services: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('services', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -727,6 +733,103 @@ const Services: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      type: 'type',
+      clusterIP: 'clusterIP',
+      externalIP: 'externalIP',
+      ports: 'ports',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['type', 'clusterIP', 'externalIP', 'ports', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (service: V1Service, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleServiceDetails(service)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {service.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {service.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'type':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getServiceTypeColorClass(service.spec?.type)}`}>
+              {service.spec?.type || 'ClusterIP'}
+            </span>
+          </TableCell>
+        );
+
+      case 'clusterIP':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {service.spec?.clusterIP || '-'}
+          </TableCell>
+        );
+
+      case 'externalIP':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {getExternalIP(service)}
+          </TableCell>
+        );
+
+      case 'ports':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatServicePorts(service)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(service.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -808,60 +911,7 @@ const Services: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('type') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('type')}
-                    >
-                      Type {renderSortIndicator('type')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('clusterIP') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('clusterIP')}
-                    >
-                      Cluster IP {renderSortIndicator('clusterIP')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('externalIP') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('externalIP')}
-                    >
-                      External IP {renderSortIndicator('externalIP')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('ports') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('ports')}
-                    >
-                      Ports {renderSortIndicator('ports')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -877,45 +927,7 @@ const Services: React.FC = () => {
                     onClick={(e) => handleServiceClick(e, service)}
                     onContextMenu={(e) => handleContextMenu(e, service)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleServiceDetails(service)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {service.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {service.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('type') && (
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getServiceTypeColorClass(service.spec?.type)}`}>
-                          {service.spec?.type || 'ClusterIP'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('clusterIP') && (
-                      <TableCell className="text-center">
-                        {service.spec?.clusterIP || '-'}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('externalIP') && (
-                      <TableCell className="text-center">
-                        {getExternalIP(service)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('ports') && (
-                      <TableCell className="text-center">
-                        {formatServicePorts(service)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(service.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(service, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -964,6 +976,7 @@ const Services: React.FC = () => {
         title="Services Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         className="w-1/3"
         resourceType="services"

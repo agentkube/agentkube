@@ -481,15 +481,15 @@ const NetworkPolicies: React.FC = () => {
     saveColumnConfig('networkpolicies', newConfig);
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('networkpolicies', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
     clearColumnConfig('networkpolicies');
-  };
-
-  const isColumnVisible = (columnKey: string): boolean => {
-    const column = columnConfig.find(col => col.key === columnKey);
-    return column ? column.visible : true;
   };
 
   // Fetch network policies for all selected namespaces
@@ -903,6 +903,101 @@ const NetworkPolicies: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      podSelector: 'podSelector',
+      policyTypes: 'policyTypes',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['policyTypes', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (policy: V1NetworkPolicy, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleNetworkPolicyDetails(policy)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {policy.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {policy.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'podSelector':
+        return (
+          <TableCell key={column.key}>
+            {formatPodSelector(policy)}
+          </TableCell>
+        );
+
+      case 'policyTypes':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <div className="flex flex-wrap justify-center gap-1">
+              {(policy.spec?.policyTypes || []).map((type, index) => (
+                <span
+                  key={index}
+                  className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getPolicyTypesBadgeClass(type)}`}
+                >
+                  {type}
+                </span>
+              ))}
+            </div>
+          </TableCell>
+        );
+
+      case 'rules':
+        return (
+          <TableCell key={column.key}>
+            {formatRulesSummary(policy)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(policy.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -982,54 +1077,8 @@ const NetworkPolicies: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('podSelector') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('podSelector')}
-                    >
-                      Pod Selector {renderSortIndicator('podSelector')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('policyTypes') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('policyTypes')}
-                    >
-                      Policy Types {renderSortIndicator('policyTypes')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('rules') && (
-                    <TableHead>
-                      Rules Summary
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1044,51 +1093,8 @@ const NetworkPolicies: React.FC = () => {
                     onClick={(e) => handlePolicyClick(e, policy)}
                     onContextMenu={(e) => handleContextMenu(e, policy)}
                   >
-                    {isColumnVisible('name') && (
-                      <TableCell className="font-medium" onClick={() => handleNetworkPolicyDetails(policy)}>
-                        <div className="hover:text-blue-500 hover:underline">
-                          {policy.metadata?.name}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {policy.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('podSelector') && (
-                      <TableCell>
-                        {formatPodSelector(policy)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('policyTypes') && (
-                      <TableCell className="text-center">
-                        <div className="flex flex-wrap justify-center gap-1">
-                          {(policy.spec?.policyTypes || []).map((type, index) => (
-                            <span
-                              key={index}
-                              className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getPolicyTypesBadgeClass(type)}`}
-                            >
-                              {type}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('rules') && (
-                      <TableCell>
-                        {formatRulesSummary(policy)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(policy.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('actions') && (
-                      <TableCell>
+                    {columnConfig.map(col => renderTableCell(policy, col))}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1120,8 +1126,7 @@ const NetworkPolicies: React.FC = () => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      </TableCell>
-                    )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1137,7 +1142,9 @@ const NetworkPolicies: React.FC = () => {
         title="NetworkPolicies Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
+        className="w-1/3"
         resourceType="networkpolicies"
       />
     </div>

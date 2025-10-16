@@ -426,11 +426,16 @@ const Endpoints: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const newConfig = columnConfig.map(col => 
+    const newConfig = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(newConfig);
     saveColumnConfig('endpoints', newConfig);
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('endpoints', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -749,6 +754,91 @@ const Endpoints: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      endpoints: 'endpoints',
+      ports: 'ports',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['endpoints', 'ports', 'age'].includes(column.key);
+    const isPortsColumn = column.key === 'ports';
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${sortField ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''} ${isPortsColumn ? 'w-[150px]' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (endpoint: V1Endpoints, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleEndpointDetails(endpoint)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {endpoint.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${endpoint.metadata?.namespace}`)}>
+              {endpoint.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'endpoints':
+        return (
+          <TableCell key={column.key}>
+            <div className="flex justify-between items-center">
+              {formatEndpointAddresses(endpoint)}
+              <div className="text-sm ml-2">
+                {getReadyCounts(endpoint)}
+              </div>
+            </div>
+          </TableCell>
+        );
+
+      case 'ports':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatEndpointPorts(endpoint)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(endpoint.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -828,45 +918,7 @@ const Endpoints: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('endpoints') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('endpoints')}
-                    >
-                      Endpoints (Ready) {renderSortIndicator('endpoints')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('ports') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                      onClick={() => handleSort('ports')}
-                    >
-                      Ports {renderSortIndicator('ports')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -882,39 +934,7 @@ const Endpoints: React.FC = () => {
                     onClick={(e) => handleEndpointClick(e, endpoint)}
                     onContextMenu={(e) => handleContextMenu(e, endpoint)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleEndpointDetails(endpoint)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {endpoint.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces/${endpoint.metadata?.namespace}`)}>
-                          {endpoint.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('endpoints') && (
-                      <TableCell>
-                        <div className="flex justify-between items-center">
-                          {formatEndpointAddresses(endpoint)}
-                          <div className="text-sm ml-2">
-                            {getReadyCounts(endpoint)}
-                          </div>
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('ports') && (
-                      <TableCell className="text-center">
-                        {formatEndpointPorts(endpoint)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(endpoint.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-
+                    {columnConfig.map(col => renderTableCell(endpoint, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -963,6 +983,7 @@ const Endpoints: React.FC = () => {
         title="Endpoints Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="endpoints"
         className="w-1/3"

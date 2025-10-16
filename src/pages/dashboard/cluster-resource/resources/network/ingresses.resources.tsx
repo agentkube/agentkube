@@ -398,11 +398,16 @@ const Ingresses: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const newConfig = columnConfig.map(col => 
+    const newConfig = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(newConfig);
     saveColumnConfig('ingresses', newConfig);
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('ingresses', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -723,6 +728,95 @@ const Ingresses: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      class: 'class',
+      hosts: 'hosts',
+      address: 'address',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['class', 'address', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${sortField ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (ingress: V1Ingress, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleIngressDetails(ingress)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {ingress.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {ingress.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'class':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              {formatIngressClass(ingress)}
+            </span>
+          </TableCell>
+        );
+
+      case 'hosts':
+        return (
+          <TableCell key={column.key}>
+            {formatHostsAndPaths(ingress)}
+          </TableCell>
+        );
+
+      case 'address':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatIngressAddress(ingress)}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(ingress.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -802,53 +896,7 @@ const Ingresses: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('class') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('class')}
-                    >
-                      Class {renderSortIndicator('class')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('hosts') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('hosts')}
-                    >
-                      Hosts & Paths {renderSortIndicator('hosts')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('address') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('address')}
-                    >
-                      Address {renderSortIndicator('address')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -864,40 +912,7 @@ const Ingresses: React.FC = () => {
                     onClick={(e) => handleIngressClick(e, ingress)}
                     onContextMenu={(e) => handleContextMenu(e, ingress)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleIngressDetails(ingress)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {ingress.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {ingress.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('class') && (
-                      <TableCell className="text-center">
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          {formatIngressClass(ingress)}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('hosts') && (
-                      <TableCell>
-                        {formatHostsAndPaths(ingress)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('address') && (
-                      <TableCell className="text-center">
-                        {formatIngressAddress(ingress)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(ingress.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(ingress, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -946,6 +961,7 @@ const Ingresses: React.FC = () => {
         title="Ingresses Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="ingresses"
         className="w-1/3"

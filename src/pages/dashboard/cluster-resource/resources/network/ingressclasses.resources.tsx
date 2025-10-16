@@ -539,11 +539,16 @@ const IngressClasses: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const newConfig = columnConfig.map(col => 
+    const newConfig = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(newConfig);
     saveColumnConfig('ingressclasses', newConfig);
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('ingressclasses', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -741,6 +746,88 @@ const IngressClasses: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      controller: 'controller',
+      default: 'default',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['default', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`${sortField ? 'cursor-pointer hover:text-blue-500' : ''} ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (ingressClass: V1IngressClass, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleIngressClassDetails(ingressClass)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {ingressClass.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'controller':
+        return (
+          <TableCell key={column.key}>
+            <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              {ingressClass.spec?.controller || 'Unknown'}
+            </span>
+          </TableCell>
+        );
+
+      case 'parameters':
+        return (
+          <TableCell key={column.key}>
+            {formatParameters(ingressClass)}
+          </TableCell>
+        );
+
+      case 'default':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span
+              className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getDefaultColorClass(isDefaultIngressClass(ingressClass))}`}
+            >
+              {isDefaultIngressClass(ingressClass) ? 'Default' : '-'}
+            </span>
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(ingressClass.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -813,42 +900,7 @@ const IngressClasses: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('controller') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('controller')}
-                    >
-                      Controller {renderSortIndicator('controller')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('parameters') && (
-                    <TableHead>
-                      Parameters
-                    </TableHead>
-                  )}
-                  {isColumnVisible('default') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('default')}
-                    >
-                      Default {renderSortIndicator('default')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -864,37 +916,7 @@ const IngressClasses: React.FC = () => {
                     onClick={(e) => handleIngressClassClick(e, ingressClass)}
                     onContextMenu={(e) => handleContextMenu(e, ingressClass)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleIngressClassDetails(ingressClass)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {ingressClass.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('controller') && (
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          {ingressClass.spec?.controller || 'Unknown'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('parameters') && (
-                      <TableCell>
-                        {formatParameters(ingressClass)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('default') && (
-                      <TableCell className="text-center">
-                        <span
-                          className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getDefaultColorClass(isDefaultIngressClass(ingressClass))}`}
-                        >
-                          {isDefaultIngressClass(ingressClass) ? 'Default' : '-'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(ingressClass.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(ingressClass, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -951,6 +973,7 @@ const IngressClasses: React.FC = () => {
         title="IngressClasses Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="ingressclasses"
         className="w-1/3"
