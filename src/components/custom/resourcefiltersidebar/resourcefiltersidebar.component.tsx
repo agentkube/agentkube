@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { SideDrawer, DrawerHeader, DrawerContent } from '@/components/ui/sidedrawer.custom';
-import { Settings, RotateCcw, Table, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
+import { Settings, RotateCcw, Table, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { saveColumnConfig } from '@/utils/columnConfigStorage';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ColumnConfig {
   key: string;
@@ -12,6 +29,13 @@ interface ColumnConfig {
   canToggle?: boolean; // Some columns might be required and non-toggleable
   children?: ColumnConfig[]; // For hierarchical columns
   isExpandable?: boolean; // Whether this group can be expanded/collapsed
+}
+
+interface SortableColumnItemProps {
+  column: ColumnConfig;
+  onColumnChange: (columnKey: string, checked: boolean) => void;
+  expandedGroups: Set<string>;
+  onToggleExpansion: (groupKey: string) => void;
 }
 
 interface ResourceFilterSidebarProps {
@@ -25,6 +49,179 @@ interface ResourceFilterSidebarProps {
   className?: string;
   resourceType?: string; // For localStorage caching
 }
+
+// Sortable Column Item Component
+const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
+  column,
+  onColumnChange,
+  expandedGroups,
+  onToggleExpansion,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: column.key });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const isExpanded = expandedGroups.has(column.key);
+
+  if (column.children) {
+    // Check if all children are checked
+    const allChildrenChecked = column.children.every(child => child.visible);
+    const someChildrenChecked = column.children.some(child => child.visible);
+    const isIndeterminate = someChildrenChecked && !allChildrenChecked;
+
+    // Render group/parent column
+    return (
+      <div ref={setNodeRef} style={style} className="space-y-2">
+        <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 dark:hover:bg-transparent rounded"
+          >
+            <GripVertical className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+          </div>
+
+          <Checkbox
+            id={column.key}
+            checked={allChildrenChecked}
+            onCheckedChange={(checked) => {
+              // Toggle all children when parent is clicked
+              column.children?.forEach(child => {
+                onColumnChange(child.key, checked === true);
+              });
+            }}
+            disabled={column.canToggle === false}
+            className={`flex-shrink-0 ${isIndeterminate ? 'data-[state=checked]:bg-blue-500' : ''}`}
+            data-indeterminate={isIndeterminate}
+          />
+
+          <div className="flex items-center justify-between flex-grow">
+            <label
+              htmlFor={column.key}
+              className={`text-sm font-medium cursor-pointer ${
+                column.canToggle === false
+                  ? 'text-gray-400 dark:text-gray-600'
+                  : 'text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {column.label}
+            </label>
+
+            <div
+              className="cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+              onClick={() => onToggleExpansion(column.key)}
+            >
+              {isExpanded ? (
+                <ChevronRight className="h-4 w-4 text-gray-500 transform rotate-90" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-gray-500" />
+              )}
+            </div>
+          </div>
+
+          {column.canToggle === false && (
+            <span className="text-xs text-gray-400 dark:text-gray-600">
+              Required
+            </span>
+          )}
+        </div>
+
+        {isExpanded && (
+          <div className="space-y-1 ml-4 border-l pl-2">
+            {column.children.map(child => (
+              <div
+                key={child.key}
+                className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30"
+              >
+                <Checkbox
+                  id={child.key}
+                  checked={child.visible}
+                  onCheckedChange={(checked) =>
+                    onColumnChange(child.key, checked === true)
+                  }
+                  disabled={child.canToggle === false}
+                  className="flex-shrink-0"
+                />
+
+                <label
+                  htmlFor={child.key}
+                  className={`text-sm cursor-pointer flex-grow ${
+                    child.canToggle === false
+                      ? 'text-gray-400 dark:text-gray-600'
+                      : 'text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {child.label}
+                </label>
+
+                {child.canToggle === false && (
+                  <span className="text-xs text-gray-400 dark:text-gray-600">
+                    Required
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    // Render leaf/child column
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30"
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 dark:hover:bg-transparent rounded"
+        >
+          <GripVertical className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+        </div>
+
+        <Checkbox
+          id={column.key}
+          checked={column.visible}
+          onCheckedChange={(checked) =>
+            onColumnChange(column.key, checked === true)
+          }
+          disabled={column.canToggle === false}
+          className="flex-shrink-0"
+        />
+
+        <label
+          htmlFor={column.key}
+          className={`text-sm cursor-pointer flex-grow ${
+            column.canToggle === false
+              ? 'text-gray-400 dark:text-gray-600'
+              : 'text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          {column.label}
+        </label>
+
+        {column.canToggle === false && (
+          <span className="text-xs text-gray-400 dark:text-gray-600">
+            Required
+          </span>
+        )}
+      </div>
+    );
+  }
+};
 
 const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
   isOpen,
@@ -43,19 +240,28 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
     onColumnToggle(columnKey, checked);
   };
 
-  const handleMoveColumn = (index: number, direction: 'up' | 'down') => {
-    if (!onColumnReorder) return;
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required to start dragging
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-    const newColumns = [...columns];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    // Check bounds
-    if (targetIndex < 0 || targetIndex >= newColumns.length) return;
+    if (over && active.id !== over.id && onColumnReorder) {
+      const oldIndex = columns.findIndex((col) => col.key === active.id);
+      const newIndex = columns.findIndex((col) => col.key === over.id);
 
-    // Swap columns
-    [newColumns[index], newColumns[targetIndex]] = [newColumns[targetIndex], newColumns[index]];
-
-    onColumnReorder(newColumns);
+      const reorderedColumns = arrayMove(columns, oldIndex, newIndex);
+      onColumnReorder(reorderedColumns);
+    }
   };
 
   // Save to localStorage when columns change
@@ -86,7 +292,7 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
   const countColumns = (cols: ColumnConfig[]): { visible: number; total: number } => {
     let visible = 0;
     let total = 0;
-    
+
     cols.forEach(col => {
       if (col.children) {
         const childCounts = countColumns(col.children);
@@ -97,183 +303,11 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
         if (col.visible) visible += 1;
       }
     });
-    
+
     return { visible, total };
   };
 
   const { visible: visibleColumnsCount, total: totalColumnsCount } = countColumns(columns || []);
-
-  const renderColumn = (column: ColumnConfig, index: number, depth: number = 0) => {
-    const isExpanded = expandedGroups.has(column.key);
-    const indentClass = depth > 0 ? `ml-${depth * 4}` : '';
-    const isFirstColumn = index === 0;
-    const isLastColumn = index === columns.length - 1;
-
-    if (column.children) {
-      // Check if all children are checked
-      const allChildrenChecked = column.children.every(child => child.visible);
-      const someChildrenChecked = column.children.some(child => child.visible);
-      const isIndeterminate = someChildrenChecked && !allChildrenChecked;
-
-      // Render group/parent column
-      return (
-        <div key={column.key} className={`space-y-2`}>
-          <div
-            className={`flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
-          >
-            <Checkbox
-              id={column.key}
-              checked={allChildrenChecked}
-              onCheckedChange={(checked) => {
-                // Toggle all children when parent is clicked
-                column.children?.forEach(child => {
-                  handleColumnChange(child.key, checked === true);
-                });
-              }}
-              disabled={column.canToggle === false}
-              className={`flex-shrink-0 ${isIndeterminate ? 'data-[state=checked]:bg-blue-500' : ''}`}
-              data-indeterminate={isIndeterminate}
-            />
-
-            <div className="flex items-center justify-between flex-grow">
-              <label
-                htmlFor={column.key}
-                className={`text-sm font-medium cursor-pointer ${
-                  column.canToggle === false
-                    ? 'text-gray-400 dark:text-gray-600'
-                    : 'text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {column.label}
-              </label>
-
-              <div className="flex items-center gap-1">
-                {onColumnReorder && (
-                  <div className="flex gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveColumn(index, 'up');
-                      }}
-                      disabled={isFirstColumn}
-                    >
-                      <ChevronUp className={`h-3.5 w-3.5 ${isFirstColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveColumn(index, 'down');
-                      }}
-                      disabled={isLastColumn}
-                    >
-                      <ChevronDown className={`h-3.5 w-3.5 ${isLastColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
-                    </Button>
-                  </div>
-                )}
-
-                <div
-                  className="cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                  onClick={() => toggleGroupExpansion(column.key)}
-                >
-                  {isExpanded ? (
-                    <ChevronRight className="h-4 w-4 text-gray-500 transform rotate-90" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-500" />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {column.canToggle === false && (
-              <span className="text-xs text-gray-400 dark:text-gray-600">
-                Required
-              </span>
-            )}
-          </div>
-
-          {isExpanded && (
-            <div className="space-y-1 ml-4 border-l">
-              {column.children.map((child, childIndex) => renderColumn(child, childIndex, depth + 1))}
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      // Render leaf/child column
-      return (
-        <div
-          key={column.key}
-          className={`flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
-        >
-          <Checkbox
-            id={column.key}
-            checked={column.visible}
-            onCheckedChange={(checked) =>
-              handleColumnChange(column.key, checked === true)
-            }
-            disabled={column.canToggle === false}
-            className="flex-shrink-0"
-          />
-
-          <label
-            htmlFor={column.key}
-            className={`text-sm cursor-pointer flex-grow ${
-              column.canToggle === false
-                ? 'text-gray-400 dark:text-gray-600'
-                : 'text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            {column.label}
-          </label>
-
-          
-          {column.canToggle === false && (
-            <span className="text-xs text-gray-400 dark:text-gray-600">
-              Required
-            </span>
-          )}
-
-
-          {onColumnReorder && depth === 0 && (
-            <div className="flex gap-0.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMoveColumn(index, 'up');
-                }}
-                disabled={isFirstColumn}
-              >
-                <ChevronUp className={`h-3.5 w-3.5 ${isFirstColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMoveColumn(index, 'down');
-                }}
-                disabled={isLastColumn}
-              >
-                <ChevronDown className={`h-3.5 w-3.5 ${isLastColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
-              </Button>
-            </div>
-          )}
-
-    
-        </div>
-      );
-    }
-  };
 
   return (
     <SideDrawer
@@ -284,7 +318,7 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
     >
       <DrawerHeader onClose={onClose}>
         <div className="flex items-center gap-2">
-        <div className='bg-gray-200/20 dark:bg-gray-500/20 rounded-md p-1.5'>
+          <div className='bg-gray-200/20 dark:bg-gray-500/20 rounded-md p-1.5'>
             <Table className="h-4 w-4" />
           </div>
           <span className="text-sm font-medium">Table Management</span>
@@ -300,7 +334,7 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
                 {visibleColumnsCount} of {totalColumnsCount} columns visible
               </p>
             </div>
-            
+
             {onResetToDefault && (
               <Button
                 variant="outline"
@@ -314,15 +348,53 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
             )}
           </div>
 
-          {/* Column toggles */}
+          {/* Column toggles with drag and drop */}
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
               Columns
             </h4>
 
             <div className="space-y-2">
-              {columns?.map((column, index) => renderColumn(column, index)) ||
-                <div className="text-sm text-gray-500 dark:text-gray-400">No columns available</div>}
+              {onColumnReorder ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={columns.map(col => col.key)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {columns?.map((column) => (
+                      <SortableColumnItem
+                        key={column.key}
+                        column={column}
+                        onColumnChange={handleColumnChange}
+                        expandedGroups={expandedGroups}
+                        onToggleExpansion={toggleGroupExpansion}
+                      />
+                    )) || (
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        No columns available
+                      </div>
+                    )}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                columns?.map((column) => (
+                  <SortableColumnItem
+                    key={column.key}
+                    column={column}
+                    onColumnChange={handleColumnChange}
+                    expandedGroups={expandedGroups}
+                    onToggleExpansion={toggleGroupExpansion}
+                  />
+                )) || (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    No columns available
+                  </div>
+                )
+              )}
             </div>
           </div>
 
@@ -330,6 +402,7 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
           <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
             <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
               <p>" Use checkboxes to show/hide table columns</p>
+              {onColumnReorder && <p>" Drag the grip icon to reorder columns</p>}
               <p>" Some columns are required and cannot be hidden</p>
               <p>" Changes are applied immediately</p>
             </div>
