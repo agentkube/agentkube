@@ -572,21 +572,175 @@ const Nodes: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const updated = columnConfig.map(col => 
+    const updated = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(updated);
     saveColumnConfig('nodes', updated);
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('nodes', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
-    setColumnConfig(defaultColumnConfig);
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
     clearColumnConfig('nodes');
   };
 
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      cpu: 'cpu',
+      memory: 'memory',
+      disk: 'disk',
+      taints: 'taints',
+      roles: 'role',
+      version: 'version',
+      age: 'age',
+      conditions: 'conditions'
+    };
+
+    const sortField = sortFieldMap[column.key];
+
+    return (
+      <TableHead
+        key={column.key}
+        className="cursor-pointer hover:text-blue-500"
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (node: EnhancedNodeInfo, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium">
+            <div className='hover:text-blue-500 hover:underline' onClick={(e) => {
+              e.stopPropagation();
+              handleNodeDetails(node);
+            }}>
+              {node.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'cpu':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <div className="flex flex-col items-center">
+              {node.metrics && (
+                <span className="text-gray-600 dark:text-blue-500">
+                  <span className='text-gray-800 dark:text-gray-500'>
+                    {node.metrics.cpuConsumed.toFixed(2)}{" "} / <span className='text-gray-800 dark:text-white'>{node.cpu}</span><br />
+                  </span>
+                  <span className='text-xs'>
+                    ({node.metrics.cpuUsagePercentage.toFixed(1)}%)
+                  </span>
+                </span>
+              )}
+              {!node.metrics && (<>{node.cpu}</>)}
+            </div>
+          </TableCell>
+        );
+
+      case 'memory':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <div className="flex flex-col items-center">
+              <span>{getDisplayValue(node.memory, 'memory')}</span>
+              {node.metrics && (
+                <span className="gap-2 text-xs text-gray-600 dark:text-green-400">
+                  <span className='text-gray-800 dark:text-gray-500'>
+                    {convertUnit(node.metrics.memoryConsumed.toString() + 'Ki', memoryUnit)}{" "}
+                  </span>
+                  ({node.metrics.memoryUsagePercentage.toFixed(1)}%)
+                </span>
+              )}
+            </div>
+          </TableCell>
+        );
+
+      case 'disk':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {getDisplayValue(node.disk, 'disk')}
+          </TableCell>
+        );
+
+      case 'taints':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {node.taints.length}
+          </TableCell>
+        );
+
+      case 'roles':
+        return (
+          <TableCell key={column.key}>
+            {node.roles.includes("master") ?
+              <span className="px-2 py-1 rounded-[0.3rem]  text-xs font-medium bg-red-500/30 dark:bg-red-800/20 text-red-800 dark:text-red-400">
+                Control Plane
+              </span> :
+              <span
+                className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-yellow-400/50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-500">
+                worker
+              </span>
+            }
+          </TableCell>
+        );
+
+      case 'version':
+        return (
+          <TableCell key={column.key}>
+            {node.version}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key}>
+            {node.age}
+          </TableCell>
+        );
+
+      case 'conditions':
+        return (
+          <TableCell key={column.key}>
+            {node.conditions.map((condition: any) =>
+              condition.type === 'Ready' && condition.status === 'True' && (
+                <span key={condition.type} className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-emerald-300 dark:bg-emerald-900/30 text-green-800 dark:text-green-300">
+                  {condition.type}
+                </span>
+              )
+            )}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
@@ -701,75 +855,7 @@ const Nodes: React.FC = () => {
           <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
             <TableHeader>
               <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                <TableHead
-                  className="cursor-pointer hover:text-blue-500"
-                  onClick={() => handleSort('name')}
-                >
-                  Name {renderSortIndicator('name')}
-                </TableHead>
-                {isColumnVisible('cpu') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('cpu')}
-                  >
-                    CPU {renderSortIndicator('cpu')}
-                  </TableHead>
-                )}
-                {isColumnVisible('memory') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('memory')}
-                  >
-                    Memory {renderSortIndicator('memory')}
-                  </TableHead>
-                )}
-                {isColumnVisible('disk') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('disk')}
-                  >
-                    Disk {renderSortIndicator('disk')}
-                  </TableHead>
-                )}
-                {isColumnVisible('taints') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('taints')}
-                  >
-                    Taints {renderSortIndicator('taints')}
-                  </TableHead>
-                )}
-                {isColumnVisible('roles') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                  >
-                    Roles
-                  </TableHead>
-                )}
-                {isColumnVisible('version') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('version')}
-                  >
-                    Version {renderSortIndicator('version')}
-                  </TableHead>
-                )}
-                {isColumnVisible('age') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('age')}
-                  >
-                    Age {renderSortIndicator('age')}
-                  </TableHead>
-                )}
-                {isColumnVisible('conditions') && (
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('conditions')}
-                  >
-                    Conditions {renderSortIndicator('conditions')}
-                  </TableHead>
-                )}
+                {columnConfig.map(col => renderTableHeader(col))}
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -780,84 +866,7 @@ const Nodes: React.FC = () => {
                   className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedNodeIndex === index ? 'bg-gray-300/70 dark:bg-gray-900/50' : ''}`}
                   onClick={() => handleRowClick(node, index)}
                 >
-                  <TableCell className="font-medium">
-                    <div className='hover:text-blue-500 hover:underline' onClick={(e) => {
-                      e.stopPropagation();
-                      handleNodeDetails(node);
-                    }}>
-                      {node.name}
-                    </div>
-                  </TableCell>
-                  {isColumnVisible('cpu') && (
-                    <TableCell className="text-center">
-                      <div className="flex flex-col items-center">
-                        {node.metrics && (
-                          <span className="text-gray-600 dark:text-blue-500">
-                            <span className='text-gray-800 dark:text-gray-500'>
-                              {node.metrics.cpuConsumed.toFixed(2)}{" "} / <span className='text-gray-800 dark:text-white'>{node.cpu}</span><br />
-                            </span>
-                            <span className='text-xs'>
-                              ({node.metrics.cpuUsagePercentage.toFixed(1)}%)
-                            </span>
-                          </span>
-                        )} 
-                        {!node.metrics && (<>{node.cpu}</>)}
-                      </div>
-                    </TableCell>
-                  )}
-                  {isColumnVisible('memory') && (
-                    <TableCell className="text-center">
-                      <div className="flex flex-col items-center">
-                        <span>{getDisplayValue(node.memory, 'memory')}</span>
-                        {node.metrics && (
-                          <span className="gap-2 text-xs text-gray-600 dark:text-green-400">
-                            <span className='text-gray-800 dark:text-gray-500'>
-                              {convertUnit(node.metrics.memoryConsumed.toString() + 'Ki', memoryUnit)}{" "}
-                            </span>
-                            ({node.metrics.memoryUsagePercentage.toFixed(1)}%)
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                  {isColumnVisible('disk') && (
-                    <TableCell className="text-center">
-                      {getDisplayValue(node.disk, 'disk')}
-                    </TableCell>
-                  )}
-                  {isColumnVisible('taints') && (
-                    <TableCell className="text-center">{node.taints.length}</TableCell>
-                  )}
-                  {isColumnVisible('roles') && (
-                    <TableCell>
-                      {node.roles.includes("master") ?
-                        <span className="px-2 py-1 rounded-[0.3rem]  text-xs font-medium bg-red-500/30 dark:bg-red-800/20 text-red-800 dark:text-red-400">
-                          Control Plane
-                        </span> :
-                        <span
-                          className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-yellow-400/50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-500">
-                          worker
-                        </span>
-                      }
-                    </TableCell>
-                  )}
-                  {isColumnVisible('version') && (
-                    <TableCell>{node.version}</TableCell>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableCell>{node.age}</TableCell>
-                  )}
-                  {isColumnVisible('conditions') && (
-                    <TableCell>
-                      {node.conditions.map((condition: any) =>
-                        condition.type === 'Ready' && condition.status === 'True' && (
-                          <span key={condition.type} className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-emerald-300 dark:bg-emerald-900/30 text-green-800 dark:text-green-300">
-                            {condition.type}
-                          </span>
-                        )
-                      )}
-                    </TableCell>
-                  )}
+                  {columnConfig.map(col => renderTableCell(node, col))}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -903,6 +912,7 @@ const Nodes: React.FC = () => {
         title="Nodes Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="nodes"
         className="w-1/3"
