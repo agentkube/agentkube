@@ -247,13 +247,19 @@ const Deployments: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
       saveColumnConfig('deployments', updated);
       return updated;
     });
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('deployments', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
@@ -266,6 +272,103 @@ const Deployments: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (columnKey: string) => {
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      ready: 'ready',
+      upToDate: 'upToDate',
+      available: 'available',
+      replicas: 'replicas',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[columnKey];
+    const column = columnConfig.find(col => col.key === columnKey);
+
+    if (!column || !column.visible || columnKey === 'actions') {
+      return null;
+    }
+
+    const isNumericColumn = ['ready', 'upToDate', 'available', 'replicas', 'age'].includes(columnKey);
+
+    return (
+      <TableHead
+        key={columnKey}
+        className={`cursor-pointer hover:text-blue-500 ${isNumericColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (deployment: V1Deployment, columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+
+    if (!column || !column.visible || columnKey === 'actions') {
+      return null;
+    }
+
+    const isNumericColumn = ['ready', 'upToDate', 'available', 'replicas', 'age'].includes(columnKey);
+
+    let cellContent;
+    switch (columnKey) {
+      case 'name':
+        cellContent = (
+          <div className="hover:text-blue-500 hover:underline">
+            {deployment.metadata?.name}
+          </div>
+        );
+        break;
+      case 'namespace':
+        cellContent = (
+          <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+            {deployment.metadata?.namespace}
+          </div>
+        );
+        break;
+      case 'ready':
+        cellContent = `${deployment.status?.readyReplicas || 0}/${deployment.status?.replicas || 0}`;
+        break;
+      case 'upToDate':
+        cellContent = deployment.status?.updatedReplicas || 0;
+        break;
+      case 'available':
+        cellContent = deployment.status?.availableReplicas || 0;
+        break;
+      case 'replicas':
+        cellContent = (
+          <div className="flex flex-col items-center">
+            <span>{deployment.spec?.replicas || 0}</span>
+            {deployment.status?.replicas !== deployment.spec?.replicas && (
+              <span className="text-xs text-amber-600 dark:text-amber-400">
+                Scaling
+              </span>
+            )}
+          </div>
+        );
+        break;
+      case 'age':
+        cellContent = calculateAge(deployment.metadata?.creationTimestamp?.toString());
+        break;
+      default:
+        cellContent = null;
+    }
+
+    return (
+      <TableCell
+        key={columnKey}
+        className={`${isNumericColumn ? 'text-center' : ''} ${columnKey === 'name' ? 'font-medium' : ''}`}
+        onClick={columnKey === 'name' ? () => handleDeploymentDetails(deployment) : undefined}
+      >
+        {cellContent}
+      </TableCell>
+    );
   };
 
   // Handle scale action
@@ -1152,61 +1255,7 @@ const Deployments: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('ready') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('ready')}
-                    >
-                      Ready {renderSortIndicator('ready')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('upToDate') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('upToDate')}
-                    >
-                      Up-to-date {renderSortIndicator('upToDate')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('available') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('available')}
-                    >
-                      Available {renderSortIndicator('available')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('replicas') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('replicas')}
-                    >
-                      Replicas {renderSortIndicator('replicas')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-
+                  {columnConfig.map(col => renderTableHeader(col.key))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -1219,51 +1268,7 @@ const Deployments: React.FC = () => {
                     onClick={(e) => handleDeploymentClick(e, deployment)}
                     onContextMenu={(e) => handleContextMenu(e, deployment)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleDeploymentDetails(deployment)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {deployment.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {deployment.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('ready') && (
-                      <TableCell className="text-center">
-                        {`${deployment.status?.readyReplicas || 0}/${deployment.status?.replicas || 0}`}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('upToDate') && (
-                      <TableCell className="text-center">
-                        {deployment.status?.updatedReplicas || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('available') && (
-                      <TableCell className="text-center">
-                        {deployment.status?.availableReplicas || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('replicas') && (
-                      <TableCell className="text-center">
-                        <div className="flex flex-col items-center">
-                          <span>{deployment.spec?.replicas || 0}</span>
-                          {deployment.status?.replicas !== deployment.spec?.replicas && (
-                            <span className="text-xs text-amber-600 dark:text-amber-400">
-                              Scaling
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(deployment.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
-
+                    {columnConfig.map(col => renderTableCell(deployment, col.key))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1312,6 +1317,7 @@ const Deployments: React.FC = () => {
         title="Deployments Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         className="w-1/3"
         resourceType="deployments"

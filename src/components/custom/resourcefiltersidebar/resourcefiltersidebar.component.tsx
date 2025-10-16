@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { SideDrawer, DrawerHeader, DrawerContent } from '@/components/ui/sidedrawer.custom';
-import { Settings, RotateCcw, Table, ChevronDown, ChevronRight } from 'lucide-react';
+import { Settings, RotateCcw, Table, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { saveColumnConfig } from '@/utils/columnConfigStorage';
-
-// TODO use https://reui.io/docs/sortable to arrange the table rows and columns
 
 interface ColumnConfig {
   key: string;
@@ -22,6 +20,7 @@ interface ResourceFilterSidebarProps {
   title: string;
   columns: ColumnConfig[];
   onColumnToggle: (columnKey: string, visible: boolean) => void;
+  onColumnReorder?: (reorderedColumns: ColumnConfig[]) => void;
   onResetToDefault?: () => void;
   className?: string;
   resourceType?: string; // For localStorage caching
@@ -33,6 +32,7 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
   title,
   columns,
   onColumnToggle,
+  onColumnReorder,
   onResetToDefault,
   className = "w-1/3",
   resourceType
@@ -41,6 +41,21 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
 
   const handleColumnChange = (columnKey: string, checked: boolean) => {
     onColumnToggle(columnKey, checked);
+  };
+
+  const handleMoveColumn = (index: number, direction: 'up' | 'down') => {
+    if (!onColumnReorder) return;
+
+    const newColumns = [...columns];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    // Check bounds
+    if (targetIndex < 0 || targetIndex >= newColumns.length) return;
+
+    // Swap columns
+    [newColumns[index], newColumns[targetIndex]] = [newColumns[targetIndex], newColumns[index]];
+
+    onColumnReorder(newColumns);
   };
 
   // Save to localStorage when columns change
@@ -88,21 +103,23 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
 
   const { visible: visibleColumnsCount, total: totalColumnsCount } = countColumns(columns || []);
 
-  const renderColumn = (column: ColumnConfig, depth: number = 0) => {
+  const renderColumn = (column: ColumnConfig, index: number, depth: number = 0) => {
     const isExpanded = expandedGroups.has(column.key);
     const indentClass = depth > 0 ? `ml-${depth * 4}` : '';
-    
+    const isFirstColumn = index === 0;
+    const isLastColumn = index === columns.length - 1;
+
     if (column.children) {
       // Check if all children are checked
       const allChildrenChecked = column.children.every(child => child.visible);
       const someChildrenChecked = column.children.some(child => child.visible);
       const isIndeterminate = someChildrenChecked && !allChildrenChecked;
-      
+
       // Render group/parent column
       return (
         <div key={column.key} className={`space-y-2`}>
           <div
-            className={`flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
+            className={`flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
           >
             <Checkbox
               id={column.key}
@@ -117,28 +134,59 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
               className={`flex-shrink-0 ${isIndeterminate ? 'data-[state=checked]:bg-blue-500' : ''}`}
               data-indeterminate={isIndeterminate}
             />
-            
+
             <div className="flex items-center justify-between flex-grow">
               <label
                 htmlFor={column.key}
                 className={`text-sm font-medium cursor-pointer ${
-                  column.canToggle === false 
-                    ? 'text-gray-400 dark:text-gray-600' 
+                  column.canToggle === false
+                    ? 'text-gray-400 dark:text-gray-600'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
               >
                 {column.label}
               </label>
-              
-              <div 
-                className="cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                onClick={() => toggleGroupExpansion(column.key)}
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
+
+              <div className="flex items-center gap-1">
+                {onColumnReorder && (
+                  <div className="flex gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMoveColumn(index, 'up');
+                      }}
+                      disabled={isFirstColumn}
+                    >
+                      <ChevronUp className={`h-3.5 w-3.5 ${isFirstColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMoveColumn(index, 'down');
+                      }}
+                      disabled={isLastColumn}
+                    >
+                      <ChevronDown className={`h-3.5 w-3.5 ${isLastColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
+                    </Button>
+                  </div>
                 )}
+
+                <div
+                  className="cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                  onClick={() => toggleGroupExpansion(column.key)}
+                >
+                  {isExpanded ? (
+                    <ChevronRight className="h-4 w-4 text-gray-500 transform rotate-90" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-500" />
+                  )}
+                </div>
               </div>
             </div>
 
@@ -148,10 +196,10 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
               </span>
             )}
           </div>
-          
+
           {isExpanded && (
             <div className="space-y-1 ml-4 border-l">
-              {column.children.map(child => renderColumn(child, depth + 1))}
+              {column.children.map((child, childIndex) => renderColumn(child, childIndex, depth + 1))}
             </div>
           )}
         </div>
@@ -161,34 +209,67 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
       return (
         <div
           key={column.key}
-          className={`flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
+          className={`flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30 ${indentClass}`}
         >
           <Checkbox
             id={column.key}
             checked={column.visible}
-            onCheckedChange={(checked) => 
+            onCheckedChange={(checked) =>
               handleColumnChange(column.key, checked === true)
             }
             disabled={column.canToggle === false}
             className="flex-shrink-0"
           />
-          
+
           <label
             htmlFor={column.key}
             className={`text-sm cursor-pointer flex-grow ${
-              column.canToggle === false 
-                ? 'text-gray-400 dark:text-gray-600' 
+              column.canToggle === false
+                ? 'text-gray-400 dark:text-gray-600'
                 : 'text-gray-700 dark:text-gray-300'
             }`}
           >
             {column.label}
           </label>
 
+          
           {column.canToggle === false && (
             <span className="text-xs text-gray-400 dark:text-gray-600">
               Required
             </span>
           )}
+
+
+          {onColumnReorder && depth === 0 && (
+            <div className="flex gap-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMoveColumn(index, 'up');
+                }}
+                disabled={isFirstColumn}
+              >
+                <ChevronUp className={`h-3.5 w-3.5 ${isFirstColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMoveColumn(index, 'down');
+                }}
+                disabled={isLastColumn}
+              >
+                <ChevronDown className={`h-3.5 w-3.5 ${isLastColumn ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400'}`} />
+              </Button>
+            </div>
+          )}
+
+    
         </div>
       );
     }
@@ -238,9 +319,9 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
               Columns
             </h4>
-            
+
             <div className="space-y-2">
-              {columns?.map((column) => renderColumn(column)) || 
+              {columns?.map((column, index) => renderColumn(column, index)) ||
                 <div className="text-sm text-gray-500 dark:text-gray-400">No columns available</div>}
             </div>
           </div>
