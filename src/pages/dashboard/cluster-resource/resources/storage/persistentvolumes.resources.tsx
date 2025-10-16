@@ -461,14 +461,15 @@ const PersistentVolumes: React.FC = () => {
     saveColumnConfig('persistentvolumes', updated);
   };
 
-  const handleResetToDefault = () => {
-    setColumnConfig(defaultColumnConfig);
-    clearColumnConfig('persistentvolumes');
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('persistentvolumes', reorderedColumns);
   };
 
-  const isColumnVisible = (columnKey: string) => {
-    const column = columnConfig.find(col => col.key === columnKey);
-    return column?.visible ?? true;
+  const handleResetToDefault = () => {
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('persistentvolumes');
   };
 
   // Add sorting state
@@ -713,6 +714,137 @@ const PersistentVolumes: React.FC = () => {
     return null;
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      status: 'status',
+      claim: 'claim',
+      capacity: 'capacity',
+      accessModes: 'accessModes',
+      storageClass: 'storageClass',
+      reclaimPolicy: 'reclaimPolicy',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['status', 'claim', 'capacity', 'accessModes', 'storageClass', 'reclaimPolicy', 'age'].includes(column.key);
+
+    const widthClass = column.key === 'status' ? 'w-[100px]' :
+                       column.key === 'capacity' ? 'w-[100px]' :
+                       column.key === 'accessModes' ? 'w-[150px]' :
+                       column.key === 'storageClass' ? 'w-[150px]' :
+                       column.key === 'age' ? 'w-[80px]' : '';
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''} ${widthClass}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (volume: V1PersistentVolume, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium">
+            <div className="hover:text-blue-500 hover:underline">
+              {volume.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'status':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(volume.status?.phase)}`}>
+              {volume.status?.phase || 'Unknown'}
+            </span>
+          </TableCell>
+        );
+
+      case 'claim':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {volume.spec?.claimRef ? (
+              <span className="text-sm">
+                {volume.spec.claimRef.namespace}/{volume.spec.claimRef.name}
+              </span>
+            ) : (
+              <span className="text-gray-500 dark:text-gray-400">-</span>
+            )}
+          </TableCell>
+        );
+
+      case 'capacity':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatStorage(volume.spec?.capacity?.storage)}
+          </TableCell>
+        );
+
+      case 'accessModes':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <div className="flex flex-wrap justify-center gap-1">
+              {volume.spec?.accessModes?.map((mode, index) => (
+                <span
+                  key={index}
+                  className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+                >
+                  {mode}
+                </span>
+              ))}
+            </div>
+          </TableCell>
+        );
+
+      case 'storageClass':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {volume.spec?.storageClassName || 'N/A'}
+          </TableCell>
+        );
+
+      case 'reclaimPolicy':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span
+              className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${volume.spec?.persistentVolumeReclaimPolicy === 'Delete'
+                ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+              }`}
+            >
+              {volume.spec?.persistentVolumeReclaimPolicy || 'Retain'}
+            </span>
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(volume.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
 
 
   if (loading) {
@@ -786,68 +918,7 @@ const PersistentVolumes: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('status') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status {renderSortIndicator('status')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('claim') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('claim')}
-                    >
-                      Claim {renderSortIndicator('claim')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('capacity') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                      onClick={() => handleSort('capacity')}
-                    >
-                      Capacity {renderSortIndicator('capacity')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('accessModes') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                      onClick={() => handleSort('accessModes')}
-                    >
-                      Access Modes {renderSortIndicator('accessModes')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('storageClass') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                      onClick={() => handleSort('storageClass')}
-                    >
-                      Storage Class {renderSortIndicator('storageClass')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('reclaimPolicy') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 "
-                      onClick={() => handleSort('reclaimPolicy')}
-                    >
-                      Reclaim Policy {renderSortIndicator('reclaimPolicy')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[80px]"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -860,70 +931,7 @@ const PersistentVolumes: React.FC = () => {
                     onClick={(e) => handleVolumeClick(e, volume)}
                     onContextMenu={(e) => handleContextMenu(e, volume)}
                   >
-                    <TableCell className="font-medium">
-                      <div className="hover:text-blue-500 hover:underline">
-                        {volume.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('status') && (
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(volume.status?.phase)}`}>
-                          {volume.status?.phase || 'Unknown'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('claim') && (
-                      <TableCell className="text-center">
-                        {volume.spec?.claimRef ? (
-                          <span className="text-sm">
-                            {volume.spec.claimRef.namespace}/{volume.spec.claimRef.name}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('capacity') && (
-                      <TableCell className="text-center">
-                        {formatStorage(volume.spec?.capacity?.storage)}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('accessModes') && (
-                      <TableCell className="text-center">
-                        <div className="flex flex-wrap justify-center gap-1">
-                          {volume.spec?.accessModes?.map((mode, index) => (
-                            <span
-                              key={index}
-                              className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
-                            >
-                              {mode}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('storageClass') && (
-                      <TableCell className="text-center">
-                        {volume.spec?.storageClassName || 'N/A'}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('reclaimPolicy') && (
-                      <TableCell className="text-center">
-                        <span
-                          className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${volume.spec?.persistentVolumeReclaimPolicy === 'Delete'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                            : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                            }`}
-                        >
-                          {volume.spec?.persistentVolumeReclaimPolicy || 'Retain'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(volume.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(volume, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -972,6 +980,7 @@ const PersistentVolumes: React.FC = () => {
         title="Persistent Volumes Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="persistentvolumes"
         className="w-1/3"

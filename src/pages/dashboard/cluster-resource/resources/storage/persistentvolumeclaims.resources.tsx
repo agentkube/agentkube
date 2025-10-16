@@ -454,15 +454,25 @@ const PersistentVolumeClaims: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const updated = columnConfig.map(col => 
-      col.key === columnKey ? { ...col, visible } : col
-    );
-    setColumnConfig(updated);
-    saveColumnConfig('persistentvolumeclaims', updated);
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
+        col.key === columnKey ? { ...col, visible } : col
+      );
+      // Save to localStorage
+      saveColumnConfig('persistentvolumeclaims', updated);
+      return updated;
+    });
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('persistentvolumeclaims', reorderedColumns);
   };
 
   const handleResetToDefault = () => {
-    setColumnConfig(defaultColumnConfig);
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
     clearColumnConfig('persistentvolumeclaims');
   };
 
@@ -740,6 +750,130 @@ const PersistentVolumeClaims: React.FC = () => {
     }
   };
 
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      status: 'status',
+      volume: 'volume',
+      capacity: 'capacity',
+      accessModes: 'accessModes',
+      storageClass: 'storageClass',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['status', 'volume', 'capacity', 'accessModes', 'storageClass', 'age'].includes(column.key);
+    const widthClass = column.key === 'status' || column.key === 'capacity' || column.key === 'age' ? 'w-[100px]' :
+                       column.key === 'accessModes' || column.key === 'storageClass' ? 'w-[150px]' : '';
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''} ${widthClass}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (pvc: V1PersistentVolumeClaim, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handlePvcDetails(pvc)}>
+            <div className="hover:text-blue-500 hover:underline">
+              {pvc.metadata?.name}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            {pvc.metadata?.namespace}
+          </TableCell>
+        );
+
+      case 'status':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(pvc.status?.phase)}`}>
+              {pvc.status?.phase || 'Unknown'}
+            </span>
+          </TableCell>
+        );
+
+      case 'volume':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <div
+              className="hover:text-blue-500 hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/dashboard/explore/persistentvolumes`);
+              }}
+            >
+              {pvc.spec?.volumeName || '-'}
+            </div>
+          </TableCell>
+        );
+
+      case 'capacity':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {formatStorage(pvc.status?.capacity?.storage) ||
+              formatStorage(pvc.spec?.resources?.requests?.storage) ||
+              'N/A'}
+          </TableCell>
+        );
+
+      case 'accessModes':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <div className="flex flex-wrap justify-center gap-1">
+              {pvc.spec?.accessModes?.map((mode, index) => (
+                <span
+                  key={index}
+                  className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+                >
+                  {mode}
+                </span>
+              ))}
+            </div>
+          </TableCell>
+        );
+
+      case 'storageClass':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {pvc.spec?.storageClassName || 'default'}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(pvc.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -818,68 +952,7 @@ const PersistentVolumeClaims: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('status') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status {renderSortIndicator('status')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('volume') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('volume')}
-                    >
-                      Volume {renderSortIndicator('volume')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('capacity') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[100px]"
-                      onClick={() => handleSort('capacity')}
-                    >
-                      Capacity {renderSortIndicator('capacity')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('accessModes') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                      onClick={() => handleSort('accessModes')}
-                    >
-                      Access Modes {renderSortIndicator('accessModes')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('storageClass') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[150px]"
-                      onClick={() => handleSort('storageClass')}
-                    >
-                      Storage Class {renderSortIndicator('storageClass')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500 w-[80px]"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -892,65 +965,7 @@ const PersistentVolumeClaims: React.FC = () => {
                     onClick={(e) => handlePvcClick(e, pvc)}
                     onContextMenu={(e) => handleContextMenu(e, pvc)}
                   >
-                    <TableCell className="font-medium" onClick={() => handlePvcDetails(pvc)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {pvc.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>{pvc.metadata?.namespace}</TableCell>
-                    )}
-                    {isColumnVisible('status') && (
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getStatusColorClass(pvc.status?.phase)}`}>
-                          {pvc.status?.phase || 'Unknown'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('volume') && (
-                      <TableCell className="text-center">
-                        <div
-                          className="hover:text-blue-500 hover:underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/dashboard/explore/persistentvolumes`);
-                          }}
-                        >
-                          {pvc.spec?.volumeName || '-'}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('capacity') && (
-                      <TableCell className="text-center">
-                        {formatStorage(pvc.status?.capacity?.storage) ||
-                          formatStorage(pvc.spec?.resources?.requests?.storage) ||
-                          'N/A'}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('accessModes') && (
-                      <TableCell className="text-center">
-                        <div className="flex flex-wrap justify-center gap-1">
-                          {pvc.spec?.accessModes?.map((mode, index) => (
-                            <span
-                              key={index}
-                              className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
-                            >
-                              {mode}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('storageClass') && (
-                      <TableCell className="text-center">
-                        {pvc.spec?.storageClassName || 'default'}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(pvc.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(pvc, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -999,6 +1014,7 @@ const PersistentVolumeClaims: React.FC = () => {
         title="Persistent Volume Claims Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         resourceType="persistentvolumeclaims"
         className="w-1/3"
