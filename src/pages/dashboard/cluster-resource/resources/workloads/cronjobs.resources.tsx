@@ -560,6 +560,12 @@ const CronJobs: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('cronjobs', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -570,6 +576,125 @@ const CronJobs: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      status: 'status',
+      schedule: 'schedule',
+      lastSchedule: 'lastSchedule',
+      activeJobs: 'activeJobs',
+      successful: 'successful',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isNumericColumn = ['activeJobs', 'successful', 'age'].includes(column.key);
+    const isCenterColumn = ['status', 'activeJobs', 'successful', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (cronJob: V1CronJob, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleCronJobDetails(cronJob)}>
+            <div className="flex items-center gap-2">
+              <div className="hover:text-blue-500 hover:underline">
+                {cronJob.metadata?.name}
+              </div>
+              {isCronJobSuspended(cronJob) && (
+                <Sparkles
+                  className="h-4 w-4 text-yellow-500 hover:text-yellow-600 cursor-pointer transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAskAI(cronJob);
+                  }}
+                />
+              )}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {cronJob.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'status':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getCronJobStatus(cronJob).colorClass}`}>
+              {cronJob.spec?.suspend ? 'Suspended' : 'Active'}
+            </span>
+          </TableCell>
+        );
+
+      case 'schedule':
+        return (
+          <TableCell key={column.key}>
+            {cronJob.spec?.schedule || '-'}
+          </TableCell>
+        );
+
+      case 'lastSchedule':
+        return (
+          <TableCell key={column.key}>
+            {cronJob.status?.lastScheduleTime
+              ? calculateAge(cronJob.status.lastScheduleTime.toString())
+              : 'Never'}
+          </TableCell>
+        );
+
+      case 'activeJobs':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {cronJob.status?.active?.length || 0}
+          </TableCell>
+        );
+
+      case 'successful':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {cronJob.status?.lastSuccessfulTime ? '✓' : '-'}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(cronJob.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
   // --- End of Multi-select ---
 
@@ -918,68 +1043,7 @@ const CronJobs: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('status') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status {renderSortIndicator('status')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('schedule') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('schedule')}
-                    >
-                      Schedule {renderSortIndicator('schedule')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('lastSchedule') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('lastSchedule')}
-                    >
-                      Last Schedule {renderSortIndicator('lastSchedule')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('activeJobs') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('activeJobs')}
-                    >
-                      Active Jobs {renderSortIndicator('activeJobs')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('successful') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('successful')}
-                    >
-                      Successful {renderSortIndicator('successful')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -997,50 +1061,7 @@ const CronJobs: React.FC = () => {
                       onClick={(e) => handleCronJobClick(e, cronJob)}
                       onContextMenu={(e) => handleContextMenu(e, cronJob)}
                     >
-                      <TableCell className="font-medium">
-                        <div className="hover:text-blue-500 hover:underline">
-                          {cronJob.metadata?.name}
-                        </div>
-                      </TableCell>
-                      {isColumnVisible('namespace') && (
-                        <TableCell>{cronJob.metadata?.namespace}</TableCell>
-                      )}
-                      {isColumnVisible('status') && (
-                        <TableCell className="text-center">
-                          <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${status.colorClass}`}>
-                            {status.status}
-                          </span>
-                        </TableCell>
-                      )}
-                      {isColumnVisible('schedule') && (
-                        <TableCell>
-                          <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                            {formatSchedule(cronJob.spec?.schedule || '')}
-                          </span>
-                        </TableCell>
-                      )}
-                      {isColumnVisible('lastSchedule') && (
-                        <TableCell className="text-center">
-                          {formatLastSchedule(cronJob)}
-                        </TableCell>
-                      )}
-                      {isColumnVisible('activeJobs') && (
-                        <TableCell className="text-center">
-                          <span className={activeJobs > 0 ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}>
-                            {activeJobs}
-                          </span>
-                        </TableCell>
-                      )}
-                      {isColumnVisible('successful') && (
-                        <TableCell className="text-center">
-                          {lastSuccessfulTime}
-                        </TableCell>
-                      )}
-                      {isColumnVisible('age') && (
-                        <TableCell className="text-center">
-                          {calculateAge(cronJob.metadata?.creationTimestamp?.toString())}
-                        </TableCell>
-                      )}
+                      {columnConfig.map(col => renderTableCell(cronJob, col))}
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1090,6 +1111,7 @@ const CronJobs: React.FC = () => {
         title="CronJobs Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         className="w-1/3"
         resourceType="cronjobs"

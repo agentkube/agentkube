@@ -507,6 +507,12 @@ const StatefulSets: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('statefulsets', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -517,6 +523,122 @@ const StatefulSets: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      ready: 'ready',
+      current: 'current',
+      updated: 'updated',
+      serviceName: 'serviceName',
+      podManagement: 'podManagement',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['ready', 'current', 'updated', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (statefulSet: V1StatefulSet, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleStatefulSetDetails(statefulSet)}>
+            <div className="flex items-center gap-2">
+              <div className="hover:text-blue-500 hover:underline">
+                {statefulSet.metadata?.name}
+              </div>
+              {hasWarningState(statefulSet) && (
+                <Sparkles
+                  className="h-4 w-4 text-yellow-500 hover:text-yellow-600 cursor-pointer transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAskAI(statefulSet);
+                  }}
+                />
+              )}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {statefulSet.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'ready':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {`${statefulSet.status?.readyReplicas || 0}/${statefulSet.spec?.replicas || 0}`}
+          </TableCell>
+        );
+
+      case 'current':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {statefulSet.status?.currentReplicas || 0}
+          </TableCell>
+        );
+
+      case 'updated':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {statefulSet.status?.updatedReplicas || 0}
+          </TableCell>
+        );
+
+      case 'serviceName':
+        return (
+          <TableCell key={column.key}>
+            {statefulSet.spec?.serviceName || '-'}
+          </TableCell>
+        );
+
+      case 'podManagement':
+        return (
+          <TableCell key={column.key}>
+            <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              {statefulSet.spec?.podManagementPolicy || 'OrderedReady'}
+            </span>
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(statefulSet.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
   // --- End of Multi-select ---
 
@@ -1087,69 +1209,7 @@ const StatefulSets: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('ready') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('ready')}
-                    >
-                      Ready {renderSortIndicator('ready')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('current') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('current')}
-                    >
-                      Current {renderSortIndicator('current')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('updated') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('updated')}
-                    >
-                      Updated {renderSortIndicator('updated')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('serviceName') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('serviceName')}
-                    >
-                      Service Name {renderSortIndicator('serviceName')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('podManagement') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('podManagement')}
-                    >
-                      Pod Management {renderSortIndicator('podManagement')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -1163,50 +1223,7 @@ const StatefulSets: React.FC = () => {
                     onClick={(e) => handleStatefulSetClick(e, statefulSet)}
                     onContextMenu={(e) => handleContextMenu(e, statefulSet)}
                   >
-                    <TableCell className="font-medium">
-                      <div className="hover:text-blue-500 hover:underline">
-                        {statefulSet.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {statefulSet.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('ready') && (
-                      <TableCell className="text-center">
-                        {`${statefulSet.status?.readyReplicas || 0}/${statefulSet.spec?.replicas || 0}`}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('current') && (
-                      <TableCell className="text-center">
-                        {statefulSet.status?.currentReplicas || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('updated') && (
-                      <TableCell className="text-center">
-                        {statefulSet.status?.updatedReplicas || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('serviceName') && (
-                      <TableCell className="text-center">
-                        {statefulSet.spec?.serviceName || '-'}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('podManagement') && (
-                      <TableCell className="text-center">
-                        <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          {statefulSet.spec?.podManagementPolicy || 'OrderedReady'}
-                        </span>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(statefulSet.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(statefulSet, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1255,6 +1272,7 @@ const StatefulSets: React.FC = () => {
         title="StatefulSets Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         className="w-1/3"
         resourceType="statefulsets"

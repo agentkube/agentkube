@@ -499,6 +499,12 @@ const Jobs: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('jobs', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -509,6 +515,122 @@ const Jobs: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      status: 'status',
+      completions: 'completions',
+      duration: 'duration',
+      parallelism: 'parallelism',
+      owner: 'owner',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isCenterColumn = ['status', 'completions', 'duration', 'parallelism', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isCenterColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (job: any, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleJobDetails(job)}>
+            <div className="flex items-center gap-2">
+              <div className="hover:text-blue-500 hover:underline">
+                {job.metadata?.name}
+              </div>
+              {getJobStatus(job).status === 'Failed' && (
+                <Sparkles
+                  className="h-4 w-4 text-yellow-500 hover:text-yellow-600 cursor-pointer transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAskAI(job);
+                  }}
+                />
+              )}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {job.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'status':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${getJobStatus(job).colorClass}`}>
+              {getJobStatus(job).status}
+            </span>
+          </TableCell>
+        );
+
+      case 'completions':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {`${job.status?.succeeded || 0}/${job.spec?.completions || 1}`}
+          </TableCell>
+        );
+
+      case 'duration':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateDuration(job)}
+          </TableCell>
+        );
+
+      case 'parallelism':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {job.spec?.parallelism || 1}
+          </TableCell>
+        );
+
+      case 'owner':
+        return (
+          <TableCell key={column.key}>
+            {getOwnerReference(job)?.name || '-'}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(job.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Delete confirmation dialog
@@ -913,68 +1035,7 @@ const Jobs: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('status') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('status')}
-                    >
-                      Status {renderSortIndicator('status')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('completions') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('completions')}
-                    >
-                      Completions {renderSortIndicator('completions')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('duration') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('duration')}
-                    >
-                      Duration {renderSortIndicator('duration')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('parallelism') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('parallelism')}
-                    >
-                      Parallelism {renderSortIndicator('parallelism')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('owner') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('owner')}
-                    >
-                      Owner {renderSortIndicator('owner')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -990,57 +1051,7 @@ const Jobs: React.FC = () => {
                       onClick={(e) => handleJobClick(e, job)}
                       onContextMenu={(e) => handleContextMenu(e, job)}
                     >
-                      <TableCell className="font-medium">
-                        <div className="hover:text-blue-500 hover:underline">
-                          {job.metadata?.name}
-                        </div>
-                      </TableCell>
-                      {isColumnVisible('namespace') && (
-                        <TableCell>{job.metadata?.namespace}</TableCell>
-                      )}
-                      {isColumnVisible('status') && (
-                        <TableCell className="text-center">
-                          <span className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${jobStatus.colorClass}`}>
-                            {jobStatus.status}
-                          </span>
-                        </TableCell>
-                      )}
-                      {isColumnVisible('completions') && (
-                        <TableCell className="text-center">
-                          {`${job.status?.succeeded || 0}/${job.spec?.completions || 1}`}
-                        </TableCell>
-                      )}
-                      {isColumnVisible('duration') && (
-                        <TableCell className="text-center">
-                          {calculateDuration(job)}
-                        </TableCell>
-                      )}
-                      {isColumnVisible('parallelism') && (
-                        <TableCell className="text-center">
-                          {job.spec?.parallelism || 1}
-                        </TableCell>
-                      )}
-                      {isColumnVisible('owner') && (
-                        <TableCell>
-                          {owner ? (
-                            <div className="flex items-center gap-1">
-                              <span className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
-                                {owner.kind}
-                              </span>
-                              <span className="hover:text-blue-500 hover:underline">
-                                {owner.name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 dark:text-gray-400">-</span>
-                          )}
-                        </TableCell>
-                      )}
-                      {isColumnVisible('age') && (
-                        <TableCell className="text-center">
-                          {calculateAge(job.metadata?.creationTimestamp?.toString())}
-                        </TableCell>
-                      )}
+                      {columnConfig.map(col => renderTableCell(job, col))}
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1090,6 +1101,7 @@ const Jobs: React.FC = () => {
         title="Jobs Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         className="w-1/3"
         resourceType="jobs"

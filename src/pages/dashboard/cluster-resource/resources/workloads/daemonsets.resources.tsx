@@ -322,6 +322,12 @@ const DaemonSets: React.FC = () => {
     });
   };
 
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    // Save to localStorage
+    saveColumnConfig('daemonsets', reorderedColumns);
+  };
+
   const handleResetToDefault = () => {
     const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
     setColumnConfig(resetConfig);
@@ -332,6 +338,120 @@ const DaemonSets: React.FC = () => {
   const isColumnVisible = (columnKey: string) => {
     const column = columnConfig.find(col => col.key === columnKey);
     return column?.visible ?? true;
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    const sortFieldMap: Record<string, SortField> = {
+      name: 'name',
+      namespace: 'namespace',
+      desired: 'desired',
+      current: 'current',
+      ready: 'ready',
+      upToDate: 'upToDate',
+      available: 'available',
+      age: 'age'
+    };
+
+    const sortField = sortFieldMap[column.key];
+    const isNumericColumn = ['desired', 'current', 'ready', 'upToDate', 'available', 'age'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={`cursor-pointer hover:text-blue-500 ${isNumericColumn ? 'text-center' : ''}`}
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (daemonSet: V1DaemonSet, column: ColumnConfig) => {
+    if (!column.visible || column.key === 'actions') {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'name':
+        return (
+          <TableCell key={column.key} className="font-medium" onClick={() => handleDaemonSetDetails(daemonSet)}>
+            <div className="flex items-center gap-2">
+              <div className="hover:text-blue-500 hover:underline">
+                {daemonSet.metadata?.name}
+              </div>
+              {hasWarningState(daemonSet) && (
+                <Sparkles
+                  className="h-4 w-4 text-yellow-500 hover:text-yellow-600 cursor-pointer transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAskAI(daemonSet);
+                  }}
+                />
+              )}
+            </div>
+          </TableCell>
+        );
+
+      case 'namespace':
+        return (
+          <TableCell key={column.key}>
+            <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
+              {daemonSet.metadata?.namespace}
+            </div>
+          </TableCell>
+        );
+
+      case 'desired':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {daemonSet.status?.desiredNumberScheduled || 0}
+          </TableCell>
+        );
+
+      case 'current':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {daemonSet.status?.currentNumberScheduled || 0}
+          </TableCell>
+        );
+
+      case 'ready':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {daemonSet.status?.numberReady || 0}
+          </TableCell>
+        );
+
+      case 'upToDate':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {daemonSet.status?.updatedNumberScheduled || 0}
+          </TableCell>
+        );
+
+      case 'available':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {daemonSet.status?.numberAvailable || 0}
+          </TableCell>
+        );
+
+      case 'age':
+        return (
+          <TableCell key={column.key} className="text-center">
+            {calculateAge(daemonSet.metadata?.creationTimestamp?.toString())}
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Check if DaemonSet has warning state
@@ -1018,68 +1138,7 @@ const DaemonSets: React.FC = () => {
             <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  <TableHead
-                    className="cursor-pointer hover:text-blue-500"
-                    onClick={() => handleSort('name')}
-                  >
-                    Name {renderSortIndicator('name')}
-                  </TableHead>
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('desired') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('desired')}
-                    >
-                      Desired {renderSortIndicator('desired')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('current') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('current')}
-                    >
-                      Current {renderSortIndicator('current')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('ready') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('ready')}
-                    >
-                      Ready {renderSortIndicator('ready')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('upToDate') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('upToDate')}
-                    >
-                      Up-to-date {renderSortIndicator('upToDate')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('available') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('available')}
-                    >
-                      Available {renderSortIndicator('available')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
+                  {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -1093,48 +1152,7 @@ const DaemonSets: React.FC = () => {
                     onClick={(e) => handleDaemonSetClick(e, daemonSet)}
                     onContextMenu={(e) => handleContextMenu(e, daemonSet)}
                   >
-                    <TableCell className="font-medium" onClick={() => handleDaemonSetDetails(daemonSet)}>
-                      <div className="hover:text-blue-500 hover:underline">
-                        {daemonSet.metadata?.name}
-                      </div>
-                    </TableCell>
-                    {isColumnVisible('namespace') && (
-                      <TableCell>
-                        <div className="hover:text-blue-500 hover:underline" onClick={() => navigate(`/dashboard/explore/namespaces`)}>
-                          {daemonSet.metadata?.namespace}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isColumnVisible('desired') && (
-                      <TableCell className="text-center">
-                        {daemonSet.status?.desiredNumberScheduled || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('current') && (
-                      <TableCell className="text-center">
-                        {daemonSet.status?.currentNumberScheduled || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('ready') && (
-                      <TableCell className="text-center">
-                        {daemonSet.status?.numberReady || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('upToDate') && (
-                      <TableCell className="text-center">
-                        {daemonSet.status?.updatedNumberScheduled || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('available') && (
-                      <TableCell className="text-center">
-                        {daemonSet.status?.numberAvailable || 0}
-                      </TableCell>
-                    )}
-                    {isColumnVisible('age') && (
-                      <TableCell className="text-center">
-                        {calculateAge(daemonSet.metadata?.creationTimestamp?.toString())}
-                      </TableCell>
-                    )}
+                    {columnConfig.map(col => renderTableCell(daemonSet, col))}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1183,6 +1201,7 @@ const DaemonSets: React.FC = () => {
         title="DaemonSets Table"
         columns={columnConfig}
         onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
         onResetToDefault={handleResetToDefault}
         className="w-1/3"
         resourceType="daemonsets"
