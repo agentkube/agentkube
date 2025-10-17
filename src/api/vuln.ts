@@ -9,7 +9,9 @@ import {
   ClusterScanRequest,
   GetClusterImagesParams,
   GetScanResultsParams,
-  ListAllScansParams
+  ListAllScansParams,
+  ImageWorkloadsRequest,
+  ImageWorkloadsResponse
 } from '@/types/vuln';
 
 /**
@@ -159,6 +161,32 @@ export const triggerClusterScan = async (
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(errorData.error || `Failed to trigger cluster scan (${response.status})`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Get all workloads (Deployments, ReplicaSets, StatefulSets, DaemonSets, Jobs, CronJobs, Pods) using a specific image
+ * @param cluster The name of the cluster
+ * @param request Request containing the image to search for
+ * @returns A promise that resolves with all workloads using the specified image
+ */
+export const getWorkloadsByImage = async (
+  cluster: string,
+  request: ImageWorkloadsRequest
+): Promise<ImageWorkloadsResponse> => {
+  const response = await fetch(`${OPERATOR_URL}/cluster/${cluster}/vulnerability/workloads`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `Failed to get workloads by image (${response.status})`);
   }
 
   return response.json();

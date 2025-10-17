@@ -34,6 +34,7 @@ export { default as TaskReport } from './dashboard/tasks/task-report.pages';
 // Security
 export { default as VulnerabilityReport } from './dashboard/security/vulnerability-report.pages';
 export { default as AuditReport } from './dashboard/security/audit-report.pages';
+export { default as ImageSecurity } from './dashboard/security/image-security.pages';
 
 // Monitoring
 export { default as MonitoringOverview } from './dashboard/monitoring/monitoring-overview.pages';

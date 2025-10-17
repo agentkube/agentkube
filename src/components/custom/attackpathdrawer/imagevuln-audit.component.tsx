@@ -483,7 +483,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
           </div>
 
           {/* Vulnerabilities Table */}
-          <Card className="bg-transparent border-gray-200 dark:border-gray-800/50">
+          <Card className="bg-transparent border border-gray-200 dark:border-gray-800/50">
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-400 dark:border-gray-800/80">

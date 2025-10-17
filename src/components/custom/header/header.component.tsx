@@ -69,6 +69,7 @@ export const HeaderComponent: React.FC = () => {
       if (pathname.includes('/security')) {
         if (pathname.includes('/vulnerability-report')) return 'Vulnerability Report';
         if (pathname.includes('/audit-report')) return 'Audit Report';
+        if (pathname.includes('/image-security')) return 'Image Security';
         return 'Security';
       }
 

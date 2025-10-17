@@ -1,6 +1,6 @@
 // FeatureSection.tsx
 import React from 'react';
-import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank, Drill, Compass, ShieldEllipsis, ShieldCheck, ShieldAlert, Brain } from 'lucide-react';
+import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank, Drill, Compass, ShieldEllipsis, ShieldCheck, ShieldAlert, Brain, Image } from 'lucide-react';
 import { FeatureItem } from '@/types/sidebar';
 import { TreeProvider, TreeView, TreeNode, TreeNodeTrigger, TreeNodeContent, TreeExpander, TreeIcon, TreeLabel } from '@/components/ui/tree';
 
@@ -67,6 +67,12 @@ const advancedFeatures: FeatureItem[] = [
     path: '/dashboard/security',
     children: [
       {
+        id: 'image-security',
+        icon: <Image className="w-4 h-4" />,
+        label: 'Image Security',
+        path: '/dashboard/security/image-security'
+      },
+      {
         id: 'audit-report',
         icon: <ShieldCheck className="w-4 h-4" />,
         label: 'Audit Report',
@@ -77,13 +83,7 @@ const advancedFeatures: FeatureItem[] = [
         icon: <ShieldAlert className="w-4 h-4" />,
         label: 'Vulnerability Reports',
         path: '/dashboard/security/vulnerability-report'
-      },
-      // {
-      //   id: 'image-security',
-      //   icon: <div className="w-2 h-2 rounded-full bg-blue-500 ml-1 mr-2" />,
-      //   label: 'Image Security [Coming Soon]',
-      //   path: '/dashboard/security/image-security'
-      // }
+      }
     ]
   },
   {

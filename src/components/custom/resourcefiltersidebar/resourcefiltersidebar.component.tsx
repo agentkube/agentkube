@@ -47,6 +47,7 @@ interface ResourceFilterSidebarProps {
   onColumnReorder?: (reorderedColumns: ColumnConfig[]) => void;
   onResetToDefault?: () => void;
   className?: string;
+  offsetTop?: string;
   resourceType?: string; // For localStorage caching
 }
 
@@ -232,6 +233,7 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
   onColumnReorder,
   onResetToDefault,
   className = "w-1/3",
+  offsetTop = "-top-6",
   resourceType
 }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['resources']));
@@ -314,7 +316,7 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       className={className}
-      offsetTop='-top-6'
+      offsetTop={offsetTop}
     >
       <DrawerHeader onClose={onClose}>
         <div className="flex items-center gap-2">

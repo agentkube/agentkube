@@ -15,7 +15,8 @@ import {
   ImageScans,
   Watcher,
   TaskReport,
-  NetworkDiagnosis
+  NetworkDiagnosis,
+  ImageSecurity
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Provisioner, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -259,6 +260,7 @@ function App() {
                           </Route>
 
                           <Route path="security">
+                            <Route path="image-security" element={<ImageSecurity />} />
                             <Route path="vulnerability-report" element={<VulnerabilityReport />} />
                             <Route path="audit-report" element={<AuditReport />} />
                           </Route>

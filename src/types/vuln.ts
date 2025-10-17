@@ -164,3 +164,42 @@ export interface GetScanResultsParams {
 export interface ListAllScansParams {
   severity?: "Critical" | "High" | "Medium" | "Low" | "Unknown";
 }
+
+/**
+ * Container Information
+ */
+export interface ContainerInfo {
+  name: string;
+  image: string;
+  imageId?: string;
+}
+
+/**
+ * Workload Resource
+ */
+export interface WorkloadResource {
+  name: string;
+  namespace: string;
+  kind: "Pod" | "Deployment" | "ReplicaSet" | "StatefulSet" | "DaemonSet" | "Job" | "CronJob";
+  labels?: Record<string, string>;
+  annotations?: Record<string, string>;
+  containers: ContainerInfo[];
+  createdAt?: string;
+  status?: string;
+}
+
+/**
+ * Image Workloads Request
+ */
+export interface ImageWorkloadsRequest {
+  image: string;
+}
+
+/**
+ * Image Workloads Response
+ */
+export interface ImageWorkloadsResponse {
+  image: string;
+  workloads: WorkloadResource[];
+  count: number;
+}
