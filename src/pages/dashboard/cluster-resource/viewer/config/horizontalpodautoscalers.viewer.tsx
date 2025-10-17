@@ -537,7 +537,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
             </div>
 
             {/* Replica Scaling Visualization */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Replica Scaling Range</h2>
               <div className="mt-6 px-4">
                 <div className="h-8 relative">
@@ -611,7 +611,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
             />
 
             {/* Metrics Summary */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Metrics Summary</h2>
 
               {!hpaData.spec?.metrics || hpaData.spec.metrics.length === 0 ? (
@@ -732,7 +732,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
 
             {/* HPA Conditions */}
             {hpaData.status?.conditions && hpaData.status.conditions.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Conditions</h2>
                 <div className="space-y-2">
                   {hpaData.status.conditions.map((condition, index) => (
@@ -774,7 +774,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="metrics" className="space-y-6">
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent p-4">
               <h2 className="text-lg font-medium mb-4">HPA Metrics Configuration</h2>
 
               {!hpaData.spec?.metrics || hpaData.spec.metrics.length === 0 ? (
@@ -873,7 +873,7 @@ const HorizontalPodAutoscalerViewer: React.FC = () => {
 
             {/* Scaling Behavior */}
             {hpaData.spec?.behavior && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent p-4">
                 <h2 className="text-lg font-medium mb-4">Scaling Behavior</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Scale Up */}
