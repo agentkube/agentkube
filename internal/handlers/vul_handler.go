@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -183,7 +184,6 @@ func (h *VulnerabilityHandler) ListAllScanResults(c *gin.Context) {
 	})
 }
 
-
 // GetClusterImages discovers and returns all container images in a cluster
 func (h *VulnerabilityHandler) GetClusterImages(c *gin.Context) {
 	clusterName := c.Param("clusterName")
@@ -266,6 +266,58 @@ func (h *VulnerabilityHandler) TriggerClusterImageScan(c *gin.Context) {
 	})
 }
 
+// GetWorkloadsByImage returns all workloads using a specific image in a cluster
+func (h *VulnerabilityHandler) GetWorkloadsByImage(c *gin.Context) {
+	clusterName := c.Param("clusterName")
+	if clusterName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cluster name is required"})
+		return
+	}
+
+	var req ImageWorkloadsRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Image == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "image is required in request body"})
+		return
+	}
+
+	// Validate cluster access
+	kubeContext, err := h.kubeConfigStore.GetContext(clusterName)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"cluster": clusterName}, err, "getting kubeconfig context")
+		c.JSON(http.StatusNotFound, gin.H{"error": "cluster not found or inaccessible"})
+		return
+	}
+
+	// Create kubernetes client
+	clientset, err := kubeContext.ClientSetWithToken("")
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"cluster": clusterName}, err, "creating kubernetes client")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create kubernetes client"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	workloads, err := h.discoverWorkloadsByImage(ctx, clientset, req.Image)
+	if err != nil {
+		logger.Log(logger.LevelError, map[string]string{"cluster": clusterName, "image": req.Image}, err, "discovering workloads by image")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to discover workloads"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ImageWorkloadsResponse{
+		Image:     req.Image,
+		Workloads: workloads,
+		Count:     len(workloads),
+	})
+}
+
 // Request/Response types
 type ScanRequest struct {
 	Images    []string          `json:"images" binding:"required"`
@@ -279,6 +331,33 @@ type ClusterScanRequest struct {
 	Labels       map[string]string `json:"labels,omitempty"`
 }
 
+type ImageWorkloadsRequest struct {
+	Image string `json:"image" binding:"required"`
+}
+
+type WorkloadResource struct {
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace"`
+	Kind        string            `json:"kind"` // Pod, Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Containers  []ContainerInfo   `json:"containers"`
+	CreatedAt   string            `json:"createdAt,omitempty"`
+	Status      string            `json:"status,omitempty"`
+}
+
+type ContainerInfo struct {
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	ImageID string `json:"imageId,omitempty"`
+}
+
+type ImageWorkloadsResponse struct {
+	Image     string             `json:"image"`
+	Workloads []WorkloadResource `json:"workloads"`
+	Count     int                `json:"count"`
+}
+
 type ScanResult struct {
 	Image           string          `json:"image"`
 	Vulnerabilities []Vulnerability `json:"vulnerabilities,omitempty"`
@@ -288,24 +367,24 @@ type ScanResult struct {
 }
 
 type Vulnerability struct {
-	ID                     string                   `json:"id"`
-	Severity               string                   `json:"severity"`
-	PackageName            string                   `json:"packageName"`
-	Version                string                   `json:"version"`
-	FixVersion             string                   `json:"fixVersion"`
-	PackageType            string                   `json:"packageType"`
-	DataSource             string                   `json:"dataSource,omitempty"`
-	Description            string                   `json:"description,omitempty"`
-	PublishedDate          string                   `json:"publishedDate,omitempty"`
-	LastModifiedDate       string                   `json:"lastModifiedDate,omitempty"`
-	CVSSScore              *float64                 `json:"cvssScore,omitempty"`
-	CVSSVector             string                   `json:"cvssVector,omitempty"`
-	CWEIDs                 []string                 `json:"cweIds,omitempty"`
-	Namespace              string                   `json:"namespace,omitempty"`
-	PURL                   string                   `json:"purl,omitempty"`
-	URLs                   []string                 `json:"urls,omitempty"`
-	Locations              []VulnerabilityLocation  `json:"locations,omitempty"`
-	RelatedVulnerabilities []RelatedVulnerability   `json:"relatedVulnerabilities,omitempty"`
+	ID                     string                  `json:"id"`
+	Severity               string                  `json:"severity"`
+	PackageName            string                  `json:"packageName"`
+	Version                string                  `json:"version"`
+	FixVersion             string                  `json:"fixVersion"`
+	PackageType            string                  `json:"packageType"`
+	DataSource             string                  `json:"dataSource,omitempty"`
+	Description            string                  `json:"description,omitempty"`
+	PublishedDate          string                  `json:"publishedDate,omitempty"`
+	LastModifiedDate       string                  `json:"lastModifiedDate,omitempty"`
+	CVSSScore              *float64                `json:"cvssScore,omitempty"`
+	CVSSVector             string                  `json:"cvssVector,omitempty"`
+	CWEIDs                 []string                `json:"cweIds,omitempty"`
+	Namespace              string                  `json:"namespace,omitempty"`
+	PURL                   string                  `json:"purl,omitempty"`
+	URLs                   []string                `json:"urls,omitempty"`
+	Locations              []VulnerabilityLocation `json:"locations,omitempty"`
+	RelatedVulnerabilities []RelatedVulnerability  `json:"relatedVulnerabilities,omitempty"`
 }
 
 type VulnerabilityLocation struct {
@@ -349,7 +428,7 @@ func convertVulnerabilities(scan *vul.Scan) []Vulnerability {
 					vuln.Description = meta.VulnMetadata.Description
 					vuln.Namespace = meta.VulnMetadata.Namespace
 					vuln.URLs = meta.VulnMetadata.URLs
-					
+
 					// Add CVSS information
 					if len(meta.VulnMetadata.Cvss) > 0 {
 						// Get the first (typically highest priority) CVSS score
@@ -362,13 +441,13 @@ func convertVulnerabilities(scan *vul.Scan) []Vulnerability {
 							}
 						}
 					}
-					
+
 					// Add CISA KEV date if available
 					if len(meta.VulnMetadata.KnownExploited) > 0 && meta.VulnMetadata.KnownExploited[0].DateAdded != nil {
 						vuln.PublishedDate = meta.VulnMetadata.KnownExploited[0].DateAdded.Format("2006-01-02T15:04:05Z")
 					}
-					
-					// Add EPSS date if available  
+
+					// Add EPSS date if available
 					if len(meta.VulnMetadata.EPSS) > 0 {
 						vuln.LastModifiedDate = meta.VulnMetadata.EPSS[0].Date.Format("2006-01-02T15:04:05Z")
 					}
@@ -484,4 +563,322 @@ func (h *VulnerabilityHandler) discoverClusterImages(ctx context.Context, client
 	}
 
 	return images, nil
+}
+
+// discoverWorkloadsByImage discovers all workloads (Deployments, ReplicaSets, StatefulSets, DaemonSets, Jobs, CronJobs, Pods) using a specific image
+func (h *VulnerabilityHandler) discoverWorkloadsByImage(ctx context.Context, clientset *kubernetes.Clientset, targetImage string) ([]WorkloadResource, error) {
+	var workloads []WorkloadResource
+
+	// Helper function to check if image matches
+	imageMatches := func(image string) bool {
+		return image == targetImage
+	}
+
+	// 1. Discover Pods
+	pods, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, pod := range pods.Items {
+			var containers []ContainerInfo
+
+			// Check all containers and init containers
+			for _, container := range pod.Spec.Containers {
+				if imageMatches(container.Image) {
+					imageID := ""
+					for _, status := range pod.Status.ContainerStatuses {
+						if status.Name == container.Name {
+							imageID = status.ImageID
+							break
+						}
+					}
+					containers = append(containers, ContainerInfo{
+						Name:    container.Name,
+						Image:   container.Image,
+						ImageID: imageID,
+					})
+				}
+			}
+
+			for _, container := range pod.Spec.InitContainers {
+				if imageMatches(container.Image) {
+					imageID := ""
+					for _, status := range pod.Status.InitContainerStatuses {
+						if status.Name == container.Name {
+							imageID = status.ImageID
+							break
+						}
+					}
+					containers = append(containers, ContainerInfo{
+						Name:    container.Name,
+						Image:   container.Image,
+						ImageID: imageID,
+					})
+				}
+			}
+
+			if len(containers) > 0 {
+				workloads = append(workloads, WorkloadResource{
+					Name:        pod.Name,
+					Namespace:   pod.Namespace,
+					Kind:        "Pod",
+					Labels:      pod.Labels,
+					Annotations: pod.Annotations,
+					Containers:  containers,
+					CreatedAt:   pod.CreationTimestamp.Format(time.RFC3339),
+					Status:      string(pod.Status.Phase),
+				})
+			}
+		}
+	}
+
+	// 2. Discover Deployments
+	deployments, err := clientset.AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, deployment := range deployments.Items {
+			var containers []ContainerInfo
+
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			for _, container := range deployment.Spec.Template.Spec.InitContainers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			if len(containers) > 0 {
+				status := fmt.Sprintf("%d/%d ready", deployment.Status.ReadyReplicas, deployment.Status.Replicas)
+				workloads = append(workloads, WorkloadResource{
+					Name:        deployment.Name,
+					Namespace:   deployment.Namespace,
+					Kind:        "Deployment",
+					Labels:      deployment.Labels,
+					Annotations: deployment.Annotations,
+					Containers:  containers,
+					CreatedAt:   deployment.CreationTimestamp.Format(time.RFC3339),
+					Status:      status,
+				})
+			}
+		}
+	}
+
+	// 3. Discover ReplicaSets
+	replicaSets, err := clientset.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, rs := range replicaSets.Items {
+			var containers []ContainerInfo
+
+			for _, container := range rs.Spec.Template.Spec.Containers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			for _, container := range rs.Spec.Template.Spec.InitContainers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			if len(containers) > 0 {
+				status := fmt.Sprintf("%d/%d ready", rs.Status.ReadyReplicas, rs.Status.Replicas)
+				workloads = append(workloads, WorkloadResource{
+					Name:        rs.Name,
+					Namespace:   rs.Namespace,
+					Kind:        "ReplicaSet",
+					Labels:      rs.Labels,
+					Annotations: rs.Annotations,
+					Containers:  containers,
+					CreatedAt:   rs.CreationTimestamp.Format(time.RFC3339),
+					Status:      status,
+				})
+			}
+		}
+	}
+
+	// 4. Discover StatefulSets
+	statefulSets, err := clientset.AppsV1().StatefulSets("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, sts := range statefulSets.Items {
+			var containers []ContainerInfo
+
+			for _, container := range sts.Spec.Template.Spec.Containers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			for _, container := range sts.Spec.Template.Spec.InitContainers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			if len(containers) > 0 {
+				status := fmt.Sprintf("%d/%d ready", sts.Status.ReadyReplicas, sts.Status.Replicas)
+				workloads = append(workloads, WorkloadResource{
+					Name:        sts.Name,
+					Namespace:   sts.Namespace,
+					Kind:        "StatefulSet",
+					Labels:      sts.Labels,
+					Annotations: sts.Annotations,
+					Containers:  containers,
+					CreatedAt:   sts.CreationTimestamp.Format(time.RFC3339),
+					Status:      status,
+				})
+			}
+		}
+	}
+
+	// 5. Discover DaemonSets
+	daemonSets, err := clientset.AppsV1().DaemonSets("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, ds := range daemonSets.Items {
+			var containers []ContainerInfo
+
+			for _, container := range ds.Spec.Template.Spec.Containers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			for _, container := range ds.Spec.Template.Spec.InitContainers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			if len(containers) > 0 {
+				status := fmt.Sprintf("%d/%d ready", ds.Status.NumberReady, ds.Status.DesiredNumberScheduled)
+				workloads = append(workloads, WorkloadResource{
+					Name:        ds.Name,
+					Namespace:   ds.Namespace,
+					Kind:        "DaemonSet",
+					Labels:      ds.Labels,
+					Annotations: ds.Annotations,
+					Containers:  containers,
+					CreatedAt:   ds.CreationTimestamp.Format(time.RFC3339),
+					Status:      status,
+				})
+			}
+		}
+	}
+
+	// 6. Discover Jobs
+	jobs, err := clientset.BatchV1().Jobs("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, job := range jobs.Items {
+			var containers []ContainerInfo
+
+			for _, container := range job.Spec.Template.Spec.Containers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			for _, container := range job.Spec.Template.Spec.InitContainers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			if len(containers) > 0 {
+				status := "Running"
+				if job.Status.Succeeded > 0 {
+					status = fmt.Sprintf("%d succeeded", job.Status.Succeeded)
+				} else if job.Status.Active > 0 {
+					status = fmt.Sprintf("%d active", job.Status.Active)
+				} else if job.Status.Failed > 0 {
+					status = fmt.Sprintf("%d failed", job.Status.Failed)
+				}
+				workloads = append(workloads, WorkloadResource{
+					Name:        job.Name,
+					Namespace:   job.Namespace,
+					Kind:        "Job",
+					Labels:      job.Labels,
+					Annotations: job.Annotations,
+					Containers:  containers,
+					CreatedAt:   job.CreationTimestamp.Format(time.RFC3339),
+					Status:      status,
+				})
+			}
+		}
+	}
+
+	// 7. Discover CronJobs
+	cronJobs, err := clientset.BatchV1().CronJobs("").List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, cronJob := range cronJobs.Items {
+			var containers []ContainerInfo
+
+			for _, container := range cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			for _, container := range cronJob.Spec.JobTemplate.Spec.Template.Spec.InitContainers {
+				if imageMatches(container.Image) {
+					containers = append(containers, ContainerInfo{
+						Name:  container.Name,
+						Image: container.Image,
+					})
+				}
+			}
+
+			if len(containers) > 0 {
+				status := fmt.Sprintf("Schedule: %s", cronJob.Spec.Schedule)
+				if cronJob.Status.LastScheduleTime != nil {
+					status += fmt.Sprintf(", Last: %s", cronJob.Status.LastScheduleTime.Format(time.RFC3339))
+				}
+				workloads = append(workloads, WorkloadResource{
+					Name:        cronJob.Name,
+					Namespace:   cronJob.Namespace,
+					Kind:        "CronJob",
+					Labels:      cronJob.Labels,
+					Annotations: cronJob.Annotations,
+					Containers:  containers,
+					CreatedAt:   cronJob.CreationTimestamp.Format(time.RFC3339),
+					Status:      status,
+				})
+			}
+		}
+	}
+
+	return workloads, nil
 }
