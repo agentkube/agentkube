@@ -6,10 +6,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, RefreshCw, MoreVertical, Search, CircleCheck, CircleDashed, CircleAlert, CircleX } from "lucide-react";
+import { Loader2, RefreshCw, MoreVertical, Search, CircleCheck, CircleDashed, CircleAlert, CircleX, Sparkles, TextSearch, SearchCode, Eye, Trash } from "lucide-react";
 import { calculateAge } from '@/utils/age';
 import { createPortal } from 'react-dom';
 import { OPERATOR_URL } from '@/config';
+import { toast } from '@/hooks/use-toast';
+import { useDrawer } from '@/contexts/useDrawer';
+import BackgroundTaskDialog from '@/components/custom/backgroundtaskdialog/backgroundtaskdialog.component';
+import { useBackgroundTask } from '@/contexts/useBackgroundTask';
+import { SideDrawer } from '@/components/ui/sidedrawer.custom';
+import Telemetry from '@/components/custom/telemetry/telemetry.component';
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
+import { useReconMode } from '@/contexts/useRecon';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogHeader, AlertDialogCancel, AlertDialogFooter, AlertDialogDescription, AlertDialogTitle, AlertDialogContent, AlertDialogAction } from '@/components/ui/alert-dialog';
 
 // Resource usage interfaces
 interface ResourceUsage {
@@ -86,13 +101,17 @@ const formatResourceValue = (value: number, type: 'cpu' | 'memory'): string => {
   }
 };
 
-const DeploymentPods: React.FC<DeploymentPodsProps> = ({ 
-  deploymentName, 
-  namespace, 
+const DeploymentPods: React.FC<DeploymentPodsProps> = ({
+  deploymentName,
+  namespace,
   clusterName,
   deployment
 }) => {
   const navigate = useNavigate();
+  const { isReconMode } = useReconMode();
+  const { addResourceContext } = useDrawer();
+  const { isOpen: isBackgroundTaskOpen, resourceName, resourceType, onClose: closeBackgroundTask, openWithResource } = useBackgroundTask();
+
   const [pods, setPods] = useState<V1Pod[]>([]);
   const [podsMetrics, setPodsMetrics] = useState<Record<string, PodResourceMetrics>>({});
   const [loading, setLoading] = useState(true);
@@ -107,6 +126,13 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
     pending: 0,
     failed: 0
   });
+
+  // Dialog and drawer states
+  const [activePod, setActivePod] = useState<V1Pod | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isTelemetryDrawerOpen, setIsTelemetryDrawerOpen] = useState(false);
+  const [telemetryPod, setTelemetryPod] = useState<V1Pod | null>(null);
 
   // Build label selector from deployment
   const getLabelSelector = () => {
@@ -441,6 +467,174 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
     }
   };
 
+  // Action handlers
+  const handleAskAI = (pod: V1Pod) => {
+    try {
+      // Convert pod to EnrichedSearchResult format
+      const resourceContext = resourceToEnrichedSearchResult(
+        pod,
+        'pods',
+        true, // namespaced
+        '',
+        'v1'
+      );
+
+      // Add to chat context and open drawer
+      addResourceContext(resourceContext);
+
+      // Show success toast
+      toast({
+        title: "Added to Chat",
+        description: `Pod "${pod.metadata?.name}" has been added to chat context`
+      });
+    } catch (error) {
+      console.error('Error adding pod to chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add pod to chat context",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleInvestigatePod = (pod: V1Pod) => {
+    openWithResource(pod.metadata?.name || '', 'Pod');
+  };
+
+  const handleTelemetryPod = (pod: V1Pod) => {
+    setTelemetryPod(pod);
+    setIsTelemetryDrawerOpen(true);
+  };
+
+  const handleViewPod = (e: React.MouseEvent, pod: V1Pod) => {
+    e.stopPropagation();
+    if (pod.metadata?.name && pod.metadata?.namespace) {
+      navigate(`/dashboard/explore/pods/${pod.metadata.namespace}/${pod.metadata.name}`);
+    }
+  };
+
+  const handleDeletePod = (e: React.MouseEvent, pod: V1Pod) => {
+    e.stopPropagation();
+
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
+    setActivePod(pod);
+    setShowDeleteDialog(true);
+  };
+
+  const handleRestartPod = async (pod: V1Pod) => {
+    if (isReconMode) {
+      toast({
+        title: "Recon Mode",
+        description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+        variant: "recon"
+      });
+      return;
+    }
+
+    if (!pod.metadata?.name || !pod.metadata?.namespace) return;
+
+    try {
+      const annotations = pod.metadata.annotations || {};
+      const restartedAt = new Date().toISOString();
+
+      // Update pod with restart annotation
+      await fetch(`${OPERATOR_URL}/clusters/${clusterName}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/strategic-merge-patch+json',
+        },
+        body: JSON.stringify({
+          metadata: {
+            annotations: {
+              ...annotations,
+              'kubectl.kubernetes.io/restartedAt': restartedAt,
+            },
+          },
+        }),
+      });
+
+      toast({
+        title: "Pod Restarted",
+        description: `Pod "${pod.metadata.name}" has been restarted`
+      });
+
+      // Refresh pods
+      setTimeout(() => {
+        fetchDeploymentPods();
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to restart pod:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restart pod",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Delete pod function
+  const deletePod = async (pod: V1Pod) => {
+    if (!pod.metadata?.name || !pod.metadata?.namespace) return;
+
+    await fetch(`${OPERATOR_URL}/clusters/${clusterName}/api/v1/namespaces/${pod.metadata.namespace}/pods/${pod.metadata.name}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  };
+
+  // Perform actual deletion
+  const deletePods = async () => {
+    setShowDeleteDialog(false);
+    setDeleteLoading(true);
+
+    try {
+      if (activePod) {
+        await deletePod(activePod);
+
+        toast({
+          title: "Pod Deleted",
+          description: `Pod "${activePod.metadata?.name}" has been deleted`
+        });
+
+        // Refresh pods
+        setTimeout(() => {
+          fetchDeploymentPods();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Failed to delete pod:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete pod",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleteLoading(false);
+      setActivePod(null);
+    }
+  };
+
+  // Function to check if pod is in a failing state (should show sparkle icon)
+  const isPodFailing = (pod: V1Pod): boolean => {
+    const phase = pod.status?.phase?.toLowerCase();
+    return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' ||
+           (pod.status?.containerStatuses || []).some(status =>
+             status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+             status.state?.waiting?.reason === 'ImagePullBackOff' ||
+             status.state?.waiting?.reason === 'ErrImagePull'
+           );
+  };
+
   // Resource usage tooltip handlers
   const handleResourceMouseEnter = (
     e: React.MouseEvent<HTMLTableCellElement>,
@@ -639,13 +833,47 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
     );
   }
 
+  // Delete confirmation dialog
+  const renderDeleteDialog = () => {
+    return (
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]/90 backdrop-blur-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Pod Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{activePod?.metadata?.name}"?
+              This action cannot be undone. The pod will enter terminating state and be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deletePods}
+              disabled={deleteLoading}
+              className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  };
+
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-800/50 bg-white dark:bg-transparent p-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <h2 className="text-lg font-medium">Managed Pods ({filteredPods.length})</h2>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={fetchDeploymentPods}
         >
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -703,6 +931,29 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
         return renderResourceTooltip(podKey, resourceType);
       })()}
 
+      {/* Background Task Dialog */}
+      <BackgroundTaskDialog
+        isOpen={isBackgroundTaskOpen}
+        onClose={closeBackgroundTask}
+        resourceName={resourceName}
+        resourceType={resourceType}
+      />
+
+      {/* Telemetry Drawer */}
+      <SideDrawer isOpen={isTelemetryDrawerOpen} onClose={() => setIsTelemetryDrawerOpen(false)} >
+        {telemetryPod && (
+          <Telemetry
+            resourceName={telemetryPod.metadata?.name || ''}
+            namespace={telemetryPod.metadata?.namespace || ''}
+            kind="Pod"
+            onClose={() => setIsTelemetryDrawerOpen(false)}
+          />
+        )}
+      </SideDrawer>
+
+      {/* Delete Dialog */}
+      {renderDeleteDialog()}
+
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -731,10 +982,21 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
                   
                 >
                   <TableCell className="font-medium">
-                    <Button variant="link" onClick={() => handlePodDetails(pod)} 
-                    className="text-blue-500 hover:text-blue-500 hover:underline">
-                      {pod.metadata?.name}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button variant="link" onClick={() => handlePodDetails(pod)}
+                        className="text-blue-500 hover:text-blue-500 hover:underline p-0">
+                        {pod.metadata?.name}
+                      </Button>
+                      {isPodFailing(pod) && (
+                        <Sparkles
+                          className="h-4 w-4 text-yellow-500 hover:text-yellow-600 cursor-pointer transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAI(pod);
+                          }}
+                        />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge className={`${getStatusColorClass(pod.status?.phase)}`}>
@@ -797,24 +1059,74 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge className={`${getStatusColorClass(pod.status?.phase)}`}>
-                      {pod.status?.phase || 'Unknown'}
-                    </Badge>
+                    <div className="hover:text-blue-500 hover:underline cursor-pointer" onClick={(e) => {
+                      e.stopPropagation();
+                      if (pod.spec?.nodeName) {
+                        navigate(`/dashboard/explore/nodes/${pod.spec.nodeName}`);
+                      }
+                    }}>
+                      {pod.spec?.nodeName || '-'}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     {calculateAge(pod.metadata?.creationTimestamp?.toString())}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Implement actions menu if needed
-                      }}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleAskAI(pod);
+                        }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Ask AI
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleInvestigatePod(pod);
+                        }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <TextSearch className="mr-2 h-4 w-4" />
+                          Investigate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleTelemetryPod(pod);
+                        }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <SearchCode className="mr-2 h-4 w-4" />
+                          Telemetry
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleRestartPod(pod);
+                        }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Restart
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={(e) => handleViewPod(e, pod)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                          onClick={(e) => handleDeletePod(e, pod)}
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { getConfigMaps } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
@@ -6,14 +6,13 @@ import { V1ConfigMap } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Sparkles, Filter } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Sparkles, Filter, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import ResourceFilterSidebar, { type ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
-import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   DropdownMenu,
@@ -30,6 +29,7 @@ import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.uti
 import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
+import { OPERATOR_WS_URL } from '@/config';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -80,6 +80,13 @@ const ConfigMaps: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // WebSocket state
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionIdRef = useRef<string>('');
 
   // Column filtering state
   const defaultColumnConfig: ColumnConfig[] = [
@@ -540,46 +547,211 @@ const ConfigMaps: React.FC = () => {
     }
   };
 
+  // Handle ConfigMap events from WebSocket
+  const handleConfigMapEvent = useCallback((kubeEvent: any) => {
+    const { type, object: configMap } = kubeEvent;
+
+    if (!configMap || !configMap.metadata) return;
+
+    // Filter by selected namespaces
+    if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(configMap.metadata.namespace)) {
+      return;
+    }
+
+    setConfigMaps(prevConfigMaps => {
+      const newConfigMaps = [...prevConfigMaps];
+      const existingIndex = newConfigMaps.findIndex(
+        cm => cm.metadata?.namespace === configMap.metadata.namespace &&
+             cm.metadata?.name === configMap.metadata.name
+      );
+
+      switch (type) {
+        case 'ADDED':
+          if (existingIndex === -1) {
+            newConfigMaps.push(configMap);
+          }
+          break;
+
+        case 'MODIFIED':
+          if (existingIndex !== -1) {
+            // Check if resource is being terminated
+            if (configMap.metadata?.deletionTimestamp) {
+              newConfigMaps[existingIndex] = {
+                ...configMap,
+                metadata: {
+                  ...configMap.metadata,
+                  annotations: {
+                    ...configMap.metadata.annotations,
+                    'kubectl.kubernetes.io/terminating': 'true'
+                  }
+                }
+              };
+            } else {
+              newConfigMaps[existingIndex] = configMap;
+            }
+          } else {
+            // If MODIFIED event for a configMap we don't have, add it
+            newConfigMaps.push(configMap);
+          }
+          break;
+
+        case 'DELETED':
+          if (existingIndex !== -1) {
+            newConfigMaps.splice(existingIndex, 1);
+          }
+          break;
+
+        case 'ERROR':
+          console.error('WebSocket error event:', configMap);
+          setWsError('Error watching ConfigMaps');
+          break;
+
+        default:
+          console.warn('Unknown event type:', type);
+      }
+
+      return newConfigMaps;
+    });
+  }, [selectedNamespaces]);
+
+  // WebSocket connection function
+  const connectWebSocket = useCallback(() => {
+    if (!currentContext) return;
+
+    // Prevent duplicate connections for the same context
+    const newConnectionId = `configmaps-${currentContext.name}`;
+    if (connectionIdRef.current === newConnectionId && wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    connectionIdRef.current = newConnectionId;
+
+    try {
+      const clusterUrl = `${OPERATOR_WS_URL}/clusters/${currentContext.name}/api/v1/configmaps?watch=1`;
+      const ws = new WebSocket(clusterUrl);
+
+      ws.onopen = () => {
+        console.log('ConfigMaps WebSocket connected');
+        setWsConnected(true);
+        setWsError(null);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleConfigMapEvent(data);
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('ConfigMaps WebSocket error:', error);
+        setWsError('WebSocket connection error');
+        setWsConnected(false);
+      };
+
+      ws.onclose = () => {
+        console.log('ConfigMaps WebSocket disconnected');
+        setWsConnected(false);
+        wsRef.current = null;
+
+        // Attempt to reconnect after 5 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (currentContext && connectionIdRef.current === newConnectionId) {
+            console.log('Attempting to reconnect ConfigMaps WebSocket...');
+            connectWebSocket();
+          }
+        }, 5000);
+      };
+
+      wsRef.current = ws;
+    } catch (error) {
+      console.error('Failed to create ConfigMaps WebSocket:', error);
+      setWsError('Failed to establish WebSocket connection');
+    }
+  }, [currentContext, handleConfigMapEvent]);
+
   // Fetch configmaps for all selected namespaces
-  useEffect(() => {
-    const fetchAllConfigMaps = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setConfigMaps([]);
-        setLoading(false);
+  const fetchAllConfigMaps = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setConfigMaps([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const configMapsData = await getConfigMaps(currentContext.name);
+        setConfigMaps(configMapsData);
         return;
       }
 
-      try {
-        setLoading(true);
+      // Fetch configmaps for each selected namespace
+      const configMapPromises = selectedNamespaces.map(namespace =>
+        getConfigMaps(currentContext.name, namespace)
+      );
 
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const configMapsData = await getConfigMaps(currentContext.name);
-          setConfigMaps(configMapsData);
-          return;
-        }
+      const results = await Promise.all(configMapPromises);
 
-        // Fetch configmaps for each selected namespace
-        const configMapPromises = selectedNamespaces.map(namespace =>
-          getConfigMaps(currentContext.name, namespace)
-        );
+      // Flatten the array of configmap arrays
+      const allConfigMaps = results.flat();
+      setConfigMaps(allConfigMaps);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch configmaps:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch configmaps');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const results = await Promise.all(configMapPromises);
-
-        // Flatten the array of configmap arrays
-        const allConfigMaps = results.flat();
-        setConfigMaps(allConfigMaps);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch configmaps:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch configmaps');
-      } finally {
-        setLoading(false);
-      }
+  // Initial fetch and WebSocket connection
+  useEffect(() => {
+    const initializeConfigMaps = async () => {
+      await fetchAllConfigMaps();
+      // Small delay to ensure initial data is loaded before starting WebSocket
+      setTimeout(() => connectWebSocket(), 200);
     };
 
-    fetchAllConfigMaps();
-  }, [currentContext, selectedNamespaces]);
+    initializeConfigMaps();
+  }, [currentContext, selectedNamespaces.join(',')]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      connectionIdRef.current = '';
+    };
+  }, []);
+
+  // Handle namespace changes - reconnect WebSocket
+  useEffect(() => {
+    if (currentContext && selectedNamespaces.length > 0) {
+      // Filter existing configmaps by selected namespaces
+      setConfigMaps(prevConfigMaps =>
+        prevConfigMaps.filter(cm =>
+          cm.metadata?.namespace && selectedNamespaces.includes(cm.metadata.namespace)
+        )
+      );
+    }
+  }, [selectedNamespaces]);
 
   // Filter configmaps based on search query
   const filteredConfigMaps = useMemo(() => {
@@ -804,7 +976,20 @@ const ConfigMaps: React.FC = () => {
             {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
             <NamespaceSelector />
           </div>
-          
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              fetchAllConfigMaps();
+              connectWebSocket();
+            }}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title={wsConnected ? "Connected - Click to refresh" : "Disconnected - Click to reconnect"}
+          >
+            <RefreshCw className={`h-4 w-4`} />
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -816,33 +1001,33 @@ const ConfigMaps: React.FC = () => {
         </div>
       </div>
 
-      {/* No results message */}
-      {sortedConfigMaps.length === 0 && (
-        <Alert className="my-6">
-          <AlertDescription>
-            {searchQuery
-              ? `No configmaps matching "${searchQuery}"`
-              : selectedNamespaces.length === 0
-                ? "Please select at least one namespace"
-                : "No configmaps found in the selected namespaces"}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* ConfigMaps table */}
-      {sortedConfigMaps.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {columnConfig.map(col => renderTableHeader(col))}
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
+                {isColumnVisible('actions') && (
+                  <TableHead className="w-[50px]"></TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedConfigMaps.length === 0 && !loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No configmaps matching "${searchQuery}"`
+                      : selectedNamespaces.length === 0
+                        ? "Please select at least one namespace"
+                        : "No configmaps found in the selected namespaces"}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedConfigMaps.map((configMap) => (
+              ) : sortedConfigMaps.length > 0 ? (
+                sortedConfigMaps.map((configMap) => (
                   <TableRow
                     key={`${configMap.metadata?.namespace}-${configMap.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedConfigMaps.has(`${configMap.metadata?.namespace}/${configMap.metadata?.name}`) ? 'bg-blue-50 dark:bg-gray-800/30' : ''
@@ -851,13 +1036,51 @@ const ConfigMaps: React.FC = () => {
                     onContextMenu={(e) => handleContextMenu(e, configMap)}
                   >
                     {columnConfig.map(col => renderTableCell(configMap, col))}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleAskAI(configMap);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask AI
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleConfigMapDetails(configMap);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeleteConfigMapMenuItem(e, configMap)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              ) : null}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Filter Sidebar */}
       <ResourceFilterSidebar

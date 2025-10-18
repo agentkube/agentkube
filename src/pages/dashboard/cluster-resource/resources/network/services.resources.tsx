@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getServices } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
@@ -6,13 +6,12 @@ import { V1Service } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, Filter } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, Filter, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
-import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2 } from "lucide-react";
 import {
@@ -24,6 +23,7 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { OPERATOR_WS_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
@@ -48,6 +48,11 @@ const Services: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionIdRef = useRef<string | null>(null);
   const { isReconMode } = useReconMode();
 
   useEffect(() => {
@@ -393,50 +398,307 @@ const Services: React.FC = () => {
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
   
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('services', defaultColumnConfig)
   );
 
-  // Fetch services for all selected namespaces
-  useEffect(() => {
-    const fetchAllServices = async () => {
-      if (!currentContext || selectedNamespaces.length === 0) {
-        setServices([]);
-        setLoading(false);
-        return;
+  // Handle incoming Kubernetes Service events
+  const handleServiceEvent = useCallback((kubeEvent: any) => {
+    const { type, object: service } = kubeEvent;
+
+    if (!service || !service.metadata) return;
+
+    // Filter: only process services from selected namespaces
+    if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(service.metadata.namespace)) {
+      return; // Skip services not in selected namespaces
+    }
+
+    setServices(prevServices => {
+      const newServices = [...prevServices];
+      const existingIndex = newServices.findIndex(
+        s => s.metadata?.namespace === service.metadata.namespace &&
+             s.metadata?.name === service.metadata.name
+      );
+
+      switch (type) {
+        case 'ADDED':
+          if (existingIndex === -1) {
+            newServices.push(service);
+          }
+          break;
+
+        case 'MODIFIED':
+          if (existingIndex !== -1) {
+            // Check if service is being terminated
+            if (service.metadata.deletionTimestamp) {
+              // Keep the service but mark it as terminating
+              const updatedService = {
+                ...service,
+                metadata: {
+                  ...service.metadata,
+                  deletionTimestamp: service.metadata.deletionTimestamp
+                }
+              };
+              newServices[existingIndex] = updatedService;
+            } else {
+              // Normal modification
+              newServices[existingIndex] = service;
+            }
+          } else {
+            // Sometimes MODIFIED events come before ADDED
+            if (!service.metadata.deletionTimestamp) {
+              newServices.push(service);
+            }
+          }
+          break;
+
+        case 'DELETED':
+          if (existingIndex !== -1) {
+            newServices.splice(existingIndex, 1);
+          }
+          break;
+
+        case 'ERROR':
+          setWsError(`Watch error: ${service.message || 'Unknown error'}`);
+          break;
+
+        default:
+          break;
       }
 
-      try {
-        setLoading(true);
+      return newServices;
+    });
+  }, [selectedNamespaces]);
 
-        // If no namespaces are selected, fetch from all namespaces
-        if (selectedNamespaces.length === 0) {
-          const servicesData = await getServices(currentContext.name);
-          setServices(servicesData);
+  // WebSocket connection management
+  const connectWebSocket = useCallback(() => {
+    if (!currentContext) {
+      return;
+    }
+
+    // Create a connection ID based only on context (one connection per cluster)
+    const connectionId = currentContext.name;
+
+    // Don't create a new connection if we already have one for the same cluster
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
+      return;
+    }
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // Clear any existing reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    try {
+      // Create single WebSocket connection to watch ALL namespaces
+      // We'll filter client-side to show only selected namespaces
+      const clusterUrl = `${OPERATOR_WS_URL}/clusters/${currentContext.name}/api/v1/services?watch=1`;
+      const ws = new WebSocket(clusterUrl);
+      wsRef.current = ws;
+      connectionIdRef.current = connectionId;
+
+      ws.onopen = () => {
+        // Only proceed if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(true);
+          setWsError(null);
+          setLoading(false);
+          // Direct connection - no need to send REQUEST messages,
+          // WebSocket will automatically start receiving Kubernetes watch events
+        }
+      };
+
+      ws.onmessage = (event) => {
+        // Only process messages if this is still the current connection
+        if (connectionIdRef.current !== connectionId) {
           return;
         }
 
-        // Fetch services for each selected namespace
-        const servicePromises = selectedNamespaces.map(namespace =>
-          getServices(currentContext.name, namespace)
-        );
+        try {
+          // Direct Kubernetes API watch response (no multiplexer wrapping)
+          const kubeEvent = JSON.parse(event.data);
 
-        const results = await Promise.all(servicePromises);
+          // Handle Kubernetes watch event directly
+          if (kubeEvent.type && kubeEvent.object) {
+            handleServiceEvent(kubeEvent);
+          } else if (kubeEvent.type === 'ERROR') {
+            setWsError(kubeEvent.object?.message || 'WebSocket error');
+          }
+        } catch (err) {
+          console.warn('Failed to parse WebSocket message:', err);
+        }
+      };
 
-        // Flatten the array of service arrays
-        const allServices = results.flat();
-        setServices(allServices);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch services:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch services');
-      } finally {
+      ws.onclose = (event) => {
+        // Only handle close if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(false);
+          wsRef.current = null;
+          connectionIdRef.current = null;
+
+          // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
+          if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, 5000);
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        // Only handle error if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          console.error('WebSocket error:', error);
+          setWsError('WebSocket connection failed');
+          setWsConnected(false);
+        }
+      };
+
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err);
+      setWsError(err instanceof Error ? err.message : 'Failed to connect WebSocket');
+      setLoading(false);
+    }
+  }, [currentContext, handleServiceEvent, selectedNamespaces]);
+
+  // Fetch services for all selected namespaces
+  const fetchAllServices = async () => {
+    if (!currentContext || selectedNamespaces.length === 0) {
+      setServices([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // If no namespaces are selected, fetch from all namespaces
+      if (selectedNamespaces.length === 0) {
+        const servicesData = await getServices(currentContext.name);
+        setServices(servicesData);
+        return;
+      }
+
+      // Fetch services for each selected namespace
+      const servicePromises = selectedNamespaces.map(namespace =>
+        getServices(currentContext.name, namespace)
+      );
+
+      const results = await Promise.all(servicePromises);
+
+      // Flatten the array of service arrays
+      const allServices = results.flat();
+      setServices(allServices);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch services:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch services');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize WebSocket connection when context or namespaces change
+  useEffect(() => {
+    if (!currentContext) {
+      setServices([]);
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    // Clear existing services when switching contexts/namespaces
+    setServices([]);
+
+    // If no namespaces selected, don't connect and show empty state
+    if (selectedNamespaces.length === 0) {
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    setLoading(true);
+
+    // First load existing services, then start WebSocket for real-time updates
+    const initializeServices = async () => {
+      try {
+        // Load initial data using HTTP API
+        await fetchAllServices();
+        // Then start WebSocket watching for changes
+        setTimeout(() => {
+          connectWebSocket();
+        }, 200);
+      } catch (error) {
+        console.error('Failed to initialize services:', error);
         setLoading(false);
       }
     };
 
-    fetchAllServices();
-  }, [currentContext, selectedNamespaces]);
+    initializeServices();
+
+    // Cleanup function
+    return () => {
+      // Close WebSocket if component unmounts
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [currentContext, selectedNamespaces.join(',')]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Filter existing services when namespace selection changes
+  useEffect(() => {
+    if (selectedNamespaces.length === 0) {
+      // No namespaces selected - show nothing
+      setServices([]);
+      return;
+    }
+
+    // Filter existing services based on new namespace selection
+    setServices(prevServices =>
+      prevServices.filter(service =>
+        service.metadata?.namespace && selectedNamespaces.includes(service.metadata.namespace)
+      )
+    );
+  }, [selectedNamespaces]);
 
   // Filter services based on search query
   const filteredServices = useMemo(() => {
@@ -877,7 +1139,25 @@ const Services: React.FC = () => {
             <div className="text-sm font-medium mb-2">Namespaces</div>
             <NamespaceSelector />
           </div>
-          
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!wsConnected) {
+                // Fallback to HTTP fetch if WebSocket is not connected
+                fetchAllServices();
+              } else {
+                // Reconnect WebSocket
+                connectWebSocket();
+              }
+            }}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title={wsConnected ? "Reconnect WebSocket" : "Refresh services"}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -890,7 +1170,7 @@ const Services: React.FC = () => {
       </div>
 
       {/* No results message */}
-      {sortedServices.length === 0 && (
+      {sortedServices.length === 0 && !loading && (
         <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <AlertDescription>
             {searchQuery
