@@ -835,85 +835,82 @@ const ResourceQuotas: React.FC = () => {
         </div>
       </div>
 
-      {/* No results message */}
-      {sortedResourceQuotas.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            {searchQuery
-              ? `No resource quotas matching "${searchQuery}"`
-              : selectedNamespaces.length === 0
-                ? "Please select at least one namespace"
-                : "No resource quotas found in the selected namespaces"}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* ResourceQuotas table */}
-      {sortedResourceQuotas.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {isColumnVisible('name') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {renderSortIndicator('name')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('namespace') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('namespace')}
-                    >
-                      Namespace {renderSortIndicator('namespace')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('scopes') && (
-                    <TableHead>
-                      Scopes
-                    </TableHead>
-                  )}
-                  {isColumnVisible('resources') && (
-                    <TableHead
-                      className="cursor-pointer hover:text-blue-500 text-center"
-                      onClick={() => handleSort('resourceCount')}
-                    >
-                      Resources {renderSortIndicator('resourceCount')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('usage') && (
-                    <TableHead>
-                      Usage Details
-                    </TableHead>
-                  )}
-                  {isColumnVisible('avgUsage') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('usagePercent')}
-                    >
-                      Avg Usage {renderSortIndicator('usagePercent')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('age') && (
-                    <TableHead
-                      className="text-center cursor-pointer hover:text-blue-500"
-                      onClick={() => handleSort('age')}
-                    >
-                      Age {renderSortIndicator('age')}
-                    </TableHead>
-                  )}
-                  {isColumnVisible('actions') && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {isColumnVisible('name') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('name')}
+                  >
+                    Name {renderSortIndicator('name')}
+                  </TableHead>
+                )}
+                {isColumnVisible('namespace') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('namespace')}
+                  >
+                    Namespace {renderSortIndicator('namespace')}
+                  </TableHead>
+                )}
+                {isColumnVisible('scopes') && (
+                  <TableHead>
+                    Scopes
+                  </TableHead>
+                )}
+                {isColumnVisible('resources') && (
+                  <TableHead
+                    className="cursor-pointer hover:text-blue-500 text-center"
+                    onClick={() => handleSort('resourceCount')}
+                  >
+                    Resources {renderSortIndicator('resourceCount')}
+                  </TableHead>
+                )}
+                {isColumnVisible('usage') && (
+                  <TableHead>
+                    Usage Details
+                  </TableHead>
+                )}
+                {isColumnVisible('avgUsage') && (
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('usagePercent')}
+                  >
+                    Avg Usage {renderSortIndicator('usagePercent')}
+                  </TableHead>
+                )}
+                {isColumnVisible('age') && (
+                  <TableHead
+                    className="text-center cursor-pointer hover:text-blue-500"
+                    onClick={() => handleSort('age')}
+                  >
+                    Age {renderSortIndicator('age')}
+                  </TableHead>
+                )}
+                {isColumnVisible('actions') && (
+                  <TableHead className="w-[50px]"></TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedResourceQuotas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No resource quotas matching "${searchQuery}"`
+                      : selectedNamespaces.length === 0
+                        ? "Please select at least one namespace"
+                        : "No resource quotas found in the selected namespaces"}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedResourceQuotas.map((quota) => (
+              ) : (
+                sortedResourceQuotas.map((quota) => (
                   <TableRow
                     key={`${quota.metadata?.namespace}-${quota.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedQuotas.has(`${quota.metadata?.namespace}/${quota.metadata?.name}`) ? 'bg-blue-50 dark:bg-gray-800/30' : ''
@@ -991,12 +988,12 @@ const ResourceQuotas: React.FC = () => {
                       </TableCell>
                     )}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Filter Sidebar */}
       <ResourceFilterSidebar

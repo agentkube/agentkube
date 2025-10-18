@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getPersistentVolumeClaims } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
@@ -6,13 +6,12 @@ import { V1PersistentVolumeClaim } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
-import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Database, Copy, Sparkles } from "lucide-react";
 import {
@@ -24,7 +23,7 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
-import { OPERATOR_URL } from '@/config';
+import { OPERATOR_URL, OPERATOR_WS_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
@@ -63,7 +62,13 @@ const PersistentVolumeClaims: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteLoading, setDeleteLoading] = useState(false);
-  // -- Start of Multi-select -- 
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionIdRef = useRef<string | null>(null);
+
+  // -- Start of Multi-select --
   const [selectedPvcs, setSelectedPvcs] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -487,6 +492,172 @@ const PersistentVolumeClaims: React.FC = () => {
     direction: null
   });
 
+  // Handle incoming Kubernetes PVC events
+  const handlePvcEvent = useCallback((kubeEvent: any) => {
+    const { type, object: pvc } = kubeEvent;
+
+    if (!pvc || !pvc.metadata) return;
+
+    // Filter: only process PVCs from selected namespaces
+    if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(pvc.metadata.namespace)) {
+      return; // Skip PVCs not in selected namespaces
+    }
+
+    setPvcs(prevPvcs => {
+      const newPvcs = [...prevPvcs];
+      const existingIndex = newPvcs.findIndex(
+        p => p.metadata?.namespace === pvc.metadata.namespace &&
+             p.metadata?.name === pvc.metadata.name
+      );
+
+      switch (type) {
+        case 'ADDED':
+          if (existingIndex === -1) {
+            newPvcs.push(pvc);
+          }
+          break;
+
+        case 'MODIFIED':
+          if (existingIndex !== -1) {
+            // Check if PVC is being terminated
+            if (pvc.metadata.deletionTimestamp) {
+              // Update the PVC to show terminating state
+              const updatedPvc = {
+                ...pvc,
+                status: {
+                  ...pvc.status,
+                  phase: 'Terminating'
+                }
+              };
+              newPvcs[existingIndex] = updatedPvc;
+            } else {
+              // Normal modification
+              newPvcs[existingIndex] = pvc;
+            }
+          } else {
+            // Sometimes MODIFIED events come before ADDED
+            if (!pvc.metadata.deletionTimestamp) {
+              newPvcs.push(pvc);
+            }
+          }
+          break;
+
+        case 'DELETED':
+          if (existingIndex !== -1) {
+            newPvcs.splice(existingIndex, 1);
+          }
+          break;
+
+        case 'ERROR':
+          setWsError(`Watch error: ${pvc.message || 'Unknown error'}`);
+          break;
+
+        default:
+          break;
+      }
+
+      return newPvcs;
+    });
+  }, [selectedNamespaces]);
+
+  // WebSocket connection management
+  const connectWebSocket = useCallback(() => {
+    if (!currentContext) {
+      return;
+    }
+
+    // Create a connection ID based only on context (one connection per cluster)
+    const connectionId = currentContext.name;
+
+    // Don't create a new connection if we already have one for the same cluster
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
+      return;
+    }
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // Clear any existing reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    try {
+      // Create single WebSocket connection to watch ALL namespaces
+      // We'll filter client-side to show only selected namespaces
+      const clusterUrl = `${OPERATOR_WS_URL}/clusters/${currentContext.name}/api/v1/persistentvolumeclaims?watch=1`;
+      const ws = new WebSocket(clusterUrl);
+      wsRef.current = ws;
+      connectionIdRef.current = connectionId;
+
+      ws.onopen = () => {
+        // Only proceed if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(true);
+          setWsError(null);
+          setLoading(false);
+          // Direct connection - no need to send REQUEST messages,
+          // WebSocket will automatically start receiving Kubernetes watch events
+        }
+      };
+
+      ws.onmessage = (event) => {
+        // Only process messages if this is still the current connection
+        if (connectionIdRef.current !== connectionId) {
+          return;
+        }
+
+        try {
+          // Direct Kubernetes API watch response (no multiplexer wrapping)
+          const kubeEvent = JSON.parse(event.data);
+
+          // Handle Kubernetes watch event directly
+          if (kubeEvent.type && kubeEvent.object) {
+            handlePvcEvent(kubeEvent);
+          } else if (kubeEvent.type === 'ERROR') {
+            setWsError(kubeEvent.object?.message || 'WebSocket error');
+          }
+        } catch (err) {
+          console.warn('Failed to parse WebSocket message:', err);
+        }
+      };
+
+      ws.onclose = (event) => {
+        // Only handle close if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(false);
+          wsRef.current = null;
+          connectionIdRef.current = null;
+
+          // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
+          if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, 5000);
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        // Only handle error if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          console.error('WebSocket error:', error);
+          setWsError('WebSocket connection failed');
+          setWsConnected(false);
+        }
+      };
+
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err);
+      setWsError(err instanceof Error ? err.message : 'Failed to connect WebSocket');
+      setLoading(false);
+    }
+  }, [currentContext, handlePvcEvent]);
+
   const fetchAllPVCs = async () => {
     if (!currentContext || selectedNamespaces.length === 0) {
       setPvcs([]);
@@ -522,11 +693,101 @@ const PersistentVolumeClaims: React.FC = () => {
       setLoading(false);
     }
   };
-  // Fetch PVCs for all selected namespaces
-  useEffect(() => {
 
-    fetchAllPVCs();
-  }, [currentContext, selectedNamespaces]);
+  // Initialize WebSocket connection when context or namespaces change
+  useEffect(() => {
+    if (!currentContext) {
+      setPvcs([]);
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    // Clear existing PVCs when switching contexts/namespaces
+    setPvcs([]);
+
+    // If no namespaces selected, don't connect and show empty state
+    if (selectedNamespaces.length === 0) {
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    setLoading(true);
+
+    // First load existing PVCs, then start WebSocket for real-time updates
+    const initializePvcs = async () => {
+      try {
+        // Load initial data using HTTP API
+        await fetchAllPVCs();
+        // Then start WebSocket watching for changes
+        setTimeout(() => {
+          connectWebSocket();
+        }, 200);
+      } catch (error) {
+        console.error('Failed to initialize PVCs:', error);
+        setLoading(false);
+      }
+    };
+
+    initializePvcs();
+
+    // Cleanup function
+    return () => {
+      // Close WebSocket if component unmounts
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [currentContext, selectedNamespaces.join(',')]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Filter existing PVCs when namespace selection changes
+  useEffect(() => {
+    if (selectedNamespaces.length === 0) {
+      // No namespaces selected - show nothing
+      setPvcs([]);
+      return;
+    }
+
+    // Filter existing PVCs based on new namespace selection
+    setPvcs(prevPvcs =>
+      prevPvcs.filter(pvc =>
+        pvc.metadata?.namespace && selectedNamespaces.includes(pvc.metadata.namespace)
+      )
+    );
+  }, [selectedNamespaces]);
 
   // Filter PVCs based on search query
   const filteredPvcs = useMemo(() => {
@@ -918,7 +1179,25 @@ const PersistentVolumeClaims: React.FC = () => {
           <div className="w-full md:w-96">
             <NamespaceSelector />
           </div>
-          
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!wsConnected) {
+                // Fallback to HTTP fetch if WebSocket is not connected
+                fetchAllPVCs();
+              } else {
+                // Reconnect WebSocket
+                connectWebSocket();
+              }
+            }}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title={wsConnected ? "Reconnect WebSocket" : "Refresh PVCs"}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -930,34 +1209,31 @@ const PersistentVolumeClaims: React.FC = () => {
         </div>
       </div>
 
-      {/* No results message */}
-      {sortedPvcs.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            {searchQuery
-              ? `No persistent volume claims matching "${searchQuery}"`
-              : selectedNamespaces.length === 0
-                ? "Please select at least one namespace"
-                : "No persistent volume claims found in the selected namespaces"}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* PVCs table */}
-      {sortedPvcs.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {columnConfig.map(col => renderTableHeader(col))}
-                  <TableHead className="w-[50px]"></TableHead>
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedPvcs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No persistent volume claims matching "${searchQuery}"`
+                      : selectedNamespaces.length === 0
+                        ? "Please select at least one namespace"
+                        : "No persistent volume claims found in the selected namespaces"}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedPvcs.map((pvc) => (
+              ) : (
+                sortedPvcs.map((pvc) => (
                   <TableRow
                     key={`${pvc.metadata?.namespace}-${pvc.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedPvcs.has(`${pvc.metadata?.namespace}/${pvc.metadata?.name}`) ? 'bg-blue-50 dark:bg-gray-800/30' : ''
@@ -1000,12 +1276,12 @@ const PersistentVolumeClaims: React.FC = () => {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Resource Filter Sidebar */}
       <ResourceFilterSidebar

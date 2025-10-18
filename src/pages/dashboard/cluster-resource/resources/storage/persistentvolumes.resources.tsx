@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getPersistentVolumes } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { V1PersistentVolume } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
-import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Copy, Sparkles } from "lucide-react";
 import {
@@ -23,6 +22,7 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { deleteResource } from '@/api/internal/resources';
+import { OPERATOR_WS_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
@@ -139,6 +139,12 @@ const PersistentVolumes: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionIdRef = useRef<string | null>(null);
+
   // --- Start of Multi-select ---
   const [selectedVolumes, setSelectedVolumes] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -478,6 +484,165 @@ const PersistentVolumes: React.FC = () => {
     direction: null
   });
 
+  // Handle incoming Kubernetes PV events
+  const handlePvEvent = useCallback((kubeEvent: any) => {
+    const { type, object: pv } = kubeEvent;
+
+    if (!pv || !pv.metadata) return;
+
+    setVolumes(prevVolumes => {
+      const newVolumes = [...prevVolumes];
+      const existingIndex = newVolumes.findIndex(
+        v => v.metadata?.name === pv.metadata.name
+      );
+
+      switch (type) {
+        case 'ADDED':
+          if (existingIndex === -1) {
+            newVolumes.push(pv);
+          }
+          break;
+
+        case 'MODIFIED':
+          if (existingIndex !== -1) {
+            // Check if PV is being terminated
+            if (pv.metadata.deletionTimestamp) {
+              // Update the PV to show terminating state
+              const updatedPv = {
+                ...pv,
+                status: {
+                  ...pv.status,
+                  phase: 'Terminating'
+                }
+              };
+              newVolumes[existingIndex] = updatedPv;
+            } else {
+              // Normal modification
+              newVolumes[existingIndex] = pv;
+            }
+          } else {
+            // Sometimes MODIFIED events come before ADDED
+            if (!pv.metadata.deletionTimestamp) {
+              newVolumes.push(pv);
+            }
+          }
+          break;
+
+        case 'DELETED':
+          if (existingIndex !== -1) {
+            newVolumes.splice(existingIndex, 1);
+          }
+          break;
+
+        case 'ERROR':
+          setWsError(`Watch error: ${pv.message || 'Unknown error'}`);
+          break;
+
+        default:
+          break;
+      }
+
+      return newVolumes;
+    });
+  }, []);
+
+  // WebSocket connection management
+  const connectWebSocket = useCallback(() => {
+    if (!currentContext) {
+      return;
+    }
+
+    // Create a connection ID based only on context (one connection per cluster)
+    const connectionId = currentContext.name;
+
+    // Don't create a new connection if we already have one for the same cluster
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
+      return;
+    }
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // Clear any existing reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    try {
+      // Create WebSocket connection to watch all PersistentVolumes (cluster-scoped resource)
+      const clusterUrl = `${OPERATOR_WS_URL}/clusters/${currentContext.name}/api/v1/persistentvolumes?watch=1`;
+      const ws = new WebSocket(clusterUrl);
+      wsRef.current = ws;
+      connectionIdRef.current = connectionId;
+
+      ws.onopen = () => {
+        // Only proceed if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(true);
+          setWsError(null);
+          setLoading(false);
+          // Direct connection - no need to send REQUEST messages,
+          // WebSocket will automatically start receiving Kubernetes watch events
+        }
+      };
+
+      ws.onmessage = (event) => {
+        // Only process messages if this is still the current connection
+        if (connectionIdRef.current !== connectionId) {
+          return;
+        }
+
+        try {
+          // Direct Kubernetes API watch response (no multiplexer wrapping)
+          const kubeEvent = JSON.parse(event.data);
+
+          // Handle Kubernetes watch event directly
+          if (kubeEvent.type && kubeEvent.object) {
+            handlePvEvent(kubeEvent);
+          } else if (kubeEvent.type === 'ERROR') {
+            setWsError(kubeEvent.object?.message || 'WebSocket error');
+          }
+        } catch (err) {
+          console.warn('Failed to parse WebSocket message:', err);
+        }
+      };
+
+      ws.onclose = (event) => {
+        // Only handle close if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(false);
+          wsRef.current = null;
+          connectionIdRef.current = null;
+
+          // Only attempt to reconnect for unexpected closures
+          if (event.code !== 1000 && event.code !== 1001 && currentContext) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, 5000);
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        // Only handle error if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          console.error('WebSocket error:', error);
+          setWsError('WebSocket connection failed');
+          setWsConnected(false);
+        }
+      };
+
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err);
+      setWsError(err instanceof Error ? err.message : 'Failed to connect WebSocket');
+      setLoading(false);
+    }
+  }, [currentContext, handlePvEvent]);
+
   const fetchVolumes = async () => {
     if (!currentContext) {
       setVolumes([]);
@@ -498,11 +663,66 @@ const PersistentVolumes: React.FC = () => {
     }
   };
 
-  // Fetch all persistent volumes
+  // Initialize WebSocket connection when context changes
   useEffect(() => {
+    if (!currentContext) {
+      setVolumes([]);
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
 
-    fetchVolumes();
+    // Clear existing volumes when switching contexts
+    setVolumes([]);
+    setLoading(true);
+
+    // First load existing PVs, then start WebSocket for real-time updates
+    const initializeVolumes = async () => {
+      try {
+        // Load initial data using HTTP API
+        await fetchVolumes();
+        // Then start WebSocket watching for changes
+        setTimeout(() => {
+          connectWebSocket();
+        }, 200);
+      } catch (error) {
+        console.error('Failed to initialize persistent volumes:', error);
+        setLoading(false);
+      }
+    };
+
+    initializeVolumes();
+
+    // Cleanup function
+    return () => {
+      // Close WebSocket if component unmounts
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
   }, [currentContext]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Filter volumes based on search query
   const filteredVolumes = useMemo(() => {
@@ -888,42 +1108,59 @@ const PersistentVolumes: React.FC = () => {
             </div>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowFilterSidebar(true)}
-          className="flex items-center gap-2 h-10 dark:text-gray-300/80"
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
+        <div className="flex items-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!wsConnected) {
+                // Fallback to HTTP fetch if WebSocket is not connected
+                fetchVolumes();
+              } else {
+                // Reconnect WebSocket
+                connectWebSocket();
+              }
+            }}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title={wsConnected ? "Reconnect WebSocket" : "Refresh volumes"}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterSidebar(true)}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* No results message */}
-      {sortedVolumes.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            {searchQuery
-              ? `No persistent volumes matching "${searchQuery}"`
-              : "No persistent volumes found in the cluster"}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Volumes table */}
-      {sortedVolumes.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {columnConfig.map(col => renderTableHeader(col))}
-                  <TableHead className="w-[50px]"></TableHead>
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedVolumes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No persistent volumes matching "${searchQuery}"`
+                      : "No persistent volumes found in the cluster"}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedVolumes.map((volume) => (
+              ) : (
+                sortedVolumes.map((volume) => (
                   <TableRow
                     key={volume.metadata?.name}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedVolumes.has(volume.metadata?.name || '') ? 'bg-blue-50 dark:bg-gray-800/30' : ''
@@ -966,12 +1203,12 @@ const PersistentVolumes: React.FC = () => {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Resource Filter Sidebar */}
       <ResourceFilterSidebar
