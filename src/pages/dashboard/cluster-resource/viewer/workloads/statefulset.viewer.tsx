@@ -25,6 +25,7 @@ import { useSearchParams } from 'react-router-dom';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import StatefulSetPods from '../components/statefulsetpod.viewer';
+import RevisionsViewer from '../components/revisions.viewer';
 import { DeletionDialog, ResourceCanvas, ResourceViewerYamlTab } from '@/components/custom';
 
 // Define interface for statefulset data (extending V1StatefulSet with events)
@@ -419,6 +420,7 @@ const StatefulSetViewer: React.FC = () => {
               <TabsTrigger value="canvas">Canvas</TabsTrigger>
               <TabsTrigger value="events">Events</TabsTrigger>
               <TabsTrigger value="pods">Pods</TabsTrigger>
+              <TabsTrigger value="revisions">Revisions</TabsTrigger>
             </TabsList>
 
             {defaultTab === 'canvas' && (
@@ -789,6 +791,18 @@ const StatefulSetViewer: React.FC = () => {
                 />
               )
             }
+          </TabsContent>
+
+          <TabsContent value="revisions" className="space-y-6">
+            {statefulSetName && namespace && currentContext && (
+              <RevisionsViewer
+                clusterName={currentContext.name}
+                namespace={namespace}
+                resourceType="statefulset"
+                resourceName={statefulSetName}
+                labels={statefulSetData.spec?.selector?.matchLabels}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>

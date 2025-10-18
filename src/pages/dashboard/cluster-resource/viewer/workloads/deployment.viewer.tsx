@@ -24,6 +24,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import DeploymentPods from '../components/deploymentpods.viewer';
+import RevisionsViewer from '../components/revisions.viewer';
 import ResourceViewerYamlTab from '@/components/custom/editor/resource-viewer-tabs.component';
 import { DeletionDialog, ResourceCanvas } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
@@ -411,6 +412,7 @@ const DeploymentViewer: React.FC = () => {
               <TabsTrigger value="canvas">Canvas</TabsTrigger>
               <TabsTrigger value="events">Events</TabsTrigger>
               <TabsTrigger value="pods">Pods</TabsTrigger>
+              <TabsTrigger value="revisions">Revisions</TabsTrigger>
             </TabsList>
 
             {defaultTab === 'canvas' && (
@@ -746,6 +748,18 @@ const DeploymentViewer: React.FC = () => {
                 namespace={namespace}
                 clusterName={currentContext.name}
                 deployment={deploymentData}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="revisions" className="space-y-6">
+            {deploymentName && namespace && currentContext && (
+              <RevisionsViewer
+                clusterName={currentContext.name}
+                namespace={namespace}
+                resourceType="deployment"
+                resourceName={deploymentName}
+                labels={deploymentData.spec?.selector?.matchLabels}
               />
             )}
           </TabsContent>

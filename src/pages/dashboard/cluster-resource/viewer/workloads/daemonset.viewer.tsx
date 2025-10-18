@@ -24,6 +24,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import PropertiesViewer from '../components/properties.viewer';
 import EventsViewer from '../components/event.viewer';
 import DaemonSetPods from '../components/daemonsetpods.viewer';
+import RevisionsViewer from '../components/revisions.viewer';
 import { DeletionDialog, ResourceCanvas, ResourceViewerYamlTab } from '@/components/custom';
 import { useSearchParams } from 'react-router-dom';
 
@@ -402,6 +403,7 @@ const DaemonSetViewer: React.FC = () => {
               <TabsTrigger value="canvas">Canvas</TabsTrigger>
               <TabsTrigger value="events">Events</TabsTrigger>
               <TabsTrigger value="pods">Pods</TabsTrigger>
+              <TabsTrigger value="revisions">Revisions</TabsTrigger>
             </TabsList>
 
             {defaultTab === 'canvas' && (
@@ -798,6 +800,18 @@ const DaemonSetViewer: React.FC = () => {
                 />
               )
             }
+          </TabsContent>
+
+          <TabsContent value="revisions" className="space-y-6">
+            {daemonSetName && namespace && currentContext && (
+              <RevisionsViewer
+                clusterName={currentContext.name}
+                namespace={namespace}
+                resourceType="daemonset"
+                resourceName={daemonSetName}
+                labels={daemonSetData.spec?.selector?.matchLabels}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
