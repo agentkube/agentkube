@@ -1180,41 +1180,38 @@ const StatefulSets: React.FC = () => {
         </div>
       </div>
 
-      {/* No results message */}
-      {sortedStatefulSets.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            {searchQuery
-              ? `No stateful sets matching "${searchQuery}"`
-              : selectedNamespaces.length === 0
-                ? "Please select at least one namespace"
-                : "No stateful sets found in the selected namespaces"}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* StatefulSets table */}
-      {sortedStatefulSets.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <ScaleDialog
-              isOpen={showScaleDialog}
-              onClose={() => setShowScaleDialog(false)}
-              onScaleComplete={handleScaleComplete}
-              resources={selectedResourcesForScaling}
-              resourceType="statefulset"
-            />
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {columnConfig.map(col => renderTableHeader(col))}
-                  <TableHead className="w-[50px]"></TableHead>
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <ScaleDialog
+            isOpen={showScaleDialog}
+            onClose={() => setShowScaleDialog(false)}
+            onScaleComplete={handleScaleComplete}
+            resources={selectedResourcesForScaling}
+            resourceType="statefulset"
+          />
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedStatefulSets.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No stateful sets matching "${searchQuery}"`
+                      : selectedNamespaces.length === 0
+                        ? "Please select at least one namespace"
+                        : "No stateful sets found in the selected namespaces"}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedStatefulSets.map((statefulSet) => (
+              ) : (
+                sortedStatefulSets.map((statefulSet) => (
                   <TableRow
                     key={`${statefulSet.metadata?.namespace}-${statefulSet.metadata?.name}`}
                     className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${hasWarningState(statefulSet) ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''
@@ -1258,12 +1255,12 @@ const StatefulSets: React.FC = () => {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Resource Filter Sidebar */}
       <ResourceFilterSidebar
