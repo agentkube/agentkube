@@ -116,6 +116,14 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			// Search endpoint for cluster resources
 			v1.POST("/cluster/:clusterName/search", handlers.SearchResources)
 
+			// Index management endpoints
+			v1.POST("/cluster/:clusterName/index", handlers.IndexCluster)
+			v1.GET("/cluster/:clusterName/index/status", handlers.GetIndexStatus)
+			v1.DELETE("/cluster/:clusterName/index", handlers.DeleteClusterIndex)
+
+			// List all indexed clusters
+			v1.GET("/indices/clusters", handlers.ListIndexedClusters)
+
 			v1.POST("/cluster/:clusterName/kubectl", handlers.KubectlHandler)
 
 			// Terminal endpoint for shell access
