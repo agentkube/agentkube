@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { listResources } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { useNamespace } from '@/contexts/useNamespace';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent, ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
-import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Play, Pause, Clock, Sparkles, Filter } from "lucide-react";
 import {
@@ -23,7 +22,7 @@ import {
 import { Eye, Trash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { V1CronJob } from '@kubernetes/client-node';
-import { OPERATOR_URL } from '@/config';
+import { OPERATOR_URL, OPERATOR_WS_URL } from '@/config';
 import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
@@ -49,6 +48,11 @@ const CronJobs: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionIdRef = useRef<string | null>(null);
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
@@ -704,6 +708,172 @@ const CronJobs: React.FC = () => {
     direction: null
   });
 
+  // Handle incoming Kubernetes cronjob events
+  const handleCronJobEvent = useCallback((kubeEvent: any) => {
+    const { type, object: cronJob } = kubeEvent;
+
+    if (!cronJob || !cronJob.metadata) return;
+
+    // Filter: only process cronjobs from selected namespaces
+    if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(cronJob.metadata.namespace)) {
+      return; // Skip cronjobs not in selected namespaces
+    }
+
+    setCronJobs(prevCronJobs => {
+      const newCronJobs = [...prevCronJobs];
+      const existingIndex = newCronJobs.findIndex(
+        cj => cj.metadata?.namespace === cronJob.metadata.namespace &&
+             cj.metadata?.name === cronJob.metadata.name
+      );
+
+      switch (type) {
+        case 'ADDED':
+          if (existingIndex === -1) {
+            newCronJobs.push(cronJob);
+          }
+          break;
+
+        case 'MODIFIED':
+          if (existingIndex !== -1) {
+            // Check if cronjob is being terminated
+            if (cronJob.metadata.deletionTimestamp) {
+              // Update the cronjob to show terminating state
+              const updatedCronJob = {
+                ...cronJob,
+                status: {
+                  ...cronJob.status,
+                  phase: 'Terminating'
+                }
+              };
+              newCronJobs[existingIndex] = updatedCronJob;
+            } else {
+              // Normal modification
+              newCronJobs[existingIndex] = cronJob;
+            }
+          } else {
+            // Sometimes MODIFIED events come before ADDED
+            if (!cronJob.metadata.deletionTimestamp) {
+              newCronJobs.push(cronJob);
+            }
+          }
+          break;
+
+        case 'DELETED':
+          if (existingIndex !== -1) {
+            newCronJobs.splice(existingIndex, 1);
+          }
+          break;
+
+        case 'ERROR':
+          setWsError(`Watch error: ${cronJob.message || 'Unknown error'}`);
+          break;
+
+        default:
+          break;
+      }
+
+      return newCronJobs;
+    });
+  }, [selectedNamespaces]);
+
+  // WebSocket connection management
+  const connectWebSocket = useCallback(() => {
+    if (!currentContext) {
+      return;
+    }
+
+    // Create a connection ID based only on context (one connection per cluster)
+    const connectionId = currentContext.name;
+
+    // Don't create a new connection if we already have one for the same cluster
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
+      return;
+    }
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // Clear any existing reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    try {
+      // Create single WebSocket connection to watch ALL namespaces
+      // We'll filter client-side to show only selected namespaces
+      const clusterUrl = `${OPERATOR_WS_URL}/clusters/${currentContext.name}/apis/batch/v1/cronjobs?watch=1`;
+      const ws = new WebSocket(clusterUrl);
+      wsRef.current = ws;
+      connectionIdRef.current = connectionId;
+
+      ws.onopen = () => {
+        // Only proceed if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(true);
+          setWsError(null);
+          setLoading(false);
+          // Direct connection - no need to send REQUEST messages,
+          // WebSocket will automatically start receiving Kubernetes watch events
+        }
+      };
+
+      ws.onmessage = (event) => {
+        // Only process messages if this is still the current connection
+        if (connectionIdRef.current !== connectionId) {
+          return;
+        }
+
+        try {
+          // Direct Kubernetes API watch response (no multiplexer wrapping)
+          const kubeEvent = JSON.parse(event.data);
+
+          // Handle Kubernetes watch event directly
+          if (kubeEvent.type && kubeEvent.object) {
+            handleCronJobEvent(kubeEvent);
+          } else if (kubeEvent.type === 'ERROR') {
+            setWsError(kubeEvent.object?.message || 'WebSocket error');
+          }
+        } catch (err) {
+          console.warn('Failed to parse WebSocket message:', err);
+        }
+      };
+
+      ws.onclose = (event) => {
+        // Only handle close if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          setWsConnected(false);
+          wsRef.current = null;
+          connectionIdRef.current = null;
+
+          // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
+          if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, 5000);
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        // Only handle error if this is still the current connection
+        if (connectionIdRef.current === connectionId) {
+          console.error('WebSocket error:', error);
+          setWsError('WebSocket connection failed');
+          setWsConnected(false);
+        }
+      };
+
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err);
+      setWsError(err instanceof Error ? err.message : 'Failed to connect WebSocket');
+      setLoading(false);
+    }
+  }, [currentContext, handleCronJobEvent]);
+
   const fetchAllCronJobs = async () => {
     if (!currentContext || selectedNamespaces.length === 0) {
       setCronJobs([]);
@@ -774,10 +944,100 @@ const CronJobs: React.FC = () => {
     }
   };
 
-  // Fetch cron jobs for all selected namespaces
+  // Initialize WebSocket connection when context or namespaces change
   useEffect(() => {
-    fetchAllCronJobs();
-  }, [currentContext, selectedNamespaces]);
+    if (!currentContext) {
+      setCronJobs([]);
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    // Clear existing cronjobs when switching contexts/namespaces
+    setCronJobs([]);
+
+    // If no namespaces selected, don't connect and show empty state
+    if (selectedNamespaces.length === 0) {
+      setLoading(false);
+      // Close existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      setWsConnected(false);
+      connectionIdRef.current = null;
+      return;
+    }
+
+    setLoading(true);
+
+    // First load existing cronjobs, then start WebSocket for real-time updates
+    const initializeCronJobs = async () => {
+      try {
+        // Load initial data using HTTP API
+        await fetchAllCronJobs();
+        // Then start WebSocket watching for changes
+        setTimeout(() => {
+          connectWebSocket();
+        }, 200);
+      } catch (error) {
+        console.error('Failed to initialize cronjobs:', error);
+        setLoading(false);
+      }
+    };
+
+    initializeCronJobs();
+
+    // Cleanup function
+    return () => {
+      // Close WebSocket if component unmounts
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [currentContext, selectedNamespaces.join(',')]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Filter existing cronjobs when namespace selection changes
+  useEffect(() => {
+    if (selectedNamespaces.length === 0) {
+      // No namespaces selected - show nothing
+      setCronJobs([]);
+      return;
+    }
+
+    // Filter existing cronjobs based on new namespace selection
+    setCronJobs(prevCronJobs =>
+      prevCronJobs.filter(cronJob =>
+        cronJob.metadata?.namespace && selectedNamespaces.includes(cronJob.metadata.namespace)
+      )
+    );
+  }, [selectedNamespaces]);
 
   // Filter cron jobs based on search query
   const filteredCronJobs = useMemo(() => {
@@ -1009,7 +1269,25 @@ const CronJobs: React.FC = () => {
             {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
             <NamespaceSelector />
           </div>
-          
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!wsConnected) {
+                // Fallback to HTTP fetch if WebSocket is not connected
+                fetchAllCronJobs();
+              } else {
+                // Reconnect WebSocket
+                connectWebSocket();
+              }
+            }}
+            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            title={wsConnected ? "Reconnect WebSocket" : "Refresh cronjobs"}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
           <Button
             variant="outline"
             size="sm"
