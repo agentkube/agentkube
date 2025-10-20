@@ -328,11 +328,16 @@ export async function getApiGroups(clusterName: string): Promise<any> {
 
 /**
  * Searches for Kubernetes resources based on a query string
- * @param contextName The contextName for the Kubernetes cluster
- * @param query The search query
- * @param limit Maximum number of results to return
- * @param resourceType Optional resource type to filter the search
- * @param namespace Optional namespace to filter the search
+ *
+ * Backend expects:
+ * - URL: /cluster/:clusterName/search (clusterName from URL path, NOT body)
+ * - Body: { query: string, limit?: number, resourceType?: string, namespaces?: string[] }
+ *
+ * @param contextName The contextName for the Kubernetes cluster (used in URL path)
+ * @param query The search query string
+ * @param limit Maximum number of results to return (default: 10)
+ * @param resourceType Optional resource type to filter (e.g., 'pods', 'deployments')
+ * @param namespaces Optional array of namespaces to filter the search
  * @returns A promise resolving to search results
  */
 export const queryResource = async (
@@ -340,35 +345,40 @@ export const queryResource = async (
   query: string,
   limit: number = 10,
   resourceType?: string,
-  namespace?: string, // Add namespace parameter
+  namespaces?: string[], // Changed to array to match backend SearchOptions
 ): Promise<SearchResponse> => {
-  // Build query parameters
-  const queryParams = new URLSearchParams();
-  
+  const url = `${OPERATOR_URL}/cluster/${contextName}/search`;
+
+  // Build request body matching backend SearchOptions struct
+  // Note: clusterName comes from URL path, NOT the body
+  const requestBody: {
+    query: string;
+    limit?: number;
+    resourceType?: string;
+    namespaces?: string[];
+  } = {
+    query, // Required field
+  };
+
+  // Only include optional fields if they have values
+  if (limit > 0) {
+    requestBody.limit = limit;
+  }
+
   if (resourceType) {
-    queryParams.append('type', resourceType);
+    requestBody.resourceType = resourceType;
   }
-  
-  if (namespace) {
-    queryParams.append('namespace', namespace);
+
+  if (namespaces && namespaces.length > 0) {
+    requestBody.namespaces = namespaces;
   }
-  
-  // Construct the URL with query parameters
-  const queryString = queryParams.toString();
-  const url = queryString 
-    ? `${OPERATOR_URL}/cluster/${contextName}/search?${queryString}`
-    : `${OPERATOR_URL}/cluster/${contextName}/search`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      contextName,
-      query,
-      limit
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {

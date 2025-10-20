@@ -58,7 +58,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
           cleanQuery,
           limit,
           resourceType,
-          namespace
+          namespace ? [namespace] : undefined // Convert single namespace to array
         );
 
         setResults(response.results || []);

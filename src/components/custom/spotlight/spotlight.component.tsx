@@ -635,7 +635,7 @@ const Spotlight: React.FC = () => {
                 <SearchResults
                   query={query}
                   onResultClick={onClose}
-                  limit={3}
+                  limit={5}
                   activeIndex={0}
                   onResultsCountChange={() => { }}
                 />
