@@ -152,7 +152,7 @@ kubectl apply -f manifests/
             <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Configure the list of resources that would be ignored by Agentkube when indexing your repository. These ignored resources will be in addition to those specified in your .kubeignore.
+                Configure the list of resources that would be ignored by Agentkube. These ignored resources will be in addition to those specified in your .kubeignore.
               </p>
               <div className="text-xs text-gray-500 dark:text-gray-500">
                 <strong>Supported rule types:</strong> namespace:, kind:, name:, file:, gvk:, gvkname:

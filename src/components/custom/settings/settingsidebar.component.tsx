@@ -30,7 +30,7 @@ const SettingSidebar: React.FC<SettingSidebarProps> = ({ isCollapsed, toggleColl
     // TODO: Release v1.0.6
     // { icon: <Shield size={15} />, label: 'Image Scans', path: '/settings/imagescans' },
     // { icon: <Binoculars size={15} />, label: 'Watcher', path: '/settings/watcher' },
-    // { icon: <Database size={15} />, label: 'Indexing & Docs', path: '/settings/indexing' },
+    { icon: <Database size={15} />, label: 'Indexing', path: '/settings/indexing' },
 
 
     // { icon: <Code size={15} />, label: 'Developer', path: '/settings/developer' },
