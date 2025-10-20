@@ -1021,34 +1021,31 @@ const CronJobs: React.FC = () => {
         </div>
       </div>
 
-      {/* No results message */}
-      {sortedCronJobs.length === 0 && (
-        <Alert className="my-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <AlertDescription>
-            {searchQuery
-              ? `No cron jobs matching "${searchQuery}"`
-              : selectedNamespaces.length === 0
-                ? "Please select at least one namespace"
-                : "No cron jobs found in the selected namespaces"}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* CronJobs table */}
-      {sortedCronJobs.length > 0 && (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            {renderContextMenu()}
-            {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
-                  {columnConfig.map(col => renderTableHeader(col))}
-                  <TableHead className="w-[50px]"></TableHead>
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          {renderContextMenu()}
+          {renderDeleteDialog()}
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedCronJobs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? `No cron jobs matching "${searchQuery}"`
+                      : selectedNamespaces.length === 0
+                        ? "Please select at least one namespace"
+                        : "No cron jobs found in the selected namespaces"}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedCronJobs.map((cronJob) => {
+              ) : (
+                sortedCronJobs.map((cronJob) => {
                   const status = getCronJobStatus(cronJob);
                   const activeJobs = cronJob.status?.active?.length || 0;
                   const lastSuccessfulTime = cronJob.status?.lastSuccessfulTime ? calculateAge(cronJob.status?.lastSuccessfulTime?.toString()) : '-';
@@ -1097,12 +1094,12 @@ const CronJobs: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Resource Filter Sidebar */}
       <ResourceFilterSidebar
