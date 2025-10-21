@@ -482,16 +482,16 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black z-50" style={{ height: terminalHeight }}>
+    <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-xl z-50" style={{ height: terminalHeight }}>
       {/* Resize handle at the top of the terminal */}
       <div
-        className="absolute top-0 left-0 right-0 h-1 bg-gray-900 cursor-ns-resize z-10 hover:bg-blue-600"
+        className="absolute top-0 left-0 right-0 h-1 bg-transparent cursor-ns-resize z-10 "
         onMouseDown={handleResizeStart}
       />
 
       <div
         ref={terminalHeaderRef}
-        className="flex justify-between items-center p-2 bg-[#0F1015]"
+        className="flex justify-between items-center p-2 bg-gray-700/10"
       >
         <div className="flex items-center space-x-2">
           <TerminalIcon className="h-4 w-4 text-gray-300" />
@@ -509,11 +509,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
       <div
         ref={terminalRef}
-        className="w-full cursor-text overflow-y-auto
-        [&::-webkit-scrollbar]:w-2 
-        [&::-webkit-scrollbar-track]:bg-transparent
-        [&::-webkit-scrollbar-thumb]:bg-gray-400/50 
-        [&::-webkit-scrollbar-thumb]:rounded-full"
+        className="w-full cursor-text overflow-y-auto 
+            [&::-webkit-scrollbar]:w-1.5 
+            [&::-webkit-scrollbar-track]:bg-transparent 
+            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50"
         style={{ height: `calc(${terminalHeight} - ${terminalHeaderRef.current?.offsetHeight || 40}px)` }}
         onClick={handleTerminalClick}
         onFocus={handleFocus}
