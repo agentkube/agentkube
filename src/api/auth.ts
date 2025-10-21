@@ -303,3 +303,31 @@ export const openOAuth2AuthUrl = async (url: string): Promise<void> => {
     }
   }
 };
+
+/**
+ * Gets the user's subscription plan from their profile
+ * @returns The user's plan (free, developer, startup, enterprise) or null if not available
+ */
+export const getUserPlan = async (): Promise<string | null> => {
+  try {
+    const profile = await getUserProfile();
+    return profile.subscription?.plan || null;
+  } catch (error) {
+    console.error('Error getting user plan:', error);
+    return null;
+  }
+};
+
+/**
+ * Checks if the user has a pro plan (developer, startup, or enterprise)
+ * @returns True if user has a pro plan, false otherwise
+ */
+export const hasProPlan = async (): Promise<boolean> => {
+  try {
+    const plan = await getUserPlan();
+    return plan !== null && plan !== 'free';
+  } catch (error) {
+    console.error('Error checking pro plan:', error);
+    return false;
+  }
+};

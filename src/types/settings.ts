@@ -58,21 +58,33 @@ export interface AgentKubeConfig {
       temperature: number;
       contextSize: number;
     };
-    externalConfig?: {
+    externalProviderSettings?: {
       openai?: {
         apiKey: string;
         baseUrl?: string;
+        enabled: boolean;
       };
       anthropic?: {
         apiKey: string;
+        enabled: boolean;
       };
       google?: {
         apiKey: string;
+        enabled: boolean;
       };
       azure?: {
         baseUrl: string;
         deploymentName: string;
         apiKey: string;
+        enabled: boolean;
+      };
+      ollama?: {
+        endpoint: string;
+        enabled: boolean;
+      };
+      vllm?: {
+        endpoint: string;
+        enabled: boolean;
       };
     };
   };
