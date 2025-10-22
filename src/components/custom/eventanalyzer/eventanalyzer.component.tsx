@@ -14,6 +14,9 @@ import { useNavigate } from 'react-router-dom'
 import { openExternalUrl } from '@/api/external'
 import { CoreV1Event as V1Event } from '@kubernetes/client-node'
 import { analyzeEventStream, EventAnalysisRequest } from '@/api/event.analyzer'
+import { listResources } from '@/api/internal/resources'
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils'
+import { useCluster } from '@/contexts/clusterContext'
 
 interface EventAnalyzerProps {
   event: V1Event
@@ -31,15 +34,60 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
   const [isDismissed, setIsDismissed] = useState(false)
   const [copied, setCopied] = useState(false)
   const [buttonPosition, setButtonPosition] = useState<{ top: number; left: number } | null>(null)
+  const [resourceYaml, setResourceYaml] = useState<string | undefined>(undefined)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { user, loading } = useAuth()
+  const { currentContext } = useCluster()
   const navigate = useNavigate()
+
+  // Function to fetch involved object YAML
+  const fetchInvolvedObjectYaml = async (): Promise<string | undefined> => {
+    if (!currentContext || !event.involvedObject) return undefined
+
+    const { kind, name, namespace } = event.involvedObject
+    if (!kind || !name) return undefined
+
+    try {
+      // Convert kind to resource type (e.g., Pod -> pods, Deployment -> deployments)
+      const resourceType = kind.toLowerCase() + 's'
+
+      // Determine if resource is namespaced
+      const isNamespaced = !!namespace
+
+      // Fetch the resource
+      const resources = await listResources(
+        currentContext.name,
+        resourceType,
+        {
+          namespace: isNamespaced ? namespace : undefined,
+          name: name
+        }
+      )
+
+      if (resources.length > 0) {
+        // Convert to enriched search result which includes YAML
+        const enrichedResource = resourceToEnrichedSearchResult(
+          resources[0],
+          resourceType,
+          isNamespaced,
+          '', // group - can be determined based on kind if needed
+          'v1' // version - can be determined based on kind if needed
+        )
+
+        return enrichedResource.resourceContent
+      }
+    } catch (error) {
+      console.error(`Failed to fetch YAML for ${kind}/${name}:`, error)
+    }
+
+    return undefined
+  }
 
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
           buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
@@ -71,11 +119,19 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
     setAnalysisContent('')
 
     try {
+      // Fetch involved object YAML if not already fetched
+      let yaml = resourceYaml
+      if (!yaml) {
+        yaml = await fetchInvolvedObjectYaml()
+        setResourceYaml(yaml)
+      }
+
       const request: EventAnalysisRequest = {
         event: event as any, // Convert V1Event to any for API compatibility
         cluster_name: clusterName,
         kubecontext: clusterName,
-        model: "openai/gpt-4o-mini"
+        model: "openai/gpt-4o-mini",
+        resource_yaml: yaml
       }
 
       await analyzeEventStream(request, {

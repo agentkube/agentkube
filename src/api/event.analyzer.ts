@@ -7,6 +7,7 @@ export interface EventAnalysisRequest {
   cluster_name: string;
   model?: string;
   kubecontext?: string;
+  resource_yaml?: string;
 }
 
 // Stream callback types
