@@ -24,13 +24,13 @@ const SettingSidebar: React.FC<SettingSidebarProps> = ({ isCollapsed, toggleColl
     { icon: <Folder size={15} />, label: 'Kubeconfig', path: '/settings/kubeconfig' },
     { icon: <Keyboard size={15} />, label: 'Shortcuts', path: '/settings/shortcuts' },
     { icon: <Monitor size={15} />, label: 'Appearance', path: '/settings/appearance' },
+    { icon: <Database size={15} />, label: 'Indexing', path: '/settings/indexing' },
     { icon: <Server size={15} />, label: 'MCP', path: '/settings/mcp' },
     { icon: <Network size={15} />, label: 'Network', path: '/settings/networks' },
 
     // TODO: Release v1.0.6
     // { icon: <Shield size={15} />, label: 'Image Scans', path: '/settings/imagescans' },
     // { icon: <Binoculars size={15} />, label: 'Watcher', path: '/settings/watcher' },
-    { icon: <Database size={15} />, label: 'Indexing', path: '/settings/indexing' },
 
 
     // { icon: <Code size={15} />, label: 'Developer', path: '/settings/developer' },

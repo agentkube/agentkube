@@ -127,6 +127,28 @@ export interface AgentKubeConfig {
     webSearch: boolean;
     recon: boolean;
   };
+  agentModelMapping: {
+    logAnalyzer: {
+      provider: string;
+      model: string;
+    };
+    eventAnalyzer: {
+      provider: string;
+      model: string;
+    };
+    securityRemediator: {
+      provider: string;
+      model: string;
+    };
+    investigationTask: {
+      provider: string;
+      model: string;
+    };
+    chat: {
+      provider: string;
+      model: string;
+    };
+  };
 }
 
 export interface MCPServerConfig {

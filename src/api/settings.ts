@@ -247,16 +247,48 @@ export const getMcpTools = async () => {
 export const getServerTools = async (serverName: string) => {
   try {
     const response = await fetch(`${ORCHESTRATOR_URL}/api/mcp/servers/${serverName}/tools`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch tools for server ${serverName}: ${response.status} ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
     console.error(`Error fetching tools for server ${serverName}:`, error);
     throw error;
+  }
+};
+
+/**
+ * Gets the model configuration for a specific agent
+ * @param agentName Name of the agent (logAnalyzer, eventAnalyzer, etc.)
+ * @returns Promise with the agent's model string (provider/model or default)
+ */
+export const getAgentModel = async (
+  agentName: 'logAnalyzer' | 'eventAnalyzer' | 'securityRemediator' | 'investigationTask' | 'chat'
+): Promise<string> => {
+  try {
+    const settings = await getSettings();
+
+    if (!settings.agentModelMapping || !settings.agentModelMapping[agentName]) {
+      // Default fallback
+      return 'openai/gpt-4o-mini';
+    }
+
+    const agentConfig = settings.agentModelMapping[agentName];
+
+    // If model is empty or provider is default, return the default model
+    if (!agentConfig.model || agentConfig.provider === 'default') {
+      return 'openai/gpt-4o-mini';
+    }
+
+    // Return provider/model format
+    return `${agentConfig.provider}/${agentConfig.model}`;
+  } catch (error) {
+    console.error(`Error fetching agent model for ${agentName}:`, error);
+    // Return default on error
+    return 'openai/gpt-4o-mini';
   }
 };
 

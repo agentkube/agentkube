@@ -26,7 +26,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
-import { RemediationConfiguration } from '@/components/custom';
+import { AgentModelMap } from '@/components/custom';
 import { getProviderIcon } from '@/utils/providerIconMap';
 import { openExternalUrl } from '@/api/external';
 
@@ -364,7 +364,7 @@ const ModelConfiguration = () => {
                 />
                 <Button
                   // variant="outline"
-                  className="px-4 py-2 rounded text-sm"
+                  className="px-4 py-2 h-full rounded text-sm"
                   onClick={handleAddModel}
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -384,11 +384,22 @@ const ModelConfiguration = () => {
         )}
       </div>
 
-      {/* Remediation Default Model */}
-      <RemediationConfiguration />
+      {/* Accordion for Agent Model Mapping and API Keys */}
+      <Accordion type="single" collapsible className="w-full space-y-2">
+        {/* Agent Model Mapping */}
+        <AccordionItem value="agent-model-map" className="border-gray-300 dark:border-gray-800/60">
+          <AccordionTrigger className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:no-underline">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              <span>Agent Model Configuration</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-4">
+            <AgentModelMap />
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Model Config wrapped in Accordion */}
-      <Accordion type="single" collapsible className="w-full">
+        {/* API Keys */}
         <AccordionItem value="model-config" className="border-gray-300 dark:border-gray-800/60">
           <AccordionTrigger className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:no-underline">
             <div className="flex items-center gap-2">

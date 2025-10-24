@@ -17,6 +17,7 @@ import { analyzeEventStream, EventAnalysisRequest } from '@/api/event.analyzer'
 import { listResources } from '@/api/internal/resources'
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils'
 import { useCluster } from '@/contexts/clusterContext'
+import { getAgentModel } from '@/api/settings'
 
 interface EventAnalyzerProps {
   event: V1Event
@@ -126,11 +127,14 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
         setResourceYaml(yaml)
       }
 
+      // Get the configured model for event analyzer
+      const model = await getAgentModel('eventAnalyzer')
+
       const request: EventAnalysisRequest = {
         event: event as any, // Convert V1Event to any for API compatibility
         cluster_name: clusterName,
         kubecontext: clusterName,
-        model: "openai/gpt-4o-mini",
+        model: model,
         resource_yaml: yaml
       }
 

@@ -18,7 +18,7 @@ export { default as RenameContextDialog } from './renamecontextdialog/renamecont
 export { default as ModelDialog } from './modeldialog/modeldialog.component';
 export { default as ProxyConfigDialog } from './proxyconfigdialog/proxyconfigdialog.component';
 export { default as ContextSwitcher } from './contextswitcher/contextswitcher.component';
-export { default as RemediationConfiguration } from './remediationconfig/remediationconfig.component';
+export { default as AgentModelMap } from './agentmodelmap/agentmodelmap.component';
 export { default as ClusterReportCard } from './clusterreport/clusterreportcard.component';
 export { default as IssuesSection } from './clusterreport/issues-section.component';
 export { default as Provisioner } from './provisoner/provisioner.component';

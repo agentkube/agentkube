@@ -100,15 +100,15 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
       >
         <div className="flex items-center space-x-1">
           {getToolIcon(toolCall.tool)}
-          <span className="text-sm space-x-1 flex items-center">
+          <span className="space-x-1 flex items-center">
             <span>
               {toolCall.tool}
             </span>
-            {!toolCall.isPending && (
+            {/* {!toolCall.isPending && (
               <span className="text-xs px-1.5 py-0.5 rounded-md bg-green-500/40 dark:bg-green-400/10 text-green-800 dark:text-green-400">
                 Completed
               </span>
-            )}
+            )} */}
           </span>
         </div>
         <div>

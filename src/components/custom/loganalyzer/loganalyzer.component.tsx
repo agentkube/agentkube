@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom'
 import { openExternalUrl } from '@/api/external'
 import { analyzeLogsStream, LogAnalysisRequest } from '@/api/log.analyzer'
 import { jsonToYaml } from '@/utils/yaml'
+import { getAgentModel } from '@/api/settings'
 
 interface LogAnalyzerProps {
   logs: string
@@ -75,13 +76,16 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
     setAnalysisContent('')
 
     try {
+      // Get the configured model for log analyzer
+      const model = await getAgentModel('logAnalyzer')
+
       const request: LogAnalysisRequest = {
         logs: logs,
         pod_name: podName,
         namespace: namespace,
         container_name: containerName,
         cluster_name: clusterName,
-        model: "openai/gpt-4o-mini",
+        model: model,
         kubecontext: clusterName,
         pod_yaml: podData ? jsonToYaml(podData) : undefined
       }

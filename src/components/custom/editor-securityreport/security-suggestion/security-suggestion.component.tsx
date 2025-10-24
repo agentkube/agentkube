@@ -7,6 +7,7 @@ import SecurityCodeBlock from '../security-codeblock/security-codeblock.componen
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/contexts/useAuth';
 import { toast as sooner } from "sonner";
+import { getAgentModel } from '@/api/settings';
 
 interface SecuritySuggestionProps {
   yamlContent: string;
@@ -57,10 +58,13 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
     setIsLoading(true);
     setSuggestion('');
     setCodeBlock('');
-    
+
     let responseText = '';
-    
+
     try {
+      // Get the configured model for security remediator
+      const model = await getAgentModel('securityRemediator');
+
       await securityRemediationStream(
         {
           message: `Provide only the YAML to add to fix this security issue`,
@@ -68,10 +72,10 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
           vulnerability_context: {
             severity: misconfiguration.Severity,
             description: misconfiguration.Description,
-            code_snippet: misconfiguration.CauseMetadata?.Code?.Lines ? 
+            code_snippet: misconfiguration.CauseMetadata?.Code?.Lines ?
               misconfiguration.CauseMetadata.Code.Lines.map((line: any) => line.Content).join('\n') : ''
           },
-          model: "openai/o3-mini" // TODO need to change the model
+          model: model
         },
         {
           onToken: (token) => {

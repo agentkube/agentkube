@@ -42,7 +42,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
   const [azureSaved, setAzureSaved] = useState(false);
 
   const [ollamaEnabled, setOllamaEnabled] = useState(false);
-  const [ollamaEndpoint, setOllamaEndpoint] = useState('http://127.0.0.1:11434');
+  const [ollamaEndpoint, setOllamaEndpoint] = useState('http://127.0.0.1:11434/v1');
 
   const [vllmEnabled, setVllmEnabled] = useState(false);
   const [vllmEndpoint, setVllmEndpoint] = useState('http://localhost:8000');
@@ -127,7 +127,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           if (externalProviderSettings.ollama) {
             const ollamaConfig = externalProviderSettings.ollama;
             setOllamaEnabled(ollamaConfig.enabled || false);
-            setOllamaEndpoint(ollamaConfig.endpoint || 'http://127.0.0.1:11434');
+            setOllamaEndpoint(ollamaConfig.endpoint || 'http://127.0.0.1:11434/v1');
           }
 
           // Load vLLM config if it exists
@@ -777,15 +777,12 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
+        <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-4">
+          <div className="flex items-center space-x-3">
             <Check className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
-                Pro Features Unlocked
-              </h3>
               <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                You have access to BYOK (Bring Your Own Key) and BYOM (Bring Your Own Model) features. Configure your external providers below.
+                You have access to BYOK (Bring Your Own Key) features. Configure your external providers below.
               </p>
             </div>
           </div>
@@ -1059,7 +1056,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
               <div className="flex gap-2">
                 <Input
                   type="text"
-                  placeholder="http://127.0.0.1:11434"
+                  placeholder="http://127.0.0.1:11434/v1"
                   value={ollamaEndpoint}
                   onChange={(e) => setOllamaEndpoint(e.target.value)}
                   className="h-7 bg-transparent dark:bg-gray-500/10 border-gray-300 dark:border-gray-800/60"
