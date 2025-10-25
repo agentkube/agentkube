@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
-import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourcePreview } from '@/components/custom';
+import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview } from '@/components/custom';
 import Messages from './main-assistant/message';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { EnrichedSearchResult, SearchResult } from '@/types/search';
@@ -590,7 +590,10 @@ const RightDrawer: React.FC = () => {
                     )}
                     
                     <div className="flex justify-between items-center mb-2">
-                      <ResourceContext onResourceSelect={handleAddContext} />
+                      <div className="flex items-center gap-1">
+                        <ResourceContext onResourceSelect={handleAddContext} />
+                        <ResourceContextSuggestion onResourceSelect={handleAddContext} />
+                      </div>
                       <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
                     </div>
 

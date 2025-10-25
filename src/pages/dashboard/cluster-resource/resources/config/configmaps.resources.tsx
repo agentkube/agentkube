@@ -6,7 +6,7 @@ import { V1ConfigMap } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Sparkles, Filter, RefreshCw } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Sparkles, Filter, RefreshCw, GitCompareArrows } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +30,7 @@ import { toast } from '@/hooks/use-toast';
 import { useReconMode } from '@/contexts/useRecon';
 import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 import { OPERATOR_WS_URL } from '@/config';
+import { useDriftAnalysis } from '@/contexts/useDriftAnalysis';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -76,6 +77,7 @@ const ConfigMaps: React.FC = () => {
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const { isReconMode } = useReconMode();
+  const { addToDriftCheck, openDriftAnalysis } = useDriftAnalysis();
   const [configMaps, setConfigMaps] = useState<V1ConfigMap[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +174,34 @@ const ConfigMaps: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to add ConfigMap to chat context",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDriftCheck = (configMap: V1ConfigMap) => {
+    try {
+      const namespace = configMap.metadata?.namespace || '';
+      const kind = configMap.kind || 'ConfigMap';
+      const name = configMap.metadata?.name || '';
+      const resourceId = `${namespace}/${kind}/${name}`;
+
+      // Add to drift check
+      addToDriftCheck(resourceId);
+
+      // Open drift analysis panel
+      openDriftAnalysis();
+
+      // Show success toast
+      toast({
+        title: "Added to Drift Analysis",
+        description: `ConfigMap "${name}" has been added to drift check`
+      });
+    } catch (error) {
+      console.error('Error adding configMap to drift check:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add ConfigMap to drift check",
         variant: "destructive"
       });
     }
@@ -1055,6 +1085,13 @@ const ConfigMaps: React.FC = () => {
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask AI
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleDriftCheck(configMap);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <GitCompareArrows className="mr-2 h-4 w-4" />
+                              Drift Check
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();

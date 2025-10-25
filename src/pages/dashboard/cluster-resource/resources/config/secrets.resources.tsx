@@ -6,7 +6,7 @@ import { V1Secret } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, LockIcon, Filter } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, LockIcon, Filter, GitCompareArrows } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +27,7 @@ import { deleteResource } from '@/api/internal/resources';
 import { useReconMode } from '@/contexts/useRecon';
 import { toast } from '@/hooks/use-toast';
 import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
+import { useDriftAnalysis } from '@/contexts/useDriftAnalysis';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -42,6 +43,7 @@ const Secrets: React.FC = () => {
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const { isReconMode } = useReconMode();
+  const { addToDriftCheck, openDriftAnalysis } = useDriftAnalysis();
   const [secrets, setSecrets] = useState<V1Secret[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -181,7 +183,7 @@ const Secrets: React.FC = () => {
 
   const handleDeleteSecretMenuItem = (e: React.MouseEvent, secret: V1Secret) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -190,10 +192,34 @@ const Secrets: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveSecret(secret);
     setSelectedSecrets(new Set([`${secret.metadata?.namespace}/${secret.metadata?.name}`]));
     setShowDeleteDialog(true);
+  };
+
+  const handleDriftCheck = (secret: V1Secret) => {
+    try {
+      const namespace = secret.metadata?.namespace || '';
+      const kind = secret.kind || 'Secret';
+      const name = secret.metadata?.name || '';
+      const resourceId = `${namespace}/${kind}/${name}`;
+
+      addToDriftCheck(resourceId);
+      openDriftAnalysis();
+
+      toast({
+        title: "Added to Drift Analysis",
+        description: `Secret "${name}" has been added to drift check`
+      });
+    } catch (error) {
+      console.error('Error adding secret to drift check:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add secret to drift check",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle delete action
@@ -870,6 +896,13 @@ const Secrets: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDriftCheck(secret);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <GitCompareArrows className="mr-2 h-4 w-4" />
+                            Drift Check
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewSecretMenuItem(e, secret)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

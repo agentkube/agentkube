@@ -43,6 +43,7 @@ export { default as RightDrawer } from './chat/rightdrawer.components';
 export { default as ModelSelector } from './modelselector/modelselect.components';
 export { default as AutoResizeTextarea } from './textarea/autotextarea.component';
 export { default as ResourceContext } from './resourcecontext/resourcecontext.component';
+export { default as ResourceContextSuggestion } from './resourcecontext/resourcecontextsuggestion.component';
 export { default as ResourcePreview } from './resourcepreview/resourcepreview.component';
 export { default as ResourceLogPreview } from './resourcepreview/resourcelogpreview.component';
 export { default as TrivySetupDialog } from './security-setup/security-setup-dialog.component';

@@ -98,6 +98,7 @@ import { AnalyticsProvider } from "./contexts/useAnalytics";
 import { ReconModeProvider } from "./contexts/useRecon";
 import { ScanProvider } from "./contexts/useScan";
 import MiniEditorWrapper from "./components/custom/minieditor/minieditorwrapper.component";
+import { DriftAnalysisProvider } from "./contexts/useDriftAnalysis";
 
 function App() {
   return (
@@ -109,6 +110,7 @@ function App() {
               <ClusterProvider>
                 <ScanProvider>
                 <ReconModeProvider>
+                  <DriftAnalysisProvider>
                   <DrawerProvider>
                   <NamespaceProvider>
 
@@ -294,6 +296,7 @@ function App() {
                   {/* <TailwindIndicator /> */}
                   </NamespaceProvider>
                   </DrawerProvider>
+                  </DriftAnalysisProvider>
                 </ReconModeProvider>
                 </ScanProvider>
               </ClusterProvider>

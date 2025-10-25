@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Copy, CheckCheck } from 'lucide-react';
+import { Copy, CheckCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './codeblock.righdrawer';
@@ -7,7 +7,6 @@ import ToolCallAccordion from '@/components/ui/toolcall';
 import { ToolCall } from '@/api/orchestrator.chat';
 import { openExternalUrl } from '@/api/external';
 import { LinkPreview } from '@/components/ui/link-preview';
-import ToolParameter from './toolparameter.rightdrawer';
 import ResponseFeedback from '../../responsefeedback/responsefeedback.component';
 import { ChartLineDotsColors, ChartBarStacked, ChartBarLabelCustom, ChartNetworkTrafficStep, ChartCryptoPortfolio } from '@/components/custom/promgraphcontainer/graphs.component';
 import { AgentkubeBot } from '@/assets/icons';

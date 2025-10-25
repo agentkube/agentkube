@@ -7,7 +7,7 @@ import { useReconMode } from '@/contexts/useRecon';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, GitCompareArrows } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +30,7 @@ import { useDrawer } from '@/contexts/useDrawer';
 import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils';
 import { toast } from '@/hooks/use-toast';
 import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
+import { useDriftAnalysis } from '@/contexts/useDriftAnalysis';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -44,6 +45,7 @@ const StatefulSets: React.FC = () => {
   const navigate = useNavigate();
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
+  const { addToDriftCheck, openDriftAnalysis } = useDriftAnalysis();
   const [statefulSets, setStatefulSets] = useState<V1StatefulSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -478,9 +480,9 @@ const StatefulSets: React.FC = () => {
         'apps',
         'v1'
       );
-      
+
       addResourceContext(resourceContext);
-      
+
       toast({
         title: "Added to Chat",
         description: `StatefulSet "${statefulSet.metadata?.name}" has been added to chat context`
@@ -490,6 +492,34 @@ const StatefulSets: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to add statefulset to chat context",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDriftCheck = (statefulSet: V1StatefulSet) => {
+    try {
+      const namespace = statefulSet.metadata?.namespace || '';
+      const kind = statefulSet.kind || 'StatefulSet';
+      const name = statefulSet.metadata?.name || '';
+      const resourceId = `${namespace}/${kind}/${name}`;
+
+      // Add to drift check
+      addToDriftCheck(resourceId);
+
+      // Open drift analysis panel
+      openDriftAnalysis();
+
+      // Show success toast
+      toast({
+        title: "Added to Drift Analysis",
+        description: `StatefulSet "${name}" has been added to drift check`
+      });
+    } catch (error) {
+      console.error('Error adding statefulset to drift check:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add statefulset to drift check",
         variant: "destructive"
       });
     }
@@ -1239,6 +1269,13 @@ const StatefulSets: React.FC = () => {
                           }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Sparkles className="mr-2 h-4 w-4" />
                             Ask AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDriftCheck(statefulSet);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <GitCompareArrows className="mr-2 h-4 w-4" />
+                            Drift Check
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewStatefulSet(e, statefulSet)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />

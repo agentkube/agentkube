@@ -2,6 +2,7 @@ import { Rss, Sparkles, Terminal, Download, ExternalLink, Lightbulb, ScanSearch,
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import TerminalContainer from '../terminal/terminalcontainer.component';
+import DriftAnalysisContainer from '../driftanalysis/driftanalysiscontainer.component';
 import { openExternalUrl } from '@/api/external';
 import {
   Tooltip,
@@ -202,6 +203,7 @@ const Footer: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className='flex items-center '>
           <TerminalContainer />
+          <DriftAnalysisContainer />
           <div
             className='backdrop-blur-md cursor-pointer py-1 px-2 text-xs dark:text-gray-300 hover:bg-gray-800/50 flex gap-1.5 items-center'
             onClick={() => setIsOpen(true)}

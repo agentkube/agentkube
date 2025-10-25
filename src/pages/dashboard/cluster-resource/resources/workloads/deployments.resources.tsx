@@ -6,7 +6,7 @@ import { V1Deployment } from '@kubernetes/client-node';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Pause, Play, Edit3, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, MoreVertical, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Pause, Play, Edit3, RefreshCw, Sparkles, GitCompareArrows } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,7 @@ import { useReconMode } from '@/contexts/useRecon';
 import { ResourceFilterSidebar, type ColumnConfig } from '@/components/custom';
 import { Filter } from 'lucide-react';
 import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
+import { useDriftAnalysis } from '@/contexts/useDriftAnalysis';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -44,6 +45,7 @@ const Deployments: React.FC = () => {
   const { currentContext } = useCluster();
   const { selectedNamespaces } = useNamespace();
   const { isReconMode } = useReconMode();
+  const { addToDriftCheck, openDriftAnalysis } = useDriftAnalysis();
   const [deployments, setDeployments] = useState<V1Deployment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -521,10 +523,10 @@ const Deployments: React.FC = () => {
         'apps',
         'v1'
       );
-      
+
       // Add to chat context
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -535,6 +537,34 @@ const Deployments: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to add deployment to chat context",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDriftCheck = (deployment: V1Deployment) => {
+    try {
+      const namespace = deployment.metadata?.namespace || '';
+      const kind = deployment.kind || 'Deployment';
+      const name = deployment.metadata?.name || '';
+      const resourceId = `${namespace}/${kind}/${name}`;
+
+      // Add to drift check
+      addToDriftCheck(resourceId);
+
+      // Open drift analysis panel
+      openDriftAnalysis();
+
+      // Show success toast
+      toast({
+        title: "Added to Drift Analysis",
+        description: `Deployment "${name}" has been added to drift check`
+      });
+    } catch (error) {
+      console.error('Error adding deployment to drift check:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add deployment to drift check",
         variant: "destructive"
       });
     }
@@ -1287,6 +1317,13 @@ const Deployments: React.FC = () => {
                           }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Sparkles className="mr-2 h-4 w-4" />
                             Ask AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDriftCheck(deployment);
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <GitCompareArrows className="mr-2 h-4 w-4" />
+                            Drift Check
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => handleViewDeployment(e, deployment)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
