@@ -230,13 +230,17 @@ const Recommendation: React.FC<RecommendationProps> = ({ resourceName, namespace
       {/* Header with refresh button */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="flex items-center gap-1 text-md font-light text-gray-900 dark:text-white">
-          {podOwnerInfo?.ownerReferences?.[0] && (
+          <h3 className="flex items-center gap-1 text-sm font-light text-gray-900 dark:text-white">
+            {podOwnerInfo?.ownerReferences?.[0] && (
               <>
+                <div className="text-gray-400 text-xs py-1 px-2 rounded-xl dark:bg-blue-500/10 text-blue-500 dark:text-blue-400">
+                  <p>
+                    Controlled By
+                  </p>
+                </div>
                 <span className="font-medium text-gray-700 dark:text-gray-300">
                   {podOwnerInfo.ownerReferences[0].kind}
                 </span>
-                <span className="text-gray-400"></span>
                 <span className="text-gray-600 dark:text-gray-400">
                   {podOwnerInfo.ownerReferences[0].name}
                 </span>
@@ -306,11 +310,10 @@ const Recommendation: React.FC<RecommendationProps> = ({ resourceName, namespace
                   {formatCPU(rec.recommended.cpu.request)}
                 </span>
                 {getChangePercentage(rec.current.cpu.request, rec.recommended.cpu.request) !== null && (
-                  <span className={`text-xs flex items-center gap-1 ${
-                    (getChangePercentage(rec.current.cpu.request, rec.recommended.cpu.request) || 0) > 0
+                  <span className={`text-xs flex items-center gap-1 ${(getChangePercentage(rec.current.cpu.request, rec.recommended.cpu.request) || 0) > 0
                       ? 'text-red-500'
                       : 'text-green-500'
-                  }`}>
+                    }`}>
                     {(getChangePercentage(rec.current.cpu.request, rec.recommended.cpu.request) || 0) > 0 ? (
                       <TrendingUp className="h-3 w-3" />
                     ) : (
@@ -345,11 +348,10 @@ const Recommendation: React.FC<RecommendationProps> = ({ resourceName, namespace
                   {formatBytes(rec.recommended.memory.request)}
                 </span>
                 {getChangePercentage(rec.current.memory.request, rec.recommended.memory.request) !== null && (
-                  <span className={`text-xs flex items-center gap-1 ${
-                    (getChangePercentage(rec.current.memory.request, rec.recommended.memory.request) || 0) > 0
+                  <span className={`text-xs flex items-center gap-1 ${(getChangePercentage(rec.current.memory.request, rec.recommended.memory.request) || 0) > 0
                       ? 'text-red-500'
                       : 'text-green-500'
-                  }`}>
+                    }`}>
                     {(getChangePercentage(rec.current.memory.request, rec.recommended.memory.request) || 0) > 0 ? (
                       <TrendingUp className="h-3 w-3" />
                     ) : (
