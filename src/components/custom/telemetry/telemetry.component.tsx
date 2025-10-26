@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import Tracing from './tracing.component';
 import Metrics from './metrics.component';
 import TelemetryOverview from './telemety-overview.component';
+import Recommendation from './recommendation.component';
 
 interface TelemetryProps {
   resourceName: string;
@@ -75,10 +76,11 @@ const Telemetry: React.FC<TelemetryProps> = ({ resourceName, namespace, kind, on
               <TabsList className="dark:bg-transparent text-sm">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="Metrics">Metrics</TabsTrigger>
-                <TabsTrigger value="traces">Traces</TabsTrigger>
-                <TabsTrigger value="requests">Requests</TabsTrigger>
-                <TabsTrigger value="errors">Errors</TabsTrigger>
-                <TabsTrigger value="duration">Duration</TabsTrigger>
+                <TabsTrigger value="recommendation">Recommendation</TabsTrigger>
+                {/* <TabsTrigger value="traces">Traces</TabsTrigger> */}
+                {/* <TabsTrigger value="requests">Requests</TabsTrigger> */}
+                {/* <TabsTrigger value="errors">Errors</TabsTrigger> */}
+                {/* <TabsTrigger value="duration">Duration</TabsTrigger> */}
               </TabsList>
 
               <Button className='flex justify-between w-44'>Drilldown <ArrowUpRight /></Button>
@@ -102,6 +104,10 @@ const Telemetry: React.FC<TelemetryProps> = ({ resourceName, namespace, kind, on
 
               <TabsContent value="Metrics" className="mt-4">
                 <Metrics resourceName={resourceName} namespace={namespace} kind={kind} />
+              </TabsContent>
+
+              <TabsContent value="recommendation" className="mt-4">
+                <Recommendation resourceName={resourceName} namespace={namespace} kind={kind} />
               </TabsContent>
 
               <TabsContent value="traces" className="mt-4 px-1">
