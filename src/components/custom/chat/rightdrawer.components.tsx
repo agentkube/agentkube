@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/tooltip';
 import { AgentkubeBot } from '@/assets/icons';
 import PromptContentDialog from '@/components/custom/promptcontentdialog/promptcontentdialog.component';
+import { ToolPermissionPrompt } from './toolpermissionprompt.rightdrawer';
 
 interface SuggestedQuestion {
   question: string;
@@ -82,11 +83,12 @@ const RightDrawer: React.FC = () => {
   const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
   const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
   const [showChatSettings, setShowChatSettings] = useState<boolean>(false);
-  const [structuredContent, setStructuredContent] = useState<{content: string, title?: string}[]>([]);
-  
+  const [structuredContent, setStructuredContent] = useState<{ content: string, title?: string }[]>([]);
+
   // Dialog states
   const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
   const [selectedContentForDialog, setSelectedContentForDialog] = useState<string | null>(null);
+  const [isToolPermissionVisible, setIsToolPermissionVisible] = useState(false);
   const { currentContext } = useCluster();
   const { user } = useAuth();
 
@@ -513,6 +515,22 @@ const RightDrawer: React.FC = () => {
                         </Tooltip>
                       </>
                     )}
+                    {/* TODO remove after implementation is completed in backend */}
+                    {/* <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsToolPermissionVisible(!isToolPermissionVisible)}
+                          className="p-1"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="p-1">
+                        <p>Toggle tool permission prompt</p>
+                      </TooltipContent>
+                    </Tooltip> */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -552,13 +570,18 @@ const RightDrawer: React.FC = () => {
                   )}
                 </div>
 
-     
+
                 {!showChatSettings && <SignInContainer />}
                 {!showChatSettings && <UpgradeToProContainer />}
 
-
                 {!showChatSettings && (
-                  <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto">
+                  <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto relative">
+                    {/* Tool Permission Prompt - appears above textarea */}
+                    <ToolPermissionPrompt
+                      isVisible={isToolPermissionVisible}
+                      onClose={() => setIsToolPermissionVisible(false)}
+                    />
+
                     {structuredContent.length > 0 && (
                       <div className="mb-2 flex flex-wrap gap-1">
                         {structuredContent.map((item, index) => (
@@ -588,7 +611,7 @@ const RightDrawer: React.FC = () => {
                         ))}
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-1">
                         <ResourceContext onResourceSelect={handleAddContext} />
@@ -663,7 +686,7 @@ const RightDrawer: React.FC = () => {
           </>
         )}
       </AnimatePresence>
-      
+
       {/* Prompt Content Dialog */}
       <PromptContentDialog
         isOpen={isPromptDialogOpen}
