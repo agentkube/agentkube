@@ -80,10 +80,10 @@ export interface ToolCall {
   name: string;
   arguments: any;
   call_id: string;
-  output?: {
-    command: string;
-    output: string;
-  };
+  output?: string | {
+    command?: string;
+    output?: string;
+  } | any;
   success?: boolean;
   isPending?: boolean;
 }

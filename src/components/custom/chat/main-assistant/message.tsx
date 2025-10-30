@@ -139,7 +139,7 @@ const Messages: React.FC<MessagesProps> = ({
           ))}
 
           {/* Display current streaming response if available */}
-          {isLoading && currentText && (
+          {isLoading && (currentText || currentEvents.length > 0) && (
             <div className="flex items-start">
               <AssistantMessage
                 content={currentText}
@@ -152,7 +152,7 @@ const Messages: React.FC<MessagesProps> = ({
           )}
 
           {/* Assistant isLoading response */}
-          {isLoading && !currentText && !currentEvents.length && (
+          {isLoading && !currentText && currentEvents.length === 0 && (
             <div className="flex justify-center">
               <div className="flex items-center justify-between space-x-2 px-6 py-4 bg-gray-300/30 dark:bg-gray-800/20 w-full">
                 <div className='flex items-center space-x-2'>

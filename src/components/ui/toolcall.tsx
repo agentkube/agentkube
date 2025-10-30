@@ -40,9 +40,56 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   // Memoize output text to avoid re-processing
   const outputText = useMemo(() => {
     if (!toolCall.output) return '';
-    return typeof toolCall.output === 'string'
-      ? toolCall.output
-      : toolCall.output.output || JSON.stringify(toolCall.output, null, 2);
+
+    // If output is already an object with 'output' field, extract it
+    if (typeof toolCall.output === 'object' && toolCall.output.output) {
+      return toolCall.output.output;
+    }
+
+    // If output is a string, try to parse it
+    if (typeof toolCall.output === 'string') {
+      // Check if it looks like a Python dict string with 'command' and 'output' keys
+      if (toolCall.output.includes("'command':") || toolCall.output.includes('"command":')) {
+        // Simple extraction: find 'output': ' and get everything until the last '}
+        // This works because 'output' is always the last key in the dict
+        const match = toolCall.output.match(/['"]output['"]\s*:\s*['"](.*)['"]}\s*$/s);
+        if (match && match[1]) {
+          // Unescape the string
+          return match[1]
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\r/g, '\r')
+            .replace(/\\'/g, "'")
+            .replace(/\\"/g, '"')
+            .replace(/\\\\/g, '\\');
+        }
+      }
+
+      // If regex extraction fails, try JSON parsing
+      try {
+        // Try to parse as JSON (handle both single and double quotes)
+        const parsed = JSON.parse(toolCall.output.replace(/'/g, '"'));
+
+        // If parsed object has 'output' field, extract it
+        if (parsed && typeof parsed === 'object' && parsed.output) {
+          return parsed.output;
+        }
+
+        // If parsed object has 'command' and 'output' fields, return only 'output'
+        if (parsed && typeof parsed === 'object' && parsed.command && parsed.output) {
+          return parsed.output;
+        }
+
+        // Otherwise return the original string
+        return toolCall.output;
+      } catch (e) {
+        // If parsing fails, return as-is
+        return toolCall.output;
+      }
+    }
+
+    // Fallback: stringify the object
+    return JSON.stringify(toolCall.output, null, 2);
   }, [toolCall.output]);
 
   // Check if output is large and needs truncation
