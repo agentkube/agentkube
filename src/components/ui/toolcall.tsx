@@ -18,23 +18,24 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   const [showFullOutput, setShowFullOutput] = useState(false);
   const { theme } = useTheme();
 
-  // Memoize parsed JSON to avoid re-parsing on every render
-  const parsedArguments = useMemo(() => {
-    if (!toolCall.arguments) return null;
-    try {
-      return JSON.parse(toolCall.arguments);
-    } catch (error) {
-      console.warn('Failed to parse tool call arguments:', error);
-      return toolCall.arguments;
-    }
-  }, [toolCall.arguments]);
-
   // Memoize formatted arguments string
   const formattedArguments = useMemo(() => {
-    if (!parsedArguments) return '';
-    if (typeof parsedArguments === 'string') return parsedArguments;
-    return JSON.stringify(parsedArguments, null, 2);
-  }, [parsedArguments]);
+    if (!toolCall.arguments) return '';
+
+    // If arguments is already an object, stringify it
+    if (typeof toolCall.arguments === 'object') {
+      return JSON.stringify(toolCall.arguments, null, 2);
+    }
+
+    // If it's a string, try to parse and re-stringify for formatting
+    try {
+      const parsed = JSON.parse(toolCall.arguments);
+      return JSON.stringify(parsed, null, 2);
+    } catch (error) {
+      // If parsing fails, return as-is
+      return String(toolCall.arguments);
+    }
+  }, [toolCall.arguments]);
 
   // Memoize output text to avoid re-processing
   const outputText = useMemo(() => {

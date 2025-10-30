@@ -1,6 +1,6 @@
 import { ORCHESTRATOR_URL } from "@/config";
 import { fetch } from '@tauri-apps/plugin-http';
-import { HITLApprovalRequest, HITLDecisionRequest, HITLDecisionResponse, HITLStatusResponse, HITLToggleRequest, HITLToggleResponse, HITLPendingRequestsResponse } from '@/types/hitl';
+import { HITLDecisionRequest, HITLDecisionResponse, HITLStatusResponse, HITLToggleRequest, HITLToggleResponse, HITLPendingRequestsResponse } from '@/types/hitl';
 // Type definitions
 export interface ChatRequest {
   message: string;
@@ -78,23 +78,45 @@ export interface ConversationUpdateRequest {
 export interface ToolCall {
   tool: string;
   name: string;
-  arguments: string;
+  arguments: any;
+  call_id: string;
   output?: {
     command: string;
     output: string;
   };
+  success?: boolean;
   isPending?: boolean;
+}
+
+// TODO: Custom Component Mapping Strategy (Option 1)
+// After tool_call_end event, check tool name and yield custom_component event
+// with parsed data for GenUI components. Implement get_component_for_tool()
+// mapping function in stream_utils.py around line 578-591
+// Example: list_pods -> PodsList component, describe_deployment -> DeploymentDetail component
+
+// Stream event types from backend
+export interface StreamEvent {
+  type: string;
+  [key: string]: any;
 }
 
 // Stream callback types
 export interface ChatStreamCallbacks {
-  onStart?: (messageId: string, messageUuid: string) => void;
-  onContentStart?: (index: number, block: any) => void;
-  onContent?: (index: number, text: string) => void;
-  onToolCall?: (toolCall: ToolCall) => void;
-  onHITLApprovalRequest?: (request: HITLApprovalRequest) => void;
-  onComplete?: (reason: string) => void;
-  onError?: (error: Error) => void;
+  onTraceId?: (traceId: string) => void;
+  onIterationStart?: (iteration: number) => void;
+  onText?: (text: string) => void;
+  onReasoningText?: (text: string) => void;
+  onToolCallStart?: (tool: string, args: any, callId: string) => void;
+  onToolApprovalRequest?: (tool: string, args: any, callId: string, message: string) => void;
+  onToolApproved?: (tool: string, callId: string, scope: string, message: string) => void;
+  onToolDenied?: (tool: string, callId: string, message: string) => void;
+  onToolRedirected?: (tool: string, callId: string, message: string, newInstruction: string) => void;
+  onToolTimeout?: (tool: string, callId: string, message: string) => void;
+  onToolCallEnd?: (tool: string, result: string, success: boolean, callId: string) => void;
+  onUserMessageInjected?: (message: string) => void;
+  onUserCancelled?: (message: string) => void;
+  onDone?: (reason: string, message?: string) => void;
+  onError?: (error: Error | string) => void;
 }
 
 /**
@@ -103,7 +125,8 @@ export interface ChatStreamCallbacks {
  */
 export const chatStream = async (
   request: ChatRequest,
-  callbacks: ChatStreamCallbacks
+  callbacks: ChatStreamCallbacks,
+  signal?: AbortSignal
 ): Promise<void> => {
 
   try {
@@ -114,15 +137,25 @@ export const chatStream = async (
         'Accept': 'text/event-stream'
       },
       body: JSON.stringify(request),
-      cache: 'no-store'
+      cache: 'no-store',
+      signal
     });
 
     if (!response.ok) {
       throw new Error(`Chat request failed with status: ${response.status}`);
     }
 
-    await processChatStream(response, callbacks);
+    await processChatStream(response, callbacks, signal);
   } catch (error) {
+    // Check if error is due to abort - handle both DOMException and Error types
+    if ((error instanceof DOMException && error.name === 'AbortError') ||
+        (error instanceof Error && error.name === 'AbortError')) {
+      if (callbacks.onUserCancelled) {
+        callbacks.onUserCancelled('Request cancelled by user');
+      }
+      return;
+    }
+
     if (callbacks.onError) {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     } else {
@@ -135,7 +168,8 @@ export const chatStream = async (
 // Process chat stream from orchestrator API
 async function processChatStream(
   response: Response,
-  callbacks: ChatStreamCallbacks
+  callbacks: ChatStreamCallbacks,
+  signal?: AbortSignal
 ): Promise<void> {
   if (!response.body) {
     throw new Error('Response has no body');
@@ -145,134 +179,143 @@ async function processChatStream(
   const decoder = new TextDecoder();
   let buffer = '';
   let doneReceived = false;
-  
-  // Keep track of pending tool calls to match with outputs
-  const pendingToolCalls = new Map<string, ToolCall>();
 
   try {
     while (true) {
+      // Check if aborted before reading
+      if (signal?.aborted) {
+        reader.cancel();
+        throw new DOMException('Aborted', 'AbortError');
+      }
+
       const { done, value } = await reader.read();
-      
+
       if (done) {
-        if (!doneReceived && callbacks.onComplete) {
-          callbacks.onComplete('stream_end');
+        if (!doneReceived && callbacks.onDone) {
+          callbacks.onDone('stream_end');
         }
         break;
       }
-      
+
       buffer += decoder.decode(value, { stream: true });
-      
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
-      
+
       for (const line of lines) {
         if (!line.trim()) continue;
-        
+
+        // Skip [DONE] marker
         if (line.trim() === 'data: [DONE]') {
-          if (!doneReceived && callbacks.onComplete) {
+          if (!doneReceived && callbacks.onDone) {
             doneReceived = true;
-            callbacks.onComplete('done');
+            callbacks.onDone('done');
           }
           continue;
         }
-        
+
+        // Skip ping messages
+        if (line.startsWith(': ping')) {
+          continue;
+        }
+
         if (line.startsWith('data: ')) {
           try {
-            let jsonData = line.slice(6);
-            
-            if (jsonData.startsWith('data: ')) {
-              jsonData = jsonData.slice(6);
-            }
-            
-            const data = JSON.parse(jsonData);
-            
-            // Handle HITL approval requests (HIGHEST PRIORITY)
-            // When HITL is enabled, ALL function calls require approval
-            if (data.hitl_approval_request && callbacks.onHITLApprovalRequest) {
-              callbacks.onHITLApprovalRequest(data.hitl_approval_request);
-              continue;
-            }
-            
-            // Handle text content
-            if (data.text && callbacks.onContent) {
-              callbacks.onContent(0, data.text);
-            }
-            
-            // Handle function call arguments
-            if (data.function_call_args && callbacks.onContent) {
-              callbacks.onContent(0, data.function_call_args);
-            }
-            
-            // Handle tool calls - ONLY STORE, DON'T RENDER YET
-            if (data.tool_call) {
-              const toolCall: ToolCall = {
-                tool: data.tool_call.tool,
-                name: data.tool_call.name,
-                arguments: data.tool_call.arguments
-              };
-              
-              // Store pending tool call if it has a call_id
-              if (data.tool_call.call_id) {
-                pendingToolCalls.set(data.tool_call.call_id, toolCall);
-              }
-              
-              // DON'T CALL callbacks.onToolCall here - wait for output
-            }
-            
-            // Handle tool outputs - ONLY RENDER WHEN OUTPUT ARRIVES
-            if (data.tool_output && data.tool_output.call_id && callbacks.onToolCall) {
-              const pendingCall = pendingToolCalls.get(data.tool_output.call_id);
-              if (pendingCall) {
-                // Handle the output format correctly
-                let outputString = "";
-                let commandString = "";
-                
-                if (typeof data.tool_output.output === 'object' && data.tool_output.output !== null) {
-                  commandString = data.tool_output.output.command || pendingCall.arguments;
-                  outputString = data.tool_output.output.output || "";
-                } else {
-                  outputString = String(data.tool_output.output);
-                  commandString = pendingCall.arguments;
+            let jsonData = line.slice(6).trim();
+            const event: StreamEvent = JSON.parse(jsonData);
+
+            // Dispatch events based on type
+            switch (event.type) {
+              case 'iteration_start':
+                if (callbacks.onIterationStart) {
+                  callbacks.onIterationStart(event.iteration);
                 }
-                
-                // Create a complete tool call with output and render it
-                const completeToolCall: ToolCall = {
-                  ...pendingCall,
-                  output: {
-                    command: commandString,
-                    output: outputString
-                  }
-                };
-                
-                // NOW call the callback with the complete tool call
-                callbacks.onToolCall(completeToolCall);
-                
-                // Remove from pending calls
-                pendingToolCalls.delete(data.tool_output.call_id);
-              } else {
-                console.warn(`No pending tool call found for call_id: ${data.tool_output.call_id}`);
-              }
-            }
-            
-            // Handle trace ID
-            if (data.trace_id) {
-              console.log(`Trace ID: ${data.trace_id}`);
-            }
-            
-            // Handle errors
-            if (data.error) {
-              console.error('Stream error:', data.error);
-              if (callbacks.onError) {
-                callbacks.onError(new Error(data.error));
-              }
-            }
-            
-            // Handle done event
-            if (data.done && !doneReceived) {
-              doneReceived = true;
-              if (callbacks.onComplete) {
-                callbacks.onComplete('done');
-              }
+                break;
+
+              case 'text':
+                if (callbacks.onText) {
+                  callbacks.onText(event.content);
+                }
+                break;
+
+              case 'reasoning_text':
+                if (callbacks.onReasoningText) {
+                  callbacks.onReasoningText(event.content);
+                }
+                break;
+
+              case 'tool_call_start':
+                if (callbacks.onToolCallStart) {
+                  callbacks.onToolCallStart(event.tool, event.arguments, event.call_id);
+                }
+                break;
+
+              case 'tool_approval_request':
+                if (callbacks.onToolApprovalRequest) {
+                  callbacks.onToolApprovalRequest(event.tool, event.arguments, event.call_id, event.message);
+                }
+                break;
+
+              case 'tool_approved':
+                if (callbacks.onToolApproved) {
+                  callbacks.onToolApproved(event.tool, event.call_id, event.scope, event.message);
+                }
+                break;
+
+              case 'tool_denied':
+                if (callbacks.onToolDenied) {
+                  callbacks.onToolDenied(event.tool, event.call_id, event.message);
+                }
+                break;
+
+              case 'tool_redirected':
+                if (callbacks.onToolRedirected) {
+                  callbacks.onToolRedirected(event.tool, event.call_id, event.message, event.new_instruction);
+                }
+                break;
+
+              case 'tool_timeout':
+                if (callbacks.onToolTimeout) {
+                  callbacks.onToolTimeout(event.tool, event.call_id, event.message);
+                }
+                break;
+
+              case 'tool_call_end':
+                if (callbacks.onToolCallEnd) {
+                  callbacks.onToolCallEnd(event.tool, event.result, event.success, event.call_id);
+                }
+                break;
+
+              case 'user_message_injected':
+                if (callbacks.onUserMessageInjected) {
+                  callbacks.onUserMessageInjected(event.message);
+                }
+                break;
+
+              case 'user_cancelled':
+                if (callbacks.onUserCancelled) {
+                  callbacks.onUserCancelled(event.message);
+                }
+                break;
+
+              case 'done':
+                if (!doneReceived && callbacks.onDone) {
+                  doneReceived = true;
+                  callbacks.onDone(event.reason, event.message);
+                }
+                break;
+
+              case 'error':
+                if (callbacks.onError) {
+                  callbacks.onError(event.error);
+                }
+                break;
+
+              default:
+                // Handle trace_id at root level (no type field)
+                if (event.trace_id && callbacks.onTraceId) {
+                  callbacks.onTraceId(event.trace_id);
+                }
+                break;
             }
           } catch (error) {
             console.error('Error parsing SSE data:', error, line);
@@ -281,6 +324,11 @@ async function processChatStream(
       }
     }
   } catch (error) {
+    // Check if error is due to abort - if so, don't call onError, let the outer catch handle it
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error; // Re-throw to be caught by outer try-catch
+    }
+
     if (callbacks.onError) {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     } else {
@@ -288,12 +336,6 @@ async function processChatStream(
     }
   } finally {
     reader.releaseLock();
-    
-    // Clean up any remaining pending tool calls
-    if (pendingToolCalls.size > 0) {
-      console.warn(`${pendingToolCalls.size} tool calls never received outputs`);
-      pendingToolCalls.clear();
-    }
   }
 }
 /**
@@ -509,10 +551,37 @@ export const submitHITLDecision = async (request: HITLDecisionRequest): Promise<
  */
 export const getPendingHITLRequests = async (): Promise<HITLPendingRequestsResponse> => {
   const response = await fetch(`${ORCHESTRATOR_URL}/api/hitl/pending`);
-  
+
   if (!response.ok) {
     throw new Error(`Failed to get pending HITL requests: ${response.status}`);
   }
-  
+
   return await response.json();
+};
+
+/**
+ * Approve, deny, or redirect a tool call
+ */
+export const approveToolCall = async (
+  traceId: string,
+  callId: string,
+  decision: 'approve' | 'deny' | 'approve_for_session' | 'redirect',
+  message?: string
+): Promise<void> => {
+  const response = await fetch(`${ORCHESTRATOR_URL}/api/chat/tool-approval`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      trace_id: traceId,
+      call_id: callId,
+      decision,
+      message
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to ${decision} tool call: ${response.status}`);
+  }
 };

@@ -89,7 +89,7 @@ const advancedFeatures: FeatureItem[] = [
   {
     id: 'optimizations',
     icon: <CircleDollarSign className="w-4 h-4" />,
-    label: 'Cost Monitoring',
+    label: 'Cost',
     path: '/dashboard/cost',
     children: [
       {

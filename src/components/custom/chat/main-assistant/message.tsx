@@ -12,16 +12,24 @@ interface SuggestedQuestion {
   icon: React.ReactNode;
 }
 
+// Define stream events to maintain proper order
+interface StreamEvent {
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end';
+  timestamp: number;
+  textPosition?: number; // Position in text where this event occurred
+  data: any;
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
-  toolCalls?: ToolCall[]; // Add toolCalls to ChatMessage interface
+  events?: StreamEvent[]; // Store sequential events
 }
 
 interface MessagesProps {
   messages: ChatMessage[];
-  currentResponse: string;
-  currentToolCalls?: ToolCall[]; // Add currentToolCalls for streaming responses
+  currentText: string;
+  currentEvents?: StreamEvent[]; // Add currentEvents for streaming responses
   isLoading: boolean;
   onQuestionClick: (question: string) => void;
   suggestedQuestions: SuggestedQuestion[];
@@ -31,8 +39,8 @@ interface MessagesProps {
 
 const Messages: React.FC<MessagesProps> = ({
   messages,
-  currentResponse,
-  currentToolCalls = [],
+  currentText,
+  currentEvents = [],
   isLoading,
   onQuestionClick,
   suggestedQuestions,
@@ -122,7 +130,7 @@ const Messages: React.FC<MessagesProps> = ({
               {message.role === 'assistant' && (
                 <AssistantMessage
                   content={message.content}
-                  toolCalls={message.toolCalls}
+                  events={message.events}
                   onRetry={onRetry}
                   userMessage={findUserMessageForAssistant(index)}
                 />
@@ -131,19 +139,20 @@ const Messages: React.FC<MessagesProps> = ({
           ))}
 
           {/* Display current streaming response if available */}
-          {isLoading && currentResponse && (
+          {isLoading && currentText && (
             <div className="flex items-start">
               <AssistantMessage
-                content={currentResponse}
-                toolCalls={currentToolCalls}
+                content={currentText}
+                events={currentEvents}
                 onRetry={onRetry}
                 userMessage={findLastUserMessage()}
+                isStreaming={true}
               />
             </div>
           )}
 
           {/* Assistant isLoading response */}
-          {isLoading && !currentResponse && !currentToolCalls.length && (
+          {isLoading && !currentText && !currentEvents.length && (
             <div className="flex justify-center">
               <div className="flex items-center justify-between space-x-2 px-6 py-4 bg-gray-300/30 dark:bg-gray-800/20 w-full">
                 <div className='flex items-center space-x-2'>

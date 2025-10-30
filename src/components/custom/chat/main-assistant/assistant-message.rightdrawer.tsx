@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Copy, CheckCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,14 +21,97 @@ interface TableProps {
   children?: React.ReactNode;
 }
 
-interface AssistantMessageProps {
-  content: string;
-  toolCalls?: ToolCall[];
-  onRetry?: (userMessage: string) => void;
-  userMessage?: string;
+// Define stream events to maintain proper order
+interface StreamEvent {
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end';
+  timestamp: number;
+  textPosition?: number; // Position in text where this event occurred
+  data: any;
 }
 
-const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls = [], onRetry, userMessage }) => {
+interface AssistantMessageProps {
+  content: string;
+  events?: StreamEvent[];
+  onRetry?: (userMessage: string) => void;
+  userMessage?: string;
+  isStreaming?: boolean;
+}
+
+const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [], onRetry, userMessage, isStreaming = false }) => {
+  // Create sequential content by interleaving text and tool events based on textPosition
+  const sequentialContent = useMemo(() => {
+    if (!events || events.length === 0) {
+      // No events, just render content as is
+      return [{ type: 'text' as const, content }];
+    }
+
+    // Group tool events by call_id and find their text position
+    const toolGroups = new Map<string, { position: number; events: StreamEvent[] }>();
+
+    events.forEach(event => {
+      if (event.type.startsWith('tool_')) {
+        const callId = event.data.callId;
+        if (!toolGroups.has(callId)) {
+          toolGroups.set(callId, {
+            position: event.textPosition ?? 0,
+            events: []
+          });
+        }
+        toolGroups.get(callId)!.events.push(event);
+      }
+    });
+
+    // Create insertion points for tool calls
+    const insertionPoints: Array<{ position: number; callId: string; events: StreamEvent[]; showRedirect?: { newInstruction: string } }> = [];
+    toolGroups.forEach((group, callId) => {
+      const redirectEvent = group.events.find(e => e.type === 'tool_redirected');
+
+      insertionPoints.push({
+        position: group.position,
+        callId,
+        events: group.events,
+        showRedirect: redirectEvent ? { newInstruction: redirectEvent.data.newInstruction } : undefined
+      });
+    });
+
+    // Sort by position
+    insertionPoints.sort((a, b) => a.position - b.position);
+
+    // Build sequential items
+    const items: Array<{ type: 'text' | 'tool' | 'redirect'; content?: string; callId?: string; events?: StreamEvent[]; newInstruction?: string }> = [];
+    let lastPosition = 0;
+
+    insertionPoints.forEach(({ position, callId, events, showRedirect }) => {
+      // Add text before this tool call
+      if (position > lastPosition) {
+        const textChunk = content.substring(lastPosition, position);
+        if (textChunk) {
+          items.push({ type: 'text', content: textChunk });
+        }
+      }
+
+      // Add tool call
+      items.push({ type: 'tool', callId, events });
+
+      // Add redirect instruction immediately after redirected tool (only once)
+      if (showRedirect) {
+        items.push({ type: 'redirect', newInstruction: showRedirect.newInstruction });
+      }
+
+      lastPosition = position;
+    });
+
+    // Add remaining text after all tool calls
+    if (lastPosition < content.length) {
+      const remainingText = content.substring(lastPosition);
+      if (remainingText) {
+        items.push({ type: 'text', content: remainingText });
+      }
+    }
+
+    return items;
+  }, [content, events]);
+
   return (
     <div className="w-full relative">
       <div className="bg-gray-300/30 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
@@ -37,159 +120,194 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
             <AgentkubeBot className="h-5 w-5" />
           </div>
           <div className="flex-1 overflow-auto py-1">
-            {/* Display tool calls if available */}
-            {toolCalls.length > 0 && (
-              <div className="mb-4">
-                {toolCalls.map((toolCall, index) => (
-                  <ToolCallAccordion key={index} toolCall={toolCall} />
-                ))}
-              </div>
-            )}
+            {/* Render sequential content - text and tools interleaved */}
+            {sequentialContent.map((item, index) => {
+              if (item.type === 'text' && item.content) {
+                return (
+                  <ReactMarkdown
+                    key={`text-${index}`}
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-medium mt-6 mb-4">{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-medium mt-5 mb-3">{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-medium mt-4 mb-2">{children}</h3>
+                      ),
+                      p: ({ children }) => (
+                        <p className="text-gray-700 dark:text-gray-300 mb-4">{children}</p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-outside space-y-2 mb-4 ml-4">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-outside space-y-2 mb-4 ml-4 pl-6">{children}</ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-gray-700 dark:text-gray-300">{children}</li>
+                      ),
+                      // Fixed table support
+                      table: ({ children }: TableProps) => (
+                        <div className="overflow-x-auto my-4 rounded-md">
+                          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-800/60 rounded-xl border border-gray-300 dark:border-gray-900">
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      thead: ({ children }) => (
+                        <thead className="bg-gray-200 dark:bg-gray-800/30">{children}</thead>
+                      ),
+                      tbody: ({ children }) => (
+                        <tbody className="divide-y divide-gray-300 dark:divide-gray-800 rounded-xl">{children}</tbody>
+                      ),
+                      tr: ({ children }) => (
+                        <tr className='hover:bg-gray-200 dark:hover:bg-gray-800/50 cursor-pointer'>{children}</tr>
+                      ),
+                      th: ({ children }) => (
+                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border border-gray-300 dark:border-gray-800">{children}</th>
+                      ),
+                      td: ({ children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { style?: React.CSSProperties & { '--rmd-table-cell-index'?: number } }) => {
+                        const [showCopy, setShowCopy] = useState(false);
+                        const [copied, setCopied] = useState(false);
 
+                        // Check if this is the first cell in the row
+                        const isFirstColumn = props.style?.['--rmd-table-cell-index'] === 0 ||
+                          (!props.style && React.Children.toArray(children).length > 0);
 
-            {/* Display the regular message content */}
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h1: ({ children }) => (
-                  <h1 className="text-2xl font-bold mt-6 mb-4">{children}</h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="text-xl font-bold mt-5 mb-3">{children}</h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="text-lg font-bold mt-4 mb-2">{children}</h3>
-                ),
-                p: ({ children }) => (
-                  <p className="text-gray-700 dark:text-gray-300 mb-4">{children}</p>
-                ),
-                ul: ({ children }) => (
-                  <ul className="list-disc list-outside space-y-2 mb-4 ml-4">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal list-outside space-y-2 mb-4 ml-4 pl-6">{children}</ol>
-                ),
-                li: ({ children }) => (
-                  <li className="text-gray-700 dark:text-gray-300">{children}</li>
-                ),
-                // Fixed table support
-                table: ({ children }: TableProps) => (
-                  <div className="overflow-x-auto my-4 rounded-md">
-                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-800/60 rounded-xl border border-gray-300 dark:border-gray-900">
-                      {children}
-                    </table>
-                  </div>
-                ),
-                thead: ({ children }) => (
-                  <thead className="bg-gray-200 dark:bg-gray-800/30">{children}</thead>
-                ),
-                tbody: ({ children }) => (
-                  <tbody className="divide-y divide-gray-300 dark:divide-gray-800 rounded-xl">{children}</tbody>
-                ),
-                tr: ({ children }) => (
-                  <tr className='hover:bg-gray-200 dark:hover:bg-gray-800/50 cursor-pointer'>{children}</tr>
-                ),
-                th: ({ children }) => (
-                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border border-gray-300 dark:border-gray-800">{children}</th>
-                ),
-                td: ({ children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { style?: React.CSSProperties & { '--rmd-table-cell-index'?: number } }) => {
-                  const [showCopy, setShowCopy] = useState(false);
-                  const [copied, setCopied] = useState(false);
-                  
-                  // Check if this is the first cell in the row
-                  const isFirstColumn = props.style?.['--rmd-table-cell-index'] === 0 || 
-                                       (!props.style && React.Children.toArray(children).length > 0);
-                  
-                  const handleCopy = async () => {
-                    const text = typeof children === 'string' ? children : 
-                                React.Children.toArray(children).join('');
-                    await navigator.clipboard.writeText(text);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1500);
-                  };
-                
-                  return (
-                    <td 
-                      className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-800 relative group"
-                      onMouseEnter={() => isFirstColumn && setShowCopy(true)}
-                      onMouseLeave={() => setShowCopy(false)}
-                    >
-                      {children}
-                      {isFirstColumn && (showCopy || copied) && (
-                        <button
-                          onClick={handleCopy}
-                          className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 ${
-                            copied 
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' 
-                              : 'bg-gray-100 dark:bg-transparent hover:bg-gray-200 dark:hover:bg-transparent'
-                          }`}
+                        const handleCopy = async () => {
+                          const text = typeof children === 'string' ? children :
+                            React.Children.toArray(children).join('');
+                          await navigator.clipboard.writeText(text);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 1500);
+                        };
+
+                        return (
+                          <td
+                            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-800 relative group"
+                            onMouseEnter={() => isFirstColumn && setShowCopy(true)}
+                            onMouseLeave={() => setShowCopy(false)}
+                          >
+                            {children}
+                            {isFirstColumn && (showCopy || copied) && (
+                              <button
+                                onClick={handleCopy}
+                                className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 ${copied
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                    : 'bg-gray-100 dark:bg-transparent hover:bg-gray-200 dark:hover:bg-transparent'
+                                  }`}
+                              >
+                                {copied ? (
+                                  <CheckCheck className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </button>
+                            )}
+                          </td>
+                        );
+                      },
+
+                      a: ({ href, children }) => (
+                        <LinkPreview
+                          url={href as string}
+                          className='cursor-pointer'
                         >
-                          {copied ? (
-                            <CheckCheck className="h-4 w-4" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </button>
-                      )}
-                    </td>
-                  );
-                },
+                          <a
+                            onClick={() => openExternalUrl(href as string)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {children}
+                          </a>
+                        </LinkPreview>
+                      ),
+                      code: ({ inline, children, className }: CodeProps) => {
+                        // Handle inline code (single backticks)
+                        if (inline) {
+                          return <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
+                        }
 
-                a: ({ href, children }) => (
-                  <LinkPreview
-                    url={href as string}
-                    className='cursor-pointer'
+                        // Only process content that comes from triple backticks (non-inline code blocks)
+                        const content = String(children);
+                        if (!content.includes('\n')) {
+                          return <code className="bg-gray-200 dark:bg-gray-800/80 text-green-400 px-1 py-0.5 rounded text-sm font-mono">{content}</code>;
+                        }
+
+                        const language = className?.replace('language-', '') || 'plaintext';
+                        return <CodeBlock language={language} content={content.trim()} />;
+                      },
+                      pre: ({ children }) => (
+                        <div className="my-4">{children}</div>
+                      ),
+                      // Add blockquote support
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-gray-400 dark:border-gray-600 pl-4 py-2 my-4 text-gray-700 dark:text-gray-300 italic">
+                          {children}
+                        </blockquote>
+                      ),
+                      // Add horizontal rule
+                      hr: () => (
+                        <hr className="my-6 border-t border-gray-300 dark:border-gray-700" />
+                      )
+                    }}
                   >
-                    <a
-                      onClick={() => openExternalUrl(href as string)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {children}
-                    </a>
-                  </LinkPreview>
-                ),
-                code: ({ inline, children, className }: CodeProps) => {
-                  // Handle inline code (single backticks)
-                  if (inline) {
-                    return <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
-                  }
+                    {item.content}
+                  </ReactMarkdown>
+                );
+              } else if (item.type === 'tool' && item.callId && item.events) {
+                // Render tool call
+                const toolStartEvent = item.events.find(e => e.type === 'tool_start');
+                const toolEndEvent = item.events.find(e => e.type === 'tool_end');
+                const approvalEvent = item.events.find(e => e.type === 'tool_approval');
+                const redirectEvent = item.events.find(e => e.type === 'tool_redirected');
 
-                  // Only process content that comes from triple backticks (non-inline code blocks)
-                  const content = String(children);
-                  if (!content.includes('\n')) {
-                    return <code className="bg-gray-200 dark:bg-gray-800/80 text-green-400 px-1 py-0.5 rounded text-sm font-mono">{content}</code>;
-                  }
+                if (!toolStartEvent) return null;
 
-                  const language = className?.replace('language-', '') || 'plaintext';
-                  return <CodeBlock language={language} content={content.trim()} />;
-                },
-                pre: ({ children }) => (
-                  <div className="my-4">{children}</div>
-                ),
-                // Add blockquote support
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-gray-400 dark:border-gray-600 pl-4 py-2 my-4 text-gray-700 dark:text-gray-300 italic">
-                    {children}
-                  </blockquote>
-                ),
-                // Add horizontal rule
-                hr: () => (
-                  <hr className="my-6 border-t border-gray-300 dark:border-gray-700" />
-                )
-              }}
-            >
-              {content}
-            </ReactMarkdown>
+                // Parse the result - it comes as a string that needs to be parsed
+                let parsedResult;
+                try {
+                  parsedResult = typeof toolEndEvent?.data.result === 'string'
+                    ? JSON.parse(toolEndEvent.data.result.replace(/'/g, '"'))
+                    : toolEndEvent?.data.result;
+                } catch (e) {
+                  parsedResult = toolEndEvent?.data.result;
+                }
+
+                const toolCall: ToolCall = {
+                  tool: toolStartEvent.data.tool,
+                  name: toolStartEvent.data.tool,
+                  arguments: toolStartEvent.data.args,
+                  call_id: item.callId,
+                  isPending: !!approvalEvent && !toolEndEvent,
+                  output: parsedResult,
+                  success: toolEndEvent?.data.success
+                };
+
+                return <ToolCallAccordion key={`tool-${item.callId}`} toolCall={toolCall} />;
+              } else if (item.type === 'redirect' && item.newInstruction) {
+                // Render redirect instruction (only once, as a separate item)
+                return (
+                  <div key={`redirect-${index}`} className="text-sm text-orange-600 dark:text-orange-400 italic mb-3 pl-2 border-l-2 border-orange-400">
+                    Redirected: {item.newInstruction}
+                  </div>
+                );
+              }
+
+              return null;
+            })}
 
             {/* Always render a sample chart */}
             {/* <div className="p-0">
-              {Math.random() > 0.66 ? <ChartLineDotsColors /> : 
-               Math.random() > 0.5 ? <ChartBarStacked /> : 
+              {Math.random() > 0.66 ? <ChartLineDotsColors /> :
+               Math.random() > 0.5 ? <ChartBarStacked /> :
                <ChartBarLabelCustom />}
             </div> */}
-            {/* 
+            {/*
             <ChartNetworkTrafficStep />
             <ChartLineDotsColors />
             <ChartBarStacked />
@@ -198,11 +316,23 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
             */}
 
             {/* Use the new ResponseFeedback component */}
-            <ResponseFeedback 
-              content={content} 
+            <ResponseFeedback
+              content={content}
               onRetry={onRetry}
               userMessage={userMessage}
             />
+
+            {/* Loading indicator - only show when streaming */}
+            {isStreaming && (
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <div className="flex space-x-1">
+                  <div className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+                <span>Processing...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -214,7 +344,8 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
 export default React.memo(AssistantMessage, (prevProps, nextProps) => {
   return (
     prevProps.content === nextProps.content &&
-    prevProps.toolCalls === nextProps.toolCalls &&
-    prevProps.userMessage === nextProps.userMessage
+    prevProps.events === nextProps.events &&
+    prevProps.userMessage === nextProps.userMessage &&
+    prevProps.isStreaming === nextProps.isStreaming
   );
 });

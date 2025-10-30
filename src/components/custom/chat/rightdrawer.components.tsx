@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText } from "lucide-react";
+import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview } from '@/components/custom';
@@ -29,15 +29,23 @@ interface SuggestedQuestion {
   icon: React.ReactNode;
 }
 
+// Define stream events to maintain proper order
+interface StreamEvent {
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end';
+  timestamp: number;
+  textPosition?: number; // Position in text where this event occurred
+  data: any;
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
-  toolCalls?: ToolCall[];
+  events?: StreamEvent[]; // Store sequential events
 }
 
 const suggestedQuestions: SuggestedQuestion[] = [
   {
-    question: "What’s running inside the kube-system namespace?",
+    question: "What's running inside the kube-system namespace?",
     icon: <Search className="w-4 h-4" />
   },
   {
@@ -57,13 +65,6 @@ const suggestedQuestions: SuggestedQuestion[] = [
 // TODO: Make api call to get the available functions
 const mentionData = [
   { id: 1, name: '', description: '' },
-  // { id: 1, name: 'create_ticket', description: 'Create a ticket' },
-  // { id: 2, name: 'create_task', description: 'Create a task' },
-  // { id: 3, name: 'create_issue', description: 'Create an issue' },
-  // { id: 4, name: 'create_project', description: 'Create a project' },
-  // { id: 5, name: 'create_user', description: 'Create a user' },
-  // { id: 6, name: 'create_customer', description: 'Create a customer' },
-  // { id: 7, name: 'create_product', description: 'Create a product' },
 ];
 
 
@@ -74,12 +75,14 @@ const RightDrawer: React.FC = () => {
   const [mentions, setMentions] = useState<string[]>([]);
   const [isClosing, setIsClosing] = useState<boolean>(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentResponse, setCurrentResponse] = useState<string>('');
-  const [currentToolCalls, setCurrentToolCalls] = useState<ToolCall[]>([]);
+  const [currentEvents, setCurrentEvents] = useState<StreamEvent[]>([]);
+  const [currentText, setCurrentText] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [currentTraceId, setCurrentTraceId] = useState<string | null>(null);
   const [drawerMounted, setDrawerMounted] = useState<boolean>(false);
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
+  const [autoApprove, setAutoApprove] = useState<boolean>(false);
   const [contextFiles, setContextFiles] = useState<EnrichedSearchResult[]>([]);
   const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
   const [showChatSettings, setShowChatSettings] = useState<boolean>(false);
@@ -88,7 +91,15 @@ const RightDrawer: React.FC = () => {
   // Dialog states
   const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
   const [selectedContentForDialog, setSelectedContentForDialog] = useState<string | null>(null);
-  const [isToolPermissionVisible, setIsToolPermissionVisible] = useState(false);
+
+  // Tool permission state
+  const [pendingToolApproval, setPendingToolApproval] = useState<{
+    tool: string;
+    args: any;
+    callId: string;
+    message: string;
+  } | null>(null);
+
   const { currentContext } = useCluster();
   const { user } = useAuth();
 
@@ -115,9 +126,10 @@ const RightDrawer: React.FC = () => {
   // Conversation ID state to maintain session with the orchestrator
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
 
-  // Use a ref to accumulate streaming response
-  const responseRef = useRef('');
-  const toolCallsRef = useRef<ToolCall[]>([]);
+  // Use refs to track current streaming state
+  const eventsRef = useRef<StreamEvent[]>([]);
+  const textRef = useRef<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setDrawerMounted(true);
@@ -183,9 +195,10 @@ const RightDrawer: React.FC = () => {
   const handleClearChat = (): void => {
     setMessages([]);
     setInputValue('');
-    setCurrentResponse('');
-    setCurrentToolCalls([]);
+    setCurrentEvents([]);
+    setCurrentText('');
     setConversationId(undefined);
+    setPendingToolApproval(null);
   };
 
   const getRecentChatHistory = (messages: ChatMessage[], maxMessages: number = 5) => {
@@ -201,7 +214,6 @@ const RightDrawer: React.FC = () => {
 
     // Check if user is authenticated and block the request if not
     if (!user || !user.isAuthenticated) {
-      // Add a message indicating they need to sign in
       setMessages(prev => [...prev,
       {
         role: 'user',
@@ -209,7 +221,8 @@ const RightDrawer: React.FC = () => {
       },
       {
         role: 'assistant',
-        content: '**Sign In Required** \n\nThis feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.'
+        content: '**Sign In Required** \n\nThis feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.',
+        events: []
       }
       ]);
       setInputValue('');
@@ -218,7 +231,6 @@ const RightDrawer: React.FC = () => {
 
     // Check if user has exceeded their usage limit
     if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
-      // Add a message indicating they have exceeded their limit
       setMessages(prev => [...prev,
       {
         role: 'user',
@@ -226,7 +238,8 @@ const RightDrawer: React.FC = () => {
       },
       {
         role: 'assistant',
-        content: '**Usage Limit Exceeded** \n\nYou have reached your usage limit of ' + user.usage_limit + ' requests. Please upgrade your plan to continue using the AI assistant.'
+        content: '**Usage Limit Exceeded** \n\nYou have reached your usage limit of ' + user.usage_limit + ' requests. Please upgrade your plan to continue using the AI assistant.',
+        events: []
       }
       ]);
       setInputValue('');
@@ -242,13 +255,16 @@ const RightDrawer: React.FC = () => {
     setInputValue('');
     setStructuredContent([]);
     setIsLoading(true);
-    setCurrentResponse('');
-    setCurrentToolCalls([]);
-    responseRef.current = '';
-    toolCallsRef.current = [];
+    setCurrentEvents([]);
+    setCurrentText('');
+    eventsRef.current = [];
+    textRef.current = '';
     setIsInputFocused(false);
     setResponseStartTime(Date.now());
     setElapsedTime(0);
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       // Transform contextFiles to the format expected by the API
@@ -272,38 +288,173 @@ const RightDrawer: React.FC = () => {
           model: selectedModel,
           kubecontext: currentContext?.name,
           files: allFiles.length > 0 ? allFiles : undefined,
+          ...(autoApprove && { auto_approve: true }),
         },
         {
-          onStart: (messageId, messageUuid) => {
-            console.log(`Message started: ${messageId}`);
+          onTraceId: (traceId) => {
+            console.log('Trace ID:', traceId);
+            setCurrentTraceId(traceId);
           },
-          onContent: (index, text) => {
-            responseRef.current += text;
-            setCurrentResponse(responseRef.current);
+          onIterationStart: (iteration) => {
+            console.log('Iteration:', iteration);
           },
-          onToolCall: (toolCall) => {
-            toolCallsRef.current = [...toolCallsRef.current, toolCall];
-            setCurrentToolCalls([...toolCallsRef.current]);
+          onText: (text) => {
+            // Accumulate text content
+            textRef.current += text;
+            setCurrentText(textRef.current);
           },
-          onComplete: (reason) => {
-            if (responseRef.current.trim() || toolCallsRef.current.length > 0) {
+          onReasoningText: (text) => {
+            // For now, treat reasoning text same as regular text
+            textRef.current += text;
+            setCurrentText(textRef.current);
+          },
+          onToolCallStart: (tool, args, callId) => {
+            const event: StreamEvent = {
+              type: 'tool_start',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length, // Capture current text length
+              data: { tool, args, callId }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onToolApprovalRequest: (tool, args, callId, message) => {
+            const event: StreamEvent = {
+              type: 'tool_approval',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, args, callId, message }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+
+            // Show approval prompt
+            setPendingToolApproval({ tool, args, callId, message });
+          },
+          onToolApproved: (tool, callId, scope, message) => {
+            const event: StreamEvent = {
+              type: 'tool_approved',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, callId, scope, message }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+
+            // Hide approval prompt
+            setPendingToolApproval(null);
+          },
+          onToolDenied: (tool, callId, message) => {
+            const event: StreamEvent = {
+              type: 'tool_denied',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, callId, message }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+
+            // Hide approval prompt
+            setPendingToolApproval(null);
+          },
+          onToolRedirected: (tool, callId, message, newInstruction) => {
+            const event: StreamEvent = {
+              type: 'tool_redirected',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, callId, message, newInstruction }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+
+            // Hide approval prompt
+            setPendingToolApproval(null);
+          },
+          onToolCallEnd: (tool, result, success, callId) => {
+            const event: StreamEvent = {
+              type: 'tool_end',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, result, success, callId }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onUserMessageInjected: (message) => {
+            console.log('User message injected:', message);
+          },
+          onUserCancelled: (message) => {
+            // Save partial response if any
+            if (textRef.current.trim() || eventsRef.current.length > 0) {
               setMessages(prev => [
                 ...prev,
                 {
                   role: 'assistant',
-                  content: responseRef.current,
-                  toolCalls: toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+                  content: textRef.current + '\n\n*[Response cancelled by user]*',
+                  events: [...eventsRef.current]
                 }
               ]);
             }
 
-            setCurrentResponse('');
-            setCurrentToolCalls([]);
+            // Clean up state
+            setCurrentText('');
+            setCurrentEvents([]);
             setContextFiles([]);
             setIsLoading(false);
             setResponseStartTime(null);
+            setPendingToolApproval(null);
+            setCurrentTraceId(null);
+            abortControllerRef.current = null;
+          },
+          onDone: (reason, message) => {
+            if (textRef.current.trim() || eventsRef.current.length > 0) {
+              setMessages(prev => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: textRef.current,
+                  events: [...eventsRef.current]
+                }
+              ]);
+            }
+
+            setCurrentText('');
+            setCurrentEvents([]);
+            setContextFiles([]);
+            setIsLoading(false);
+            setResponseStartTime(null);
+            setPendingToolApproval(null);
+            setCurrentTraceId(null);
           },
           onError: (error) => {
+            // Check if this is a cancellation error (backend sends "Request cancelled" as error message)
+            const errorMessage = typeof error === 'string' ? error : error.message;
+            if (errorMessage === 'Request cancelled') {
+              // Save partial response if any
+              if (textRef.current.trim() || eventsRef.current.length > 0) {
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    role: 'assistant',
+                    content: textRef.current + '\n\n*[Response cancelled by user]*',
+                    events: [...eventsRef.current]
+                  }
+                ]);
+              }
+
+              // Clean up state
+              setCurrentText('');
+              setCurrentEvents([]);
+              setContextFiles([]);
+              setIsLoading(false);
+              setResponseStartTime(null);
+              setPendingToolApproval(null);
+              setCurrentTraceId(null);
+              abortControllerRef.current = null;
+              return;
+            }
+
+            // This is a real error, show error message
             console.error('Error in chat stream:', error);
             setIsLoading(false);
 
@@ -311,18 +462,22 @@ const RightDrawer: React.FC = () => {
               ...prev,
               {
                 role: 'assistant',
-                content: `Something went wrong during the chat.`
+                content: `Something went wrong during the chat.`,
+                events: []
               }
             ]);
 
-            responseRef.current = '';
-            toolCallsRef.current = [];
-            setCurrentResponse('');
-            setCurrentToolCalls([]);
+            textRef.current = '';
+            eventsRef.current = [];
+            setCurrentText('');
+            setCurrentEvents([]);
             setContextFiles([]);
             setResponseStartTime(null);
+            setPendingToolApproval(null);
+            abortControllerRef.current = null;
           }
-        }
+        },
+        abortControllerRef.current.signal
       );
 
       // Check if the input starts with 'kubectl' to execute as a command
@@ -337,9 +492,18 @@ const RightDrawer: React.FC = () => {
         ...prev,
         {
           role: 'assistant',
-          content: `Error: ${error instanceof Error ? error.message : String(error)}`
+          content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          events: []
         }
       ]);
+    }
+  };
+
+  // Handle stop/cancel request
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
   };
 
@@ -366,7 +530,8 @@ const RightDrawer: React.FC = () => {
           role: 'assistant',
           content: result.success
             ? `**Command executed:**\n\`\`\`\n${result.output}\n\`\`\`\n`
-            : `**Command failed:**\n\`\`\`\n${result.output || 'No output'}\n\`\`\`\n`
+            : `**Command failed:**\n\`\`\`\n${result.output || 'No output'}\n\`\`\`\n`,
+          events: []
         }
       ]);
     } catch (error) {
@@ -377,7 +542,8 @@ const RightDrawer: React.FC = () => {
         ...prev,
         {
           role: 'assistant',
-          content: `Error executing command: ${error instanceof Error ? error.message : String(error)}`
+          content: `Error executing command: ${error instanceof Error ? error.message : String(error)}`,
+          events: []
         }
       ]);
     } finally {
@@ -470,7 +636,6 @@ const RightDrawer: React.FC = () => {
                     {!showChatSettings && (
                       <>
                         <div>
-                          {/* <img src={AGENTKUBE} alt="" className='h-6 ml-1 top-0.5 relative' /> */}
                           <div className='dark:bg-gray-700/20 p-1 rounded-md'>
                             <AgentkubeBot className='text-green-400 h-5 w-5' />
                           </div>
@@ -515,22 +680,6 @@ const RightDrawer: React.FC = () => {
                         </Tooltip>
                       </>
                     )}
-                    {/* TODO remove after implementation is completed in backend */}
-                    {/* <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsToolPermissionVisible(!isToolPermissionVisible)}
-                          className="p-1"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent className="p-1">
-                        <p>Toggle tool permission prompt</p>
-                      </TooltipContent>
-                    </Tooltip> */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -545,11 +694,11 @@ const RightDrawer: React.FC = () => {
 
 
                 <div
-                  className={`flex-grow 
-    
-    [&::-webkit-scrollbar]:w-1.5 
-    [&::-webkit-scrollbar-track]:bg-transparent 
-    [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+                  className={`flex-grow
+
+    [&::-webkit-scrollbar]:w-1.5
+    [&::-webkit-scrollbar-track]:bg-transparent
+    [&::-webkit-scrollbar-thumb]:bg-gray-700/30
     [&::-webkit-scrollbar-thumb]:rounded-full
     [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
     overflow-auto transition-all duration-300 ${isCollapsed ? 'max-h-0' : 'max-h-full'}`}
@@ -557,8 +706,8 @@ const RightDrawer: React.FC = () => {
                   {!showChatSettings ? (
                     <Messages
                       messages={messages}
-                      currentResponse={currentResponse}
-                      currentToolCalls={currentToolCalls}
+                      currentText={currentText}
+                      currentEvents={currentEvents}
                       isLoading={isLoading}
                       onQuestionClick={handleQuestionClick}
                       suggestedQuestions={suggestedQuestions}
@@ -577,10 +726,16 @@ const RightDrawer: React.FC = () => {
                 {!showChatSettings && (
                   <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto relative">
                     {/* Tool Permission Prompt - appears above textarea */}
-                    <ToolPermissionPrompt
-                      isVisible={isToolPermissionVisible}
-                      onClose={() => setIsToolPermissionVisible(false)}
-                    />
+                    {pendingToolApproval && currentTraceId && (
+                      <ToolPermissionPrompt
+                        traceId={currentTraceId}
+                        tool={pendingToolApproval.tool}
+                        args={pendingToolApproval.args}
+                        callId={pendingToolApproval.callId}
+                        message={pendingToolApproval.message}
+                        onClose={() => setPendingToolApproval(null)}
+                      />
+                    )}
 
                     {structuredContent.length > 0 && (
                       <div className="mb-2 flex flex-wrap gap-1">
@@ -617,7 +772,40 @@ const RightDrawer: React.FC = () => {
                         <ResourceContext onResourceSelect={handleAddContext} />
                         <ResourceContextSuggestion onResourceSelect={handleAddContext} />
                       </div>
-                      <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+                      <div className="flex items-center gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                // size="sm"
+                                onClick={() => setAutoApprove(!autoApprove)}
+                                className={`px-2 cursor-pointer flex items-center gap-1.5 mt-1 ${
+                                  autoApprove
+                                    ? 'text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20'
+                                    : 'text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/20'
+                                }`}
+                              >
+                                {/* {autoApprove ? (
+                                  <ShieldCheck className="h-4 w-4" />
+                                ) : (
+                                  <ShieldAlert className="h-4 w-4" />
+                                )} */}
+                                <span className="text-xs font-medium">
+                                  {autoApprove ? 'Auto approve' : 'Ask before edit'}
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className='p-1'>
+                              <p className="text-xs">
+                                {autoApprove
+                                  ? 'Tools will execute automatically without asking for approval'
+                                  : 'You will be asked before each tool execution'}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+                      </div>
                     </div>
 
                     {contextFiles.length > 0 && (
@@ -670,13 +858,23 @@ const RightDrawer: React.FC = () => {
                       />
 
                       <div className="flex items-center justify-end">
-                        <Button
-                          type="submit"
-                          disabled={isLoading || !inputValue.trim()}
-                          className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
-                        >
-                          <ArrowUp className='h-2 w-2' />
-                        </Button>
+                        {isLoading ? (
+                          <Button
+                            variant="outline"
+                            onClick={handleStop}
+                            className="rounded-md text-white dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+                          >
+                            <Pause className='h-1 w-1 rounded-md' />
+                          </Button>
+                        ) : (
+                          <Button
+                            type="submit"
+                            disabled={!inputValue.trim()}
+                            className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+                          >
+                            <ArrowUp className='h-2 w-2' />
+                          </Button>
+                        )}
                       </div>
                     </form>
                   </div>
