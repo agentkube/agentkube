@@ -781,8 +781,8 @@ const RightDrawer: React.FC = () => {
                                 onClick={() => setAutoApprove(!autoApprove)}
                                 className={`px-2 cursor-pointer flex items-center gap-1.5 mt-1 ${
                                   autoApprove
-                                    ? 'text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20'
-                                    : 'text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/20'
+                                    ? 'text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/20'
+                                    : 'text-green-600 dark:text-green-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20'
                                 }`}
                               >
                                 {/* {autoApprove ? (
