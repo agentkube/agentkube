@@ -862,7 +862,7 @@ const RightDrawer: React.FC = () => {
                           <Button
                             variant="outline"
                             onClick={handleStop}
-                            className="rounded-md text-white dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+                            className="rounded-md text-white dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-800"
                           >
                             <Pause className='h-1 w-1 rounded-md' />
                           </Button>

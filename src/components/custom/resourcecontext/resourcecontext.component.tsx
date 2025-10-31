@@ -82,7 +82,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
         const response = await queryResource(
           currentContext.name,
           searchQuery || 'deployment',
-          15 // limit
+          60 // limit
         );
         
         setSearchResults(response.results || []);
