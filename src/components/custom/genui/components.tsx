@@ -39,7 +39,7 @@ const ResourceListComponent: React.FC<ResourceListProps> = ({ command, output })
 
 // Component map - maps tool names to React components
 export const ComponentMap = {
-  // list_resources: ResourceListComponent,
+  sample_tool_name: ResourceListComponent,
   // Add more component mappings here as needed
   // example: kubectl_get: KubectlGetComponent,
 };
