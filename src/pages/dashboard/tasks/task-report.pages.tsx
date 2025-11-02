@@ -44,6 +44,7 @@ import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { CSSProperties } from 'react';
 import TaskPromptDrawer from '@/components/custom/taskpromptdrawer/taskpromptdrawer.component';
+import { FPGCanvas } from '@/components/custom/fpgcanvas/fpgcanvas.component';
 
 const SyntaxHighlighter = (Prism as any) as React.FC<SyntaxHighlighterProps>;
 
@@ -349,7 +350,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
       </div>
 
       {/* Impact Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
         <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
           <CardContent className="p-4 h-full flex items-end">
             <div className="flex justify-between items-end w-full">
@@ -392,7 +393,39 @@ ${taskDetails.remediation || 'No specific remediation provided'}
             </div>
           </CardContent>
         </Card>
+
+        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+          <CardContent className="p-4 h-full flex items-end">
+            <div className="flex justify-between items-end w-full">
+              <div className=''>
+                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.pattern_confidence ? `${taskDetails.pattern_confidence}%` : '0%'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Pattern Confidence</p>
+              </div>
+              <div className="p-2 rounded-lg w-fit bg-orange-100 dark:bg-orange-900/20">
+                <CheckCircle className="w-5 h-5 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+
+      {/* Fault Propagation Graph */}
+      {taskDetails.fault_propagation_graph && taskDetails.fault_propagation_graph.nodes.length > 0 && (
+        <Card className="bg-transparent dark:bg-gray-800/20 rounded-md border-gray-200/70 dark:border-gray-700/30">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 uppercase text-sm">
+              <TrendingUp className="w-5 h-5" />
+              Causal Dependency Graph
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[400px]">
+            <FPGCanvas
+              faultPropagationGraph={taskDetails.fault_propagation_graph}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">

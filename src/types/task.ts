@@ -62,6 +62,33 @@ export interface SubTask {
   discovery: string;
 }
 
+export interface FPGNode {
+  id: string;
+  event_type: string;
+  location: string;
+  timestamp: string;
+  severity: string;
+  details: {
+    reason: string;
+    message: string;
+    namespace: string;
+    [key: string]: any;
+  };
+  [key: string]: any; // Index signature for React Flow compatibility
+}
+
+export interface FPGEdge {
+  from: string;
+  to: string;
+  relation_type: string;
+}
+
+export interface FaultPropagationGraph {
+  nodes: FPGNode[];
+  edges: FPGEdge[];
+  root_causes: string[];
+}
+
 export interface TaskDetails {
   id: string;
   task_id: string;
@@ -75,6 +102,10 @@ export interface TaskDetails {
   events: any[];
   summary: string;
   remediation: string;
+  fault_propagation_graph?: FaultPropagationGraph;
+  matched_pattern?: string;
+  pattern_confidence?: number;
+  propagation_chain?: string[];
   created_at: string;
   updated_at: string;
 }
