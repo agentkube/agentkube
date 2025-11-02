@@ -380,6 +380,16 @@ const RightDrawer: React.FC = () => {
             eventsRef.current = [...eventsRef.current, event];
             setCurrentEvents([...eventsRef.current]);
           },
+          onCustomComponent: (component, props, callId) => {
+            const event: StreamEvent = {
+              type: 'custom_component',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { component, props, callId }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
           onUserMessageInjected: (message) => {
             console.log('User message injected:', message);
           },

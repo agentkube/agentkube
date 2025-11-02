@@ -113,6 +113,7 @@ export interface ChatStreamCallbacks {
   onToolRedirected?: (tool: string, callId: string, message: string, newInstruction: string) => void;
   onToolTimeout?: (tool: string, callId: string, message: string) => void;
   onToolCallEnd?: (tool: string, result: string, success: boolean, callId: string) => void;
+  onCustomComponent?: (component: string, props: any, callId: string) => void;
   onUserMessageInjected?: (message: string) => void;
   onUserCancelled?: (message: string) => void;
   onDone?: (reason: string, message?: string) => void;
@@ -282,6 +283,12 @@ async function processChatStream(
               case 'tool_call_end':
                 if (callbacks.onToolCallEnd) {
                   callbacks.onToolCallEnd(event.tool, event.result, event.success, event.call_id);
+                }
+                break;
+
+              case 'custom_component':
+                if (callbacks.onCustomComponent) {
+                  callbacks.onCustomComponent(event.component, event.props, event.call_id);
                 }
                 break;
 

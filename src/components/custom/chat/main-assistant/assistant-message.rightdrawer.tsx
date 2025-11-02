@@ -10,6 +10,7 @@ import { LinkPreview } from '@/components/ui/link-preview';
 import ResponseFeedback from '../../responsefeedback/responsefeedback.component';
 import { ChartLineDotsColors, ChartBarStacked, ChartBarLabelCustom, ChartNetworkTrafficStep, ChartCryptoPortfolio } from '@/components/custom/promgraphcontainer/graphs.component';
 import { AgentkubeBot } from '@/assets/icons';
+import { ComponentMap } from '@/components/custom/genui/components';
 
 interface CodeProps {
   inline?: boolean;
@@ -23,7 +24,7 @@ interface TableProps {
 
 // Define stream events to maintain proper order
 interface StreamEvent {
-  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end';
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component';
   timestamp: number;
   textPosition?: number; // Position in text where this event occurred
   data: any;
@@ -47,6 +48,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
 
     // Group tool events by call_id and find their text position
     const toolGroups = new Map<string, { position: number; events: StreamEvent[] }>();
+    const customComponents = new Map<string, { position: number; event: StreamEvent }>();
 
     events.forEach(event => {
       if (event.type.startsWith('tool_')) {
@@ -58,6 +60,12 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
           });
         }
         toolGroups.get(callId)!.events.push(event);
+      } else if (event.type === 'custom_component') {
+        const callId = event.data.call_id || event.data.callId;
+        customComponents.set(callId, {
+          position: event.textPosition ?? 0,
+          event
+        });
       }
     });
 
@@ -78,7 +86,15 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
     insertionPoints.sort((a, b) => a.position - b.position);
 
     // Build sequential items
-    const items: Array<{ type: 'text' | 'tool' | 'redirect'; content?: string; callId?: string; events?: StreamEvent[]; newInstruction?: string }> = [];
+    const items: Array<{
+      type: 'text' | 'tool' | 'redirect' | 'custom_component';
+      content?: string;
+      callId?: string;
+      events?: StreamEvent[];
+      newInstruction?: string;
+      componentName?: string;
+      componentProps?: any;
+    }> = [];
     let lastPosition = 0;
 
     insertionPoints.forEach(({ position, callId, events, showRedirect }) => {
@@ -92,6 +108,17 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
 
       // Add tool call
       items.push({ type: 'tool', callId, events });
+
+      // Check if there's a custom component for this tool call
+      const customComp = customComponents.get(callId);
+      if (customComp) {
+        items.push({
+          type: 'custom_component',
+          callId,
+          componentName: customComp.event.data.component,
+          componentProps: customComp.event.data.props
+        });
+      }
 
       // Add redirect instruction immediately after redirected tool (only once)
       if (showRedirect) {
@@ -289,6 +316,17 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                 };
 
                 return <ToolCallAccordion key={`tool-${item.callId}`} toolCall={toolCall} />;
+              } else if (item.type === 'custom_component' && item.componentName && item.componentProps) {
+                // Render custom GenUI component
+                const Component = ComponentMap[item.componentName as keyof typeof ComponentMap];
+                if (Component) {
+                  return (
+                    <div key={`custom-${item.callId}-${index}`} className="my-2">
+                      <Component {...item.componentProps} />
+                    </div>
+                  );
+                }
+                return null;
               } else if (item.type === 'redirect' && item.newInstruction) {
                 // Render redirect instruction (only once, as a separate item)
                 return (
