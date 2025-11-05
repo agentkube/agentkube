@@ -13,6 +13,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ExploreSidebarProps {
   items: SidebarItem[];
@@ -203,17 +209,26 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
             <h1 className="text-3xl dark:text-gray-500/50 hover:text-gray-500/80 dark:hover:text-gray-500/80 font-semibold hover:cursor-pointer">Overview</h1>
           </div>
         )}
-        <button
-          onClick={toggleCollapse}
-          className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? (
-            <PanelLeft className="w-5 h-5" />
-          ) : (
-            <PanelLeftClose className="w-5 h-5" />
-          )}
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={toggleCollapse}
+                className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/50 text-gray-400 dark:text-gray-500"
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {isCollapsed ? (
+                  <PanelLeft className="w-5 h-5" />
+                ) : (
+                  <PanelLeftClose className="w-5 h-5" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="py-1 px-2 flex gap-1 dark:bg-gray-800 dark:text-gray-300" side="right">
+              <p>{isCollapsed ? "Expand" : "Close"} Sidebar <span className='bg-gray-600/20 dark:bg-gray-500/20 px-0.5 rounded-sm text-xs'>⌘</span> + <span className='bg-gray-600/20 dark:bg-gray-500/20 px-1 rounded-sm text-xs'>S</span> </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Current Cluster Display */}
