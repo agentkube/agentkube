@@ -28,6 +28,9 @@ export { default as Runbooks } from './dashboard/runbooks/runbooks.pages';
 export { default as Investigation } from './dashboard/investigations/investigation.pages';
 export { default as ClusterReport } from './dashboard/cluster-report/cluster-report.pages';
 
+export { default as ArgoCDView } from './dashboard/integrations/argo/argocd.pages';
+// export { default as ArgoCDOverview } from './dashboard/integrations/argo/argocd-overview.pages';
+
 // Background Task
 export { default as TaskReport } from './dashboard/tasks/task-report.pages';
 

@@ -1,8 +1,11 @@
 // FeatureSection.tsx
-import React from 'react';
-import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank, Drill, Compass, ShieldEllipsis, ShieldCheck, ShieldAlert, Brain, Image } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronRight, Book, TextSearch, Code, BotMessageSquare, ShieldUser, CircleDollarSign, ChartLine, PiggyBank, Drill, Compass, ShieldEllipsis, ShieldCheck, ShieldAlert, Brain, Image, Unplug } from 'lucide-react';
 import { FeatureItem } from '@/types/sidebar';
 import { TreeProvider, TreeView, TreeNode, TreeNodeTrigger, TreeNodeContent, TreeExpander, TreeIcon, TreeLabel } from '@/components/ui/tree';
+import { SiArgo } from '@icons-pack/react-simple-icons';
+import { useCluster } from '@/contexts/clusterContext';
+import { kubeProxyRequest } from '@/api/cluster';
 
 interface FeatureSectionProps {
   isCollapsed: boolean;
@@ -14,8 +17,8 @@ interface FeatureSectionProps {
   onFeatureExpandToggle: (featureId: string) => void;
 }
 
-// Define advanced features
-const advancedFeatures: FeatureItem[] = [
+// Define base features (always shown)
+const baseFeatures: FeatureItem[] = [
   // {
   //   id: 'runbooks',
   //   icon: <Book className="w-4 h-4" />,
@@ -114,6 +117,22 @@ const advancedFeatures: FeatureItem[] = [
   }
 ];
 
+// Integrations feature (conditionally shown)
+const integrationsFeature: FeatureItem = {
+  id: 'integrations',
+  icon: <Unplug className="w-4 h-4" />,
+  label: 'Integrations',
+  path: '/dashboard/integrations',
+  children: [
+    {
+      id: 'argo',
+      icon: <SiArgo className="w-4 h-4" />,
+      label: 'Argo',
+      path: '/dashboard/integrations/argo'
+    }
+  ]
+};
+
 const FeatureSection: React.FC<FeatureSectionProps> = ({
   isCollapsed,
   isAdvancedCollapsed,
@@ -123,6 +142,44 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
   onFeatureClick,
   onFeatureExpandToggle
 }) => {
+  const { currentContext } = useCluster();
+  const [hasArgoCD, setHasArgoCD] = useState<boolean>(false);
+  const [advancedFeatures, setAdvancedFeatures] = useState<FeatureItem[]>(baseFeatures);
+
+  // Check if ArgoCD is installed
+  useEffect(() => {
+    const checkArgoCD = async () => {
+      if (!currentContext) {
+        setHasArgoCD(false);
+        setAdvancedFeatures(baseFeatures);
+        return;
+      }
+
+      try {
+        // Try to check if ArgoCD CRDs exist
+        const response = await kubeProxyRequest(
+          currentContext.name,
+          'apis/argoproj.io/v1alpha1',
+          'GET'
+        );
+
+        if (response) {
+          setHasArgoCD(true);
+          setAdvancedFeatures([...baseFeatures, integrationsFeature]);
+        } else {
+          setHasArgoCD(false);
+          setAdvancedFeatures(baseFeatures);
+        }
+      } catch (error) {
+        // ArgoCD not installed
+        setHasArgoCD(false);
+        setAdvancedFeatures(baseFeatures);
+      }
+    };
+
+    checkArgoCD();
+  }, [currentContext]);
+
   // Convert current selected path to array format for tree
   const getSelectedIds = () => {
     const selectedFeature = advancedFeatures.find(f => f.path === locationPathname);
@@ -266,4 +323,4 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
 };
 
 export default FeatureSection;
-export { advancedFeatures };
+export { baseFeatures };

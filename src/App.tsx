@@ -16,7 +16,8 @@ import {
   Watcher,
   TaskReport,
   NetworkDiagnosis,
-  ImageSecurity
+  ImageSecurity,
+  ArgoCDView
 } from '@/pages';
 import { BackgroundTask, Footer, NamespacePickerContainer, PromQLSpotlight, Provisioner, Spotlight } from '@/components/custom';
 import { DrawerProvider } from '@/contexts/useDrawer';
@@ -265,6 +266,10 @@ function App() {
                             <Route path="image-security" element={<ImageSecurity />} />
                             <Route path="vulnerability-report" element={<VulnerabilityReport />} />
                             <Route path="audit-report" element={<AuditReport />} />
+                          </Route>
+
+                          <Route path="integrations">
+                            <Route path="argo" element={<ArgoCDView />} />
                           </Route>
 
                         </Route>

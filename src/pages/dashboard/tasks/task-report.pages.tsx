@@ -557,12 +557,12 @@ ${taskDetails.remediation || 'No specific remediation provided'}
           <>
             <DrawerHeader onClose={() => setSelectedSubTask(null)}>
               <div className="py-1">
-                <div className='flex items-center space-x-2'>
-                  <div className="p-1">
+                <div className='flex items-start space-x-2'>
+                  <div className="py-0.5">
                     {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
                   </div>
                   <div className='flex items-center gap-0.5'>
-                    <h3 className="font-medium text-md text-gray-800 dark:text-gray-200 tracking-wide">
+                    <h3 className="font-medium text-md text-gray-800 dark:text-gray-200 leading-tight">
                       {selectedSubTask.reason}
                     </h3>
 
