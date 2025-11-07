@@ -139,7 +139,7 @@ export const listInvestigations = async (
 };
 
 /**
- * Cancel a queued investigation
+ * Cancel a running or queued investigation (without deleting)
  * @param taskId Investigation task identifier
  * @returns Promise with cancellation response
  */
@@ -147,8 +147,8 @@ export const cancelInvestigation = async (
   taskId: string
 ): Promise<CancelResponse> => {
   try {
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/investigate/${taskId}`, {
-      method: 'DELETE',
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/investigate/${taskId}/cancel`, {
+      method: 'POST',
     });
 
     if (!response.ok) {
@@ -158,6 +158,30 @@ export const cancelInvestigation = async (
     return await response.json();
   } catch (error) {
     console.error('Error canceling investigation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete an investigation (cancels and removes from database)
+ * @param taskId Investigation task identifier
+ * @returns Promise with deletion response
+ */
+export const deleteInvestigation = async (
+  taskId: string
+): Promise<DeleteResponse> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/investigate/${taskId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete investigation: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting investigation:', error);
     throw error;
   }
 };

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, TrendingUp, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Play, Plus } from 'lucide-react';
+import { ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronsLeft, ChevronsRight, MoreVertical, TrendingUp, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Play, Plus, StopCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { listTasks, getTaskDetails, deleteTask } from '@/api/task';
+import { listTasks, getTaskDetails, deleteTask, cancelInvestigation, deleteInvestigation } from '@/api/task';
 import { TaskDetails } from '@/types/task';
 import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
 import { DEMO_VIDEOS } from '@/constants/demo.constants';
@@ -430,7 +430,7 @@ const Investigations: React.FC = () => {
     const statusConfig = {
       'completed': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
       'processed': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
-      'cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
+      'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
     };
 
     return (
@@ -456,6 +456,22 @@ const Investigations: React.FC = () => {
   };
 
   // Handler functions for dropdown actions
+  const handleStopInvestigation = async (task: Task) => {
+    try {
+      const response = await cancelInvestigation(task.task_id);
+
+      if (response.status === 'cancelled') {
+        toast('Investigation stopped successfully');
+        // Refresh to get updated status
+        refreshAllData();
+      }
+    } catch (err) {
+      console.error('Error stopping investigation:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to stop investigation';
+      toast.error(`Error stopping investigation: ${errorMessage}`);
+    }
+  };
+
   const handleDeleteTask = (task: Task) => {
     setDeleteDialog({
       isOpen: true,
@@ -467,20 +483,20 @@ const Investigations: React.FC = () => {
     if (!deleteDialog.task) return;
 
     try {
-      // Call the delete task API
-      const response = await deleteTask(deleteDialog.task.task_id);
+      // Call the delete investigation API (which cancels and deletes)
+      const response = await deleteInvestigation(deleteDialog.task.task_id);
 
-      if (response.status === 'success') {
+      if (response.status === 'deleted') {
         // Remove the task from local state immediately for better UX
         setTasks(prevTasks => prevTasks.filter(t => t.task_id !== deleteDialog.task!.task_id));
 
-        toast(response.message || 'Task deleted successfully');
+        toast(response.message || 'Investigation deleted successfully');
       }
     } catch (err) {
-      console.error('Error deleting task:', err);
+      console.error('Error deleting investigation:', err);
       // Show error message to user
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete task';
-      toast.error(`Error deleting task: ${errorMessage}`);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete investigation';
+      toast.error(`Error deleting investigation: ${errorMessage}`);
 
       // Refresh data in case of error to ensure consistency
       refreshAllData();
@@ -840,6 +856,18 @@ const Investigations: React.FC = () => {
                                       <RotateCcw className="mr-2 h-4 w-4" />
                                       Re-run Task
                                     </DropdownMenuItem>
+                                    {task.status === 'processed' && (
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStopInvestigation(task);
+                                        }}
+                                        className='hover:text-gray-700 dark:hover:text-gray-500 text-orange-600 dark:text-orange-400'
+                                      >
+                                        <StopCircle className="mr-2 h-4 w-4" />
+                                        Stop
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
