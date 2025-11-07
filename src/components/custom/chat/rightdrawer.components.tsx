@@ -31,7 +31,7 @@ interface SuggestedQuestion {
 
 // Define stream events to maintain proper order
 interface StreamEvent {
-  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end';
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component';
   timestamp: number;
   textPosition?: number; // Position in text where this event occurred
   data: any;
@@ -159,18 +159,25 @@ const RightDrawer: React.FC = () => {
   }, [structuredContentToAdd, clearStructuredContentToAdd]);
 
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      // Handle Escape key
       if (e.key === 'Escape') {
         handleClose();
+      }
+
+      // Handle Ctrl + Tab to toggle autoApprove
+      if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault(); // Prevent default tab behavior
+        setAutoApprove(prev => !prev);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
+      document.addEventListener('keydown', handleKeyboard);
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleKeyboard);
     };
   }, [isOpen]);
 
@@ -810,6 +817,9 @@ const RightDrawer: React.FC = () => {
                                 {autoApprove
                                   ? 'Tools will execute automatically without asking for approval'
                                   : 'You will be asked before each tool execution'}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Press <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 bg-gray-400/20 rounded">Ctrl</kbd> + <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 bg-gray-400/20 rounded">Tab</kbd> to toggle
                               </p>
                             </TooltipContent>
                           </Tooltip>

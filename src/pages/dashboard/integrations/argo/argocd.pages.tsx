@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { SiArgo } from '@icons-pack/react-simple-icons';
-import { Settings, RefreshCw, ChevronDown, Check, GitBranch, Package, Activity, Search, Play } from 'lucide-react';
+import { Settings, RefreshCw, ChevronDown, Check, GitBranch, Package, Activity, Search, Play, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCluster } from '@/contexts/clusterContext';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import DemoVideoDialog from '@/components/custom/demovideodialog/demovideodialog.component';
 import { DEMO_VIDEOS } from '@/constants/demo.constants';
+import IntegrationLookupDialog from '../integrationlookup-dialog.component';
 
 const ArgoCDView = () => {
   const { currentContext } = useCluster();
@@ -59,6 +60,7 @@ const ArgoCDView = () => {
   const [isWatchDemoExpanded, setIsWatchDemoExpanded] = useState<boolean>(false);
   const [isDemoOpen, setIsDemoOpen] = useState<boolean>(false);
   const [selectedApplication, setSelectedApplication] = useState<ArgoApplication | null>(null);
+  const [isLookupDialogOpen, setIsLookupDialogOpen] = useState<boolean>(false);
 
   // Load ArgoCD configuration
   const loadArgoConfig = useCallback(async () => {
@@ -326,6 +328,16 @@ const ArgoCDView = () => {
               </motion.div>
             </Button>
 
+            {/* Open Dashboard Button */}
+            <Button
+              variant="outline"
+              onClick={() => setIsLookupDialogOpen(true)}
+              className="flex items-center justify-between gap-2 w-44"
+            >
+              <SiArgo className="h-4 w-4" />
+              <span className="text-xs flex items-center gap-1">Open Dashboard <ArrowUpRight className="h-4 w-4" /></span>
+            </Button>
+
             {/* Refresh Button */}
             <Button
               variant="outline"
@@ -425,7 +437,7 @@ const ArgoCDView = () => {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
               {['All', 'Synced', 'OutOfSync', 'Unknown'].map((filter) => (
                 <DropdownMenuItem
                   key={filter}
@@ -448,7 +460,7 @@ const ArgoCDView = () => {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
               {['All', 'Healthy', 'Progressing', 'Degraded', 'Suspended', 'Missing', 'Unknown'].map(
                 (filter) => (
                   <DropdownMenuItem
@@ -473,7 +485,7 @@ const ArgoCDView = () => {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
               <DropdownMenuItem
                 onClick={() => setProjectFilter('All')}
                 className="flex items-center justify-between"
@@ -545,6 +557,16 @@ const ArgoCDView = () => {
           application={selectedApplication}
           isOpen={selectedApplication !== null}
           onClose={() => setSelectedApplication(null)}
+        />
+
+        {/* Integration Lookup Dialog */}
+        <IntegrationLookupDialog
+          isOpen={isLookupDialogOpen}
+          onClose={() => setIsLookupDialogOpen(false)}
+          clusterName={currentContext?.name || ''}
+          toolName="argocd"
+          toolDisplayName="ArgoCD"
+          toolIcon={<SiArgo className="h-4 w-4" />}
         />
       </div>
     </div>
