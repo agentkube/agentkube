@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronDown, ChevronUp, Search, Lock, Sparkles, Brain, Plus, Zap, DollarSign, Database } from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
+import { getModels } from '@/api/models';
 import {
   Tooltip,
   TooltipContent,
@@ -418,13 +419,28 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const { models, enabledModels } = useModels();
+  const { models, enabledModels, refreshModels } = useModels();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const isLicensed = user?.isAuthenticated || false;
   const navigate = useNavigate();
+
+  // Fetch models whenever the dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchModels = async () => {
+        try {
+          await getModels();
+          await refreshModels();
+        } catch (error) {
+          console.error('Failed to load models:', error);
+        }
+      };
+      fetchModels();
+    }
+  }, [isOpen, refreshModels]);
 
   const selectedModelId = selectedModel.includes('/')
     ? selectedModel.split('/')[1]

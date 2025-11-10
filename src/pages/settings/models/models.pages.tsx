@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle, Brain, ChevronDown, ChevronRight, Key, ArrowUpRight, Rocket, Sparkles, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getModels } from '@/api/models';
 import {
   Accordion,
   AccordionContent,
@@ -131,7 +132,7 @@ const SignInBanner = ({ user }: { user: any }) => {
 };
 
 const ModelConfiguration = () => {
-  const { models, toggleModel, addModel, removeModel } = useModels();
+  const { models, toggleModel, addModel, removeModel, refreshModels } = useModels();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isPremiumUser = user?.isAuthenticated || false;
@@ -143,6 +144,20 @@ const ModelConfiguration = () => {
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
+
+  // Fetch latest models directly from API every time the models page is visited
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        await refreshModels();
+      } catch (error) {
+        console.error('Failed to load models:', error);
+      }
+    };
+
+    // Always fetch models when component mounts
+    fetchModels();
+  }, [refreshModels]);
 
   // Filter models based on search term
   const filteredModels = useMemo(() => {

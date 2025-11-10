@@ -25,7 +25,6 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [selectedModel, setSelectedModel] = useState<string>('');
   const { user } = useAuth();
   const isPremiumUser = user?.isAuthenticated || false;
-  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Filter models based on enabled status
   const enabledModels = models.filter(model => 
