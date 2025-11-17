@@ -358,11 +358,241 @@ const ArgoApplicationsListComponent: React.FC<ArgoApplicationsListProps> = ({
   );
 };
 
+// ArgoCD Application Detail component
+interface ArgoApplicationDetailProps {
+  application?: ArgoApplication;
+  success?: boolean;
+}
+
+const ArgoApplicationDetailComponent: React.FC<ArgoApplicationDetailProps> = ({
+  application,
+  success
+}) => {
+  const navigate = useNavigate()
+
+  if (!success || !application) {
+    return (
+      <></>
+    );
+  }
+
+  const syncStatus = application.status?.sync?.status || 'Unknown';
+  const healthStatus = application.status?.health?.status || 'Unknown';
+  const automated = application.spec.syncPolicy?.automated !== undefined;
+  const resourcesCount = application.status?.resources?.length || 0;
+
+  const getSyncStatusColor = (status: string) => {
+    switch (status) {
+      case 'Synced':
+        return 'text-green-500';
+      case 'OutOfSync':
+        return 'text-orange-500';
+      default:
+        return 'text-gray-500';
+    }
+  };
+
+  const getSyncStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Synced':
+        return <CheckCircle2 className="h-5 w-5" />;
+      case 'OutOfSync':
+        return <AlertCircle className="h-5 w-5" />;
+      default:
+        return <CircleDashed className="h-5 w-5" />;
+    }
+  };
+
+  const getHealthStatusColor = (status: string) => {
+    switch (status) {
+      case 'Healthy':
+        return 'text-green-500';
+      case 'Progressing':
+        return 'text-blue-500';
+      case 'Degraded':
+        return 'text-red-500';
+      case 'Suspended':
+        return 'text-yellow-500';
+      case 'Missing':
+        return 'text-gray-500';
+      default:
+        return 'text-gray-500';
+    }
+  };
+
+  const getHealthStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Healthy':
+        return <CheckCircle2 className="h-5 w-5" />;
+      case 'Progressing':
+        return <RefreshCw className="h-5 w-5 animate-spin" />;
+      case 'Degraded':
+        return <XCircle className="h-5 w-5" />;
+      case 'Suspended':
+        return <Clock className="h-5 w-5" />;
+      case 'Missing':
+        return <AlertCircle className="h-5 w-5" />;
+      default:
+        return <CircleDashed className="h-5 w-5" />;
+    }
+  };
+
+  const formatTimestamp = (timestamp?: string) => {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
+
+  return (
+    <div className="my-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-400">
+          Application Details
+        </h3>
+      </div>
+
+      {/* Main Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-gray-200/30 dark:bg-gray-800/20 hover:bg-gray-200/50 dark:hover:bg-gray-800/30 rounded-lg p-6 border border-gray-300/20 dark:border-gray-700/20 hover:cursor-pointer"
+        onClick={() => navigate("/dashboard/integrations/argo")}
+      >
+        {/* Title Section */}
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex-1">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+              {application.metadata.name}
+            </h3>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Project: <span className="font-medium">{application.spec.project}</span>
+              </span>
+              {automated && (
+                <span className="text-xs px-2 py-1 bg-blue-500/10 text-blue-500 rounded-full">
+                  Auto-sync Enabled
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Status Badges */}
+          <div className="flex flex-col gap-2">
+            <div className={`flex items-center gap-2 ${getSyncStatusColor(syncStatus)}`}>
+              {getSyncStatusIcon(syncStatus)}
+              <span className="text-sm font-medium">{syncStatus}</span>
+            </div>
+            <div className={`flex items-center gap-2 ${getHealthStatusColor(healthStatus)}`}>
+              {getHealthStatusIcon(healthStatus)}
+              <span className="text-sm font-medium">{healthStatus}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Source Information */}
+          <div className="space-y-3">
+            <h4 className="text-xs uppercase font-medium text-gray-700 dark:text-gray-400">
+              Source
+            </h4>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <GitBranch className="h-4 w-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 dark:text-gray-500">Repository</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-200 break-all">
+                    {application.spec.source.repoURL}
+                  </p>
+                </div>
+              </div>
+
+              {application.spec.source.path && (
+                <div className="flex items-start gap-2">
+                  <Package className="h-4 w-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Path</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-200">
+                      {application.spec.source.path}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2">
+                <GitBranch className="h-4 w-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-500">Target Revision</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-200">
+                    {application.spec.source.targetRevision || 'HEAD'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Destination Information */}
+          <div className="space-y-3">
+            <h4 className="text-xs uppercase font-medium text-gray-700 dark:text-gray-400">
+              Destination
+            </h4>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <Server className="h-4 w-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-500">Cluster</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-200">
+                    {application.spec.destination.server || 'in-cluster'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Package className="h-4 w-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-500">Namespace</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-200">
+                    {application.spec.destination.namespace || 'default'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Stats */}
+        <div className="flex items-center justify-between pt-4 mt-6 border-t border-gray-300/20 dark:border-gray-700/20">
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <Activity className="h-4 w-4" />
+            <span>{resourcesCount} resources managed</span>
+          </div>
+
+          {application.status?.reconciledAt && (
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <Clock className="h-4 w-4" />
+              <span>Last reconciled {formatTimestamp(application.status.reconciledAt)}</span>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 // Component map - maps tool names to React components
 export const ComponentMap = {
   sample_resource_name: ResourceListComponent,
   image_vulnerability_summary: ImageVulnerabilitySummaryComponent,
   argocd_applications_list: ArgoApplicationsListComponent,
+  argocd_application_detail: ArgoApplicationDetailComponent,
   // Add more component mappings here as needed
   // example: kubectl_get: KubectlGetComponent,
 };
