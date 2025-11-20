@@ -203,13 +203,16 @@ const Footer: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className='flex items-center '>
           <TerminalContainer />
-          <DriftAnalysisContainer />
-          <div
-            className='backdrop-blur-md cursor-pointer py-1 px-2 text-xs dark:text-gray-300 hover:bg-gray-800/50 flex gap-1.5 items-center'
-            onClick={() => setIsOpen(true)}
-          >
-            <ScanSearch className='h-3 w-3' /> <span>Investigation Task</span>
-          </div>
+          {showClusterToolStats && <DriftAnalysisContainer />}
+          {showClusterToolStats && (
+            <div
+              className='backdrop-blur-md cursor-pointer py-1 px-2 text-xs dark:text-gray-300 hover:bg-gray-800/50 flex gap-1.5 items-center'
+              onClick={() => setIsOpen(true)}
+            >
+              <ScanSearch className='h-3 w-3' /> <span>Investigation Task</span>
+            </div>
+          )}
+
         </div>
         <div className="flex">
           <button className="text-gray-600 backdrop-blur-md px-2 py-1 hover:bg-gray-200/10 hover:dark:bg-gray-200/10">
@@ -217,9 +220,9 @@ const Footer: React.FC = () => {
           </button>
 
           {showClusterToolStats && <VulnScanFooterTool />}
-    
+
           {showClusterToolStats && <MetricsServerStatusFooter />}
-          
+
           <button
             onClick={() => openExternalUrl("https://docs.agentkube.com/changelog")}
             className="text-blue-600 backdrop-blur-md hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10"
