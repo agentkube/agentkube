@@ -591,7 +591,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
 
                 {selectedSubTask.plan && selectedSubTask.plan.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-500">Tool Calls</h4>
+                    <h4 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-500">Tool Calls Evidence</h4>
                     <div className="">
                       {selectedSubTask.plan.map((planItem, index) => (
                         <div key={index} className="border-x border-t last:border-b border-gray-400/20 dark:border-gray-800/50 rounded-none overflow-hidden">
