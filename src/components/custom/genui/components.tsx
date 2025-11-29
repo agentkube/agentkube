@@ -102,7 +102,7 @@ const ImageVulnerabilitySummaryComponent = (
 };
 
 // ArgoCD Applications List component
-import { GitBranch, Package, Server, Activity, AlertCircle, CheckCircle2, Clock, RefreshCw, XCircle, CircleDashed } from 'lucide-react';
+import { GitBranch, Package, Server, Activity, AlertCircle, CheckCircle2, Clock, RefreshCw, XCircle, CircleDashed, GitCompareArrows } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -552,11 +552,210 @@ const ArgoApplicationDetailComponent: React.FC<ArgoApplicationDetailProps> = ({
   );
 };
 
+// Drift Analysis component
+import { useDriftAnalysis } from '@/contexts/useDriftAnalysis';
+
+interface DriftSummary {
+  resource_name: string;
+  baseline_namespace: string;
+  compared_namespaces: string[];
+  baseline: {
+    name: string;
+    namespace: string;
+    kind: string;
+    resourceVersion: string;
+  };
+  drifts: Array<{
+    resource: {
+      name: string;
+      namespace: string;
+      kind: string;
+    };
+    differences: Record<string, any>;
+  }>;
+}
+
+interface DriftAnalysisProps {
+  drift_summary?: DriftSummary;
+  resource_name?: string;
+  total_compared?: number;
+  total_failed?: number;
+  has_drift?: boolean;
+  namespaces_analyzed?: string[];
+  success?: boolean;
+}
+
+const DriftAnalysisComponent: React.FC<DriftAnalysisProps> = ({
+  drift_summary,
+  resource_name,
+  total_compared,
+  total_failed,
+  has_drift,
+  namespaces_analyzed,
+  success
+}) => {
+  const { openDriftAnalysis, setBaselineResource, setComparedResources } = useDriftAnalysis();
+
+  if (!success || !drift_summary) {
+    return <></>;
+  }
+
+  const handleOpenDriftAnalysis = () => {
+    // Set baseline and compared resources in the context
+    const baseline = drift_summary.baseline;
+    const baselineId = `${baseline.namespace}/${baseline.kind}/${baseline.name}`;
+
+    const comparedIds = drift_summary.drifts.map(drift =>
+      `${drift.resource.namespace}/${drift.resource.kind}/${drift.resource.name}`
+    );
+
+    setBaselineResource(baselineId);
+    setComparedResources(comparedIds);
+
+    // Open the drift analysis panel
+    openDriftAnalysis();
+  };
+
+  const getDriftSeverityColor = (differencesCount: number) => {
+    if (differencesCount === 0) return 'text-green-500';
+    if (differencesCount < 3) return 'text-yellow-500';
+    if (differencesCount < 5) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  return (
+    <div className="my-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-400">
+          Drift Analysis Results
+        </h3>
+        <span className="text-xs text-gray-600 dark:text-gray-400">
+          {namespaces_analyzed?.length || total_compared} namespace{(namespaces_analyzed?.length || total_compared) !== 1 ? 's' : ''} analyzed
+        </span>
+      </div>
+
+      {/* Summary Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 border border-gray-300/20 dark:border-gray-700/20 hover:bg-gray-200/50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
+        onClick={handleOpenDriftAnalysis}
+      >
+        {/* Resource Info */}
+        <div className="mb-4 pb-3 border-b border-gray-300/20 dark:border-gray-700/20">
+          <div className="flex items-center gap-2 mb-1">
+            <GitCompareArrows className="h-4 w-4 text-blue-500" />
+            <span className="text-xs uppercase font-medium text-gray-700 dark:text-gray-400">
+              Comparing Resource
+            </span>
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-white">
+            {resource_name || drift_summary.baseline.name}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              {drift_summary.baseline.kind}
+            </span>
+          </div>
+          {/* Namespaces being compared */}
+          <div className="flex flex-wrap gap-1 mt-2">
+            <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full border border-blue-500/20">
+              📍 {drift_summary.baseline_namespace}
+            </span>
+            {drift_summary.compared_namespaces?.map((ns, idx) => (
+              <span key={idx} className="text-xs px-2 py-0.5 bg-gray-500/10 text-gray-600 dark:text-gray-400 rounded-full border border-gray-500/20">
+                {ns}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Drift Summary */}
+        <div className="space-y-2">
+          {drift_summary.drifts.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>No drift detected - all resources are in sync</span>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs uppercase font-medium text-gray-700 dark:text-gray-400">
+                  Detected Drifts
+                </span>
+                <span className={`text-xs font-medium ${has_drift ? 'text-orange-500' : 'text-green-500'}`}>
+                  {drift_summary.drifts.length} drift{drift_summary.drifts.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {drift_summary.drifts.slice(0, 3).map((drift, index) => {
+                const differencesCount = Object.keys(drift.differences).length;
+                const diffKeys = Object.keys(drift.differences).slice(0, 3); // Show first 3 diff keys
+
+                return (
+                  <div
+                    key={`${drift.resource.namespace}-${drift.resource.name}-${index}`}
+                    className="flex items-center justify-between p-2 bg-gray-100/50 dark:bg-gray-900/30 rounded border border-gray-300/20 dark:border-gray-700/20"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-0.5 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded border border-orange-500/20 font-medium">
+                          {drift.resource.namespace}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {diffKeys.length > 0 && (
+                          <span>Diff in: {diffKeys.join(', ')}{differencesCount > 3 ? ', ...' : ''}</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className={`flex items-center gap-1 ${getDriftSeverityColor(differencesCount)}`}>
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-xs font-medium">
+                        {differencesCount}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {drift_summary.drifts.length > 3 && (
+                <div className="text-xs text-gray-600 dark:text-gray-400 text-center pt-2">
+                  +{drift_summary.drifts.length - 3} more drift{drift_summary.drifts.length - 3 !== 1 ? 's' : ''}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        {total_failed && total_failed > 0 && (
+          <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 mt-3 pt-3 border-t border-gray-300/20 dark:border-gray-700/20">
+            <XCircle className="h-3 w-3" />
+            <span>{total_failed} comparison{total_failed !== 1 ? 's' : ''} failed</span>
+          </div>
+        )}
+
+        {/* Call to Action */}
+        <div className="mt-4 pt-3 border-t border-gray-300/20 dark:border-gray-700/20">
+          <div className="flex items-center justify-center gap-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+            <span>Click to view detailed drift analysis</span>
+            <GitCompareArrows className="h-4 w-4" />
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 // Component map - maps tool names to React components
 export const ComponentMap = {
   image_vulnerability_summary: ImageVulnerabilitySummaryComponent,
   argocd_applications_list: ArgoApplicationsListComponent,
   argocd_application_detail: ArgoApplicationDetailComponent,
+  drift_analysis: DriftAnalysisComponent,
   // Add more component mappings here as needed
   // example: kubectl_get: KubectlGetComponent,
 };
