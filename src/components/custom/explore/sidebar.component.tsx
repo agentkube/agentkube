@@ -180,7 +180,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
           <TreeExpander hasChildren={hasChildren} />
           <TreeIcon icon={item.icon} hasChildren={hasChildren} />
           {/* {level === 0 && <TreeIcon icon={item.icon} hasChildren={hasChildren} />} */}
-          <TreeLabel>{item.label}</TreeLabel>
+          <TreeLabel className='text-xs'>{item.label}</TreeLabel>
         </TreeNodeTrigger>
         {hasChildren && (
           <TreeNodeContent hasChildren={hasChildren}>
