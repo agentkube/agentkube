@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Agentkube",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "identifier": "platform.agentkube.app",
   "mainBinaryName": "agentkube",
   "build": {
@@ -46,25 +46,32 @@
       "csp": null,
       "assetProtocol": {
         "scope": {
-          "allow": ["**/*"],
-					"requireLiteralLeadingDot": false
+          "allow": [
+            "**/*"
+          ],
+          "requireLiteralLeadingDot": false
         },
         "enable": true
       },
       "capabilities": [
-          {
+        {
           "identifier": "core:app:default",
           "description": "Allows making HTTP requests to specific domains",
-          "windows": ["main"],
+          "windows": [
+            "main"
+          ],
           "permissions": [
-              "core:app:default",
-              "core:app:allow-version"
-            ]
+            "core:app:default",
+            "core:app:allow-version"
+          ]
         },
         {
           "identifier": "http:default",
           "description": "Allows making HTTP requests to specific domains",
-          "windows": ["main", "splashscreen"],
+          "windows": [
+            "main",
+            "splashscreen"
+          ],
           "permissions": [
             {
               "identifier": "http:default",
@@ -79,70 +86,87 @@
         {
           "identifier": "cors-fetch:default",
           "description": "Allows CORS fetch requests",
-          "windows": ["main", "splashscreen"],
+          "windows": [
+            "main",
+            "splashscreen"
+          ],
           "permissions": [
             {
               "identifier": "cors-fetch:default",
-              "allow": ["http://localhost:1420/*", "http://localhost:4688/*", "http://localhost:4689/*"]
+              "allow": [
+                "http://localhost:1420/*",
+                "http://localhost:4688/*",
+                "http://localhost:4689/*"
+              ]
             }
           ]
         },
         {
-           "identifier": "core:window:default",
-           "local": true,
-           "windows": ["main"],
-            "permissions": [
-              "core:webview:default",
-              "core:window:default",
-              "core:window:allow-minimize",
-              "core:window:allow-maximize",
-              "core:window:allow-toggle-maximize",
-              "core:window:allow-internal-toggle-maximize",
-              "core:window:allow-close",
-              "core:window:allow-set-size",
-              "core:window:allow-start-dragging"
-            ]
+          "identifier": "core:window:default",
+          "local": true,
+          "windows": [
+            "main"
+          ],
+          "permissions": [
+            "core:webview:default",
+            "core:window:default",
+            "core:window:allow-minimize",
+            "core:window:allow-maximize",
+            "core:window:allow-toggle-maximize",
+            "core:window:allow-internal-toggle-maximize",
+            "core:window:allow-close",
+            "core:window:allow-set-size",
+            "core:window:allow-start-dragging"
+          ]
         },
         {
           "identifier": "core:event:default",
           "local": true,
-          "windows": ["main"],
-           "permissions": [
-             "core:event:default",
-             "core:event:allow-listen"
-           ]
+          "windows": [
+            "main"
+          ],
+          "permissions": [
+            "core:event:default",
+            "core:event:allow-listen"
+          ]
         },
         {
           "identifier": "autostart:default",
           "local": true,
-          "windows": ["main"],
-           "permissions": [
-              "autostart:default",
-              "autostart:allow-enable",
-              "autostart:allow-disable",
-              "autostart:allow-is-enabled"
-           ]
+          "windows": [
+            "main"
+          ],
+          "permissions": [
+            "autostart:default",
+            "autostart:allow-enable",
+            "autostart:allow-disable",
+            "autostart:allow-is-enabled"
+          ]
         },
         {
           "identifier": "process:default",
           "local": true,
-          "windows": ["main"],
-           "permissions": [
-              "process:default",
-              "process:allow-exit",
-              "process:allow-restart"
-           ]
+          "windows": [
+            "main"
+          ],
+          "permissions": [
+            "process:default",
+            "process:allow-exit",
+            "process:allow-restart"
+          ]
         },
         {
           "identifier": "updater:default",
           "local": true,
-          "windows": ["main"],
-           "permissions": [
-              "updater:default",
-              "updater:allow-download",
-              "updater:allow-download-and-install",
-              "updater:allow-check"
-           ]
+          "windows": [
+            "main"
+          ],
+          "permissions": [
+            "updater:default",
+            "updater:allow-download",
+            "updater:allow-download-and-install",
+            "updater:allow-check"
+          ]
         }
       ]
     }
@@ -159,7 +183,10 @@
       "hardenedRuntime": false,
       "minimumSystemVersion": "10.13"
     },
-    "resources": ["bin/operator/agentkube-operator-*", "bin/orchestrator/agentkube-orchestrator-*"],
+    "resources": [
+      "bin/operator/agentkube-operator-*",
+      "bin/orchestrator/agentkube-orchestrator-*"
+    ],
     "externalBin": [],
     "icon": [
       "icons/16x16.png",
@@ -183,11 +210,13 @@
   },
   "plugins": {
     "deep-link": {
-      "desktop": {  
-        "schemes": ["agentkube"],  
-        "name": "AgentKube Protocol",   
-        "role": "Editor"  
-      }  
+      "desktop": {
+        "schemes": [
+          "agentkube"
+        ],
+        "name": "AgentKube Protocol",
+        "role": "Editor"
+      }
     },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBNTk0MjQxMTU1MkQ5QzUKUldURjJWSVZRVUpabXUycWVFNHN2NER6TStwZ1dpK2ZMR1p0NjNoT0NqbkxNUXhlVU9MbnJoZnAK",

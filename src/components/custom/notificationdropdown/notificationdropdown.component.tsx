@@ -22,7 +22,7 @@ const mockNotifications = [
 		id: 1,
 		type: 'update',
 		title: 'Welcome to Agentkube',
-		message: 'current version v0.0.9',
+		message: 'current version v0.0.10',
 		timestamp: '2 minutes ago',
 		read: false,
 		icon: Package,
