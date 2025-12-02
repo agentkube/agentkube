@@ -62,10 +62,15 @@ const Account = () => {
   // Separate effect to handle authentication state changes
   useEffect(() => {
     if (user?.isAuthenticated) {
+      // User successfully authenticated - close the login dialog
+      setIsLoginDialogOpen(false);
+      setAuthCode('');
+      setIsLoggingIn(false);
+
       const fetchUserProfile = async () => {
         try {
           const profile = await getUserProfile();
-          
+
           setUser(prevUser => {
             if (!prevUser) return null;
             return {
@@ -82,7 +87,7 @@ const Account = () => {
           console.error('Failed to load user profile on auth change:', error);
         }
       };
-      
+
       fetchUserProfile();
     }
   }, [user?.isAuthenticated, setUser]);
@@ -90,7 +95,7 @@ const Account = () => {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      
+
       // Send logout event if analytics is enabled
       if (isAnalyticsEnabled) {
         await captureEvent('user_logout', {
@@ -98,7 +103,7 @@ const Account = () => {
           email: user?.email
         });
       }
-      
+
       await logout();
     } catch (error) {
       console.error('Logout failed:', error);
