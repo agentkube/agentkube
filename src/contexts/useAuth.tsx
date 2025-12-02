@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  getOAuth2Status, 
+import {
+  getOAuth2Status,
   initiateOAuth2Login,
   handleOAuth2Callback,
   logoutOAuth2,
@@ -35,14 +35,14 @@ interface AuthContextType {
   loading: boolean;
   loginSession: LoginSession | null;
   oauth2Enabled: boolean;
-  
+
   // OAuth2 methods
   initiateLogin: () => Promise<LoginSession>;
   handleManualCallback: (authCode: string) => Promise<boolean>;
   refreshTokens: () => Promise<boolean>;
   logout: () => Promise<void>;
   loadUserProfile: () => Promise<void>;
-  
+
   // Legacy compatibility (for gradual migration)
   setUser: React.Dispatch<React.SetStateAction<UserInfo | null>>;
 }
@@ -80,11 +80,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initializeAuth = async () => {
       try {
         setLoading(true);
-        
+
         // Check if OAuth2 is enabled
         const config = await getOAuth2Config();
         setOauth2Enabled(config.oauth2_enabled);
-        
+
         if (!config.oauth2_enabled) {
           setUser(null);
           storeUserInfoInSession(null);
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Check current authentication status
         const authStatus = await getOAuth2Status();
-        
+
         if (authStatus.authenticated && authStatus.user_info?.email) {
           // User is authenticated via OAuth2
           const userInfo: UserInfo = {
@@ -109,10 +109,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             name: authStatus.user_info.name || 'Unknown User',
             isAuthenticated: true
           };
-          
+
           setUser(userInfo);
           storeUserInfoInSession(userInfo);
-          
+
           // Load full user profile data
           try {
             await loadFullUserProfile();
@@ -132,10 +132,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(null);
           storeUserInfoInSession(null);
         }
-        
+
       } catch (error) {
         console.error('Error initializing auth:', error);
-        
+
         // Fall back to session storage on error
         const sessionUser = getUserInfoFromSession();
         if (sessionUser) {
@@ -147,7 +147,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(null);
           storeUserInfoInSession(null);
         }
-        
+
         toast({
           title: "Authentication Error",
           description: "Could not verify authentication status. Using offline mode.",
@@ -172,31 +172,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const initiateLogin = async (): Promise<LoginSession> => {
     try {
       const response = await initiateOAuth2Login(true); // Open browser automatically
-      
+
       if (!response.success || !response.auth_url || !response.session_id) {
         throw new Error(response.message || 'Failed to initiate login');
       }
-      
+
       const session: LoginSession = {
         sessionId: response.session_id,
         authUrl: response.auth_url,
         expiresIn: response.expires_in || 300
       };
-      
+
       setLoginSession(session);
-      
+
       // Try to open the authorization URL once, but don't fail if it doesn't work
       // try {
       //   await openOAuth2AuthUrl(response.auth_url);
       // } catch (browserError) {
       //   console.log('Browser did not open automatically, user can use manual URL');
       // }
-      
+
       // Start polling for authentication status
       startAuthStatusPolling();
-      
+
       return session;
-      
+
     } catch (error) {
       console.error('Error initiating login:', error);
       toast({
@@ -214,13 +214,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!loginSession) {
         throw new Error('No active login session');
       }
-      
+
       const response = await handleOAuth2Callback(loginSession.sessionId, authCode);
-      
+
       if (!response.success) {
         throw new Error(response.message || 'Authentication failed');
       }
-      
+
       // Update user info from the callback response
       if (response.user) {
         const userInfo: UserInfo = {
@@ -234,21 +234,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             created_at: new Date().toISOString()
           }
         };
-        
+
         setUser(userInfo);
         storeUserInfoInSession(userInfo);
       }
-      
+
       // Clear login session
       setLoginSession(null);
-      
+
       toast({
         title: "Login Successful",
         description: `Welcome, ${response.user?.name || 'User'}!`,
       });
-      
+
       return true;
-      
+
     } catch (error) {
       console.error('Error handling manual callback:', error);
       toast({
@@ -264,15 +264,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshTokens = async (): Promise<boolean> => {
     try {
       const response = await refreshOAuth2Tokens(false);
-      
+
       if (!response.success) {
         console.log('Token refresh not needed or failed:', response.message);
         return false;
       }
-      
+
       // Check authentication status after refresh
       const authStatus = await getOAuth2Status();
-      
+
       if (authStatus.authenticated && authStatus.user_info?.email) {
         const userInfo: UserInfo = {
           id: authStatus.user_info.id,
@@ -285,13 +285,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             created_at: new Date().toISOString()
           }
         };
-        
+
         setUser(userInfo);
         storeUserInfoInSession(userInfo);
       }
-      
+
       return true;
-      
+
     } catch (error) {
       console.error('Error refreshing tokens:', error);
       return false;
@@ -302,10 +302,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loadFullUserProfile = async (): Promise<void> => {
     try {
       const profile = await getUserProfile();
-      
+
       setUser(prevUser => {
         if (!prevUser) return null;
-        
+
         const fullUserInfo: UserInfo = {
           ...prevUser,
           supabaseId: profile.supabaseId,
@@ -315,11 +315,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           createdAt: profile.createdAt,
           updatedAt: profile.updatedAt
         };
-        
+
         storeUserInfoInSession(fullUserInfo);
         return fullUserInfo;
       });
-      
+
     } catch (error) {
       console.error('Error loading full user profile:', error);
       throw error;
@@ -331,7 +331,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!user?.isAuthenticated) {
       throw new Error('User not authenticated');
     }
-    
+
     await loadFullUserProfile();
   };
 
@@ -351,28 +351,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async (): Promise<void> => {
     try {
       setLoading(true);
-      
+
       // Clear any active polling first
       clearPolling();
-      
-      if (oauth2Enabled) {
-        // OAuth2 logout
-        await logoutOAuth2();
-      }
-      
+
+      // if (oauth2Enabled) {
+      //   // OAuth2 logout
+      // }
+      await logoutOAuth2();
+
       // Clear session storage
       sessionStorage.removeItem('userInfo');
-      
+
       // Clear login session
       setLoginSession(null);
-      
+
       setUser(null);
-      
+
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
-      
+
     } catch (error) {
       console.error('Logout failed:', error);
       toast({
@@ -389,11 +389,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const startAuthStatusPolling = () => {
     // Clear any existing polling first
     clearPolling();
-    
+
     pollIntervalRef.current = setInterval(async () => {
       try {
         const authStatus = await getOAuth2Status();
-        
+
         if (authStatus.authenticated && authStatus.user_info?.email) {
           // User successfully authenticated
           const userInfo: UserInfo = {
@@ -407,25 +407,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               created_at: new Date().toISOString()
             }
           };
-          
+
           setUser(userInfo);
           storeUserInfoInSession(userInfo);
           setLoginSession(null);
-          
+
           toast({
             title: "Login Successful",
             description: `Welcome, ${userInfo.name}!`,
           });
-          
+
           // Clear polling after successful authentication
           clearPolling();
         }
-        
+
       } catch (error) {
         console.error('Error polling auth status:', error);
       }
     }, 2000); // Poll every 2 seconds
-    
+
     // Stop polling after 5 minutes
     pollTimeoutRef.current = setTimeout(() => {
       clearPolling();
