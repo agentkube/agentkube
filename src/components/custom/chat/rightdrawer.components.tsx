@@ -9,7 +9,7 @@ import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { EnrichedSearchResult, SearchResult } from '@/types/search';
 import { drawerVariants, backdropVariants } from '@/utils/styles.utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { chatStream, executeCommand, ToolCall } from '@/api/orchestrator.chat';
+import { chatStream, executeCommand, ToolCall, TodoItem } from '@/api/orchestrator.chat';
 import { useCluster } from '@/contexts/clusterContext';
 import SignInContainer from './signin.component';
 import UpgradeToProContainer from './upgradetopro.component';
@@ -23,6 +23,7 @@ import {
 import { AgentkubeBot } from '@/assets/icons';
 import PromptContentDialog from '@/components/custom/promptcontentdialog/promptcontentdialog.component';
 import { ToolPermissionPrompt } from './toolpermissionprompt.rightdrawer';
+import { TodoProgressIndicator } from './todoprogressindicator.rightdrawer';
 
 interface SuggestedQuestion {
   question: string;
@@ -31,7 +32,7 @@ interface SuggestedQuestion {
 
 // Define stream events to maintain proper order
 interface StreamEvent {
-  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component';
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component' | 'plan_created' | 'plan_updated';
   timestamp: number;
   textPosition?: number; // Position in text where this event occurred
   data: any;
@@ -79,6 +80,9 @@ const RightDrawer: React.FC = () => {
   const [currentText, setCurrentText] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentTraceId, setCurrentTraceId] = useState<string | null>(null);
+  const [currentTodos, setCurrentTodos] = useState<TodoItem[]>([]);
+  const [persistedTodos, setPersistedTodos] = useState<TodoItem[]>([]);
+  const [showTodoProgress, setShowTodoProgress] = useState<boolean>(false);
   const [drawerMounted, setDrawerMounted] = useState<boolean>(false);
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o-mini');
@@ -393,6 +397,35 @@ const RightDrawer: React.FC = () => {
               timestamp: Date.now(),
               textPosition: textRef.current.length,
               data: { component, props, callId }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onPlanCreated: (todos, todoCount, traceId, callId, timestamp) => {
+            console.log('Plan created:', todos);
+            setCurrentTodos(todos);
+            setPersistedTodos(todos);
+            setShowTodoProgress(true);
+
+            const event: StreamEvent = {
+              type: 'plan_created',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { todos, todoCount, traceId, callId, timestamp }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onPlanUpdated: (todos, todoCount, traceId, callId, timestamp) => {
+            console.log('Plan updated:', todos);
+            setCurrentTodos(todos);
+            setPersistedTodos(todos);
+
+            const event: StreamEvent = {
+              type: 'plan_updated',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { todos, todoCount, traceId, callId, timestamp }
             };
             eventsRef.current = [...eventsRef.current, event];
             setCurrentEvents([...eventsRef.current]);
@@ -742,16 +775,29 @@ const RightDrawer: React.FC = () => {
 
                 {!showChatSettings && (
                   <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto relative">
-                    {/* Tool Permission Prompt - appears above textarea */}
-                    {pendingToolApproval && currentTraceId && (
-                      <ToolPermissionPrompt
-                        traceId={currentTraceId}
-                        tool={pendingToolApproval.tool}
-                        args={pendingToolApproval.args}
-                        callId={pendingToolApproval.callId}
-                        message={pendingToolApproval.message}
-                        onClose={() => setPendingToolApproval(null)}
-                      />
+                    {/* Stack container for prompts - grows upward from bottom */}
+                    {(showTodoProgress && persistedTodos.length > 0 || pendingToolApproval && currentTraceId) && (
+                      <div className="absolute bottom-full left-0 right-0 mb-2 px-3 z-50 flex flex-col-reverse gap-2">
+                        {/* Tool Permission Prompt - appears above textarea */}
+                        {pendingToolApproval && currentTraceId && (
+                          <ToolPermissionPrompt
+                            traceId={currentTraceId}
+                            tool={pendingToolApproval.tool}
+                            args={pendingToolApproval.args}
+                            callId={pendingToolApproval.callId}
+                            message={pendingToolApproval.message}
+                            onClose={() => setPendingToolApproval(null)}
+                          />
+                        )}
+
+                        {/* Todo Progress Indicator - stacks above Tool Permission Prompt */}
+                        {showTodoProgress && persistedTodos.length > 0 && (
+                          <TodoProgressIndicator
+                            todos={persistedTodos}
+                            onClose={() => setShowTodoProgress(false)}
+                          />
+                        )}
+                      </div>
                     )}
 
                     {structuredContent.length > 0 && (
@@ -796,11 +842,10 @@ const RightDrawer: React.FC = () => {
                               <div
                                 // size="sm"
                                 onClick={() => setAutoApprove(!autoApprove)}
-                                className={`px-2 cursor-pointer flex items-center gap-1.5 mt-1 ${
-                                  autoApprove
-                                    ? 'text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/20'
-                                    : 'text-green-600 dark:text-green-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20'
-                                }`}
+                                className={`px-2 cursor-pointer flex items-center gap-1.5 mt-1 ${autoApprove
+                                  ? 'text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/20'
+                                  : 'text-green-600 dark:text-green-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20'
+                                  }`}
                               >
                                 {/* {autoApprove ? (
                                   <ShieldCheck className="h-4 w-4" />

@@ -88,6 +88,12 @@ export interface ToolCall {
   isPending?: boolean;
 }
 
+// Todo item interface
+export interface TodoItem {
+  status: 'pending' | 'in_progress' | 'completed';
+  content: string;
+}
+
 // TODO: Custom Component Mapping Strategy (Option 1)
 // After tool_call_end event, check tool name and yield custom_component event
 // with parsed data for GenUI components. Implement get_component_for_tool()
@@ -114,6 +120,8 @@ export interface ChatStreamCallbacks {
   onToolTimeout?: (tool: string, callId: string, message: string) => void;
   onToolCallEnd?: (tool: string, result: string, success: boolean, callId: string) => void;
   onCustomComponent?: (component: string, props: any, callId: string) => void;
+  onPlanCreated?: (todos: TodoItem[], todoCount: number, traceId: string, callId: string, timestamp: string) => void;
+  onPlanUpdated?: (todos: TodoItem[], todoCount: number, traceId: string, callId: string, timestamp: string) => void;
   onUserMessageInjected?: (message: string) => void;
   onUserCancelled?: (message: string) => void;
   onDone?: (reason: string, message?: string) => void;
@@ -289,6 +297,18 @@ async function processChatStream(
               case 'custom_component':
                 if (callbacks.onCustomComponent) {
                   callbacks.onCustomComponent(event.component, event.props, event.call_id);
+                }
+                break;
+
+              case 'plan_created':
+                if (callbacks.onPlanCreated) {
+                  callbacks.onPlanCreated(event.todos, event.todo_count, event.trace_id, event.call_id, event.timestamp);
+                }
+                break;
+
+              case 'plan_updated':
+                if (callbacks.onPlanUpdated) {
+                  callbacks.onPlanUpdated(event.todos, event.todo_count, event.trace_id, event.call_id, event.timestamp);
                 }
                 break;
 

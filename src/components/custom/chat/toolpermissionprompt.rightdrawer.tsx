@@ -142,7 +142,6 @@ export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
       style={{
         transformOrigin: 'bottom', // Grow from bottom
       }}
-      className="absolute bottom-full left-0 right-0 mb-2 px-3 z-50"
     >
       <div className="px-3 py-3 bg-gray-50 dark:bg-[#0B0D13]/80 backdrop-blur-xl rounded-lg border dark:border-gary-500 shadow-xl">
         <div className="flex items-start justify-between mb-2">

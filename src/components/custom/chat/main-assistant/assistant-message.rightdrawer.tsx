@@ -24,7 +24,7 @@ interface TableProps {
 
 // Define stream events to maintain proper order
 interface StreamEvent {
-  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component';
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component' | 'plan_created' | 'plan_updated';
   timestamp: number;
   textPosition?: number; // Position in text where this event occurred
   data: any;

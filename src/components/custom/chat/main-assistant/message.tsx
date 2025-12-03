@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { Hand, Search, Sparkle, Sparkles } from "lucide-react";
 import UserMessage from './user-message.rightdrawer';
 import AssistantMessage from './assistant-message.rightdrawer';
-import { ToolCall } from '@/api/orchestrator.chat';
+import TodoList from './todolist.component';
+import { ToolCall, TodoItem } from '@/api/orchestrator.chat';
 import { ShiningText } from '@/components/ui/text-shining';
 import { AGENTKUBE } from '@/assets';
 import { formatElapsedTime } from '@/utils/elapsedTime';
@@ -14,7 +15,7 @@ interface SuggestedQuestion {
 
 // Define stream events to maintain proper order
 interface StreamEvent {
-  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component';
+  type: 'text' | 'reasoning' | 'tool_start' | 'tool_approval' | 'tool_approved' | 'tool_denied' | 'tool_redirected' | 'tool_end' | 'custom_component' | 'plan_created' | 'plan_updated';
   timestamp: number;
   textPosition?: number; // Position in text where this event occurred
   data: any;
@@ -35,6 +36,7 @@ interface MessagesProps {
   suggestedQuestions: SuggestedQuestion[];
   elapsedTime?: number;
   onRetry?: (userMessage: string) => void;
+  currentTodos?: TodoItem[];
 }
 
 const Messages: React.FC<MessagesProps> = ({
@@ -45,7 +47,8 @@ const Messages: React.FC<MessagesProps> = ({
   onQuestionClick,
   suggestedQuestions,
   elapsedTime = 0,
-  onRetry
+  onRetry,
+  currentTodos = []
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
@@ -148,6 +151,13 @@ const Messages: React.FC<MessagesProps> = ({
                 userMessage={findLastUserMessage()}
                 isStreaming={true}
               />
+            </div>
+          )}
+
+          {/* Display todo list if available */}
+          {isLoading && currentTodos.length > 0 && (
+            <div className="px-4 py-2">
+              <TodoList todos={currentTodos} />
             </div>
           )}
 
