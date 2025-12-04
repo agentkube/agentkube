@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause } from "lucide-react";
+import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
-import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview } from '@/components/custom';
+import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview, ReasoningEffort, ReasoningEffortLevel } from '@/components/custom';
 import Messages from './main-assistant/message';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { EnrichedSearchResult, SearchResult } from '@/types/search';
@@ -24,6 +24,7 @@ import { AgentkubeBot } from '@/assets/icons';
 import PromptContentDialog from '@/components/custom/promptcontentdialog/promptcontentdialog.component';
 import { ToolPermissionPrompt } from './toolpermissionprompt.rightdrawer';
 import { TodoProgressIndicator } from './todoprogressindicator.rightdrawer';
+import { toast } from '@/hooks/use-toast';
 
 interface SuggestedQuestion {
   question: string;
@@ -91,6 +92,7 @@ const RightDrawer: React.FC = () => {
   const [previewResource, setPreviewResource] = useState<EnrichedSearchResult | null>(null);
   const [showChatSettings, setShowChatSettings] = useState<boolean>(false);
   const [structuredContent, setStructuredContent] = useState<{ content: string, title?: string }[]>([]);
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffortLevel>('medium');
 
   // Dialog states
   const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
@@ -300,6 +302,7 @@ const RightDrawer: React.FC = () => {
           kubecontext: currentContext?.name,
           files: allFiles.length > 0 ? allFiles : undefined,
           ...(autoApprove && { auto_approve: true }),
+          // reasoning_effort: reasoningEffort, // TODO: Remove this comment when backend implementation is done
         },
         {
           onTraceId: (traceId) => {
@@ -907,7 +910,7 @@ const RightDrawer: React.FC = () => {
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="flex gap-2 items-baseline">
+                    <form onSubmit={handleSubmit}>
                       <AutoResizeTextarea
                         value={inputValue}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
@@ -921,8 +924,59 @@ const RightDrawer: React.FC = () => {
                         mentionItems={mentionData}
                         onMentionSelect={handleMentionSelect}
                       />
+                    </form>
 
-                      <div className="flex items-center justify-end">
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => {
+                                  toast({
+                                    title: "Coming Soon",
+                                    description: "Add Image feature is yet to be implemented",
+                                  });
+                                }}
+                                className="flex items-center gap-1.5 px-2 py-1 h-auto text-xs text-gray-700 dark:text-gray-300 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/40 rounded-md"
+                              >
+                                <Image className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-1">
+                              <p>Add image</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => {
+                                  toast({
+                                    title: "Coming Soon",
+                                    description: "Browser feature is yet to be implemented",
+                                  });
+                                }}
+                                className="flex items-center gap-1.5 px-2 py-1 h-auto text-xs text-gray-700 dark:text-gray-300 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/40 rounded-md"
+                              >
+                                <AppWindow className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-1">
+                              <p>Browser</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <ReasoningEffort
+                          value={reasoningEffort}
+                          onChange={setReasoningEffort}
+                        />
+                      </div>
+
+                      <div className="flex items-center">
                         {isLoading ? (
                           <Button
                             variant="outline"
@@ -933,7 +987,7 @@ const RightDrawer: React.FC = () => {
                           </Button>
                         ) : (
                           <Button
-                            type="submit"
+                            onClick={handleSubmit}
                             disabled={!inputValue.trim()}
                             className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
                           >
@@ -941,7 +995,7 @@ const RightDrawer: React.FC = () => {
                           </Button>
                         )}
                       </div>
-                    </form>
+                    </div>
                   </div>
                 )}
               </div>

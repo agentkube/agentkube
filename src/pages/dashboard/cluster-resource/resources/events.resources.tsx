@@ -1202,13 +1202,13 @@ const Events: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
-                            <DropdownMenuItem onClick={(e) => {
+                            {/* <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               toast({ title: "Ask AI", description: "Feature yet to be implemented" })
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask AI
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               // handleInvestigatePod(pod);
@@ -1227,10 +1227,10 @@ const Events: React.FC = () => {
                   <TableCell colSpan={9} className="text-center py-8 text-gray-500 dark:text-gray-400">
                     {events.length === 0
                       ? (searchQuery
-                          ? `No events matching "${searchQuery}"`
-                          : selectedNamespaces.length === 0
-                            ? "Please select at least one namespace to view events"
-                            : "No events found in the selected namespaces")
+                        ? `No events matching "${searchQuery}"`
+                        : selectedNamespaces.length === 0
+                          ? "Please select at least one namespace to view events"
+                          : "No events found in the selected namespaces")
                       : "No events match the current filters. Try adjusting your search criteria or filters."}
                   </TableCell>
                 </TableRow>

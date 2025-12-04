@@ -76,6 +76,8 @@ export { default as CustomMonacoEditor } from './editor/custom-monaco-editor';
 export { default as ChatPanel } from './editor/chat-panel-tab.component';
 export { default as EditorTheme } from './editortheme/editortheme.component';
 export { default as ChatSetting } from './chatsettings/chatsettings.component';
+export { ReasoningEffort } from './reasoningeffort/reasoningeffort.component';
+export type { ReasoningEffortLevel } from './reasoningeffort/reasoningeffort.component';
 export { default as MinimalEditor } from './minimaleditor/minimaleditor.component';
 
 export { default as NotificationDropdown } from './notificationdropdown/notificationdropdown.component';
