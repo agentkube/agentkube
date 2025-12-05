@@ -5,21 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
+	"sync"
 
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/logger"
+	popeyepkg "github.com/derailed/popeye/pkg"
+	"github.com/derailed/popeye/pkg/config"
+	"github.com/rs/zerolog"
 )
 
-type PopeyeInstaller struct {
+type PopeyeScanner struct {
 	kubeConfigStore kubeconfig.ContextStore
+	mu              sync.Mutex // Protects concurrent Popeye scans
 }
 
-func NewPopeyeInstaller(kubeConfigStore kubeconfig.ContextStore) *PopeyeInstaller {
-	return &PopeyeInstaller{
+func NewPopeyeScanner(kubeConfigStore kubeconfig.ContextStore) *PopeyeScanner {
+	return &PopeyeScanner{
 		kubeConfigStore: kubeConfigStore,
 	}
 }
@@ -58,177 +60,137 @@ type Issue struct {
 	Message string `json:"message"`
 }
 
-type InstallationStatus struct {
-	Installed bool   `json:"installed"`
+type ScannerStatus struct {
+	Available bool   `json:"available"`
 	Version   string `json:"version,omitempty"`
-	Path      string `json:"path,omitempty"`
+	Method    string `json:"method"`
 	Error     string `json:"error,omitempty"`
 }
 
-func (p *PopeyeInstaller) CheckInstallation() InstallationStatus {
-	// Check if popeye is in PATH
-	path, err := exec.LookPath("popeye")
-	if err == nil {
-		// Get version
-		cmd := exec.Command("popeye", "version")
-		output, err := cmd.Output()
-		if err == nil {
-			version := strings.TrimSpace(string(output))
-			return InstallationStatus{
-				Installed: true,
-				Version:   version,
-				Path:      path,
-			}
-		}
-	}
-
-	return InstallationStatus{
-		Installed: false,
-		Error:     "Popeye not found in PATH",
+// CheckAvailability returns the status of Popeye integration
+func (p *PopeyeScanner) CheckAvailability() ScannerStatus {
+	return ScannerStatus{
+		Available: true,
+		Version:   "v0.21.x",
+		Method:    "library",
 	}
 }
 
-func (p *PopeyeInstaller) InstallPopeye() error {
-	switch runtime.GOOS {
-	case "darwin":
-		return p.installWithBrew()
-	case "linux":
-		return p.installFromGitHub()
-	default:
-		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
-	}
-}
+// GenerateClusterReport runs Popeye scan using the library directly
+func (p *PopeyeScanner) GenerateClusterReport(clusterName string) (*PopeyeReport, error) {
+	// Lock to prevent concurrent Popeye scans (Popeye library has race conditions)
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-// installWithBrew installs Popeye using Homebrew (macOS)
-func (p *PopeyeInstaller) installWithBrew() error {
-	logger.Log(logger.LevelInfo, nil, nil, "Installing Popeye using Homebrew...")
-
-	// Check if brew is available
-	if _, err := exec.LookPath("brew"); err != nil {
-		return fmt.Errorf("homebrew not found. Please install Homebrew first")
-	}
-
-	cmd := exec.Command("brew", "install", "derailed/popeye/popeye")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to install Popeye with brew: %v, output: %s", err, string(output))
-	}
-
-	logger.Log(logger.LevelInfo, nil, nil, "Popeye installed successfully with Homebrew")
-	return nil
-}
-
-// installFromGitHub installs Popeye from GitHub releases (Linux)
-func (p *PopeyeInstaller) installFromGitHub() error {
-	logger.Log(logger.LevelInfo, nil, nil, "Installing Popeye from GitHub releases...")
-
-	// Determine architecture
-	arch := runtime.GOARCH
-	if arch == "amd64" {
-		arch = "x86_64"
-	}
-
-	version := "v0.21.1" // Latest stable version
-	filename := fmt.Sprintf("popeye_Linux_%s.tar.gz", arch)
-	downloadURL := fmt.Sprintf("https://github.com/derailed/popeye/releases/download/%s/%s", version, filename)
-
-	// Create temp directory
-	tempDir, err := os.MkdirTemp("", "popeye-install")
-	if err != nil {
-		return fmt.Errorf("failed to create temp directory: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Download the tarball
-	tarPath := filepath.Join(tempDir, filename)
-	cmd := exec.Command("curl", "-L", "-o", tarPath, downloadURL)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to download Popeye: %v", err)
-	}
-
-	// Extract tarball
-	cmd = exec.Command("tar", "-xzf", tarPath, "-C", tempDir)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to extract Popeye: %v", err)
-	}
-
-	// Move binary to /usr/local/bin
-	srcPath := filepath.Join(tempDir, "popeye")
-	destPath := "/usr/local/bin/popeye"
-
-	cmd = exec.Command("sudo", "mv", srcPath, destPath)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to move Popeye to /usr/local/bin: %v", err)
-	}
-
-	// Make executable
-	cmd = exec.Command("sudo", "chmod", "+x", destPath)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to make Popeye executable: %v", err)
-	}
-
-	logger.Log(logger.LevelInfo, nil, nil, "Popeye installed successfully from GitHub")
-	return nil
-}
-
-// GenerateClusterReport runs Popeye
-func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeReport, error) {
-	status := p.CheckInstallation()
-	if !status.Installed {
-		logger.Log(logger.LevelInfo, nil, nil, "Popeye not found, attempting to install...")
-		if err := p.InstallPopeye(); err != nil {
-			return nil, fmt.Errorf("failed to install Popeye: %v", err)
-		}
-	}
 	// Get the context to determine kubeconfig path
-	context, err := p.kubeConfigStore.GetContext(clusterName)
+	ctx, err := p.kubeConfigStore.GetContext(clusterName)
 	if err != nil {
 		return nil, fmt.Errorf("context '%s' not found: %v", clusterName, err)
 	}
 
-	// Build Popeye command args
-	args := []string{
-		"--all-namespaces",
-		"--out", "json",
-		"--context", clusterName,
-		"--force-exit-zero",
-		"--log-level", "0",
-	}
-
-	// Add kubeconfig path if it's from a dynamic/imported source
-	if context.Source == kubeconfig.DynamicCluster {
-		// For dynamic clusters, use the agentkube kubeconfig
-		agentKubeConfig, err := p.getAgentKubeConfigPath()
-		if err != nil {
-			logger.Log(logger.LevelWarn, map[string]string{"cluster": clusterName}, err, "Failed to get agentkube config path, using default")
-		} else {
-			args = append(args, "--kubeconfig", agentKubeConfig)
-		}
-	}
-
-	cmd := exec.Command("popeye", args...)
-
 	logger.Log(logger.LevelInfo, map[string]string{
 		"cluster": clusterName,
-		"source":  fmt.Sprintf("%d", context.Source),
-	}, nil, "Running Popeye cluster scan...")
+		"source":  fmt.Sprintf("%d", ctx.Source),
+	}, nil, "Starting Popeye cluster scan using library...")
 
-	output, err := cmd.CombinedOutput()
+	// Determine kubeconfig path
+	kubeconfigPath, err := p.getKubeconfigPath(ctx, clusterName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run Popeye: %v, output: %s", err, string(output))
+		return nil, fmt.Errorf("failed to determine kubeconfig path: %v", err)
 	}
 
-	jsonOutput, err := extractJSONFromOutput(string(output))
+	// Create Popeye flags configuration with JSON output to stdout
+	flags := p.createPopeyeFlags(kubeconfigPath, clusterName)
+	*flags.Output = "json"
+	// Don't set Save or OutputFile - we'll capture stdout instead
+
+	// Capture stdout BEFORE creating Popeye instance (so it uses our redirected stdout)
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	os.Stderr = w
+
+	// Read output in a goroutine
+	var jsonBuf bytes.Buffer
+	readDone := make(chan bool)
+	go func() {
+		jsonBuf.ReadFrom(r)
+		readDone <- true
+	}()
+
+	// Set up zerolog logger for Popeye - suppress all output
+	var logBuf bytes.Buffer
+	popeyeLogger := zerolog.New(&logBuf).Level(zerolog.Disabled)
+
+	// Create Popeye instance (will use our redirected stdout)
+	popeye, err := popeyepkg.NewPopeye(flags, &popeyeLogger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract JSON from Popeye output: %v, raw output: %s", err, string(output))
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+		w.Close()
+		<-readDone
+		return nil, fmt.Errorf("failed to create Popeye instance: %v", err)
 	}
 
-	// Parse JSON output - try different parsing approaches
+	// Initialize Popeye
+	if err := popeye.Init(); err != nil {
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+		w.Close()
+		<-readDone
+		return nil, fmt.Errorf("failed to initialize Popeye: %v", err)
+	}
+
+	// Run the scan
+	errCount, score, scanErr := popeye.Lint()
+
+	// Close the writer and wait for reader to finish
+	w.Close()
+	<-readDone
+
+	// Restore stdout/stderr
+	os.Stdout = oldStdout
+	os.Stderr = oldStderr
+
+	if scanErr != nil {
+		return nil, fmt.Errorf("failed to run Popeye scan: %v", scanErr)
+	}
+
+	logger.Log(logger.LevelInfo, map[string]string{
+		"cluster":  clusterName,
+		"score":    fmt.Sprintf("%d", score),
+		"errCount": fmt.Sprintf("%d", errCount),
+	}, nil, "Popeye scan completed")
+
+	output := jsonBuf.String()
+
+	logger.Log(logger.LevelInfo, map[string]string{
+		"cluster":     clusterName,
+		"output_size": fmt.Sprintf("%d", len(output)),
+	}, nil, "Captured Popeye output")
+
+	if len(output) == 0 {
+		return nil, fmt.Errorf("Popeye output is empty")
+	}
+
+	// Extract JSON from output (skip debug logs)
+	// Look for the start of JSON object
+	jsonStart := bytes.IndexByte([]byte(output), '{')
+	if jsonStart == -1 {
+		return nil, fmt.Errorf("no JSON found in Popeye output")
+	}
+	jsonData := []byte(output[jsonStart:])
+
+	logger.Log(logger.LevelInfo, map[string]string{
+		"cluster":   clusterName,
+		"json_size": fmt.Sprintf("%d", len(jsonData)),
+	}, nil, "Extracted JSON from output")
+
+	// Parse the JSON output
 	var report PopeyeReport
-
-	// First, try parsing as our expected structure (with outer wrapper)
-	if err := json.Unmarshal([]byte(jsonOutput), &report); err != nil {
-		// If that fails, try parsing as just the inner Popeye structure
+	if err := json.Unmarshal(jsonData, &report); err != nil {
+		// Try parsing as just the inner structure
 		var innerReport struct {
 			ReportTime string                 `json:"report_time"`
 			Score      int                    `json:"score"`
@@ -237,11 +199,11 @@ func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeRepo
 			Errors     map[string]interface{} `json:"errors,omitempty"`
 		}
 
-		if innerErr := json.Unmarshal([]byte(jsonOutput), &innerReport); innerErr != nil {
-			return nil, fmt.Errorf("failed to parse Popeye JSON output: %v, json: %s", err, jsonOutput)
+		if innerErr := json.Unmarshal(jsonData, &innerReport); innerErr != nil {
+			return nil, fmt.Errorf("failed to parse Popeye JSON output: %v", err)
 		}
 
-		// If inner parsing succeeded, wrap it in our report structure
+		// Wrap it in our report structure
 		report = PopeyeReport{
 			ClusterName: clusterName,
 			ContextName: clusterName,
@@ -252,7 +214,7 @@ func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeRepo
 		report.Popeye.Sections = innerReport.Sections
 		report.Popeye.Errors = innerReport.Errors
 	} else {
-		// If outer parsing succeeded, just add cluster info
+		// Add cluster info if not present
 		report.ClusterName = clusterName
 		report.ContextName = clusterName
 	}
@@ -261,86 +223,66 @@ func (p *PopeyeInstaller) GenerateClusterReport(clusterName string) (*PopeyeRepo
 		"cluster": clusterName,
 		"score":   fmt.Sprintf("%d", report.Popeye.Score),
 		"grade":   report.Popeye.Grade,
-	}, nil, "Popeye scan completed")
+	}, nil, "Popeye scan report generated successfully")
 
 	return &report, nil
 }
 
-func extractJSONFromOutput(output string) (string, error) {
-	// Remove ANSI escape sequences from the entire output first
-	cleanOutput := removeANSIEscapes(output)
+// createPopeyeFlags creates the configuration flags for Popeye
+func (p *PopeyeScanner) createPopeyeFlags(kubeconfigPath, contextName string) *config.Flags {
+	// Use config.NewFlags() to properly initialize all pointer fields
+	flags := config.NewFlags()
 
-	// Look for JSON object that starts with {"popeye":
-	jsonStart := strings.Index(cleanOutput, `{"popeye":`)
-	if jsonStart == -1 {
-		// Fallback: look for any JSON object
-		jsonStart = strings.Index(cleanOutput, `{`)
-		if jsonStart == -1 {
-			return "", fmt.Errorf("no JSON found in output")
-		}
-	}
+	// Override the fields we need
+	flags.ConfigFlags.KubeConfig = &kubeconfigPath
+	flags.ConfigFlags.Context = &contextName
 
-	// Find the matching closing brace
-	braceCount := 0
-	var jsonEnd int
+	// Set specific options
+	allNamespaces := true
+	flags.AllNamespaces = &allNamespaces
 
-	for i := jsonStart; i < len(cleanOutput); i++ {
-		switch cleanOutput[i] {
-		case '{':
-			braceCount++
-		case '}':
-			braceCount--
-			if braceCount == 0 {
-				jsonEnd = i + 1
-			}
-		}
-	}
+	forceExitZero := true
+	flags.ForceExitZero = &forceExitZero
 
-	if braceCount != 0 {
-		return "", fmt.Errorf("unmatched braces in JSON output")
-	}
+	logLevel := 0
+	flags.LogLevel = &logLevel
 
-	return cleanOutput[jsonStart:jsonEnd], nil
+	flags.StandAlone = true
+
+	return flags
 }
 
-// helper function to remove ANSI escape sequences
-func removeANSIEscapes(str string) string {
-	var result bytes.Buffer
-	inEscape := false
-
-	for i := 0; i < len(str); i++ {
-		if str[i] == '\x1b' && i+1 < len(str) && str[i+1] == '[' {
-			inEscape = true
-			i++ // skip the '['
-			continue
+// getKubeconfigPath determines the kubeconfig path based on context source
+func (p *PopeyeScanner) getKubeconfigPath(ctx *kubeconfig.Context, clusterName string) (string, error) {
+	if ctx.Source == kubeconfig.DynamicCluster {
+		// For dynamic clusters, use the agentkube kubeconfig
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get user home directory: %v", err)
 		}
 
-		if inEscape {
-			if (str[i] >= 'A' && str[i] <= 'Z') || (str[i] >= 'a' && str[i] <= 'z') {
-				inEscape = false
-			}
-			continue
+		kubeconfigPath := filepath.Join(homeDir, ".agentkube", "kubeconfig", "config")
+
+		// Check if file exists
+		if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
+			return "", fmt.Errorf("agentkube kubeconfig not found at %s", kubeconfigPath)
 		}
 
-		result.WriteByte(str[i])
+		return kubeconfigPath, nil
 	}
 
-	return result.String()
-}
+	// For system clusters, use the default kubeconfig or the one from the context
 
-// getAgentKubeConfigPath returns the path to the agentkube kubeconfig file
-func (p *PopeyeInstaller) getAgentKubeConfigPath() (string, error) {
+	// Default to ~/.kube/config
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %v", err)
 	}
-	
-	kubeconfigPath := filepath.Join(homeDir, ".agentkube", "kubeconfig", "config")
-	
-	// Check if file exists
-	if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("agentkube kubeconfig not found at %s", kubeconfigPath)
-	}
-	
-	return kubeconfigPath, nil
+
+	return filepath.Join(homeDir, ".kube", "config"), nil
+}
+
+// Helper function to create bool pointer
+func ptrBool(b bool) *bool {
+	return &b
 }
