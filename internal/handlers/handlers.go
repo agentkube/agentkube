@@ -1415,7 +1415,7 @@ func scanFolderForKubeconfigs(folderPath string) ([]string, int, []string) {
 	return validFiles, totalContexts, errors
 }
 
-func ClusterReportHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc {
+func ClusterReportHandler(popeyeScanner *extensions.PopeyeScanner) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clusterName := c.Param("clusterName")
 		if clusterName == "" {
@@ -1425,24 +1425,8 @@ func ClusterReportHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFu
 			return
 		}
 
-		// Initialize Popeye installer
-		popeyeInstaller := extensions.NewPopeyeInstaller(kubeConfigStore)
-
-		// Check installation status first
-		status := popeyeInstaller.CheckInstallation()
-		if !status.Installed {
-			logger.Log(logger.LevelInfo, nil, nil, "Popeye not installed, attempting installation...")
-			if err := popeyeInstaller.InstallPopeye(); err != nil {
-				logger.Log(logger.LevelError, nil, err, "failed to install Popeye")
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Failed to install Popeye: " + err.Error(),
-				})
-				return
-			}
-		}
-
-		// Generate cluster report
-		report, err := popeyeInstaller.GenerateClusterReport(clusterName)
+		// Generate cluster report using Popeye library (uses shared scanner with mutex)
+		report, err := popeyeScanner.GenerateClusterReport(clusterName)
 		if err != nil {
 			logger.Log(logger.LevelError, map[string]string{"cluster": clusterName}, err, "failed to generate cluster report")
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -1456,16 +1440,15 @@ func ClusterReportHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFu
 	}
 }
 
-// check Popeye installation status
-func PopeyeStatusHandler(kubeConfigStore kubeconfig.ContextStore) gin.HandlerFunc {
+// check Popeye availability status
+func PopeyeStatusHandler(popeyeScanner *extensions.PopeyeScanner) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		popeyeInstaller := extensions.NewPopeyeInstaller(kubeConfigStore)
-		status := popeyeInstaller.CheckInstallation()
+		status := popeyeScanner.CheckAvailability()
 
 		c.JSON(http.StatusOK, gin.H{
-			"installed": status.Installed,
+			"available": status.Available,
 			"version":   status.Version,
-			"path":      status.Path,
+			"method":    status.Method,
 			"error":     status.Error,
 		})
 	}

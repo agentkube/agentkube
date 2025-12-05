@@ -4,6 +4,7 @@ import (
 	"github.com/agentkube/operator/internal/handlers"
 	"github.com/agentkube/operator/pkg/cache"
 	"github.com/agentkube/operator/pkg/config"
+	"github.com/agentkube/operator/pkg/extensions"
 	"github.com/agentkube/operator/pkg/kubeconfig"
 	"github.com/agentkube/operator/pkg/portforward"
 	"github.com/agentkube/operator/pkg/utils"
@@ -27,14 +28,16 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 	lookupHandler := handlers.NewLookupHandler(kubeConfigStore)
 	// Initialize Workspace handler
 	workspaceHandler := handlers.NewWorkspaceHandler()
-	
+	// Initialize Popeye scanner (shared instance to prevent race conditions)
+	popeyeScanner := extensions.NewPopeyeScanner(kubeConfigStore)
+
 	// Initialize Queue for async operations
 	queueConfig := utils.QueueConfig{
 		Workers:    3,
 		MaxRetries: 3,
 	}
 	operationQueue := utils.NewQueue(queueConfig)
-	
+
 	// Initialize Metrics Server handler
 	metricsServerHandler := handlers.NewMetricsServerHandler(kubeConfigStore, operationQueue)
 
@@ -95,9 +98,9 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			}
 
 			// Popeye endpoints
-			v1.GET("/popeye/status", handlers.PopeyeStatusHandler(kubeConfigStore))
+			v1.GET("/popeye/status", handlers.PopeyeStatusHandler(popeyeScanner))
 			// Cluster report endpoint using Popeye
-			v1.GET("/cluster/:clusterName/report", handlers.ClusterReportHandler(kubeConfigStore))
+			v1.GET("/cluster/:clusterName/report", handlers.ClusterReportHandler(popeyeScanner))
 
 			// Kubernetes contexts endpoint
 			v1.GET("/contexts", HandleGetContexts(kubeConfigStore))
