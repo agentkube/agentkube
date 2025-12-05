@@ -50,7 +50,7 @@ export const ReasoningEffort: React.FC<ReasoningEffortProps> = ({ value, onChang
             <p>Select reasoning effort</p>
           </TooltipContent>
         </Tooltip>
-        <DropdownMenuContent align="start" className="w-40 dark:bg-[#0B0D13] rounded-xl">
+        <DropdownMenuContent align="start" className="w-40 dark:bg-[#0B0D13] rounded-md">
           <div className="p-2">
             <div className="text-xs text-gray-500 uppercase font-medium">Reasoning Effort</div>
           </div>
@@ -62,7 +62,7 @@ export const ReasoningEffort: React.FC<ReasoningEffortProps> = ({ value, onChang
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className="flex items-center justify-between cursor-pointer"
+              className="flex items-center text-xs justify-between cursor-pointer"
             >
               <span>{option.label}</span>
               {value === option.value && <Check className="h-4 w-4" />}

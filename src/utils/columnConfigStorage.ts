@@ -1,4 +1,4 @@
-import type { ColumnConfig } from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
+import { ColumnConfig } from '@/types/resource-filter';
 
 const STORAGE_KEY = 'agentkube_column_config';
 

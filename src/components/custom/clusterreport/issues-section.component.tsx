@@ -1,9 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Info, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, AlertTriangle, XCircle, Info, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { PopeyeSection } from "@/types/cluster-report";
+import ResourceFilterSidebar from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
+import { ColumnConfig } from '@/types/resource-filter';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 // Define sorting types
 type SortDirection = 'asc' | 'desc' | null;
@@ -14,17 +18,68 @@ interface SortState {
   direction: SortDirection;
 }
 
+// Export a method to open filter from parent
+export interface IssuesSectionRef {
+  openFilter: () => void;
+}
+
 interface IssuesSectionProps {
   filteredSections: PopeyeSection[];
   navigateToResource: (resourceName: string, gvr: string, namespace?: string) => void;
 }
 
-const IssuesSection: React.FC<IssuesSectionProps> = ({ filteredSections, navigateToResource }) => {
+const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function IssuesSection({ filteredSections, navigateToResource }, ref) {
   // Add sorting state
   const [sort, setSort] = useState<SortState>({
     field: null,
     direction: null
   });
+
+  // Default column configuration
+  const defaultColumnConfig: ColumnConfig[] = [
+    { key: 'resource', label: 'Resource', visible: true, canToggle: false }, // Required column
+    { key: 'type', label: 'Type', visible: true, canToggle: true },
+    { key: 'severity', label: 'Severity', visible: true, canToggle: true },
+    { key: 'message', label: 'Message', visible: true, canToggle: true },
+    { key: 'group', label: 'Group', visible: true, canToggle: true }
+  ];
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
+    getStoredColumnConfig('cluster-report-issues', defaultColumnConfig)
+  );
+  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+
+  // Column management functions
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
+        col.key === columnKey ? { ...col, visible } : col
+      );
+      saveColumnConfig('cluster-report-issues', updated);
+      return updated;
+    });
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('cluster-report-issues', reorderedColumns);
+  };
+
+  const handleResetToDefault = () => {
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('cluster-report-issues');
+  };
+
+  const isColumnVisible = (columnKey: string) => {
+    const column = columnConfig.find(col => col.key === columnKey);
+    return column ? column.visible : true;
+  };
+
+  // Expose method to parent component
+  useImperativeHandle(ref, () => ({
+    openFilter: () => setIsFilterSidebarOpen(true)
+  }));
 
   const getSeverityIcon = (level: number) => {
     switch (level) {
@@ -141,83 +196,129 @@ const IssuesSection: React.FC<IssuesSectionProps> = ({ filteredSections, navigat
     });
   }, [filteredSections, sort.field, sort.direction]);
 
-  return (
-    <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-      <div className="rounded-md border">
-        <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-          <TableHeader>
-            <TableRow className="border-b border-gray-300 dark:border-gray-800/80">
-              <TableHead
-                className="cursor-pointer hover:text-blue-500"
-                onClick={() => handleSort('resource')}
-              >
-                Resource {renderSortIndicator('resource')}
-              </TableHead>
-              <TableHead
-                className="cursor-pointer hover:text-blue-500"
-                onClick={() => handleSort('type')}
-              >
-                Type {renderSortIndicator('type')}
-              </TableHead>
-              <TableHead
-                className="cursor-pointer hover:text-blue-500"
-                onClick={() => handleSort('severity')}
-              >
-                Severity {renderSortIndicator('severity')}
-              </TableHead>
-              <TableHead
-                className="cursor-pointer hover:text-blue-500"
-                onClick={() => handleSort('message')}
-              >
-                Message {renderSortIndicator('message')}
-              </TableHead>
-              <TableHead
-                className="cursor-pointer hover:text-blue-500"
-                onClick={() => handleSort('group')}
-              >
-                Group {renderSortIndicator('group')}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedIssues.map((issue) => (
-              <TableRow
-                key={issue.key}
-                className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800/80"
-              >
-                <TableCell className="font-medium ">
-                  <div 
-                    className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
-                    onClick={() => navigateToResource(issue.resource, issue.gvr)}
-                  >
-                    {issue.resource}
-                  </div>
-                </TableCell>
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible) {
+      return null;
+    }
 
-                <TableCell>
-                  <div className="capitalize">{issue.type.replace(/([A-Z])/g, ' $1').trim()}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getSeverityIcon(issue.severity)}
-                    {getSeverityBadge(issue.severity)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="max-w-sm text-sm dark:text-gray-400 truncate">{issue.message}</div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {issue.group === '__root__' ? 'Root' : issue.group}
-                  </span>
-                </TableCell>
+    const sortFieldMap: Record<string, SortField> = {
+      resource: 'resource',
+      type: 'type',
+      severity: 'severity',
+      message: 'message',
+      group: 'group'
+    };
+
+    const sortField = sortFieldMap[column.key];
+
+    return (
+      <TableHead
+        key={column.key}
+        className="cursor-pointer hover:text-blue-500"
+        onClick={() => sortField && handleSort(sortField)}
+      >
+        {column.label} {sortField && renderSortIndicator(sortField)}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (issue: any, column: ColumnConfig) => {
+    if (!column.visible) {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'resource':
+        return (
+          <TableCell key={column.key} className="font-medium">
+            <div
+              className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+              onClick={() => navigateToResource(issue.resource, issue.gvr)}
+            >
+              {issue.resource}
+            </div>
+          </TableCell>
+        );
+
+      case 'type':
+        return (
+          <TableCell key={column.key}>
+            <div className="capitalize">{issue.type.replace(/([A-Z])/g, ' $1').trim()}</div>
+          </TableCell>
+        );
+
+      case 'severity':
+        return (
+          <TableCell key={column.key}>
+            <div className="flex items-center gap-2">
+              {getSeverityIcon(issue.severity)}
+              {getSeverityBadge(issue.severity)}
+            </div>
+          </TableCell>
+        );
+
+      case 'message':
+        return (
+          <TableCell key={column.key}>
+            <div className="max-w-sm text-sm dark:text-gray-400 truncate">{issue.message}</div>
+          </TableCell>
+        );
+
+      case 'group':
+        return (
+          <TableCell key={column.key}>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {issue.group === '__root__' ? 'Root' : issue.group}
+            </span>
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <div className="rounded-md border">
+          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+            <TableHeader>
+              <TableRow className="border-b border-gray-300 dark:border-gray-800/80">
+                {columnConfig.map(col => renderTableHeader(col))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {sortedIssues.map((issue) => (
+                <TableRow
+                  key={issue.key}
+                  className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800/80"
+                >
+                  {columnConfig.map(col => renderTableCell(issue, col))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      {/* Column Filter Sidebar */}
+      <ResourceFilterSidebar
+        isOpen={isFilterSidebarOpen}
+        onClose={() => setIsFilterSidebarOpen(false)}
+        title="Issues Columns"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
+        onResetToDefault={handleResetToDefault}
+        resourceType="cluster-report-issues"
+      />
+    </>
   );
-};
+});
+
+IssuesSection.displayName = 'IssuesSection';
 
 export default IssuesSection;

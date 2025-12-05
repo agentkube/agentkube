@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
 import { getClusterReport, } from '@/api/cluster';
 import { ClusterReport as ClusterReportType } from '@/types/cluster-report'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, AlertTriangle, XCircle, Info, AlertCircle, TrendingUp, Award, Search, Eye, MoreVertical, RotateCcw } from "lucide-react";
+import { Loader2, CheckCircle, AlertTriangle, XCircle, Info, AlertCircle, TrendingUp, Award, Search, Eye, MoreVertical, RotateCcw, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -17,7 +17,10 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
-import { IssuesSection } from '@/components/custom';
+import IssuesSection, { type IssuesSectionRef } from '@/components/custom/clusterreport/issues-section.component';
+import ResourceFilterSidebar from '@/components/custom/resourcefiltersidebar/resourcefiltersidebar.component';
+import { ColumnConfig } from '@/types/resource-filter';
+import { getStoredColumnConfig, saveColumnConfig, clearColumnConfig } from '@/utils/columnConfigStorage';
 
 interface StatCardProps {
   count: number;
@@ -56,6 +59,60 @@ const ClusterReport: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('overview');
   const navigate = useNavigate();
+
+  // Default column configuration for Overview table
+  const defaultColumnConfig: ColumnConfig[] = [
+    { key: 'resource', label: 'Resource Type', visible: true, canToggle: false },
+    { key: 'score', label: 'Score', visible: true, canToggle: true },
+    { key: 'ok', label: 'OK', visible: true, canToggle: true },
+    { key: 'info', label: 'Info', visible: true, canToggle: true },
+    { key: 'warnings', label: 'Warnings', visible: true, canToggle: true },
+    { key: 'errors', label: 'Errors', visible: true, canToggle: true },
+    { key: 'issues', label: 'Issues', visible: true, canToggle: true },
+    { key: 'actions', label: 'Actions', visible: true, canToggle: false }
+  ];
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
+    getStoredColumnConfig('cluster-report', defaultColumnConfig)
+  );
+
+  // Ref for IssuesSection to access its filter state and functions
+  const issuesSectionRef = useRef<IssuesSectionRef>(null);
+
+  // Column management functions for Overview table
+  const handleColumnToggle = (columnKey: string, visible: boolean) => {
+    setColumnConfig(prev => {
+      const updated = prev.map(col =>
+        col.key === columnKey ? { ...col, visible } : col
+      );
+      saveColumnConfig('cluster-report', updated);
+      return updated;
+    });
+  };
+
+  const handleColumnReorder = (reorderedColumns: ColumnConfig[]) => {
+    setColumnConfig(reorderedColumns);
+    saveColumnConfig('cluster-report', reorderedColumns);
+  };
+
+  const handleResetToDefault = () => {
+    const resetConfig = defaultColumnConfig.map(col => ({ ...col, visible: true }));
+    setColumnConfig(resetConfig);
+    clearColumnConfig('cluster-report');
+  };
+
+  // Function to handle filter button click based on active tab
+  const handleFilterClick = () => {
+    if (selectedTab === 'overview') {
+      // Open overview filter sidebar (we'll add this state next)
+      setIsOverviewFilterOpen(true);
+    } else if (selectedTab === 'issues') {
+      // Open issues filter sidebar through ref
+      issuesSectionRef.current?.openFilter();
+    }
+  };
+
+  const [isOverviewFilterOpen, setIsOverviewFilterOpen] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -188,6 +245,119 @@ const ClusterReport: React.FC = () => {
     const resourceNamespace = namespace || (parts.length > 1 ? parts[0] : 'default');
 
     navigate(`/dashboard/explore/${resourceType}/${resourceNamespace}/${actualResourceName}`);
+  };
+
+  // Helper function to render table header based on column key
+  const renderTableHeader = (column: ColumnConfig) => {
+    if (!column.visible) {
+      return null;
+    }
+
+    const isNumericColumn = ['score', 'ok', 'info', 'warnings', 'errors', 'issues'].includes(column.key);
+
+    return (
+      <TableHead
+        key={column.key}
+        className={isNumericColumn ? 'text-center' : ''}
+      >
+        {column.label}
+      </TableHead>
+    );
+  };
+
+  // Helper function to render table cell based on column key
+  const renderTableCell = (section: any, column: ColumnConfig) => {
+    if (!column.visible) {
+      return null;
+    }
+
+    switch (column.key) {
+      case 'resource':
+        return (
+          <TableCell key={column.key} className="font-medium">
+            <div>
+              <div className="font-medium capitalize">{section.linter.replace(/([A-Z])/g, ' $1').trim()}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{section.gvr}</div>
+            </div>
+          </TableCell>
+        );
+
+      case 'score':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <div className={`font-bold ${getScoreColor(section.tally?.score || 0)}`}>
+              {section.tally?.score || 0}
+            </div>
+          </TableCell>
+        );
+
+      case 'ok':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="text-green-600 dark:text-green-400 font-medium">
+              {section.tally?.ok || 0}
+            </span>
+          </TableCell>
+        );
+
+      case 'info':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="text-blue-600 dark:text-blue-400 font-medium">
+              {section.tally?.info || 0}
+            </span>
+          </TableCell>
+        );
+
+      case 'warnings':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+              {section.tally?.warning || 0}
+            </span>
+          </TableCell>
+        );
+
+      case 'errors':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="text-red-600 dark:text-red-400 font-medium">
+              {section.tally?.error || 0}
+            </span>
+          </TableCell>
+        );
+
+      case 'issues':
+        return (
+          <TableCell key={column.key} className="text-center">
+            <span className="font-medium">
+              {Object.keys(section.issues || {}).length}
+            </span>
+          </TableCell>
+        );
+
+      case 'actions':
+        return (
+          <TableCell key={column.key}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSelectedTab('details')}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        );
+
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -343,17 +513,28 @@ const ClusterReport: React.FC = () => {
               <TabsTrigger value="issues">Issues</TabsTrigger>
             </TabsList>
 
-            <div className="w-full max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search sections, resources, or issues..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="w-full max-w-md flex items-center gap-2">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search sections, resources, or issues..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFilterClick}
+                className="flex items-center gap-2 h-9 dark:text-gray-300/80"
+                title="Filter columns"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
@@ -363,14 +544,7 @@ const ClusterReport: React.FC = () => {
                 <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
                   <TableHeader>
                     <TableRow className="border-b border-gray-200 dark:border-gray-800/80">
-                      <TableHead>Resource Type</TableHead>
-                      <TableHead className="text-center">Score</TableHead>
-                      <TableHead className="text-center">OK</TableHead>
-                      <TableHead className="text-center">Info</TableHead>
-                      <TableHead className="text-center">Warnings</TableHead>
-                      <TableHead className="text-center">Errors</TableHead>
-                      <TableHead className="text-center">Issues</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      {columnConfig.map(col => renderTableHeader(col))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -379,57 +553,7 @@ const ClusterReport: React.FC = () => {
                         key={index}
                         className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
                       >
-                        <TableCell className="font-medium">
-                          <div>
-                            <div className="font-medium capitalize">{section.linter.replace(/([A-Z])/g, ' $1').trim()}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{section.gvr}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className={`font-bold ${getScoreColor(section.tally?.score || 0)}`}>
-                            {section.tally?.score || 0}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="text-green-600 dark:text-green-400 font-medium">
-                            {section.tally?.ok || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="text-blue-600 dark:text-blue-400 font-medium">
-                            {section.tally?.info || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="text-yellow-600 dark:text-yellow-400 font-medium">
-                            {section.tally?.warning || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="text-red-600 dark:text-red-400 font-medium">
-                            {section.tally?.error || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="font-medium">
-                            {Object.keys(section.issues || {}).length}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedTab('details')}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        {columnConfig.map(col => renderTableCell(section, col))}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -513,12 +637,25 @@ const ClusterReport: React.FC = () => {
 
           <TabsContent value="issues" className="space-y-6">
             <IssuesSection
+              ref={issuesSectionRef}
               filteredSections={filteredSections}
               navigateToResource={navigateToResource}
             />
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Column Filter Sidebar for Overview */}
+      <ResourceFilterSidebar
+        isOpen={isOverviewFilterOpen}
+        onClose={() => setIsOverviewFilterOpen(false)}
+        title="Overview Columns"
+        columns={columnConfig}
+        onColumnToggle={handleColumnToggle}
+        onColumnReorder={handleColumnReorder}
+        onResetToDefault={handleResetToDefault}
+        resourceType="cluster-report"
+      />
     </div>
   );
 };
