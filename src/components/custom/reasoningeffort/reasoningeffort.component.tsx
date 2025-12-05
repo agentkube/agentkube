@@ -41,7 +41,7 @@ export const ReasoningEffort: React.FC<ReasoningEffortProps> = ({ value, onChang
                 className="flex items-center gap-2 px-2 py-1 h-auto text-xs text-gray-700 dark:text-gray-300 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/40"
               >
                 <Brain className="h-3.5 w-3.5" />
-                {/* <span>{currentOption?.label || 'Medium'}</span> */}
+                <span>{currentOption?.label || 'Medium'}</span>
                 <ChevronDown className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>

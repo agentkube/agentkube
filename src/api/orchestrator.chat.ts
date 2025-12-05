@@ -1,7 +1,9 @@
 import { ORCHESTRATOR_URL } from "@/config";
 import { fetch } from '@tauri-apps/plugin-http';
 import { HITLDecisionRequest, HITLDecisionResponse, HITLStatusResponse, HITLToggleRequest, HITLToggleResponse, HITLPendingRequestsResponse } from '@/types/hitl';
+import { ReasoningEffortLevel } from "@/components/custom";
 // Type definitions
+
 export interface ChatRequest {
   message: string;
   chat_history?: ChatMessage[];
@@ -9,6 +11,7 @@ export interface ChatRequest {
   kubecontext?: string;
   prompt?: string;
   files?: FileContent[];
+  reasoning_effort?: ReasoningEffortLevel;
 }
 
 export interface CompletionRequest {
@@ -18,6 +21,7 @@ export interface CompletionRequest {
   kubecontext?: string;
   prompt?: string;
   files?: FileContent[];
+  reasoning_effort?: ReasoningEffortLevel;
 }
 
 export interface ChatMessage {

@@ -302,7 +302,7 @@ const RightDrawer: React.FC = () => {
           kubecontext: currentContext?.name,
           files: allFiles.length > 0 ? allFiles : undefined,
           ...(autoApprove && { auto_approve: true }),
-          // reasoning_effort: reasoningEffort, // TODO: Remove this comment when backend implementation is done
+          reasoning_effort: reasoningEffort, // TODO: Remove this comment when backend implementation is done
         },
         {
           onTraceId: (traceId) => {
