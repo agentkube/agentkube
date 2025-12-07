@@ -37,7 +37,7 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
     if (!currentContext) return;
 
     setOpenCostConfig(config);
-    
+
     try {
       // Map service to service_address for cluster configuration
       const clusterConfig = {
@@ -76,7 +76,7 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
 
       try {
         let config = null;
-        
+
         // First try to load from cluster configuration
         try {
           const clusterConfig = await getClusterConfig(currentContext.name);
@@ -118,11 +118,11 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
     const expandTimer = setTimeout(() => {
       setIsWatchDemoExpanded(true);
     }, 500);
-    
+
     const collapseTimer = setTimeout(() => {
       setIsWatchDemoExpanded(false);
     }, 3000); // 500ms + 2500ms = 3000ms total
-    
+
     return () => {
       clearTimeout(expandTimer);
       clearTimeout(collapseTimer);
@@ -143,8 +143,8 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
     <>
       <div className="p-6 mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Cost Overview</h1>
-          
+          <h1 className="text-5xl text-muted-foreground font-[Anton] uppercase font-bold">Cost Overview</h1>
+
           <div className="flex gap-2 items-center">
             {/* Watch Demo Button */}
             <Button
@@ -153,10 +153,10 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
             >
               <motion.div
                 initial={{ width: 40 }}
-                animate={{ 
-                  width: isWatchDemoExpanded ? 144 : 14 
+                animate={{
+                  width: isWatchDemoExpanded ? 144 : 14
                 }}
-                transition={{ 
+                transition={{
                   duration: 0.4,
                   ease: "easeInOut"
                 }}
@@ -165,11 +165,11 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
                 <Play className="w-4 h-4 flex-shrink-0" />
                 <motion.span
                   initial={{ opacity: 0, width: 0 }}
-                  animate={{ 
+                  animate={{
                     opacity: isWatchDemoExpanded ? 1 : 0,
                     width: isWatchDemoExpanded ? 'auto' : 0
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 0.3,
                     delay: isWatchDemoExpanded ? 0.2 : 0,
                     ease: "easeOut"
@@ -202,14 +202,14 @@ const OpenCostInstaller: React.FC<OpenCostInstallerProps> = ({ loading, onInstal
           defaultService="opencost:9090"
         />
 
-        <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-lg">
+        <Card className="bg-card border-border shadow-lg">
           <CardContent className="p-8">
             <div className="text-center py-12">
-              <DollarSign className="h-16 w-16 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
-              <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <DollarSign className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-2xl font-semibold text-foreground mb-2">
                 OpenCost Not Detected
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-lg mx-auto">
+              <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
                 OpenCost helps you monitor and manage Kubernetes spending. Install it to get detailed cost breakdowns of your cluster resources, namespaces, and deployments.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">

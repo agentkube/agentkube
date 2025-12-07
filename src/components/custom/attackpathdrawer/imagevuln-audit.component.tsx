@@ -71,7 +71,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
       // For pods, try to extract from container info
       const status = resourceData.status as Record<string, any>;
       const containerStatuses = status?.containerStatuses as any[] | undefined;
-      
+
       if (containerStatuses) {
         containerStatuses.forEach(container => {
           if (container.image) {
@@ -182,7 +182,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
           console.warn(`Failed to reload scan results for image: ${image}`, err);
         }
       }
-      
+
       setImageResults(results);
 
       toast({
@@ -203,19 +203,19 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
 
   const getSeverityColor = (severity: string): string => {
     switch (severity.toLowerCase()) {
-      case 'critical': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-      case 'low': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-400';
+      case 'critical': return 'bg-red-100 text-red-800';
+      case 'high': return 'bg-orange-100 text-orange-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-secondary text-muted-foreground';
     }
   };
 
   const getCvssScoreColor = (score: number): string => {
-    if (score >= 9.0) return 'text-red-600 dark:text-red-400 font-bold';
-    if (score >= 7.0) return 'text-orange-600 dark:text-orange-400 font-medium';
-    if (score >= 4.0) return 'text-yellow-600 dark:text-yellow-400 font-medium';
-    return 'text-blue-600 dark:text-blue-400';
+    if (score >= 9.0) return 'text-red-600 font-bold';
+    if (score >= 7.0) return 'text-orange-600 font-medium';
+    if (score >= 4.0) return 'text-yellow-600 font-medium';
+    return 'text-blue-600';
   };
 
   const handleSort = (field: SortField) => {
@@ -291,13 +291,13 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
     });
 
     // Filter by debounced search term
-    const filteredVulns = debouncedSearchTerm.trim() 
-      ? vulns.filter(vuln => 
-          vuln.id.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-          vuln.packageName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-          vuln.severity.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-          (vuln.description && vuln.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
-        )
+    const filteredVulns = debouncedSearchTerm.trim()
+      ? vulns.filter(vuln =>
+        vuln.id.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        vuln.packageName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        vuln.severity.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (vuln.description && vuln.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+      )
       : vulns;
 
     // Sort vulnerabilities
@@ -324,11 +324,11 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
         case 'score': {
           const scoreA = a.cvssScore ? parseFloat(a.cvssScore.toString()) : -1;
           const scoreB = b.cvssScore ? parseFloat(b.cvssScore.toString()) : -1;
-          
+
           if (scoreA === -1 && scoreB === -1) return 0;
           if (scoreA === -1) return 1 * sortMultiplier;
           if (scoreB === -1) return -1 * sortMultiplier;
-          
+
           return (scoreA - scoreB) * sortMultiplier;
         }
 
@@ -352,7 +352,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
       {/* Images Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">
+          <h4 className="font-medium text-xs uppercase text-muted-foreground">
             Container Images ({resourceImages.length})
           </h4>
           <div className="flex gap-2">
@@ -392,11 +392,11 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
             return (
               <div
                 key={image}
-                className="dark:text-gray-300"
+                className="text-foreground"
               >
-                <div className="flex items-center gap-1 dark:text-gray-400 max-w-80 p-1 dark:bg-gray-600/10 rounded-lg">
-                  <div className='bg-gray-200/20 dark:bg-gray-500/20 rounded-md p-1'>
-                    <Image className='h-4 w-4 dark:text-cyan-600' />
+                <div className="flex items-center gap-1 text-muted-foreground max-w-80 p-1 bg-secondary rounded-lg">
+                  <div className='bg-secondary rounded-md p-1'>
+                    <Image className='h-4 w-4 text-cyan-600' />
                   </div>
                   <span className="truncate text-sm">
                     {image}
@@ -447,22 +447,22 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                 { label: 'Medium', count: summary.medium, severity: 'medium' },
                 { label: 'Low', count: summary.low, severity: 'low' }
               ].map(({ label, count, severity }) => (
-                <Card key={label} className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+                <Card key={label} className="bg-card rounded-md border border-border shadow-none min-h-32">
                   <CardContent className="py-2 px-2 flex flex-col h-full">
-                    <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">{label}</h2>
+                    <h2 className="text-sm uppercase font-medium text-muted-foreground mb-auto">{label}</h2>
                     <div className="mt-auto">
                       <p className={`text-5xl font-light mb-1 ${severity === 'critical' ? 'text-red-600 dark:text-red-400' :
                         severity === 'high' ? 'text-orange-600 dark:text-orange-400' :
                           severity === 'medium' ? 'text-yellow-600 dark:text-yellow-400' :
-                            'text-blue-600 dark:text-blue-400'
+                            'text-blue-600'
                         }`}>
                         {count}
                       </p>
-                      <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
-                        <div className={`h-1 rounded-[0.3rem] ${severity === 'critical' ? 'bg-red-500 dark:bg-red-400' :
-                          severity === 'high' ? 'bg-orange-500 dark:bg-orange-400' :
-                            severity === 'medium' ? 'bg-yellow-500 dark:bg-yellow-400' :
-                              'bg-blue-500 dark:bg-blue-400'
+                      <div className="w-full h-1 bg-secondary rounded-[0.3rem] mt-1">
+                        <div className={`h-1 rounded-[0.3rem] ${severity === 'critical' ? 'bg-red-500' :
+                          severity === 'high' ? 'bg-orange-500' :
+                            severity === 'medium' ? 'bg-yellow-500' :
+                              'bg-blue-500'
                           }`} style={{ width: '100%' }}></div>
                       </div>
                     </div>
@@ -483,10 +483,10 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
           </div>
 
           {/* Vulnerabilities Table */}
-          <Card className="bg-transparent border border-gray-200 dark:border-gray-800/50">
+          <Card className="bg-transparent border border-border">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                <TableRow className="border-b border-border">
                   <TableHead className="w-8"></TableHead>
                   <TableHead
                     className="cursor-pointer hover:text-blue-500 w-96"
@@ -516,7 +516,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                   return (
                     <React.Fragment key={vulnKey}>
                       <TableRow
-                        className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
+                        className="bg-card border-b border-border hover:cursor-pointer hover:bg-accent-hover"
                         onClick={() => toggleRowExpansion(vulnKey)}
                       >
                         <TableCell className="w-8">
@@ -527,10 +527,10 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                           )}
                         </TableCell>
                         <TableCell className="font-medium">
-                          <div className="font-mono text-blue-500 dark:text-blue-400 text-sm">{vuln.id}</div>
+                          <div className="font-mono text-blue-500 text-sm">{vuln.id}</div>
                           {vuln.description && (
                             <div>
-                              <p className="text-xs font-light text-gray-700 dark:text-gray-300">{vuln.description.slice(0, 100)} {vuln.description.length > 100 ? "..." : "."}</p>
+                              <p className="text-xs font-light text-foreground">{vuln.description.slice(0, 100)} {vuln.description.length > 100 ? "..." : "."}</p>
                             </div>
                           )}
                         </TableCell>
@@ -552,22 +552,22 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
 
                       {/* Expanded Row Details */}
                       {isExpanded && (
-                        <TableRow className="bg-gray-100 dark:bg-gray-800/20">
+                        <TableRow className="bg-secondary">
                           <TableCell colSpan={6} className="p-4 dark:hover:bg-transparent">
                             <div className="space-y-4">
                               {/* Image info */}
                               {vuln.imageName && (
-                                <div className='flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300'>
+                                <div className='flex items-center gap-1 text-sm text-foreground'>
                                   <Image className='h-4 w-4' />
                                   <p className="">{vuln.imageName}</p>
                                 </div>
                               )}
-                              
+
                               {/* Description */}
                               {vuln.description && (
                                 <div>
-                                  <h6 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Description</h6>
-                                  <p className="text-sm text-gray-700 dark:text-gray-300">{vuln.description}</p>
+                                  <h6 className="text-xs font-medium text-muted-foreground mb-2">Description</h6>
+                                  <p className="text-sm text-foreground">{vuln.description}</p>
                                 </div>
                               )}
 
@@ -581,7 +581,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                   <div className="space-y-2 text-sm p-1.5">
                                     {/* Severity */}
                                     <div className="flex items-center justify-between group">
-                                      <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Severity</span>
+                                      <span className="text-muted-foreground flex-shrink-0">Severity</span>
                                       <div className="flex items-center gap-1 min-w-0">
                                         <Badge className={getSeverityColor(vuln.severity)}>
                                           {vuln.severity}
@@ -605,7 +605,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                     {/* CVSS Score */}
                                     {vuln.cvssScore && (
                                       <div className="flex items-center justify-between group">
-                                        <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Score</span>
+                                        <span className="text-muted-foreground flex-shrink-0">Score</span>
                                         <div className="flex items-center gap-1 min-w-0">
                                           <Badge className={getSeverityColor(vuln.severity)}>
                                             <span className={getCvssScoreColor(parseFloat(vuln.cvssScore.toString()))}>
@@ -632,7 +632,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                     {/* CVSS Vector */}
                                     {vuln.cvssVector && (
                                       <div className="flex items-center justify-between group">
-                                        <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Vector</span>
+                                        <span className="text-muted-foreground flex-shrink-0">Vector</span>
                                         <div className="flex items-center gap-1 min-w-0">
                                           <span className="truncate font-mono text-xs max-w-56">{vuln.cvssVector}</span>
                                           <button
@@ -655,7 +655,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                     {/* Modified Date */}
                                     {vuln.lastModifiedDate && (
                                       <div className="flex items-center justify-between group">
-                                        <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Modified</span>
+                                        <span className="text-muted-foreground flex-shrink-0">Modified</span>
                                         <div className="flex items-center gap-1 min-w-0">
                                           <span className="truncate font-mono text-xs">{new Date(vuln.lastModifiedDate).toLocaleDateString()}</span>
                                           <button
@@ -686,7 +686,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                   <div className="space-y-2 text-sm p-1.5">
                                     {/* Version */}
                                     <div className="flex items-center justify-between group">
-                                      <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Version</span>
+                                      <span className="text-muted-foreground flex-shrink-0">Version</span>
                                       <div className="flex items-center gap-1 min-w-0">
                                         <span className="truncate font-mono text-xs">{vuln.version}</span>
                                         <button
@@ -707,7 +707,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
 
                                     {/* Type */}
                                     <div className="flex items-center justify-between group">
-                                      <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Type</span>
+                                      <span className="text-muted-foreground flex-shrink-0">Type</span>
                                       <div className="flex items-center gap-1 min-w-0">
                                         <span className="truncate font-mono text-xs">{vuln.packageType}</span>
                                         <button
@@ -728,7 +728,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
 
                                     {/* Package Name */}
                                     <div className="flex items-center justify-between group">
-                                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 flex-shrink-0">
+                                      <div className="flex items-center gap-1 text-muted-foreground flex-shrink-0">
                                         <span>Name</span>
                                       </div>
                                       <div className="flex items-center gap-1 min-w-0">
@@ -752,7 +752,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                     {/* Location */}
                                     {vuln.locations && vuln.locations.length > 0 && (
                                       <div className="flex items-center justify-between group">
-                                        <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Location</span>
+                                        <span className="text-muted-foreground flex-shrink-0">Location</span>
                                         <div className="flex items-center gap-1 min-w-0">
                                           <span className="truncate font-mono text-xs max-w-56">{vuln.locations?.[0]?.path}</span>
                                           <button
@@ -772,7 +772,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                       </div>
                                     )}
                                   </div>
-                                </div>                          
+                                </div>
                               </div>
 
                               {/* URLs and Actions */}
@@ -780,7 +780,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                 {/* References */}
                                 {vuln.urls && vuln.urls.length > 0 && (
                                   <div>
-                                    <h6 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">References</h6>
+                                    <h6 className="text-xs font-medium text-muted-foreground mb-2">References</h6>
                                     <div className="space-y-1">
                                       {vuln.urls.map((url, urlIndex) => (
                                         <button
@@ -789,7 +789,7 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                             e.stopPropagation();
                                             openExternalUrl(url);
                                           }}
-                                          className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline text-left"
+                                          className="flex items-center gap-1 text-xs text-blue-600 hover:underline text-left"
                                         >
                                           <ArrowUpRight className="h-3 w-3" />
                                           {url}
@@ -802,13 +802,13 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                                 {/* Data Source */}
                                 {vuln.dataSource && (
                                   <div className='px-1'>
-                                    <h6 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Data Source</h6>
+                                    <h6 className="text-xs font-medium text-muted-foreground mb-2">Data Source</h6>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openExternalUrl(vuln.dataSource as string);
                                       }}
-                                      className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline text-left"
+                                      className="flex items-center gap-1 text-xs text-blue-600 hover:underline text-left"
                                     >
                                       <ArrowUpRight className="h-3 w-3" />
                                       {vuln.dataSource}
@@ -819,37 +819,43 @@ export const ImageVulnAudit: React.FC<ImageVulnAuditProps> = ({ resourceData }) 
                             </div>
                           </TableCell>
                         </TableRow>
-                      )}
+                      )
+                      }
                     </React.Fragment>
                   );
                 })}
               </TableBody>
             </Table>
           </Card>
-        </div>
-      )}
+        </div >
+      )
+      }
 
       {/* No Results State */}
-      {!loadingResults && !scanning && allVulnerabilities.length === 0 && resourceImages.length > 0 && (
-        <div className="text-center py-8">
-          <Shield className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">No vulnerabilities found</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Selected images appear to be secure
-          </p>
-        </div>
-      )}
+      {
+        !loadingResults && !scanning && allVulnerabilities.length === 0 && resourceImages.length > 0 && (
+          <div className="text-center py-8">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No vulnerabilities found</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Selected images appear to be secure
+            </p>
+          </div>
+        )
+      }
 
       {/* No Images State */}
-      {resourceImages.length === 0 && (
-        <div className="text-center py-8">
-          <Eye className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">No images found</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            No container images found for this resource
-          </p>
-        </div>
-      )}
-    </div>
+      {
+        resourceImages.length === 0 && (
+          <div className="text-center py-8">
+            <Eye className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No images found</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              No container images found for this resource
+            </p>
+          </div>
+        )
+      }
+    </div >
   );
 };

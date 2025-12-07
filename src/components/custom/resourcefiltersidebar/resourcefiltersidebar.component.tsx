@@ -4,6 +4,7 @@ import { Settings, RotateCcw, Table, ChevronDown, ChevronRight, GripVertical } f
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { saveColumnConfig } from '@/utils/columnConfigStorage';
+import { ColumnConfig } from '@/types/resource-filter';
 import {
   DndContext,
   closestCenter,
@@ -21,15 +22,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-interface ColumnConfig {
-  key: string;
-  label: string;
-  visible: boolean;
-  canToggle?: boolean; // Some columns might be required and non-toggleable
-  children?: ColumnConfig[]; // For hierarchical columns
-  isExpandable?: boolean; // Whether this group can be expanded/collapsed
-}
 
 interface SortableColumnItemProps {
   column: ColumnConfig;
@@ -110,11 +102,10 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
           <div className="flex items-center justify-between flex-grow">
             <label
               htmlFor={column.key}
-              className={`text-sm font-medium cursor-pointer ${
-                column.canToggle === false
-                  ? 'text-gray-400 dark:text-gray-600'
-                  : 'text-gray-700 dark:text-gray-300'
-              }`}
+              className={`text-sm font-medium cursor-pointer ${column.canToggle === false
+                ? 'text-gray-400 dark:text-gray-600'
+                : 'text-gray-700 dark:text-gray-300'
+                }`}
             >
               {column.label}
             </label>
@@ -157,11 +148,10 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
 
                 <label
                   htmlFor={child.key}
-                  className={`text-sm cursor-pointer flex-grow ${
-                    child.canToggle === false
-                      ? 'text-gray-400 dark:text-gray-600'
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}
+                  className={`text-sm cursor-pointer flex-grow ${child.canToggle === false
+                    ? 'text-gray-400 dark:text-gray-600'
+                    : 'text-gray-700 dark:text-gray-300'
+                    }`}
                 >
                   {child.label}
                 </label>
@@ -205,11 +195,10 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
 
         <label
           htmlFor={column.key}
-          className={`text-sm cursor-pointer flex-grow ${
-            column.canToggle === false
-              ? 'text-gray-400 dark:text-gray-600'
-              : 'text-gray-700 dark:text-gray-300'
-          }`}
+          className={`text-sm cursor-pointer flex-grow ${column.canToggle === false
+            ? 'text-gray-400 dark:text-gray-600'
+            : 'text-gray-700 dark:text-gray-300'
+            }`}
         >
           {column.label}
         </label>
@@ -376,10 +365,10 @@ const ResourceFilterSidebar: React.FC<ResourceFilterSidebarProps> = ({
                         onToggleExpansion={toggleGroupExpansion}
                       />
                     )) || (
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        No columns available
-                      </div>
-                    )}
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          No columns available
+                        </div>
+                      )}
                   </SortableContext>
                 </DndContext>
               ) : (

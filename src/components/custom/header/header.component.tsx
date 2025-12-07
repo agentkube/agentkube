@@ -5,7 +5,7 @@ import { useClusterNavigation } from '@/hooks/use-cluster-navigation';
 export const HeaderComponent: React.FC = () => {
   const location = useLocation();
   const params = useParams();
-  
+
   // Track cluster navigation for last visited locations
   useClusterNavigation();
 
@@ -373,10 +373,10 @@ export const HeaderComponent: React.FC = () => {
   const title = getPageTitle();
 
   return (
-    <div className="text-sm text-gray-900 dark:text-gray-300/50">
+    <div className="text-sm text-foreground">
       {title.includes(' - ') ? (
         <span>
-          {title.split(' - ')[0]} <span className="text-gray-600 dark:text-gray-400">{title.split(' - ')[1]}</span>
+          {title.split(' - ')[0]} <span className="text-muted-foreground">{title.split(' - ')[1]}</span>
         </span>
       ) : (
         title

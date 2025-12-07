@@ -17,10 +17,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCluster } from '@/contexts/clusterContext';
-import { 
+import {
   getMetricsServerStatus,
   uninstallMetricsServer,
-  getOperationStatus 
+  getOperationStatus
 } from '@/api/internal/metrics_svr';
 import { MetricsServerStatus } from '@/types/metrics-server';
 import MetricsServerInstallationDialog from './metricssvrinstallationdialog.component';
@@ -63,10 +63,10 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
     try {
       setIsUninstalling(true);
       setError(null);
-      
+
       const response = await uninstallMetricsServer(currentContext.name);
       setUninstallOperationId(response.operationId);
-      
+
       // Poll for completion
       await pollUninstallStatus(response.operationId);
     } catch (err) {
@@ -80,7 +80,7 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
   const pollUninstallStatus = async (operationId: string) => {
     try {
       const response = await getOperationStatus(operationId);
-      
+
       if (response.data.status === 'completed') {
         setIsUninstalling(false);
         setUninstallOperationId(null);
@@ -129,19 +129,19 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
     if (loading || isCheckingMetricsServer || isUninstalling) {
       return { icon: Loader2, color: 'text-blue-400', extraClass: 'animate-spin' };
     }
-    
+
     if (error) {
       return { icon: ServerCrash, color: 'text-red-400', extraClass: '' };
     }
-    
+
     if (isMetricsServerInstalled && metricsStatus?.ready) {
       return { icon: CheckCircle, color: '', extraClass: '' };
     }
-    
+
     if (isMetricsServerInstalled && !metricsStatus?.ready) {
       return { icon: AlertTriangle, color: 'text-yellow-400', extraClass: '' };
     }
-    
+
     return { icon: Server, color: 'text-gray-400', extraClass: '' };
   };
 
@@ -179,7 +179,7 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
         </TooltipProvider>
 
         <DropdownMenuContent
-          className="w-80 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-200 rounded-lg dark:border-neutral-600/30"
+          className="w-80 bg-card/80 backdrop-blur-md border-gray-200 rounded-lg dark:border-neutral-600/30"
           align="end"
           sideOffset={5}
         >
@@ -203,15 +203,15 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
                 <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
                 <div className="flex items-center gap-1">
                   {/* <IconComponent className={`h-3 w-3 ${color} ${extraClass}`} /> */}
-                  <Badge 
+                  <Badge
                     className={
                       isMetricsServerInstalled && metricsStatus?.ready
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                         : isMetricsServerInstalled && !metricsStatus?.ready
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        : error
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          : error
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
                     }
                   >
                     {getStatusText()}
@@ -227,7 +227,7 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
                   </span>
                 </div>
               )}
-     
+
             </div>
 
             {error && (
@@ -245,7 +245,7 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
                 <Button
                   onClick={() => setIsInstallDialogOpen(true)}
                   disabled={loading || !currentContext}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1 bg-primary hover:bg-primary/80"
                   size="sm"
                 >
                   <Settings className="h-3 w-3 mr-2" />

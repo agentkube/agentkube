@@ -2,13 +2,13 @@ import React, { useMemo } from 'react';
 import { Check } from 'lucide-react';
 import { KubeContext } from '@/types/cluster';
 import { useTheme } from 'next-themes';
-import { 
-  AWS_PROVIDER, 
-  AWS_PROVIDER_DARK, 
-  AZURE_PROVIDER, 
-  DOCKER_PROVIDER, 
-  GCP_PROVIDER,  
-  MINIKUBE_PROVIDER 
+import {
+  AWS_PROVIDER,
+  AWS_PROVIDER_DARK,
+  AZURE_PROVIDER,
+  DOCKER_PROVIDER,
+  GCP_PROVIDER,
+  MINIKUBE_PROVIDER
 } from '@/assets/providers';
 import KUBERNETES_LOGO from '@/assets/kubernetes-blue.png';
 
@@ -39,7 +39,7 @@ const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
   activeIndex
 }) => {
   const { theme } = useTheme();
-  const filteredContexts = useMemo(() => 
+  const filteredContexts = useMemo(() =>
     contexts.filter(ctx =>
       ctx.name.toLowerCase().includes(query.toLowerCase())
     ),
@@ -75,13 +75,12 @@ const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
       ) : (
         filteredContexts.map((context, index) => {
           const clusterType = determineClusterType(context.kubeContext.user);
-          
+
           return (
             <div
               key={context.name}
-              className={`flex items-center px-4 py-2 cursor-pointer ${
-                index === activeIndex ? 'bg-gray-200 dark:bg-gray-600/10' : 'hover:bg-gray-200 dark:hover:bg-gray-800/20'
-              }`}
+              className={`flex items-center px-4 py-2 cursor-pointer ${index === activeIndex ? 'bg-accent' : 'hover:bg-accent-hover'
+                }`}
               onClick={() => onContextSelect(context)}
             >
               <div className="w-6 h-6 mr-3 flex items-center justify-center">
@@ -91,7 +90,7 @@ const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{context.name}</span>
                   {currentContext?.name === context.name && (
-                    <Check className="w-4 h-4 text-blue-500 dark:text-green-500" />
+                    <Check className="w-4 h-4 text-green-500" />
                   )}
                 </div>
                 <div className="text-xs text-gray-500">

@@ -31,20 +31,20 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, icon, color }) => (
-  <Card className="bg-transparent hover:dark:bg-gray-800/20 border border-gray-300/20 dark:border-gray-700/50 rounded-md">
+  <Card className="bg-transparent hover:bg-secondary/20 border border-border rounded-md">
     <CardContent className="p-3">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-2 rounded-lg ${color}`}>
           {icon}
         </div>
-        <h2 className="text-4xl font-light text-gray-900 dark:text-gray-200">
+        <h2 className="text-4xl font-light text-foreground">
           {count}
         </h2>
       </div>
-      <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100">
+      <h3 className="text-xs font-medium text-foreground">
         {label}
       </h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-muted-foreground">
         {timeframe}
       </p>
     </CardContent>
@@ -139,21 +139,21 @@ const ClusterReport: React.FC = () => {
 
   const getGradeColor = (grade: string): string => {
     switch (grade) {
-      case 'A': return 'text-green-600 dark:text-green-400';
-      case 'B': return 'text-blue-600 dark:text-blue-400';
-      case 'C': return 'text-yellow-600 dark:text-yellow-400';
-      case 'D': return 'text-orange-600 dark:text-orange-400';
-      case 'F': return 'text-red-600 dark:text-red-400';
-      default: return 'text-gray-600 dark:text-gray-400';
+      case 'A': return 'text-green-500';
+      case 'B': return 'text-blue-500';
+      case 'C': return 'text-yellow-500';
+      case 'D': return 'text-orange-500';
+      case 'F': return 'text-red-500';
+      default: return 'text-muted-foreground';
     }
   };
 
   const getScoreColor = (score: number): string => {
-    if (score >= 90) return 'text-green-600 dark:text-green-400';
-    if (score >= 75) return 'text-blue-600 dark:text-blue-400';
-    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
-    if (score >= 40) return 'text-orange-600 dark:text-orange-400';
-    return 'text-red-600 dark:text-red-400';
+    if (score >= 90) return 'text-green-500';
+    if (score >= 75) return 'text-blue-500';
+    if (score >= 60) return 'text-yellow-500';
+    if (score >= 40) return 'text-orange-500';
+    return 'text-red-500';
   };
 
   const getSeverityIcon = (level: number) => {
@@ -168,10 +168,10 @@ const ClusterReport: React.FC = () => {
 
   const getSeverityBadge = (level: number) => {
     const config = {
-      0: { label: 'OK', class: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-      1: { label: 'INFO', class: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' },
-      2: { label: 'WARNING', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' },
-      3: { label: 'ERROR', class: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' }
+      0: { label: 'OK', class: 'bg-green-500/10 text-green-500' },
+      1: { label: 'INFO', class: 'bg-blue-500/10 text-blue-500' },
+      2: { label: 'WARNING', class: 'bg-yellow-500/10 text-yellow-500' },
+      3: { label: 'ERROR', class: 'bg-red-500/10 text-red-500' }
     };
 
     const { label, class: className } = config[level as keyof typeof config] || config[1];
@@ -277,7 +277,7 @@ const ClusterReport: React.FC = () => {
           <TableCell key={column.key} className="font-medium">
             <div>
               <div className="font-medium capitalize">{section.linter.replace(/([A-Z])/g, ' $1').trim()}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{section.gvr}</div>
+              <div className="text-xs text-muted-foreground">{section.gvr}</div>
             </div>
           </TableCell>
         );
@@ -294,7 +294,7 @@ const ClusterReport: React.FC = () => {
       case 'ok':
         return (
           <TableCell key={column.key} className="text-center">
-            <span className="text-green-600 dark:text-green-400 font-medium">
+            <span className="text-green-500 font-medium">
               {section.tally?.ok || 0}
             </span>
           </TableCell>
@@ -303,7 +303,7 @@ const ClusterReport: React.FC = () => {
       case 'info':
         return (
           <TableCell key={column.key} className="text-center">
-            <span className="text-blue-600 dark:text-blue-400 font-medium">
+            <span className="text-blue-500 font-medium">
               {section.tally?.info || 0}
             </span>
           </TableCell>
@@ -312,7 +312,7 @@ const ClusterReport: React.FC = () => {
       case 'warnings':
         return (
           <TableCell key={column.key} className="text-center">
-            <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+            <span className="text-yellow-500 font-medium">
               {section.tally?.warning || 0}
             </span>
           </TableCell>
@@ -321,7 +321,7 @@ const ClusterReport: React.FC = () => {
       case 'errors':
         return (
           <TableCell key={column.key} className="text-center">
-            <span className="text-red-600 dark:text-red-400 font-medium">
+            <span className="text-red-500 font-medium">
               {section.tally?.error || 0}
             </span>
           </TableCell>
@@ -398,11 +398,11 @@ const ClusterReport: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50">
+            <h1 className="text-5xl font-[Anton] uppercase font-bold text-muted-foreground/30">
               Cluster Report
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Security and best practices analysis for <span className="font-medium text-blue-600 dark:text-blue-400">{currentContext?.name}</span>
+            <p className="text-muted-foreground mt-2">
+              Security and best practices analysis for <span className="font-medium text-blue-500">{currentContext?.name}</span>
             </p>
           </div>
           <Button onClick={handleRefresh} disabled={loading}>
@@ -414,7 +414,7 @@ const ClusterReport: React.FC = () => {
 
         {/* Score Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-          <Card className="rounded-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-gray-900/20 border border-gray-300/20 dark:border-gray-700/30">
+          <Card className="rounded-md bg-gradient-to-br from-blue-50 to-indigo-50 border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-blue-600" />
@@ -427,14 +427,14 @@ const ClusterReport: React.FC = () => {
                   <div className={`text-6xl font-light ${getScoreColor(report.popeye.score)}`}>
                     {report.popeye.score}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">/ 100</div>
+                  <div className="text-sm text-muted-foreground">/ 100</div>
                 </div>
                 <div className={`text-8xl font-bold ${getGradeColor(report.popeye.grade)} opacity-20`}>
                   {report.popeye.grade}
                 </div>
               </div>
               <div className="mt-4">
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+                <div className="w-full bg-border rounded-full h-1">
                   <div
                     className={`h-1 rounded-full transition-all duration-300 ${report.popeye.score >= 90 ? 'bg-green-500' :
                       report.popeye.score >= 75 ? 'bg-blue-500' :
@@ -448,7 +448,7 @@ const ClusterReport: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="rounded-md bg-gray-50 dark:bg-transparent border border-gray-300/20 dark:border-gray-700/40">
+          <Card className="rounded-md bg-secondary/50 border border-border">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-purple-600" />
@@ -457,15 +457,15 @@ const ClusterReport: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Generated</span>
+                <span className="text-muted-foreground">Generated</span>
                 <span className="font-medium">{new Date(report.popeye.report_time).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Cluster</span>
+                <span className="text-muted-foreground">Cluster</span>
                 <span className="font-medium">{report.ClusterName || currentContext?.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Sections</span>
+                <span className="text-muted-foreground">Sections</span>
                 <span className="font-medium">{report.popeye.sections?.length || 0}</span>
               </div>
             </CardContent>
@@ -479,35 +479,35 @@ const ClusterReport: React.FC = () => {
             label="Healthy Resources"
             timeframe="No issues found"
             icon={<CheckCircle className="w-6 h-6 text-green-600" />}
-            color="bg-green-100 dark:bg-green-900/20"
+            color="bg-green-500/10"
           />
           <StatCard
             count={totalStats.info}
             label="Info Messages"
             timeframe="Informational items"
             icon={<Info className="w-6 h-6 text-blue-600" />}
-            color="bg-blue-100 dark:bg-blue-900/20"
+            color="bg-blue-500/10"
           />
           <StatCard
             count={totalStats.warning}
             label="Warnings"
             timeframe="Should be reviewed"
             icon={<AlertTriangle className="w-6 h-6 text-yellow-600" />}
-            color="bg-yellow-100 dark:bg-yellow-900/20"
+            color="bg-yellow-500/10"
           />
           <StatCard
             count={totalStats.error}
             label="Errors"
             timeframe="Need immediate attention"
             icon={<XCircle className="w-6 h-6 text-red-600" />}
-            color="bg-red-100 dark:bg-red-900/20"
+            color="bg-red-500/10"
           />
         </div>
 
         {/* Main Content */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <div className="flex justify-between items-center">
-            <TabsList className='text-sm dark:bg-transparent'>
+            <TabsList className='text-sm bg-transparent'>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="issues">Issues</TabsTrigger>
@@ -516,7 +516,7 @@ const ClusterReport: React.FC = () => {
             <div className="w-full max-w-md flex items-center gap-2">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="text"
                     placeholder="Search sections, resources, or issues..."
@@ -530,7 +530,7 @@ const ClusterReport: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleFilterClick}
-                className="flex items-center gap-2 h-9 dark:text-gray-300/80"
+                className="flex items-center gap-2 h-9 text-muted-foreground"
                 title="Filter columns"
               >
                 <Filter className="h-4 w-4" />
@@ -539,11 +539,11 @@ const ClusterReport: React.FC = () => {
           </div>
 
           <TabsContent value="overview" className="space-y-6">
-            <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+            <Card className="bg-secondary/50 border-border rounded-2xl shadow-none">
               <div className="rounded-md">
-                <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+                <Table className="bg-secondary/30 rounded-2xl">
                   <TableHeader>
-                    <TableRow className="border-b border-gray-200 dark:border-gray-800/80">
+                    <TableRow className="border-b border-border">
                       {columnConfig.map(col => renderTableHeader(col))}
                     </TableRow>
                   </TableHeader>
@@ -551,7 +551,7 @@ const ClusterReport: React.FC = () => {
                     {filteredSections.map((section, index) => (
                       <TableRow
                         key={index}
-                        className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
+                        className="bg-secondary/30 border-b border-border hover:cursor-pointer hover:bg-secondary/50"
                       >
                         {columnConfig.map(col => renderTableCell(section, col))}
                       </TableRow>
@@ -564,7 +564,7 @@ const ClusterReport: React.FC = () => {
 
           <TabsContent value="details" className="space-y-6">
             {filteredSections.map((section, sectionIndex) => (
-              <Card key={sectionIndex} className="bg-gray-50 dark:bg-transparent border-gray-200 dark:border-gray-800/50">
+              <Card key={sectionIndex} className="bg-secondary/50 border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-baseline gap-1">
@@ -591,21 +591,21 @@ const ClusterReport: React.FC = () => {
                         <div className={`font-light text-3xl ${getScoreColor(section.tally?.score || 0)}`}>
                           {section.tally?.score || 0}
                         </div>
-                        <span className='text-xs font-light text-gray-400 dark:text-gray-500'>/ 100</span>
+                        <span className='text-xs font-light text-muted-foreground'>/ 100</span>
                       </div>
                     </div>
                   </CardTitle>
                 </CardHeader>
                 {Object.keys(section.issues || {}).length > 0 && (
                   <CardContent>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                    <div className="text-xs text-muted-foreground mb-3">
                       GVR: {section.gvr}
                     </div>
                     <div className="space-y-3">
                       {Object.entries(section.issues || {}).map(([resource, issues], resourceIndex) => (
-                        <div key={resourceIndex} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                        <div key={resourceIndex} className="border border-border rounded-lg p-2">
                           <div
-                            className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+                            className="font-medium text-sm mb-2 text-blue-500 cursor-pointer hover:underline"
                             onClick={() => navigateToResource(resource, section.gvr)}
                           >
                             {resource}
@@ -615,9 +615,9 @@ const ClusterReport: React.FC = () => {
                               <div key={issueIndex} className="flex items-start gap-2 text-sm">
                                 {getSeverityIcon(issue.level)}
                                 <div className="flex-1 text-xs">
-                                  <div className="text-gray-900 dark:text-gray-300">{issue.message}</div>
+                                  <div className="text-foreground">{issue.message}</div>
                                   {issue.group !== '__root__' && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <div className="text-xs text-muted-foreground mt-1">
                                       Group: {issue.group}
                                     </div>
                                   )}

@@ -191,7 +191,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
       <DrawerContent>
         <div className="p-6 space-y-4">
           {/* Status Overview */}
-          <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+          <Card className="bg-transparent dark:bg-drawer border-gray-200/70 dark:border-gray-700/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm uppercase flex items-center gap-2">
                 <Activity className="h-4 w-4" />
@@ -261,7 +261,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
                     <p onClick={handleOpenRepository} className="text-xs cursor-pointer text-gray-700 dark:text-gray-300 hover:text-blue-600 hover:dark:text-blue-400 break-all truncate">
                       {application.spec.source.repoURL}
                     </p>
-                  </div> 
+                  </div>
                 </div>
               </div>
 
@@ -467,8 +467,8 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
                       application.status.operationState.phase === 'Succeeded'
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
                         : application.status.operationState.phase === 'Failed'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
                     }
                   >
                     {application.status.operationState.phase}

@@ -16,7 +16,7 @@ interface ClusterDropdownPosition {
 interface ClusterDisplayProps {
   isCollapsed: boolean;
   currentContext: any;
-  contexts: any[]; 
+  contexts: any[];
   setCurrentContext: (context: any) => void;
   navigate: NavigateFunction;
 }
@@ -33,7 +33,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
 }) => {
   const clusterDisplayRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
-  
+
   // State for cluster context menu dropdown
   const [clusterDropdown, setClusterDropdown] = useState<ClusterDropdownPosition>({
     visible: false,
@@ -63,9 +63,9 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
   // Close cluster dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (clusterDropdown.visible && 
-          clusterDisplayRef.current && 
-          !clusterDisplayRef.current.contains(event.target as Node)) {
+      if (clusterDropdown.visible &&
+        clusterDisplayRef.current &&
+        !clusterDisplayRef.current.contains(event.target as Node)) {
         setClusterDropdown({ ...clusterDropdown, visible: false });
       }
     };
@@ -115,12 +115,12 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
   return (
     <div
       ref={clusterDisplayRef}
-      className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 px-4'} py-2 mb-2 cursor-pointer hover:bg-gray-800/10 dark:hover:bg-gray-800/20 group`}
+      className={`relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 px-4'} py-2 mb-2 cursor-pointer hover:bg-accent/10 group`}
       onContextMenu={handleClusterRightClick}
       onClick={() => navigate('/')}
     >
 
-      <div className='rounded-xl dark:bg-gray-700/30 p-1.5'>
+      <div className='rounded-xl dark:bg-accent/50 p-1.5'>
         {currentContext ? (
           <ClusterIcon type={determineClusterType(currentContext.kubeContext?.cluster)} size="h-8 w-8" />
         ) : (
@@ -131,7 +131,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
       {!isCollapsed && currentContext && (
         <div className="text-sm font-medium">
           <h3 className="text-gray-800 dark:text-gray-300">{currentContext.name.length > 30 ? currentContext.name.slice(0, 30) + '...' : currentContext.name}</h3>
-          <p className="text-xs text-gray-800 dark:text-gray-500">
+          <p className="text-xs text-muted-foreground/60">
             {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 30) : determineClusterType(currentContext.name)}
           </p>
         </div>
@@ -148,7 +148,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
         <div className="absolute left-full ml-2 z-10 bg-gray-200 dark:bg-gray-900 dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
           <div>
             <p className="font-medium">{currentContext.name}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-300">
+            <p className="text-xs text-muted-foreground">
               {currentContext.kubeContext?.cluster ? truncateClusterName(currentContext.kubeContext.cluster, 20) : determineClusterType(currentContext.name)}
             </p>
           </div>
@@ -158,14 +158,14 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
 
       {/* Cluster Selection Dropdown */}
       {clusterDropdown.visible && contexts.length > 0 && (
-        <div 
+        <div
           className="absolute 
-          left-20 top-full mt-1 z-50 bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-md border border-gray-200 dark:border-gray-800
+          left-20 top-full mt-1 z-50 bg-white dark:bg-card/40 backdrop-blur-md shadow-lg rounded-md border border-accent/50
            w-64
           "
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800">
+          <div className="px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-300 border-b border-accent/50">
             Select Cluster
           </div>
           <div className="
@@ -179,9 +179,8 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
             {contexts.map((ctx) => (
               <div
                 key={ctx.name}
-                className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                  currentContext?.name === ctx.name ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${currentContext?.name === ctx.name ? 'bg-muted-foreground/10' : ''
+                  }`}
                 onClick={() => handleClusterSelect(ctx.name)}
               >
                 <div className='rounded-xl dark:bg-gray-700/30 p-2'>
@@ -189,7 +188,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-300">{ctx.name}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-500 truncate max-w-40">
+                  <p className="text-xs text-muted-foreground/60 truncate max-w-40">
                     {ctx.kubeContext?.cluster}
                   </p>
                 </div>

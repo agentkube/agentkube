@@ -129,11 +129,11 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
   const getModalityColor = (modality: string) => {
     switch (modality) {
       case "text->text":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
+        return "bg-blue-100 text-blue-800";
       case "text+image->text":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300";
+        return "bg-purple-100 text-purple-800";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -155,12 +155,12 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
   // Handle adding model to user's configuration
   const handleAddModel = async () => {
     if (isAddingModel) return;
-    
+
     setIsAddingModel(true);
-    
+
     try {
       const modelName = getModelNameFromId(model.id);
-      
+
       await addModel({
         id: modelName,
         name: modelName,
@@ -192,13 +192,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gray-50 dark:bg-[#0B0D13]/60 backdrop-blur-lg
-        
-        [&::-webkit-scrollbar]:w-1.5 
-        [&::-webkit-scrollbar-track]:bg-transparent 
-        [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card backdrop-blur-lg [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
         <DialogHeader>
           <div className="flex items-center">
             <div className="flex items-center gap-2">
@@ -213,7 +207,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
             </div>
           </div>
           <div className="flex items-center justify-between gap-2 py-2">
-            <div className="text-xs p-1  border border-gray-600/10 dark:border-gray-500/30 rounded-md font-mono flex items-center gap-1">
+            <div className="text-xs p-1 border border-border rounded-md font-mono flex items-center gap-1">
               {model.id}
               <button
                 onClick={(e) => {
@@ -222,7 +216,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="ml-1 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
+                className="ml-1 p-0.5 hover:bg-accent rounded-md transition-colors"
               >
                 {copied ? (
                   <Check className="h-4 w-4 text-green-500" />
@@ -232,18 +226,17 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
               </button>
             </div>
 
-            <button 
+            <button
               onClick={handleAddModel}
               disabled={isAddingModel}
-              className={`flex border border-gray-500/20 dark:border-gray-500/30 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-400/10 transition-all rounded-md items-center text-xs ${
-                isAddingModel ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+              className={`flex border border-border p-1.5 hover:bg-accent transition-all rounded-md items-center text-xs ${isAddingModel ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
             >
-              <Plus className='h-4 w-4'/> 
+              <Plus className='h-4 w-4' />
               <span>{isAddingModel ? 'Adding...' : 'Add Model'}</span>
             </button>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>Released {formatDate(model.created)}</span>
           </div>
@@ -257,7 +250,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="text-sm prose dark:prose-invert max-w-none prose-sm dark:text-gray-400">
+            <div className="text-sm prose prose-invert max-w-none prose-sm text-muted-foreground">
               <p>{model.description}</p>
             </div>
 
@@ -539,7 +532,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
 
                   {(model.pricing.prompt === "0" || model.pricing.completion === "0") && (
                     <div className="py-2">
-                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                      <Badge variant="default" className="bg-green-100 text-green-800">
                         Free Tier Available
                       </Badge>
                       <p className="mt-2 text-sm">This model offers free usage tier.</p>
@@ -558,7 +551,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
           </TabsContent>
         </Tabs>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

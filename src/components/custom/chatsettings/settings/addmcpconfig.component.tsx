@@ -17,7 +17,7 @@ interface AddMCPConfigProps {
 
 const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) => {
   const [loading, setLoading] = useState(false);
-  
+
   const generateInitialConfig = () => {
     if (tool.configuration) {
       return JSON.stringify({
@@ -26,7 +26,7 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
         }
       }, null, 2);
     }
-    
+
     // Fallback for tools without configuration
     return JSON.stringify({
       mcpServers: {
@@ -38,7 +38,7 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
       }
     }, null, 2);
   };
-  
+
   const [jsonConfig, setJsonConfig] = useState(generateInitialConfig());
 
   // Get theme from localStorage
@@ -64,10 +64,10 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
     setLoading(true);
     try {
       const parsedConfig = JSON.parse(jsonConfig);
-      
+
       // Get current MCP config
       const currentMcpConfig = await getMcpConfig();
-      
+
       // Merge the new server configuration
       const updatedMcpConfig = {
         ...currentMcpConfig,
@@ -76,16 +76,16 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
           ...parsedConfig.mcpServers
         }
       };
-      
+
       // Update the MCP configuration
       await updateMcpConfig(updatedMcpConfig);
-      
+
       toast({
         title: "MCP Server Added",
         description: `${tool.name} has been successfully configured.`,
         variant: "success"
       });
-      
+
       onSave(updatedMcpConfig);
     } catch (error) {
       console.error('Error saving MCP config:', error);
@@ -107,17 +107,17 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 px-16 top-5 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md border dark:border-gray-700/30 rounded-lg w-[600px] max-w-full mx-4 max-h-[90vh] overflow-hidden">
+      <div className="bg-card backdrop-blur-md border border-border rounded-lg w-[600px] max-w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
-            <div className={`w-8 h-8 ${tool.iconBg} dark:text-black rounded-md flex items-center justify-center`}>
+            <div className={`w-8 h-8 ${tool.iconBg} text-foreground rounded-md flex items-center justify-center`}>
               {tool.icon}
             </div>
             <div className='flex items-center space-x-2'>
-              <h3 className="text-lg font-semibold dark:text-white">{tool.name}</h3>
+              <h3 className="text-lg font-semibold text-foreground">{tool.name}</h3>
               {tool.creator && (
-                <div className='text-xs flex items-center bg-gray-500/20 px-2 space-x-1 rounded-md text-gray-500 dark:text-gray-400'>
+                <div className='text-xs flex items-center bg-secondary px-2 space-x-1 rounded-md text-muted-foreground'>
                   {tool.creator}
                 </div>
               )}
@@ -125,7 +125,7 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -133,17 +133,17 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
 
         {/* Content */}
         <div className="px-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             {tool.description}
           </p>
-          
+
           <div className="relative">
             <div className="absolute top-2 right-2 z-10">
-              <span className="bg-gray-100 dark:bg-gray-700/50 backdrop-blur-md text-xs px-2 py-1 rounded text-gray-600 dark:text-gray-300">
+              <span className="bg-secondary backdrop-blur-md text-xs px-2 py-1 rounded text-foreground">
                 JSON Preview
               </span>
             </div>
-            <div className="border dark:border-gray-600 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <MonacoEditor
                 height="280px"
                 defaultLanguage="json"
@@ -171,20 +171,20 @@ const AddMCPConfig: React.FC<AddMCPConfigProps> = ({ onClose, onSave, tool }) =>
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
             <div className="w-4 h-4 bg-yellow-500 rounded-sm flex items-center justify-center">
               <span className="text-yellow-900 text-xs">⚠</span>
             </div>
             <span>No Information Needed</span>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={onClose} className="dark:border-gray-600">
+            <Button variant="outline" onClick={onClose} className="border-border">
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleSave}
               disabled={loading}
-              className="dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {loading ? 'Adding...' : 'Confirm'}
             </Button>

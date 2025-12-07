@@ -27,7 +27,7 @@ interface TrivyInstallDialogProps {
 const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose, onInstallSuccess }) => {
   const { currentContext } = useCluster();
   const { availableNamespaces } = useNamespace();
-  
+
   // Installation form state
   const [releaseName, setReleaseName] = useState('trivy-operator');
   const [namespace, setNamespace] = useState('trivy-system');
@@ -64,9 +64,9 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
   // Manual status check function
   const handleCheckStatus = async () => {
     if (!releaseName || !currentContext) return;
-    
+
     const targetNamespace = createNamespace ? customNamespace : namespace;
-    
+
     try {
       setLoading(true);
       const status = await getHelmActionStatus(
@@ -141,7 +141,7 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
       console.log('Installing Trivy with request:', installRequest);
 
       await installHelmRelease(currentContext.name, installRequest);
-      
+
       console.log('Trivy installation request submitted successfully');
     } catch (error) {
       console.error('Error installing Trivy:', error);
@@ -167,7 +167,7 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
         <div className="mt-4 space-y-6">
           <div className="bg-white dark:bg-transparent p-6 rounded-md space-y-4">
             <h3 className="text-lg font-medium">Installation Configuration</h3>
-            
+
             {installStatus === 'installing' && (
               <Alert>
                 <Loader2 className="flex items-center h-4 w-4 animate-spin dark:text-white" />
@@ -187,7 +187,7 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
                 </div>
               </Alert>
             )}
-            
+
             {installStatus === 'success' && (
               <Alert className="flex items-center border-green-200 bg-green-50 dark:bg-green-900/20">
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -196,7 +196,7 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
                 </h1>
               </Alert>
             )}
-            
+
             {installStatus === 'error' && (
               <Alert className="flex items-center border-red-200 bg-red-50 dark:bg-red-900/20">
                 <AlertCircle className="h-4 w-4 text-red-600" />
@@ -290,7 +290,7 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
             )}
             {installStatus === 'success' ? 'Installed' : installing ? 'Installing...' : 'Install Trivy Operator'}
           </Button>
-          
+
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

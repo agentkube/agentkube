@@ -275,7 +275,7 @@ export const TreeLines = () => {
 
         return (
           <div
-            className="absolute top-0 bottom-0 border-gray-300/30 dark:border-gray-600/30 border-l"
+            className="absolute top-0 bottom-0 border-border border-l"
             key={index.toString()}
             style={{
               left: index * (indent ?? 0) + 12,
@@ -287,7 +287,7 @@ export const TreeLines = () => {
 
       {/* Horizontal connector line */}
       <div
-        className="absolute top-1/2 border-gray-300/30 dark:border-gray-600/30 border-t"
+        className="absolute top-1/2 border-border border-t"
         style={{
           left: (level - 1) * (indent ?? 0) + 12,
           width: (indent ?? 0) - 4,
@@ -298,7 +298,7 @@ export const TreeLines = () => {
       {/* Vertical line to midpoint for last items */}
       {isLast && (
         <div
-          className="absolute top-0 border-gray-300/30 dark:border-gray-600/30 border-l"
+          className="absolute top-0 border-border border-l"
           style={{
             left: (level - 1) * (indent ?? 0) + 12,
             height: "50%",

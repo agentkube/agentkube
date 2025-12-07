@@ -211,8 +211,8 @@ const ScaleDialog: React.FC<ScaleDialogProps> = ({
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleScaleResources} 
+          <Button
+            onClick={handleScaleResources}
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >

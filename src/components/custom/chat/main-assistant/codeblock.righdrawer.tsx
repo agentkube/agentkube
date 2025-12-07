@@ -156,17 +156,17 @@ export const CodeBlock = ({
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`relative my-4 rounded-xl bg-gray-300/50 dark:bg-gray-800/10 text-gray-100 border border-gray-700/20 dark:border-gray-800 ${isFocused ? 'ring-2  dark:ring-gray-800' : ''}`} 
+      className={`relative my-4 rounded-xl bg-muted/50 text-foreground border border-border ${isFocused ? 'ring-2 ring-ring' : ''}`}
       tabIndex={0}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
     >
-      <div className="flex justify-between p-2 dark:border-gray-800">
-        <div className="px-4 py-1 text-xs text-gray-400 flex items-center">
-          <span className="text-xs text-gray-700 dark:text-gray-300">
+      <div className="flex justify-between p-2 border-border">
+        <div className="px-4 py-1 text-xs text-muted-foreground flex items-center">
+          <span className="text-xs text-foreground">
             {language}
           </span>
           {commandSuccess !== null && (
@@ -184,7 +184,7 @@ export const CodeBlock = ({
             <button
               onClick={handleExecute}
               disabled={isExecuting || !currentContext}
-              className="px-2 py-1 transition-all  flex items-center justify-center rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2 py-1 transition-all flex items-center justify-center rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               title={!currentContext ? 'Please select a cluster first' : 'Run (Cmd+Enter)'}
             >
               <CirclePlay className="mr-2" size={14} />
@@ -193,13 +193,13 @@ export const CodeBlock = ({
           )}
           <button
             onClick={handleEdit}
-            className="px-2 py-1 transition-all rounded-[0.3rem] ml-2 bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+            className="px-2 py-1 transition-all rounded-[0.3rem] ml-2 bg-transparent hover:bg-accent-hover text-foreground"
           >
             <Pencil size={14} />
           </button>
           <button
             onClick={handleCopy}
-            className="px-2 py-1 transition-all rounded-[0.3rem] ml-2 bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+            className="px-2 py-1 transition-all rounded-[0.3rem] ml-2 bg-transparent hover:bg-accent-hover text-foreground"
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>
@@ -213,7 +213,7 @@ export const CodeBlock = ({
             value={content}
             onChange={(e) => handleContentChange(e.target.value)}
             onBlur={handleEditComplete}
-            className="w-full bg-gray-300/50 dark:bg-gray-800 text-gray-800 dark:text-gray-100 font-mono p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-muted text-foreground font-mono p-2 rounded focus:outline-none focus:ring-2 focus:ring-ring"
             rows={content.split('\n').length}
             autoFocus
           />
@@ -255,10 +255,10 @@ export const CodeBlock = ({
       {result && (
         <>
           {!showOutput ? (
-            <div className="px-4 py-2 border-t dark:border-gray-700 bg-gray-300 dark:bg-gray-800 rounded-b-xl">
+            <div className="px-4 py-2 border-t border-border bg-muted rounded-b-xl">
               <div className="flex justify-between items-center">
                 <div className="flex items-center">
-                  <span className="text-xs text-gray-700 dark:text-gray-400 mr-2">Command {result.success ? 'succeeded' : 'failed'}</span>
+                  <span className="text-xs text-muted-foreground mr-2">Command {result.success ? 'succeeded' : 'failed'}</span>
                   {result.success ? (
                     <Check size={14} className="text-green-500" />
                   ) : (
@@ -268,13 +268,13 @@ export const CodeBlock = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowOutput(true)}
-                    className="flex items-center transition-all  px-2 py-1 text-xs rounded-[0.3rem] bg-transparent dark:bg-gray-700 hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                    className="flex items-center transition-all px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
                   >
                     Show Output
                   </button>
                   <button
                     onClick={() => setIsDialogOpen(true)}
-                    className="flex items-center transition-all  px-2 py-1 text-xs rounded-[0.3rem] bg-transparent dark:bg-gray-700 hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                    className="flex items-center transition-all px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
                   >
                     <Maximize2 size={14} className="mr-1" />
                     Expand
@@ -283,25 +283,25 @@ export const CodeBlock = ({
               </div>
             </div>
           ) : (
-            <div className="p-4 bg-gray-300 dark:bg-gray-800/50 rounded-b-xl w-full overflow-x-auto">
+            <div className="p-4 bg-muted rounded-b-xl w-full overflow-x-auto">
             <div className="flex justify-between items-center mb-2">
-              <div className="text-sm text-gray-400">Command output</div>
+              <div className="text-sm text-muted-foreground">Command output</div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowOutput(false)}
-                  className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                  className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
                 >
                   Hide
                 </button>
                 <button
                   onClick={handleCopyOutput}
-                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
                 >
                   {copiedOutput ? <Check size={14} /> : <Copy size={14} />}
                 </button>
                 <button
                   onClick={() => setIsDialogOpen(true)}
-                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
                 >
                   <Maximize2 size={14} />
                 </button>
@@ -344,20 +344,20 @@ export const CodeBlock = ({
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-200 dark:bg-[#0B0D13]">
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-background">
           <DialogHeader>
             <DialogTitle>Command Output</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[50vh]        
-            overflow-y-auto py-1 
-            
-            [&::-webkit-scrollbar]:w-1.5 
-            [&::-webkit-scrollbar-track]:bg-transparent 
-            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+          <div className="overflow-y-auto max-h-[50vh]
+            overflow-y-auto py-1
+
+            [&::-webkit-scrollbar]:w-1.5
+            [&::-webkit-scrollbar-track]:bg-transparent
+            [&::-webkit-scrollbar-thumb]:bg-border
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+            [&::-webkit-scrollbar-thumb:hover]:bg-border/70
           ">
-            <div className="px-4 py-2 text-xs text-gray-800 dark:text-gray-400 bg-gray-300 dark:bg-gray-500/10 rounded-t-[0.5rem] w-full overflow-x-auto">
+            <div className="px-4 py-2 text-xs text-foreground bg-muted rounded-t-[0.5rem] w-full overflow-x-auto">
               {language}
             </div>
             <SyntaxHighlighter

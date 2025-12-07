@@ -40,14 +40,14 @@ const SettingSidebar: React.FC<SettingSidebarProps> = ({ isCollapsed, toggleColl
 
   return (
     <div className={cn(
-      "h-[91vh] flex flex-col transition-all duration-300  rounded-2xl",
+      "h-[calc(100vh-4rem)] flex flex-col transition-all bg-sidebar duration-300 mt-1 rounded-2xl",
       isCollapsed ? "w-16" : "w-64"
     )}>
       <div className="p-4 flex items-center justify-between dark:border-gray-700">
         {!isCollapsed && <h2 className="text-xl font-medium dark:text-white">Settings</h2>}
         <button
           onClick={toggleCollapse}
-          className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 dark:text-white"
+          className="p-1 rounded-md hover:bg-accent text-foreground"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -58,13 +58,13 @@ const SettingSidebar: React.FC<SettingSidebarProps> = ({ isCollapsed, toggleColl
           to="/"
           className={({ isActive }) => cn(
             "flex justify-between items-center px-2 py-2 rounded-lg transition-colors text-sm w-full",
-            "hover:bg-gray-200 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300",
+            "hover:bg-accent text-foreground",
             !isCollapsed && "border"
           )}
         >
-          
-            <Home className='h-5 w-5' />
-            {!isCollapsed && <span>Return to Home</span>}
+
+          <Home className='h-5 w-5' />
+          {!isCollapsed && <span>Return to Home</span>}
         </NavLink>
       </div>
 
@@ -77,8 +77,8 @@ const SettingSidebar: React.FC<SettingSidebarProps> = ({ isCollapsed, toggleColl
                 className={({ isActive }) => cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm",
                   isActive
-                    ? "bg-gray-200 dark:bg-gray-800/50 text-black dark:text-gray-100"
-                    : "hover:bg-gray-200 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                    ? "bg-accent text-foreground"
+                    : "hover:bg-accent text-foreground"
                 )}
               >
                 {item.icon}

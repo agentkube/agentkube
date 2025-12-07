@@ -30,14 +30,14 @@ interface DrawerContentProps {
 
 const DrawerHeader: React.FC<DrawerHeaderProps> = ({ children, onClose }) => {
   return (
-    <div className="px-2 py-2 bg-gray-200 dark:bg-gray-800/20 flex items-center justify-between">
+    <div className="px-2 py-2 bg-muted/20 flex items-center justify-between">
       {children}
       {onClose && (
         <Button
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="p-1 text-gray-800 dark:text-gray-500"
+          className="p-1 text-foreground"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -113,7 +113,7 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, children, offs
           <>
             {/* Backdrop with animation */}
             <motion.div
-              className="fixed inset-0 bg-black/20 dark:bg-gray-900/30 z-40"
+              className="fixed inset-0 bg-black/20 z-40"
               initial="hidden"
               animate="visible"
               exit="exit"
@@ -123,7 +123,7 @@ const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, children, offs
 
             {/* Drawer with smooth animation */}
             <motion.div
-              className={`fixed ${offsetTop} right-0 h-full ${className} bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg shadow-lg z-40`}
+              className={`fixed ${offsetTop} right-0 h-full ${className} bg-background/95 backdrop-blur-lg shadow-lg z-40`}
               initial="hidden"
               animate="visible"
               exit="exit"

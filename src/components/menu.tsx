@@ -128,7 +128,7 @@ export function Menu() {
       controlsOrder="right"
       windowControlsProps={{ className: "" }}
     >
-      <div className="py-[3px] px-4 flex items-center w-full justify-between draggable border-b dark:border-gray-300/10">
+      <div className="py-[3px] px-4 flex items-center w-full justify-between draggable border-b border-border">
 
         <div className={`flex items-center gap-2 undraggable ${currentPlatform === 'macos' ? 'ml-[3.5rem]' : 'ml-2'}`}>
           <TooltipProvider>
@@ -136,7 +136,7 @@ export function Menu() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate('/')}
-                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 text-gray-700 dark:text-gray-300/50 dark:hover:text-gray-300  transition-colors"
+                  className="p-1 rounded-md hover:bg-accent text-foreground hover:text-foreground transition-colors"
                 >
                   <Home className="h-4 w-4" />
                 </button>
@@ -146,7 +146,7 @@ export function Menu() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Separator orientation="vertical" className="h-5 rounded dark:bg-gray-400/30" />
+          <Separator orientation="vertical" className="h-5 rounded bg-border" />
           <WorkspaceSwitcher />
 
         </div>
@@ -174,14 +174,14 @@ export function Menu() {
                   />
                 </div>
               </TooltipTrigger>
-              <TooltipContent className="p-3 max-w-xs text-black bg-gray-50 dark:bg-[#0B0D13]/40 border border-gray-800/20 dark:border-gray-500/20 backdrop-blur-md">
+              <TooltipContent className="p-3 max-w-xs text-foreground bg-card border border-border backdrop-blur-md">
                 <div className="space-y-2">
-                  <p className="dark:text-gray-200"><span className="dark:text-emerald-500 font-bold">RECON</span> Mode</p>
+                  <p className="text-foreground"><span className="text-emerald-500 font-bold">RECON</span> Mode</p>
                   <img src={RECONGIF} className="rounded-lg" alt="" />
-                  <p className="text-sm dark:text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     Provides secure, read-only access to your Kubernetes cluster. All modifying actions - including create, update, delete, exec, port forwarding, and node operations are disabled.
                   </p>
-                  <Button className="w-full dark:hover:bg-gray-400 dark:bg-gray-200 dark:text-gray-800">Switch to Agent Mode</Button>
+                  <Button className="w-full hover:bg-secondary bg-secondary text-secondary-foreground">Switch to Agent Mode</Button>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -194,7 +194,7 @@ export function Menu() {
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleBack}
-                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 transition-colors undraggable ${!canGoBack
+                    className={`p-1 rounded-md hover:bg-accent transition-colors undraggable ${!canGoBack
                       ? 'opacity-30 cursor-not-allowed'
                       : 'cursor-pointer'
                       }`}
@@ -203,8 +203,8 @@ export function Menu() {
                     <ChevronLeft
                       size={18}
                       className={`${canGoBack
-                        ? 'text-gray-700 dark:text-gray-300'
-                        : 'text-gray-400 dark:text-gray-500'
+                        ? 'text-foreground'
+                        : 'text-muted-foreground'
                         }`}
                     />
                   </button>
@@ -220,7 +220,7 @@ export function Menu() {
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleForward}
-                    className={`p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 transition-colors undraggable ${!canGoForward
+                    className={`p-1 rounded-md hover:bg-accent transition-colors undraggable ${!canGoForward
                       ? 'opacity-30 cursor-not-allowed'
                       : 'cursor-pointer'
                       }`}
@@ -229,8 +229,8 @@ export function Menu() {
                     <ChevronRight
                       size={18}
                       className={`${canGoForward
-                        ? 'text-gray-700 dark:text-gray-300'
-                        : 'text-gray-400 dark:text-gray-500'
+                        ? 'text-foreground'
+                        : 'text-muted-foreground'
                         }`}
                     />
                   </button>
@@ -248,11 +248,11 @@ export function Menu() {
               <TooltipTrigger asChild>
                 <button
                   onClick={handleOpenDrawer}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700/40 cursor-pointer rounded-[0.3rem] transition-colors"
+                  className="p-1 hover:bg-accent cursor-pointer rounded-[0.3rem] transition-colors"
                   role="button"
                   aria-label="Open Assistant"
                 >
-                  <Sparkles size={15} className="text-gray-700 dark:text-gray-300" />
+                  <Sparkles size={15} className="text-foreground" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="p-1">
@@ -270,9 +270,9 @@ export function Menu() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate('/settings')}
-                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/40 transition-colors"
+                  className="p-1 rounded-md hover:bg-accent transition-colors"
                 >
-                  <Settings size={15} className="text-gray-700 dark:text-gray-300" />
+                  <Settings size={15} className="text-foreground" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="p-1">

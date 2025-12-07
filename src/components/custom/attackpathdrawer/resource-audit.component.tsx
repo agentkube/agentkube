@@ -150,7 +150,7 @@ export const ResourceAudit: React.FC<ResourceAuditProps> = ({ resourceData }) =>
   const handleResolveClick = (check: TrivyConfigAuditCheck | any, report: TrivyConfigAuditReport) => {
     const resourceName = report.metadata.labels?.['trivy-operator.resource.name'] || report.metadata.name;
     const resourceKind = report.metadata.labels?.['trivy-operator.resource.kind'] || 'resource';
-    
+
     const structuredContent = `**${check.title}** ${check.severity} ${check.success ? 'PASS' : 'FAIL'}
 
 ${check.description}
@@ -195,12 +195,12 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
       if (resourceData.resourceType) {
         const normalizedReportKind = resourceKind.toLowerCase();
         const normalizedResourceType = resourceData.resourceType.toLowerCase();
-        
+
         // Handle plural/singular mismatch (e.g., "daemonset" vs "daemonsets")
         const kindMatches = normalizedReportKind === normalizedResourceType ||
-                           normalizedReportKind === normalizedResourceType.replace(/s$/, '') ||
-                           normalizedReportKind + 's' === normalizedResourceType;
-        
+          normalizedReportKind === normalizedResourceType.replace(/s$/, '') ||
+          normalizedReportKind + 's' === normalizedResourceType;
+
         if (!kindMatches) {
           return false;
         }
@@ -210,7 +210,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
     });
 
     // Flatten checks from all reports and add metadata
-    const allChecks = filtered.flatMap(report => 
+    const allChecks = filtered.flatMap(report =>
       report.report.checks.map((check, index) => ({
         ...check,
         reportMetadata: report.metadata,
@@ -290,7 +290,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
   // Group checks back by report for display
   const filteredReports = useMemo(() => {
     const reportMap = new Map();
-    
+
     filteredChecks.forEach(check => {
       const reportName = check.reportMetadata.name;
       if (!reportMap.has(reportName)) {
@@ -454,7 +454,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                   </div>
                 </TableHead>
                 <TableHead>Title & Description</TableHead>
-                <TableHead 
+                <TableHead
                   className="text-center cursor-pointer hover:text-blue-500"
                   onClick={() => handleSort('severity')}
                 >
@@ -486,10 +486,10 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                 return checksToDisplay.map((check: TrivyConfigAuditCheck, index: number) => {
                   const checkKey = `${report.metadata.name}-${index}`;
                   const isExpanded = expandedChecks.has(checkKey);
-                  
+
                   return (
                     <React.Fragment key={checkKey}>
-                      <TableRow 
+                      <TableRow
                         className="bg-gray-50 dark:bg-gray-800/10 border-b border-gray-300 dark:border-gray-700/50 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
                         onClick={() => toggleCheckExpansion(checkKey)}
                       >
@@ -509,10 +509,9 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium text-sm">{check.title}</h4>
-                              <Badge className={`text-xs ${
-                                check.success ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                              }`}>
+                              <Badge className={`text-xs ${check.success ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                }`}>
                                 {check.success ? 'PASS' : 'FAIL'}
                               </Badge>
                             </div>
@@ -521,12 +520,11 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <Badge className={`text-xs ${
-                              check.severity === 'CRITICAL' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                              check.severity === 'HIGH' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                              check.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                              'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                            }`}>
+                            <Badge className={`text-xs ${check.severity === 'CRITICAL' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                                check.severity === 'HIGH' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                                  check.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}>
                               {check.severity}
                             </Badge>
                             {/* <TooltipProvider>
@@ -560,7 +558,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                                 <span className="font-medium text-gray-600 dark:text-gray-400">Category:</span>
                                 <span className="ml-1">{check.category}</span>
                               </div>
-                              
+
                               {check.messages && check.messages.length > 0 && (
                                 <div className="text-xs">
                                   <span className="font-medium text-gray-600 dark:text-gray-400">Messages:</span>

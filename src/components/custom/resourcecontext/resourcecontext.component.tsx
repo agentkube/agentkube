@@ -18,7 +18,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { currentContext } = useCluster();
-  
+
   // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,7 +38,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
   const fetchResourceContent = async (resource: SearchResult): Promise<string> => {
     try {
       if (!currentContext) return '';
-      
+
       // Get the resource details using the existing listResources function
       const result = await listResources(
         currentContext.name,
@@ -50,7 +50,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
           apiVersion: resource.version || 'v1'
         }
       );
-      
+
       // Convert the resource to YAML format using the existing utility
       if (result.length > 0) {
         // Ensure the resource has kind and apiVersion for complete YAML
@@ -61,14 +61,14 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
         };
         return jsonToYaml(completeResource);
       }
-      
+
       return '';
     } catch (err) {
       console.error('Failed to fetch resource content:', err);
       return '';
     }
   };
-  
+
 
   // Fetch search results when dropdown opens or search query changes
   useEffect(() => {
@@ -77,14 +77,14 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
     const fetchResults = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const response = await queryResource(
           currentContext.name,
           searchQuery || 'deployment',
           60 // limit
         );
-        
+
         setSearchResults(response.results || []);
       } catch (err) {
         console.error('Search error:', err);
@@ -93,12 +93,12 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
         setIsLoading(false);
       }
     };
-    
+
     // Add debounce for search
     const timeout = setTimeout(() => {
       fetchResults();
     }, 300);
-    
+
     return () => clearTimeout(timeout);
   }, [searchQuery, isOpen, currentContext]);
 
@@ -115,12 +115,12 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
     try {
       // Fetch the resource content (YAML)
       const resourceContent = await fetchResourceContent(resource);
-      
+
       const enrichedResource = {
         ...resource,
         resourceContent
       };
-      
+
       onResourceSelect(enrichedResource);
       setIsOpen(false);
     } catch (error) {
@@ -134,16 +134,16 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
 
   return (
     <div ref={dropdownRef} className="relative">
-      <button 
+      <button
         onClick={toggleDropdown}
-        className="flex items-center text-gray-400 hover:text-gray-300 transition-colors rounded px-2 py-1"
+        className="flex items-center text-muted-foreground hover:text-foreground transition-colors rounded px-2 py-1"
       >
         <Plus size={14} className="mr-1" />
         <span className="text-xs">Add context</span>
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 bottom-full mb-1 w-96 rounded-md shadow-lg bg-gray-100/60 dark:bg-[#0B0D13]/80 backdrop-blur-sm border border-gray-300 dark:border-gray-800/50 z-50">
+        <div className="absolute left-0 bottom-full mb-1 w-96 rounded-md shadow-lg bg-white dark:bg-drawer/60 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 z-50">
           <div className="p-2">
             <div className="relative">
               <input
@@ -151,23 +151,23 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
                 placeholder="Search resources by name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-3 py-2 bg-gray-200 dark:bg-gray-800/40 rounded text-xs text-gray-700 dark:text-gray-300 focus:outline-none"
+                className="w-full pl-3 pr-3 py-2 bg-muted rounded text-xs text-foreground focus:outline-none  focus:ring-ring"
                 autoFocus
               />
             </div>
           </div>
-          
+
           <div className="px-3 pt-2 pb-1">
             <div className="text-xs text-gray-500 uppercase font-medium">Available</div>
           </div>
-          
+
           <div className="max-h-40 overflow-y-auto py-1
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-            
+
             {isLoading && (
               <div className="px-3 py-2 text-sm text-gray-500 flex items-center justify-center">
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -177,19 +177,19 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
                 Searching...
               </div>
             )}
-            
+
             {error && (
               <div className="px-3 py-2 text-sm text-gray-800 dark:text-gray-500">
                 {error}
               </div>
             )}
-            
+
             {!isLoading && !error && searchResults.length === 0 && (
               <div className="px-3 py-2 text-sm text-gray-500">
                 No resources found matching "{searchQuery}"
               </div>
             )}
-            
+
             {!isLoading && !error && searchResults.map((result, index) => (
               <div
                 key={`${result.resourceType}-${result.namespace || 'cluster'}-${result.resourceName}-${index}`}
@@ -200,7 +200,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
                   <img src={KUBERNETES_LOGO} alt="Kubernetes Logo" className="w-4 h-4" />
                   <span className="ml-2 text-xs">{result.resourceType}/{result.resourceName}</span>
                 </div>
-                <div className="text-gray-500 text-xs">
+                <div className="text-muted-foreground text-xs">
                   {result.namespace ? result.namespace : "cluster-scoped"}
                 </div>
               </div>

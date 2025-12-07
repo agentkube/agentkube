@@ -141,9 +141,9 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
 
   return (
     <div className="w-full relative">
-      <div className="bg-gray-300/30 dark:bg-gray-800/20 p-3 text-gray-800 dark:text-gray-300 w-full px-4">
+      <div className="bg-muted/30 p-3 text-foreground w-full px-4">
         <div className="flex items-start">
-          <div className="dark:bg-gray-700/30 w-7 h-7 rounded-md overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
+          <div className="bg-muted/30 w-7 h-7 rounded-md overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
             <AgentkubeBot className="h-5 w-5" />
           </div>
           <div className="flex-1 overflow-auto py-1">
@@ -165,7 +165,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                         <h3 className="text-lg font-medium mt-4 mb-2">{children}</h3>
                       ),
                       p: ({ children }) => (
-                        <p className="text-gray-700 dark:text-gray-300 mb-4">{children}</p>
+                        <p className="text-foreground mb-4">{children}</p>
                       ),
                       ul: ({ children }) => (
                         <ul className="list-disc list-outside space-y-2 mb-4 ml-4">{children}</ul>
@@ -174,27 +174,27 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                         <ol className="list-decimal list-outside space-y-2 mb-4 ml-4 pl-6">{children}</ol>
                       ),
                       li: ({ children }) => (
-                        <li className="text-gray-700 dark:text-gray-300">{children}</li>
+                        <li className="text-foreground">{children}</li>
                       ),
                       // Fixed table support
                       table: ({ children }: TableProps) => (
                         <div className="overflow-x-auto my-4 rounded-md">
-                          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-800/60 rounded-xl border border-gray-300 dark:border-gray-900">
+                          <table className="min-w-full divide-y divide-border rounded-xl border border-border">
                             {children}
                           </table>
                         </div>
                       ),
                       thead: ({ children }) => (
-                        <thead className="bg-gray-200 dark:bg-gray-800/30">{children}</thead>
+                        <thead className="bg-muted">{children}</thead>
                       ),
                       tbody: ({ children }) => (
-                        <tbody className="divide-y divide-gray-300 dark:divide-gray-800 rounded-xl">{children}</tbody>
+                        <tbody className="divide-y divide-border rounded-xl">{children}</tbody>
                       ),
                       tr: ({ children }) => (
-                        <tr className='hover:bg-gray-200 dark:hover:bg-gray-800/50 cursor-pointer'>{children}</tr>
+                        <tr className='hover:bg-accent-hover cursor-pointer'>{children}</tr>
                       ),
                       th: ({ children }) => (
-                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border border-gray-300 dark:border-gray-800">{children}</th>
+                        <th className="px-4 py-2 text-left text-xs font-bold text-foreground uppercase tracking-wider border border-border">{children}</th>
                       ),
                       td: ({ children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { style?: React.CSSProperties & { '--rmd-table-cell-index'?: number } }) => {
                         const [showCopy, setShowCopy] = useState(false);
@@ -214,7 +214,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
 
                         return (
                           <td
-                            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-800 relative group"
+                            className="px-4 py-2 text-sm text-foreground border border-border relative group"
                             onMouseEnter={() => isFirstColumn && setShowCopy(true)}
                             onMouseLeave={() => setShowCopy(false)}
                           >
@@ -223,8 +223,8 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                               <button
                                 onClick={handleCopy}
                                 className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 ${copied
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                    : 'bg-gray-100 dark:bg-transparent hover:bg-gray-200 dark:hover:bg-transparent'
+                                    ? 'bg-green-100 text-green-600'
+                                    : 'bg-secondary hover:bg-accent-hover'
                                   }`}
                               >
                                 {copied ? (
@@ -256,13 +256,13 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                       code: ({ inline, children, className }: CodeProps) => {
                         // Handle inline code (single backticks)
                         if (inline) {
-                          return <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
+                          return <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
                         }
 
                         // Only process content that comes from triple backticks (non-inline code blocks)
                         const content = String(children);
                         if (!content.includes('\n')) {
-                          return <code className="bg-gray-200 dark:bg-gray-800/80 text-green-400 px-1 py-0.5 rounded text-sm font-mono">{content}</code>;
+                          return <code className="bg-muted text-green-400 px-1 py-0.5 rounded text-sm font-mono">{content}</code>;
                         }
 
                         const language = className?.replace('language-', '') || 'plaintext';
@@ -273,13 +273,13 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                       ),
                       // Add blockquote support
                       blockquote: ({ children }) => (
-                        <blockquote className="border-l-4 border-gray-400 dark:border-gray-600 pl-4 py-2 my-4 text-gray-700 dark:text-gray-300 italic">
+                        <blockquote className="border-l-4 border-border pl-4 py-2 my-4 text-foreground italic">
                           {children}
                         </blockquote>
                       ),
                       // Add horizontal rule
                       hr: () => (
-                        <hr className="my-6 border-t border-gray-300 dark:border-gray-700" />
+                        <hr className="my-6 border-t border-border" />
                       )
                     }}
                   >
@@ -362,11 +362,11 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
 
             {/* Loading indicator - only show when streaming */}
             {isStreaming && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                 <div className="flex space-x-1">
-                  <div className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-1.5 h-1.5 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
                 <span>Processing...</span>
               </div>

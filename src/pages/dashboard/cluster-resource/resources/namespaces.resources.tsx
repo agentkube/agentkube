@@ -58,8 +58,8 @@ const Namespaces: React.FC = () => {
     { key: 'labels', label: 'Labels', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('namespaces', defaultColumnConfig)
   );
 
@@ -67,15 +67,15 @@ const Namespaces: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -192,11 +192,11 @@ const Namespaces: React.FC = () => {
     }
 
     if (sort.direction === 'asc') {
-      return <ArrowUp className="ml-1 h-4 w-4 inline text-blue-500" />;
+      return <ArrowUp className="ml-1 h-4 w-4 inline text-accent" />;
     }
 
     if (sort.direction === 'desc') {
-      return <ArrowDown className="ml-1 h-4 w-4 inline text-blue-500" />;
+      return <ArrowDown className="ml-1 h-4 w-4 inline text-accent" />;
     }
 
     return null;
@@ -216,7 +216,7 @@ const Namespaces: React.FC = () => {
       });
       return;
     }
-    
+
     setNamespaceToDelete(namespace);
     setShowDeleteDialog(true);
   };
@@ -263,10 +263,10 @@ const Namespaces: React.FC = () => {
         '',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -330,7 +330,7 @@ const Namespaces: React.FC = () => {
     return (
       <TableHead
         key={column.key}
-        className="cursor-pointer hover:text-blue-500"
+        className="cursor-pointer hover:text-accent"
         onClick={() => sortField && handleSort(sortField)}
       >
         {column.label} {sortField && renderSortIndicator(sortField)}
@@ -360,11 +360,10 @@ const Namespaces: React.FC = () => {
         return (
           <TableCell key={column.key}>
             <span
-              className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${
-                namespace.status?.phase === 'Active'
-                  ? 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  : 'border border-yellow-800/40 dark:border-yellow-400/20 bg-yellow-400/50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-800'
-              }`}
+              className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${namespace.status?.phase === 'Active'
+                ? 'bg-emerald-900/30 text-green-400'
+                : 'border border-accent/40 bg-accent/20 text-accent-foreground'
+                }`}
             >
               {namespace.status?.phase || 'Unknown'}
             </span>
@@ -385,7 +384,7 @@ const Namespaces: React.FC = () => {
               {namespace.metadata?.labels && Object.entries(namespace.metadata.labels).map(([key, value]) => (
                 <span
                   key={key}
-                  className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-gray-200 dark:bg-transparent dark:hover:bg-gray-800/50 border border-gray-300 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                  className="px-2 py-1 rounded-[0.3rem] text-xs font-medium bg-muted/50 border border-accent/40 text-foreground"
                 >
                   {key}: {value}
                 </span>
@@ -402,7 +401,7 @@ const Namespaces: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -424,10 +423,10 @@ const Namespaces: React.FC = () => {
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
       <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
-          <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Namespaces</h1>
+          <h1 className='text-5xl font-[Anton] uppercase text-foreground/20 font-medium'>Namespaces</h1>
           <div className="w-full md:w-96 mt-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Search by name, status, or label..."
@@ -444,7 +443,7 @@ const Namespaces: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => setShowFilterSidebar(true)}
-            className="flex items-center gap-2 h-10 dark:text-gray-300/80"
+            className="flex items-center gap-2 h-10"
           >
             <Filter className="h-4 w-4" />
           </Button>
@@ -463,17 +462,17 @@ const Namespaces: React.FC = () => {
         />
       )}
       {sortedNamespaces.length === 0 ? (
-        <Alert className="m-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+        <Alert className="m-6 bg-transparent border-accent/40 rounded-2xl shadow-none">
           <AlertDescription>
             {searchQuery ? `No namespaces matching "${searchQuery}"` : "No namespaces found"}
           </AlertDescription>
         </Alert>
       ) : (
-        <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
-          <div className="rounded-md border">
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+        <Card className="bg-transparent border-accent/40 rounded-2xl shadow-none">
+          <div className="rounded-md border border-accent/40">
+            <Table className="bg-transparent rounded-2xl">
               <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                <TableRow className="border-b border-accent/40">
                   {columnConfig.map(col => renderTableHeader(col))}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -482,7 +481,7 @@ const Namespaces: React.FC = () => {
                 {sortedNamespaces.map((namespace) => (
                   <TableRow
                     key={namespace.metadata?.uid}
-                    className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
+                    className="bg-transparent border-b border-accent/40 hover:cursor-pointer hover:bg-accent/20"
                   >
                     {columnConfig.map(col => renderTableCell(namespace, col))}
                     <TableCell>
@@ -496,15 +495,15 @@ const Namespaces: React.FC = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                        <DropdownMenuContent align="end" className='backdrop-blur-sm'>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
                             handleAskAI(namespace);
-                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          }}>
                             <Sparkles className="mr-2 h-4 w-4" />
                             Ask AI
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewNamespace(namespace)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                          <DropdownMenuItem onClick={() => handleViewNamespace(namespace)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View
                           </DropdownMenuItem>

@@ -328,7 +328,7 @@ const ServiceDriftAnalysis: React.FC = () => {
 
   if (!currentContext) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400">
+      <div className="flex items-center justify-center h-full text-muted-foreground">
         <p>Please select a cluster context</p>
       </div>
     );
@@ -363,37 +363,37 @@ const ServiceDriftAnalysis: React.FC = () => {
   const baselineKind = getResourceKind(baselineResource);
 
   return (
-    <div className="flex flex-col h-full bg-gray-900/20 text-gray-200">
+    <div className="flex flex-col h-full bg-background text-foreground">
       {/* Top Selection Area */}
-      <div className="p-4 bg-gray-800/30 border-b border-gray-700/50">
+      <div className="p-4 bg-secondary/30 border-b border-border">
         <div className="grid grid-cols-2 gap-4">
           {/* Comparison Baseline */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Comparison Baseline</label>
+            <label className="block text-sm text-muted-foreground mb-2">Comparison Baseline</label>
             <Popover open={baselineOpen} onOpenChange={setBaselineOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={baselineOpen}
-                  className="w-full justify-between bg-gray-800/50 border-gray-700/50 text-gray-200 hover:bg-gray-800/70 hover:text-gray-200"
+                  className="w-full justify-between bg-secondary border-border text-foreground hover:bg-accent hover:text-foreground"
                 >
                   <span className="truncate">{getBaselineDisplayName()}</span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0 bg-gray-100 dark:bg-[#0B0D13]/50 backdrop-blur-md border-gray-200 dark:border-gray-800/60 " align="start">
-                <Command className="dark:bg-[#0B0D13]/50 backdrop-blur-md">
-                  <CommandInput placeholder="Search resources..." className="text-gray-200" />
+              <PopoverContent className="w-full p-0 bg-popover backdrop-blur-md border-border" align="start">
+                <Command className="bg-popover backdrop-blur-md">
+                  <CommandInput placeholder="Search resources..." className="text-foreground" />
                   <CommandList className='max-h-80 overflow-y-auto 
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
-            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:bg-muted 
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'>
-                    <CommandEmpty className="text-gray-400">No resource found.</CommandEmpty>
+            [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50'>
+                    <CommandEmpty className="text-muted-foreground">No resource found.</CommandEmpty>
                     {Object.entries(groupedResources).map(([kind, resources]) => (
-                      <CommandGroup key={kind} heading={kind} className="text-gray-300">
+                      <CommandGroup key={kind} heading={kind} className="text-foreground">
                         {resources.map((resource) => {
                           const value = `${resource.namespace}/${resource.kind}/${resource.name}`;
                           return (
@@ -404,7 +404,7 @@ const ServiceDriftAnalysis: React.FC = () => {
                                 handleBaselineChange(value);
                                 setBaselineOpen(false);
                               }}
-                              className="text-gray-200"
+                              className="text-foreground"
                             >
                               <Check
                                 className={cn(
@@ -414,7 +414,7 @@ const ServiceDriftAnalysis: React.FC = () => {
                               />
                               <div className="flex flex-col">
                                 <span className="text-sm">{resource.name}</span>
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-muted-foreground">
                                   {resource.cluster} &gt; {resource.namespace}
                                 </span>
                               </div>
@@ -428,7 +428,7 @@ const ServiceDriftAnalysis: React.FC = () => {
               </PopoverContent>
             </Popover>
             {baselineResource && comparisonData.baseline && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Kind: {(comparisonData.baseline as any).kind || baselineKind}
               </p>
             )}
@@ -437,7 +437,7 @@ const ServiceDriftAnalysis: React.FC = () => {
           {/* Compared Resources */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm text-gray-400">Compared Resources</label>
+              <label className="text-sm text-muted-foreground">Compared Resources</label>
               {(baselineResource || comparedResources.length > 0) && (
                 <Button
                   variant="ghost"
@@ -446,7 +446,7 @@ const ServiceDriftAnalysis: React.FC = () => {
                     setBaselineResource('');
                     setComparedResources([]);
                   }}
-                  className="h-6 px-2 text-xs text-gray-400 hover:text-gray-200"
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                 >
                   Reset
                 </Button>
@@ -458,24 +458,24 @@ const ServiceDriftAnalysis: React.FC = () => {
                   variant="outline"
                   role="combobox"
                   aria-expanded={comparedOpen}
-                  className="w-full justify-between bg-gray-800/50 border-gray-700/50 text-gray-200 hover:bg-gray-800/70 hover:text-gray-200"
+                  className="w-full justify-between bg-secondary border-border text-foreground hover:bg-accent hover:text-foreground"
                 >
                   Select resources to compare
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[500px] p-0 dark:bg-[#0B0D13]/40 border-gray-700" align="start">
-                <Command className="dark:bg-[#0B0D13]/50 backdrop-blur-md">
-                  <CommandInput placeholder="Search resources..." className="text-gray-200" />
+              <PopoverContent className="w-[500px] p-0 bg-popover border-border" align="start">
+                <Command className="bg-popover backdrop-blur-md">
+                  <CommandInput placeholder="Search resources..." className="text-foreground" />
                   <CommandList className='max-h-80 overflow-y-auto 
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
-            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:bg-muted 
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'>
-                    <CommandEmpty className="text-gray-400">No resource found.</CommandEmpty>
+            [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50'>
+                    <CommandEmpty className="text-muted-foreground">No resource found.</CommandEmpty>
                     {Object.entries(groupedResources).map(([kind, resources]) => (
-                      <CommandGroup key={kind} heading={kind} className="text-gray-300">
+                      <CommandGroup key={kind} heading={kind} className="text-foreground">
                         {resources
                           .filter(r => `${r.namespace}/${r.kind}/${r.name}` !== baselineResource)
                           .map((resource) => {
@@ -488,11 +488,11 @@ const ServiceDriftAnalysis: React.FC = () => {
                                   handleAddComparedResource(value);
                                   setComparedOpen(false);
                                 }}
-                                className="text-gray-200"
+                                className="text-foreground"
                               >
                                 <div className="flex flex-col">
                                   <span className="text-sm">{resource.name}</span>
-                                  <span className="text-xs text-gray-400">
+                                  <span className="text-xs text-muted-foreground">
                                     {resource.cluster} &gt; {resource.namespace}
                                   </span>
                                 </div>
@@ -515,11 +515,11 @@ const ServiceDriftAnalysis: React.FC = () => {
       <div className="flex-1 overflow-y-auto 
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
-            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:bg-muted 
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 p-0">
+            [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50 p-0">
         {!baselineResource ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <p className="text-sm">No resources were added,</p>
             <p className="text-sm">please add a resource for comparison</p>
             <Button
@@ -533,13 +533,13 @@ const ServiceDriftAnalysis: React.FC = () => {
         ) : (
           <>
             {/* Tabs */}
-            <div className="flex items-center justify-between pr-4 py-2 bg-gray-800/20 border-b border-gray-700/50">
+            <div className="flex items-center justify-between pr-4 py-2 bg-secondary/20 border-b border-border">
               <div className="flex gap-4">
                 <button
                   onClick={() => setActiveTab('attributes')}
                   className={`px-4 py-1 text-sm font-medium transition-colors ${activeTab === 'attributes'
-                      ? 'text-blue-400 border-b-2 border-blue-400'
-                      : 'text-gray-400 hover:text-gray-300'
+                    ? 'text-blue-400 border-b-2 border-blue-400'
+                    : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   Attributes Comparison
@@ -547,8 +547,8 @@ const ServiceDriftAnalysis: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('metrics')}
                   className={`px-4 py-1 text-sm font-medium transition-colors ${activeTab === 'metrics'
-                      ? 'text-blue-400 border-b-2 border-blue-400'
-                      : 'text-gray-400 hover:text-gray-300'
+                    ? 'text-blue-400 border-b-2 border-blue-400'
+                    : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   Metrics Comparison
@@ -556,7 +556,7 @@ const ServiceDriftAnalysis: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                   <Checkbox
                     checked={showOnlyDrift}
                     onCheckedChange={(checked) => setShowOnlyDrift(checked === true)}
@@ -565,10 +565,10 @@ const ServiceDriftAnalysis: React.FC = () => {
                 </label>
               </div>
             </div>
-            
+
             {/* Resource Attributes Table */}
-            <div className="bg-gray-800/30 rounded-lg border border-gray-700/50 mb-4">
-              <div className="p-3 border-b border-gray-700/50">
+            <div className="bg-secondary/30 rounded-lg border border-border mb-4">
+              <div className="p-3 border-b border-border">
                 <h3 className="text-sm font-medium">Resource Attributes</h3>
               </div>
               <table className="w-full text-sm table-fixed">
@@ -580,9 +580,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                   ))}
                 </colgroup>
                 <tbody>
-                  <tr className="border-b border-gray-700/50">
-                    <td className="p-3 bg-gray-800/20 font-medium">Resource/Attribute</td>
-                    <td className="p-3 bg-gray-800/40">
+                  <tr className="border-b border-border">
+                    <td className="p-3 bg-secondary/20 font-medium">Resource/Attribute</td>
+                    <td className="p-3 bg-secondary/40">
                       {baselineResource.split('/')[2]}
                     </td>
                     {comparedResources.map((resourceId, idx) => {
@@ -593,7 +593,7 @@ const ServiceDriftAnalysis: React.FC = () => {
                             <span>{resourceId.split('/')[2]}</span>
                             <button
                               onClick={() => handleRemoveComparedResource(resourceId)}
-                              className="text-gray-500 hover:text-gray-300"
+                              className="text-muted-foreground hover:text-foreground"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -602,9 +602,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                       );
                     })}
                   </tr>
-                  <tr className="border-b border-gray-700/50">
-                    <td className="p-3 bg-gray-800/20 font-medium">Cluster</td>
-                    <td className="p-3 bg-gray-800/40 text-blue-400">
+                  <tr className="border-b border-border">
+                    <td className="p-3 bg-secondary/20 font-medium">Cluster</td>
+                    <td className="p-3 bg-secondary/40 text-blue-400">
                       {currentContext?.name}
                     </td>
                     {comparedResources.map((resourceId) => (
@@ -613,9 +613,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-700/50">
-                    <td className="p-3 bg-gray-800/20 font-medium">Namespace</td>
-                    <td className="p-3 bg-gray-800/40 text-blue-400">
+                  <tr className="border-b border-border">
+                    <td className="p-3 bg-secondary/20 font-medium">Namespace</td>
+                    <td className="p-3 bg-secondary/40 text-blue-400">
                       {baselineResource.split('/')[0]}
                     </td>
                     {comparedResources.map((resourceId, idx) => {
@@ -631,9 +631,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                       );
                     })}
                   </tr>
-                  <tr className="border-b border-gray-700/50">
-                    <td className="p-3 bg-gray-800/20 font-medium">Kind</td>
-                    <td className="p-3 bg-gray-800/40">
+                  <tr className="border-b border-border">
+                    <td className="p-3 bg-secondary/20 font-medium">Kind</td>
+                    <td className="p-3 bg-secondary/40">
                       {baselineResource.split('/')[1]}
                     </td>
                     {comparedResources.map((resourceId) => {
@@ -650,9 +650,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                       );
                     })}
                   </tr>
-                  <tr className="border-b border-gray-700/50">
-                    <td className="p-3 bg-gray-800/20 font-medium">Desired Replicas</td>
-                    <td className="p-3 bg-gray-800/40">
+                  <tr className="border-b border-border">
+                    <td className="p-3 bg-secondary/20 font-medium">Desired Replicas</td>
+                    <td className="p-3 bg-secondary/40">
                       {(comparisonData.baseline as any)?.spec?.replicas ?? '-'}
                     </td>
                     {comparedResources.map((resourceId, idx) => {
@@ -670,11 +670,11 @@ const ServiceDriftAnalysis: React.FC = () => {
                       );
                     })}
                   </tr>
-                  <tr className="border-b border-gray-700/50">
-                    <td className="p-3 bg-gray-800/20 font-medium">Labels</td>
-                    <td className="p-3 bg-gray-800/40">
+                  <tr className="border-b border-border">
+                    <td className="p-3 bg-secondary/20 font-medium">Labels</td>
+                    <td className="p-3 bg-secondary/40">
                       {Object.keys(getLabels(comparisonData.baseline)).length > 0 && (
-                        <code className="text-xs bg-gray-700/50 px-2 py-1 rounded">
+                        <code className="text-xs bg-secondary px-2 py-1 rounded">
                           {Object.entries(getLabels(comparisonData.baseline))[0]?.[0]}=
                           {String(Object.entries(getLabels(comparisonData.baseline))[0]?.[1])}
                         </code>
@@ -698,9 +698,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                       );
                     })}
                   </tr>
-                  <tr className="border-b border-gray-700/50">
-                    <td className="p-3 bg-gray-800/20 font-medium">Containers</td>
-                    <td className="p-3 bg-gray-800/40">
+                  <tr className="border-b border-border">
+                    <td className="p-3 bg-secondary/20 font-medium">Containers</td>
+                    <td className="p-3 bg-secondary/40">
                       <ul className="list-disc list-inside text-xs space-y-1">
                         {getContainers(comparisonData.baseline).map((c: any) => (
                           <li key={c.name}>{c.name}</li>
@@ -728,15 +728,15 @@ const ServiceDriftAnalysis: React.FC = () => {
             </div>
 
             {/* Container Attributes */}
-            <div className="bg-gray-800/30 rounded-lg border border-gray-700/50">
-              <div className="p-3 border-b border-gray-700/50">
+            <div className="bg-secondary/30 rounded-lg border border-border">
+              <div className="p-3 border-b border-border">
                 <h3 className="text-sm font-medium">Container Attributes</h3>
               </div>
               {getContainers(comparisonData.baseline).map((container: any) => (
-                <div key={container.name} className="border-b border-gray-700/50 last:border-b-0">
+                <div key={container.name} className="border-b border-border last:border-b-0">
                   <button
                     onClick={() => toggleContainer(container.name)}
-                    className="w-full p-3 flex items-center gap-2 hover:bg-gray-700/20 transition-colors"
+                    className="w-full p-3 flex items-center gap-2 hover:bg-accent/50 transition-colors"
                   >
                     {expandedContainers.has(container.name) ? (
                       <ChevronDown className="h-4 w-4" />
@@ -755,9 +755,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                         ))}
                       </colgroup>
                       <tbody>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Service/Attribute</td>
-                          <td className="p-3 bg-gray-800/40">{container.name}</td>
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Service/Attribute</td>
+                          <td className="p-3 bg-secondary/40">{container.name}</td>
                           {comparedResources.map((resourceId, idx) => {
                             const compared = comparisonData.compared[idx];
                             const comparedContainer = getContainers(compared).find(
@@ -770,9 +770,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Image</td>
-                          <td className="p-3 bg-gray-800/40 text-blue-400 text-xs">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Image</td>
+                          <td className="p-3 bg-secondary/40 text-blue-400 text-xs">
                             {container.image}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -791,9 +791,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">CPU requests</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">CPU requests</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.resources?.requests?.cpu || '-'}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -808,9 +808,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">CPU limits</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">CPU limits</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.resources?.limits?.cpu || '-'}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -825,9 +825,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Memory requests</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Memory requests</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.resources?.requests?.memory || '-'}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -842,9 +842,9 @@ const ServiceDriftAnalysis: React.FC = () => {
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Memory limits</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Memory limits</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.resources?.limits?.memory || '-'}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -859,15 +859,15 @@ const ServiceDriftAnalysis: React.FC = () => {
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Env variables</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Env variables</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.env && container.env.length > 0 ? (
                               <div className="max-h-96 overflow-auto">
                                 <YamlViewer data={container.env} />
                               </div>
                             ) : (
-                              <span className="text-gray-500">-</span>
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -886,21 +886,21 @@ const ServiceDriftAnalysis: React.FC = () => {
                                     <YamlViewer data={comparedContainer.env} />
                                   </div>
                                 ) : (
-                                  <span className="text-gray-500">-</span>
+                                  <span className="text-muted-foreground">-</span>
                                 )}
                               </td>
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Liveness probes</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Liveness probes</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.livenessProbe ? (
                               <div className="max-h-64 overflow-auto">
                                 <YamlViewer data={container.livenessProbe} />
                               </div>
                             ) : (
-                              <span className="text-gray-500">-</span>
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -919,21 +919,21 @@ const ServiceDriftAnalysis: React.FC = () => {
                                     <YamlViewer data={comparedContainer.livenessProbe} />
                                   </div>
                                 ) : (
-                                  <span className="text-gray-500">-</span>
+                                  <span className="text-muted-foreground">-</span>
                                 )}
                               </td>
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Readiness probes</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Readiness probes</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.readinessProbe ? (
                               <div className="max-h-64 overflow-auto">
                                 <YamlViewer data={container.readinessProbe} />
                               </div>
                             ) : (
-                              <span className="text-gray-500">-</span>
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -952,21 +952,21 @@ const ServiceDriftAnalysis: React.FC = () => {
                                     <YamlViewer data={comparedContainer.readinessProbe} />
                                   </div>
                                 ) : (
-                                  <span className="text-gray-500">-</span>
+                                  <span className="text-muted-foreground">-</span>
                                 )}
                               </td>
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-gray-700/50">
-                          <td className="p-3 bg-gray-800/20 font-medium">Startup probes</td>
-                          <td className="p-3 bg-gray-800/40">
+                        <tr className="border-b border-border">
+                          <td className="p-3 bg-secondary/20 font-medium">Startup probes</td>
+                          <td className="p-3 bg-secondary/40">
                             {container.startupProbe ? (
                               <div className="max-h-64 overflow-auto">
                                 <YamlViewer data={container.startupProbe} />
                               </div>
                             ) : (
-                              <span className="text-gray-500">-</span>
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </td>
                           {comparedResources.map((resourceId, idx) => {
@@ -985,7 +985,7 @@ const ServiceDriftAnalysis: React.FC = () => {
                                     <YamlViewer data={comparedContainer.startupProbe} />
                                   </div>
                                 ) : (
-                                  <span className="text-gray-500">-</span>
+                                  <span className="text-muted-foreground">-</span>
                                 )}
                               </td>
                             );
@@ -1003,14 +1003,14 @@ const ServiceDriftAnalysis: React.FC = () => {
 
       {/* Diff Dialog */}
       <Dialog open={diffDialogOpen} onOpenChange={setDiffDialogOpen}>
-        <DialogContent className="max-w-7xl dark:bg-[#0B0D13]/30 backdrop-blur-lg text-gray-200">
+        <DialogContent className="max-w-7xl bg-background/95 backdrop-blur-lg text-foreground">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <GitCompareArrows className="h-5 w-5 text-blue-400" />
               {diffDialogData?.title}
             </DialogTitle>
             {diffDialogData && (
-              <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
                 <div>
                   <span className="font-semibold">Baseline:</span>{' '}
                   {baselineResource.split('/').slice(0, 2).join(' > ')} &gt;{' '}

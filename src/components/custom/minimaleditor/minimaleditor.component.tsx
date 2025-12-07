@@ -77,7 +77,7 @@ const MinimalEditor: React.FC<MinimalEditorProps> = ({
   };
 
   return (
-    <div className={`border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden ${className}`}>
+    <div className={`border border-border rounded-md overflow-hidden ${className}`}>
       <MonacoEditor
         height={height}
         defaultLanguage={language}

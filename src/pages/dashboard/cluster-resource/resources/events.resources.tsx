@@ -808,7 +808,7 @@ const Events: React.FC = () => {
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
       <div className='flex items-center justify-between md:flex-row gap-4 items-start md:items-end'>
         <div>
-          <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Events</h1>
+          <h1 className='text-5xl font-[Anton] uppercase text-foreground/20 font-medium'>Events</h1>
           <div className="flex items-center gap-2 mt-2">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -1006,7 +1006,7 @@ const Events: React.FC = () => {
 
       {/* Event statistics */}
       <div className="grid grid-cols-4 gap-1 mb-6">
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-transparent rounded-md border border-accent/40 shadow-none min-h-32">
           <CardContent className="py-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Total Events</h2>
             <div className="mt-auto">
@@ -1014,14 +1014,14 @@ const Events: React.FC = () => {
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 {filteredEvents.length !== events.length && `Showing ${filteredEvents.length} filtered`}
               </div>
-              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+              <div className="w-full h-1 bg-accent/40 rounded-[0.3rem]">
                 <div className="h-1 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-transparent rounded-md border border-accent/40 shadow-none min-h-32">
           <CardContent className="py-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Warning Events</h2>
             <div className="mt-auto">
@@ -1032,7 +1032,7 @@ const Events: React.FC = () => {
                 {events.length > 0 &&
                   `${((events.filter(e => e.type === 'Warning').length / events.length) * 100).toFixed(1)}% of total`}
               </div>
-              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+              <div className="w-full h-1 bg-accent/40 rounded-[0.3rem]">
                 <div
                   className="h-1 bg-amber-500 dark:bg-amber-400 rounded-[0.3rem]"
                   style={{
@@ -1046,7 +1046,7 @@ const Events: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-transparent rounded-md border border-accent/40 shadow-none min-h-32">
           <CardContent className="py-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Normal Events</h2>
             <div className="mt-auto">
@@ -1057,7 +1057,7 @@ const Events: React.FC = () => {
                 {events.length > 0 &&
                   `${((events.filter(e => e.type === 'Normal').length / events.length) * 100).toFixed(1)}% of total`}
               </div>
-              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+              <div className="w-full h-1 bg-accent/40 rounded-[0.3rem]">
                 <div
                   className="h-1 bg-green-500 dark:bg-green-400 rounded-[0.3rem]"
                   style={{
@@ -1071,7 +1071,7 @@ const Events: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-32">
+        <Card className="bg-transparent rounded-md border border-accent/40 shadow-none min-h-32">
           <CardContent className="py-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">Last Event</h2>
             <div className="mt-auto">
@@ -1084,7 +1084,7 @@ const Events: React.FC = () => {
                 {events.length > 0 && new Date(getEventTime(events.sort((a, b) =>
                   getEventTime(b).getTime() - getEventTime(a).getTime())[0])).toLocaleTimeString()}
               </div>
-              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem]">
+              <div className="w-full h-1 bg-accent/40 rounded-[0.3rem]">
                 <div className="h-1 bg-gray-500 dark:bg-gray-400 rounded-[0.3rem]" style={{ width: '100%' }}></div>
               </div>
             </div>
@@ -1180,7 +1180,7 @@ const Events: React.FC = () => {
                 sortedEvents.map((event) => (
                   <TableRow
                     key={`${event.metadata?.namespace}-${event.metadata?.name}`}
-                    className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${event.type === 'Warning' ? 'bg-amber-50/30 dark:bg-amber-900/5' : ''
+                    className={`bg-transparent border-b border-accent/40 hover:cursor-pointer hover:bg-accent/20 ${event.type === 'Warning' ? 'bg-amber-50/30 dark:bg-amber-900/5' : ''
                       }`}
                   >
                     {columnConfig.map(col => renderTableCell(event, col))}

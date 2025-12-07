@@ -84,7 +84,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 										<BellDot className='h-[0.8rem]' />
 										{/* <Badge 
                       variant="destructive" 
-                      className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-gray-500 dark:bg-gray-500/30 backdrop-blur-md hover:bg-red-500"
+                      className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-secondary backdrop-blur-md hover:bg-destructive"
                     >
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </Badge> */}
@@ -95,19 +95,19 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 							</button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent className="bg-white dark:bg-[#131112] text-gray-900 dark:text-gray-100">
+					<TooltipContent className="bg-card text-foreground">
 						<p>Notifications {unreadCount > 0 && `(${unreadCount} unread)`}</p>
 					</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
 
 			<DropdownMenuContent
-				className="w-[28rem] bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-200 rounded-lg dark:border-neutral-600/30 max-h-96 "
+				className="w-[28rem] bg-card backdrop-blur-md border-border rounded-lg max-h-96 "
 				align="end"
 				sideOffset={5}
 			>
-				<div className="flex items-center justify-between bg-gray-300/50  dark:bg-gray-500/10  backdrop-blur-md px-2 ">
-					<DropdownMenuLabel className="text-sm font-medium text-gray-900 dark:text-gray-100">
+				<div className="flex items-center justify-between bg-secondary/50 backdrop-blur-md px-2 ">
+					<DropdownMenuLabel className="text-sm font-medium text-foreground">
 						Notifications
 					</DropdownMenuLabel>
 					<div className="flex items-center space-x-1">
@@ -116,7 +116,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 								variant="ghost"
 								size="sm"
 								onClick={markAllAsRead}
-								className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 dark:text-gray-400 dark:hover:text-gray-300"
+								className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
 							>
 								Mark all read
 							</Button>
@@ -127,12 +127,12 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 									<TooltipTrigger asChild>
 										<button
 											onClick={clearAllNotifications}
-											className="h-6 w-6 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700/30 rounded p-1 transition-colors"
+											className="h-6 w-6 flex items-center justify-center hover:bg-accent rounded p-1 transition-colors"
 										>
-											<BellMinus className="h-[0.8rem] text-gray-500 dark:text-gray-400" />
+											<BellMinus className="h-[0.8rem] text-muted-foreground" />
 										</button>
 									</TooltipTrigger>
-									<TooltipContent className="bg-white dark:bg-[#131112] text-gray-900 dark:text-gray-100">
+									<TooltipContent className="bg-card text-foreground">
 										<p>Clear all notifications</p>
 									</TooltipContent>
 								</Tooltip>
@@ -142,7 +142,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 				</div>
 
 				{notifications.length === 0 ? (
-					<div className="p-4 text-center text-gray-500 dark:text-gray-400">
+					<div className="p-4 text-center text-muted-foreground">
 						<Bell className="mx-auto h-8 w-8 mb-2 opacity-50" />
 						<p className="text-sm">No notifications</p>
 					</div>
@@ -158,7 +158,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 							return (
 								<DropdownMenuItem
 									key={notification.id}
-									className={`p-3 cursor-pointer focus:bg-gray-50 dark:focus:bg-gray-800/50 ${!notification.read ? 'bg-gray-100 dark:bg-gray-800/40' : ''
+									className={`p-3 cursor-pointer focus:bg-accent ${!notification.read ? 'bg-secondary' : ''
 										}`}
 									onClick={() => markAsRead(notification.id)}
 								>
@@ -169,7 +169,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 										</div>
 										<div className="flex-1 space-y-1">
 											<div className="flex items-start justify-between">
-												<p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
+												<p className="text-sm font-medium text-foreground leading-tight">
 													{notification.title}
 												</p>
 												<div className="flex items-center space-x-1 ml-2">
@@ -179,16 +179,16 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 															e.stopPropagation();
 															removeNotification(notification.id);
 														}}
-														className="hover:bg-gray-200 dark:hover:bg-gray-700 rounded p-0.5 transition-opacity"
+														className="hover:bg-accent rounded p-0.5 transition-opacity"
 													>
 														<X className="h-3 w-3 text-gray-500" />
 													</button>
 												</div>
 											</div>
-											<p className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
+											<p className="text-xs text-muted-foreground leading-tight">
 												{notification.message}
 											</p>
-											<p className="text-xs text-gray-500 dark:text-gray-500">
+											<p className="text-xs text-muted-foreground">
 												{notification.timestamp}
 											</p>
 										</div>

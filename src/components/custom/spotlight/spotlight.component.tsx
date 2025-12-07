@@ -459,10 +459,10 @@ const Spotlight: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-40">
-      <div className="absolute inset-0 dark:bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" onClick={onClose} />
       <AnimatePresence>
         <motion.div
-          className="relative w-full max-w-3xl bg-gray-100 dark:bg-[#1B1C26]/80 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
+          className="relative w-full max-w-3xl bg-card backdrop-blur-md rounded-xl shadow-2xl border border-border overflow-hidden"
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{
             scale: tabPressed ? [1, 1.03, 1] : 1,
@@ -582,17 +582,17 @@ const Spotlight: React.FC = () => {
                         ? `Search ${activeResource?.title}...`
                         : "Kube Spotlight Search"
                 }
-                className="w-full p-2 text-gray-900 dark:text-gray-100 placeholder-gray-600 bg-transparent border-none focus:outline-none focus:ring-0"
+                className="w-full p-2 text-foreground placeholder-muted-foreground bg-transparent border-none focus:outline-none focus:ring-0"
                 autoComplete="off"
               />
 
               {/* Match description and Tab button */}
               {!contextMode && !resourceMode && !mcpMode && (
-                <div className="absolute right-0 text-gray-600 dark:text-gray-400 text-sm flex items-center">
+                <div className="absolute right-0 text-muted-foreground text-sm flex items-center">
                   {isContextMatch ? (
                     <>
                       <span>{contextShortcuts.description}</span>
-                      <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
+                      <div className="bg-secondary rounded px-1.5 py-0.5 ml-2 flex items-center">
                         <span>Tab</span>
                       </div>
                     </>
@@ -600,14 +600,14 @@ const Spotlight: React.FC = () => {
                     "mcp".toLowerCase().includes(debouncedQuery.toLowerCase()) ? (
                     <>
                       <span>{mcpShortcuts.description}</span>
-                      <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
+                      <div className="bg-secondary rounded px-1.5 py-0.5 ml-2 flex items-center">
                         <span>Tab</span>
                       </div>
                     </>
                   ) : matchingResource ? (
                     <>
                       <span>{matchingResource.description}</span>
-                      <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
+                      <div className="bg-secondary rounded px-1.5 py-0.5 ml-2 flex items-center">
                         <span>Tab</span>
                       </div>
                     </>
@@ -707,7 +707,7 @@ const Spotlight: React.FC = () => {
               <div className="py-1">
                 <div className="px-4">
                   <p className="text-sm mb-1 text-gray-500">Command</p>
-                  <Separator className="bg-gray-200 dark:bg-gray-900/20" />
+                  <Separator className="bg-border" />
                 </div>
                 <div>
                   {filteredCommandSuggestions.map((suggestion, index) => (
@@ -768,14 +768,14 @@ const Spotlight: React.FC = () => {
 
           {/* Escape hint */}
           {(contextMode) && (
-            <div className='bg-gray-200/80 dark:bg-gray-500/10 text-gray-500 dark:text-gray-500 py-1 px-4 text-xs flex justify-end items-center'>
-              <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1 py-0.5 mr-1 flex items-center">
+            <div className='bg-muted text-muted-foreground py-1 px-4 text-xs flex justify-end items-center'>
+              <div className="bg-secondary rounded px-1 py-0.5 mr-1 flex items-center">
                 <span><ChevronDown className='h-4 w-4' /></span>
               </div>
-              <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1 py-0.5 mr-1 flex items-center">
+              <div className="bg-secondary rounded px-1 py-0.5 mr-1 flex items-center">
                 <span><ChevronUp className='h-4 w-4' /></span>
               </div>
-              <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+              <div className="bg-secondary rounded px-1.5 py-0.5 mr-1 flex items-center">
                 <span>Esc</span>
               </div>
               <span className=''>

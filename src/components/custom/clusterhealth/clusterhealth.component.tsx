@@ -58,7 +58,7 @@ const ClusterHealth: React.FC<ClusterHealthProps> = ({ clusterId, onHealthStatus
             <AlertTriangle size={16} className="text-yellow-500 pointer-events-auto" />
           </div>
         </TooltipTrigger>
-        <TooltipContent className="flex gap-1.5 items-center p-1 dark:bg-red-500/50 dark:text-white">
+        <TooltipContent className="flex gap-1.5 items-center p-1 bg-destructive text-destructive-foreground">
         <AlertTriangle  className="h-3 w-3" />
           <p>Bad Gateway</p>
         </TooltipContent>

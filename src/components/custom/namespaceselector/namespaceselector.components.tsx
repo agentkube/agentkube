@@ -15,9 +15,9 @@ interface NamespaceSelectorProps {
   className?: string;
 }
 
-export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({ 
+export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
   onSelectionChange,
-  className 
+  className
 }) => {
   const { availableNamespaces, selectedNamespaces, setSelectedNamespaces } = useNamespace();
   const [open, setOpen] = useState(false);
@@ -30,16 +30,16 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
   // Handle namespace selection toggle
   const handleSelect = (namespace: string) => {
     let newSelected: string[];
-    
+
     // If already selected, remove it; otherwise add it
     if (safeSelectedNamespaces.includes(namespace)) {
       newSelected = safeSelectedNamespaces.filter(ns => ns !== namespace);
     } else {
       newSelected = [...safeSelectedNamespaces, namespace];
     }
-    
+
     setSelectedNamespaces(newSelected);
-    
+
     if (onSelectionChange) {
       onSelectionChange(newSelected);
     }
@@ -48,7 +48,7 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
   // Select all namespaces
   const selectAll = () => {
     setSelectedNamespaces([...safeAvailableNamespaces]);
-    
+
     if (onSelectionChange) {
       onSelectionChange([...safeAvailableNamespaces]);
     }
@@ -57,7 +57,7 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
   // Clear all selected namespaces
   const clearAll = () => {
     setSelectedNamespaces([]);
-    
+
     if (onSelectionChange) {
       onSelectionChange([]);
     }
@@ -83,17 +83,17 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
 
   return (
     <div className={cn("space-y-1", className)}>
-          {/* Selected namespaces badges */}
-          {safeSelectedNamespaces.length > 0 && safeSelectedNamespaces.length < safeAvailableNamespaces.length && (
+      {/* Selected namespaces badges */}
+      {safeSelectedNamespaces.length > 0 && safeSelectedNamespaces.length < safeAvailableNamespaces.length && (
         <div className="flex flex-wrap gap-1 mt-2">
           {safeSelectedNamespaces.slice(0, 5).map(namespace => (
-            <Badge 
-              key={namespace} 
+            <Badge
+              key={namespace}
               variant="secondary"
-              className="text-xs text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800/60"
+              className="text-xs text-foreground bg-secondary border-border"
             >
               {namespace}
-              <button 
+              <button
                 className="ml-1 text-gray-500 hover:text-gray-700"
                 onClick={() => handleSelect(namespace)}
               >
@@ -102,7 +102,7 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
             </Badge>
           ))}
           {safeSelectedNamespaces.length > 5 && (
-            <Badge variant="outline" className="text-xs bg-gray-100 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800/60">
+            <Badge variant="outline" className="text-xs bg-secondary border-border">
               +{safeSelectedNamespaces.length - 5} more
             </Badge>
           )}
@@ -114,40 +114,40 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full h-full p-2.5 justify-between text-gray-800 dark:text-gray-400 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-800/60"
+            className="w-full h-full p-2.5 justify-between text-foreground bg-secondary border-border"
           >
             <span className="truncate text-sm">{getDisplayText()}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0 bg-gray-100 dark:bg-[#0B0D13]/50 backdrop-blur-md border-gray-200 dark:border-gray-800/60 " align="start">
+        <PopoverContent className="w-full p-0 bg-card backdrop-blur-md border-border " align="start">
           <div className="p-1">
             <input
-              className="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800/30 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-800"
+              className="w-full px-2 py-1 text-sm bg-secondary rounded-md focus:outline-none focus:ring-2 focus:ring-blue-800"
               placeholder="Search namespaces..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2 p-2 border-t border-b ">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={selectAll}
               className="text-xs"
             >
               Select All
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={clearAll}
               className="text-xs"
             >
               Clear All
             </Button>
           </div>
-          
+
           {filteredNamespaces.length === 0 ? (
             <div className="py-6 text-center text-sm text-gray-500">
               No namespaces found
@@ -158,8 +158,8 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
                 <div
                   key={namespace}
                   className={cn(
-                    "relative flex cursor-pointer  select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:hover:bg-slate-800",
-                    safeSelectedNamespaces.includes(namespace) ? "bg-slate-100 dark:bg-gray-700/20 backdrop-blur-xs " : ""
+                    "relative flex cursor-pointer  select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                    safeSelectedNamespaces.includes(namespace) ? "bg-accent" : ""
                   )}
                   onClick={() => handleSelect(namespace)}
                 >
@@ -173,8 +173,8 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
           )}
         </PopoverContent>
       </Popover>
-      
-  
+
+
     </div>
   );
 };

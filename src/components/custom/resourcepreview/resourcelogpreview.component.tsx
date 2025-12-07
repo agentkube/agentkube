@@ -38,7 +38,7 @@ const ResourceLogPreview: React.FC<ResourceLogPreviewProps> = ({ log, onRemove }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -54,7 +54,7 @@ const ResourceLogPreview: React.FC<ResourceLogPreviewProps> = ({ log, onRemove }
           <div className='bg-gray-400/20 dark:bg-gray-500/20 p-0.5 rounded-sm'>
             <Terminal className='h-3 w-3' />
           </div>
-          <span>{log.podName}/{log.containerName}</span> 
+          <span>{log.podName}/{log.containerName}</span>
           <span className='text-gray-400'>(100)</span>
         </div>
         <X

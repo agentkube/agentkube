@@ -143,7 +143,7 @@ export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
         transformOrigin: 'bottom', // Grow from bottom
       }}
     >
-      <div className="px-3 py-3 bg-gray-50 dark:bg-[#0B0D13]/80 backdrop-blur-xl rounded-lg border dark:border-gary-500 shadow-xl">
+      <div className="px-3 py-3 bg-background/95 backdrop-blur-xl rounded-lg border dark:border-gary-500 shadow-xl">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
             <UserRoundCheck className="h-4 w-4 text-blue-500" />
@@ -210,7 +210,6 @@ export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
             </Button>
           </div>
           <Input
-            className='h-7 px-2 dark:border-gray-300/10'
             placeholder='Tell Agentkube what to do instead'
             value={redirectMessage}
             onChange={(e) => setRedirectMessage(e.target.value)}

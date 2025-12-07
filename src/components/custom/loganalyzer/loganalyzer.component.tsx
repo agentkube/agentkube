@@ -180,7 +180,7 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
               </p>
             </div>
             <Button
-              onClick={handleSignIn}              
+              onClick={handleSignIn}
               className="flex justify-between min-w-28 bg-blue-600 hover:bg-blue-700 text-white h-7 px-3 text-xs"
             >
               Sign In
@@ -194,17 +194,17 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
 
   // Upgrade Component
   const UpgradeComponent = () => (
-    <div className={`px-4 py-3 border-t ${hasExceededLimit 
-      ? 'bg-gradient-to-r from-blue-500/10 to-gray-500/10 border-red-200 dark:border-red-800/50' 
+    <div className={`px-4 py-3 border-t ${hasExceededLimit
+      ? 'bg-gradient-to-r from-blue-500/10 to-gray-500/10 border-red-200 dark:border-red-800/50'
       : 'bg-gradient-to-r from-yellow-500/10 to-gray-500/10 border-orange-200 dark:border-orange-800/50'
-    }`}>
+      }`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start w-full space-x-3">
           <div className="flex-shrink-0">
-            <Crown className={`h-5 w-5 ${hasExceededLimit 
-              ? 'text-red-600 dark:text-red-400' 
+            <Crown className={`h-5 w-5 ${hasExceededLimit
+              ? 'text-red-600 dark:text-red-400'
               : 'text-orange-600 dark:text-orange-400'
-            }`} />
+              }`} />
           </div>
           <div className="flex items-center justify-between w-full">
             <div>
@@ -212,7 +212,7 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
                 {hasExceededLimit ? 'Usage Limit Exceeded' : 'Credits Running Low'}
               </h4>
               <p className="text-xs text-gray-600 dark:text-gray-400">
-                {hasExceededLimit 
+                {hasExceededLimit
                   ? `You've reached your limit of ${user?.usage_limit} credits. Upgrade to continue.`
                   : `You've used ${user?.usage_count} of ${user?.usage_limit} credits. Upgrade for unlimited usage.`
                 }
@@ -224,7 +224,7 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
               className={`text-white h-7 w-32 flex justify-between px-3 text-xs ${hasExceededLimit
                 ? 'bg-red-600 hover:bg-red-700'
                 : 'bg-orange-600 hover:bg-orange-700'
-              }`}
+                }`}
             >
               Upgrade
               <ArrowUpRight className="h-3 w-3 ml-1" />
@@ -259,103 +259,103 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
           </TooltipContent>
         </Tooltip>
 
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-96 bg-[#0B0D13]/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-50">
-          <div>
-            <div className="flex items-center justify-between mb-4 pt-4 px-4">
-              <div className='flex items-center gap-2'>
-                <Sparkles className='h-4 w-4' />
-                <h3 className="text-lg font-light text-white">AI Analysis</h3>
+        {isOpen && (
+          <div className="absolute top-full right-0 mt-2 w-96 bg-[#0B0D13]/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-50">
+            <div>
+              <div className="flex items-center justify-between mb-4 pt-4 px-4">
+                <div className='flex items-center gap-2'>
+                  <Sparkles className='h-4 w-4' />
+                  <h3 className="text-lg font-light text-white">AI Analysis</h3>
 
-              </div>
-              <div className='flex items-center'>
-                {hasFetched && (
-                  <Button
-                        variant="ghost"
-                  size="sm"
-                    onClick={handleRerun}
-                    disabled={isAnalyzing}
-                    className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                  >
-                    <RotateCcw />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-3 mb-2 px-4">
-              <div className="text-xs text-neutral-800 dark:text-gray-200 space-y-1">
-                <div className="flex"><span className="text-gray-500 w-20">Container</span> {containerName}</div>
-                <div className="flex"><span className="text-gray-500 w-20">Pod</span> {podName}</div>
-                <div className="flex"><span className="text-gray-500 w-20">Namespace</span> 
-                  <span className="text-blue-600 dark:text-blue-400 hover:text-blue-500 hover:underline cursor-pointer" onClick={() => navigate(`/dashboard/explore/namespaces/${namespace}`)}>
-                    {namespace}
-                  </span>
                 </div>
-                <div className="flex"><span className="text-gray-500 w-20">Cluster</span> {clusterName}</div>
+                <div className='flex items-center'>
+                  {hasFetched && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRerun}
+                      disabled={isAnalyzing}
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                    >
+                      <RotateCcw />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            {!hasFetched && !isAnalyzing ? (
-              <div className="text-center py-6 px-4 bg-gray-300 dark:bg-gray-700/20 border-t border-gray-500/30 dark:border-gray-500/30">
-                <Sparkles className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-400 mb-4">Ready to analyze your logs</p>
-                <Button
-                  onClick={startAnalysis}
-                  disabled={isAnalyzing}
-                  className="w-full"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Start Analysis
-                </Button>
+
+              <div className="space-y-3 mb-2 px-4">
+                <div className="text-xs text-neutral-800 dark:text-gray-200 space-y-1">
+                  <div className="flex"><span className="text-gray-500 w-20">Container</span> {containerName}</div>
+                  <div className="flex"><span className="text-gray-500 w-20">Pod</span> {podName}</div>
+                  <div className="flex"><span className="text-gray-500 w-20">Namespace</span>
+                    <span className="text-blue-600 dark:text-blue-400 hover:text-blue-500 hover:underline cursor-pointer" onClick={() => navigate(`/dashboard/explore/namespaces/${namespace}`)}>
+                      {namespace}
+                    </span>
+                  </div>
+                  <div className="flex"><span className="text-gray-500 w-20">Cluster</span> {clusterName}</div>
+                </div>
               </div>
-            ) : (
-              <div className="bg-gray-300 dark:bg-gray-700/20 border-t border-gray-500/30 dark:border-gray-500/30 max-h-80 overflow-y-auto 
+              {!hasFetched && !isAnalyzing ? (
+                <div className="text-center py-6 px-4 bg-gray-300 dark:bg-gray-700/20 border-t border-gray-500/30 dark:border-gray-500/30">
+                  <Sparkles className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400 mb-4">Ready to analyze your logs</p>
+                  <Button
+                    onClick={startAnalysis}
+                    disabled={isAnalyzing}
+                    className="w-full"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Start Analysis
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-gray-300 dark:bg-gray-700/20 border-t border-gray-500/30 dark:border-gray-500/30 max-h-80 overflow-y-auto 
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 px-4">
-                {isAnalyzing && (
-                  <div className="flex py-4">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2 text-gray-200 dark:text-gray-600" />
-                    <span className="text-xs dark:text-gray-500">Analyzing logs...</span>
-                  </div>
-                )}
-
-                {analysisContent && (
-                  <div className="relative py-8">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-4 right-0 h-1 w-8 p-0 z-10 bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white backdrop-blur-sm"
-                      onClick={handleCopyAnalysis}
-                    >
-                      {copied ? <CheckCheck className="text-green-500 h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                    <div className="text-xs text-gray-300">
-                      <MarkdownContent content={analysisContent} />
+                  {isAnalyzing && (
+                    <div className="flex py-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2 text-gray-200 dark:text-gray-600" />
+                      <span className="text-xs dark:text-gray-500">Analyzing logs...</span>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
 
-            {/* Sign In Component */}
-            {shouldShowSignIn && <SignInComponent />}
+                  {analysisContent && (
+                    <div className="relative py-8">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-4 right-0 h-1 w-8 p-0 z-10 bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white backdrop-blur-sm"
+                        onClick={handleCopyAnalysis}
+                      >
+                        {copied ? <CheckCheck className="text-green-500 h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                      <div className="text-xs text-gray-300">
+                        <MarkdownContent content={analysisContent} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* Upgrade Component */}
-            {shouldShowUpgrade && <UpgradeComponent />}
+              {/* Sign In Component */}
+              {shouldShowSignIn && <SignInComponent />}
+
+              {/* Upgrade Component */}
+              {shouldShowUpgrade && <UpgradeComponent />}
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </TooltipProvider>
   )

@@ -50,42 +50,41 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <button
-              className={`w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors
-                ${isSelected ? 'bg-gray-400/30' : ''}`}
+              className={`w-full flex justify-center items-center p-2 hover:bg-accent-hover rounded-[5px] transition-colors
+                ${isSelected ? 'bg-accent' : ''}`}
               title={item.label}
             >
               {item.icon}
             </button>
           </DropdownMenuTrigger>
-          
+
           {/* Tooltip for collapsed view */}
-          <div className="absolute left-full ml-2 -mt-8 z-10 bg-gray-200 dark:bg-[#0B0D13]/30 backdrop-blur-md dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+          <div className="absolute left-full ml-2 -mt-8 z-10 bg-card backdrop-blur-md text-card-foreground text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
             <p className="font-medium">{item.label}</p>
-            <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute w-2 h-2 bg-card rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
           </div>
-          
+
           <DropdownMenuContent
             side="right"
             align="start"
-            className="mt-0 ml-4 z-50 dark:bg-white dark:dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-md border border-gray-200 dark:border-gray-800/60 w-48 overflow-hidden"
+            className="mt-0 ml-4 z-50 bg-card backdrop-blur-md shadow-lg rounded-md border border-border w-48 overflow-hidden"
             onInteractOutside={() => setDropdownOpen(false)}
           >
-            <div className="p-2 text-sm font-medium text-gray-800 dark:text-gray-300 font-[Anton] uppercase border-b border-gray-200 dark:border-gray-800">
+            <div className="p-2 text-sm font-medium text-foreground font-[Anton] uppercase border-b border-border">
               {item.label}
             </div>
             <div className="py-1 ">
               {item.children?.map((child) => (
                 <DropdownMenuItem
                   key={child.id}
-                  className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900 ${
-                    selectedItem === child.id ? 'bg-blue-50 dark:bg-blue-900/10' : ''
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent ${selectedItem === child.id ? 'bg-accent/50' : ''
+                    }`}
                   onClick={() => onItemClick(child.id)}
                 >
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
+                  <span className="text-sm font-medium text-foreground">
                     {child.icon}
                   </span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300">{child.label}</span>
+                  <span className="text-sm font-medium text-foreground">{child.label}</span>
                 </DropdownMenuItem>
               ))}
             </div>
@@ -100,18 +99,18 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
     return (
       <div className="py-1 relative group">
         <button
-          className={`w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors 
-            ${isSelected ? 'bg-gray-400/30' : ''}`}
+          className={`w-full flex justify-center items-center p-2 hover:bg-accent-hover rounded-[5px] transition-colors 
+            ${isSelected ? 'bg-accent' : ''}`}
           onClick={handleClick}
           title={item.label}
         >
           {item.icon}
         </button>
-        
+
         {/* Tooltip for collapsed view */}
-        <div className="absolute left-full ml-2 -mt-8 z-10 bg-gray-200 dark:bg-[#0B0D13]/30 backdrop-blur-md dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+        <div className="absolute left-full ml-2 -mt-8 z-10 bg-card backdrop-blur-md text-card-foreground text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
           <p className="font-medium">{item.label}</p>
-          <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+          <div className="absolute w-2 h-2 bg-card rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
         </div>
       </div>
     );
@@ -121,8 +120,8 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
   return (
     <div>
       <button
-        className={`w-full flex items-center py-1.5 px-4 hover:bg-gray-400/20 dark:hover:bg-gray-600/20 rounded-[5px] transition-colors 
-          ${isSelected ? 'bg-gray-400/20  dark:bg-gray-800/50' : ''}`}
+        className={`w-full flex items-center py-1.5 px-4 hover:bg-accent rounded-[5px] transition-colors 
+          ${isSelected ? 'bg-accent' : ''}`}
         onClick={handleClick}
         style={{ paddingLeft }}
       >

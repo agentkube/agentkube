@@ -80,38 +80,36 @@ const DriftAnalysis: React.FC<DriftAnalysisProps> = ({ isOpen, onClose }) => {
       />
 
       {/* Header */}
-      <div ref={headerRef} className="flex justify-between items-center p-2 bg-gray-700/10 border-b border-gray-600/20">
+      <div ref={headerRef} className="flex justify-between items-center p-2 bg-secondary/50 border-b border-border">
         <div className="flex items-center space-x-2">
-          <GitCompareArrows className="h-4 w-4 text-gray-300" />
-          <span className="text-gray-300 text-sm font-medium">Drift Analysis</span>
+          <GitCompareArrows className="h-4 w-4 text-foreground" />
+          <span className="text-foreground text-sm font-medium">Drift Analysis</span>
         </div>
         <button
           onClick={handleClose}
-          className="text-gray-300 hover:text-white hover:bg-gray-700 p-1 rounded"
+          className="text-foreground hover:text-foreground hover:bg-accent p-1 rounded"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-600/20 bg-gray-800/20">
+      <div className="flex border-b border-border bg-secondary/30">
         <button
           onClick={() => setActiveTab('services')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'services'
-              ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-700/20'
-              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/10'
-          }`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'services'
+            ? 'text-blue-400 border-b-2 border-blue-400 bg-accent'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+            }`}
         >
           Services
         </button>
         <button
           onClick={() => setActiveTab('helm')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'helm'
-              ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-700/20'
-              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/10'
-          }`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'helm'
+              ? 'text-blue-400 border-b-2 border-blue-400 bg-accent'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+            }`}
         >
           Helm Releases
         </button>
@@ -122,9 +120,9 @@ const DriftAnalysis: React.FC<DriftAnalysisProps> = ({ isOpen, onClose }) => {
         className="overflow-auto
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-track]:bg-transparent
-          [&::-webkit-scrollbar-thumb]:bg-gray-700/30
+          [&::-webkit-scrollbar-thumb]:bg-muted
           [&::-webkit-scrollbar-thumb]:rounded-full
-          [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50"
+          [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50"
         style={{
           height: `calc(${panelHeight} - ${headerRef.current?.offsetHeight || 40}px - 40px)`
         }}

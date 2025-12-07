@@ -30,21 +30,21 @@ const ResourceTemplate: React.FC<ResourceTemplateProps> = ({ onSelectTemplate })
     }
 
     const query = searchQuery.toLowerCase();
-    
+
     const filtered = templateCategories.map(category => {
       // Filter items in each category
-      const filteredItems = category.items.filter(item => 
-        item.name.toLowerCase().includes(query) || 
+      const filteredItems = category.items.filter(item =>
+        item.name.toLowerCase().includes(query) ||
         item.description.toLowerCase().includes(query)
       );
-      
+
       // Return category with filtered items
       return {
         ...category,
         items: filteredItems
       };
     }).filter(category => category.items.length > 0);
-    
+
     setFilteredCategories(filtered);
   }, [searchQuery, templateCategories]);
 
@@ -56,19 +56,19 @@ const ResourceTemplate: React.FC<ResourceTemplateProps> = ({ onSelectTemplate })
       description: `Fetching ${template.name}...`,
       variant: "default"
     });
-    
+
     try {
       const response = await fetch(`${GITHUB_BASE_URL}/${template.path}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const content = await response.text();
-      
+
       // Apply the template
       onSelectTemplate(content, template.name, template.resourceType);
-      
+
       // Show success toast
       toast({
         title: "Template Applied",
@@ -91,7 +91,7 @@ const ResourceTemplate: React.FC<ResourceTemplateProps> = ({ onSelectTemplate })
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8 h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -100,7 +100,7 @@ const ResourceTemplate: React.FC<ResourceTemplateProps> = ({ onSelectTemplate })
     <div className="p-4 space-y-4 h-full flex flex-col">
       {/* Search Bar */}
       <div className="relative w-full">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
           placeholder="Search templates..."
@@ -109,18 +109,18 @@ const ResourceTemplate: React.FC<ResourceTemplateProps> = ({ onSelectTemplate })
           className="pl-8"
         />
       </div>
-      
+
       {/* Accordion Categories */}
       <ScrollArea className="flex-1">
         {filteredCategories.length > 0 ? (
           <Accordion type="multiple" defaultValue={["workloads"]} className="w-full">
             {filteredCategories.map((category) => (
               <AccordionItem key={category.name} value={category.name}>
-                <AccordionTrigger className="hover:bg-gray-100 dark:hover:bg-gray-800/50 px-2 hover:no-underline">
+                <AccordionTrigger className="hover:bg-accent/20 px-2 hover:no-underline">
                   <div className="flex items-center">
-                    <Folder className="h-4 w-4 mr-2 text-blue-500" />
+                    <Folder className="h-4 w-4 mr-2 text-accent" />
                     <span>{category.displayName}</span>
-                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="ml-2 text-xs text-muted-foreground">
                       ({category.items.length})
                     </span>
                   </div>
@@ -131,25 +131,25 @@ const ResourceTemplate: React.FC<ResourceTemplateProps> = ({ onSelectTemplate })
                       <Button
                         key={template.path}
                         variant="ghost"
-                        className="w-full justify-start text-left h-auto py-2 flex items-start gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        className="w-full justify-start text-left h-auto py-2 flex items-start gap-2 hover:bg-accent/20"
                         onClick={() => applyTemplate(template)}
                       >
                         {template.icon ? (
                           <div className=" flex-shrink-0">
-                            <img 
-                              src={template.icon} 
-                              alt={template.name} 
-                              width={30} 
-                              height={30} 
+                            <img
+                              src={template.icon}
+                              alt={template.name}
+                              width={30}
+                              height={30}
                               className="object-contain"
                             />
                           </div>
                         ) : (
-                          <Folder className="h-4 w-4 mt-0.5 text-blue-500 flex-shrink-0" />
+                          <Folder className="h-4 w-4 mt-0.5 text-accent flex-shrink-0" />
                         )}
                         <div>
-                          <div className="font-medium dark:text-gray-50">{template.name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="font-medium">{template.name}</div>
+                          <div className="text-xs text-muted-foreground">
                             {template.description}
                           </div>
                         </div>
@@ -161,12 +161,12 @@ const ResourceTemplate: React.FC<ResourceTemplateProps> = ({ onSelectTemplate })
             ))}
           </Accordion>
         ) : (
-          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-4 text-center text-muted-foreground">
             No templates found matching "{searchQuery}"
           </div>
         )}
       </ScrollArea>
-      
+
       {/* Custom Template Button */}
       {/* <Button variant="outline" className="w-full">
         <Plus className="h-4 w-4 mr-2" /> Create Custom Template

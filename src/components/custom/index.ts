@@ -83,6 +83,5 @@ export { default as MinimalEditor } from './minimaleditor/minimaleditor.componen
 export { default as NotificationDropdown } from './notificationdropdown/notificationdropdown.component';
 export { default as BackgroundTask } from './backgroundtaskdialog/backgroundtask.component';
 export { default as BackgroundTaskDialog } from './backgroundtaskdialog/backgroundtaskdialog.component';
-export { default as HITLDialog } from './hitldialog/hitldialog.component';
 export { default as ResourceFilterSidebar } from './resourcefiltersidebar/resourcefiltersidebar.component';
 export type { ColumnConfig } from './resourcefiltersidebar/resourcefiltersidebar.component';

@@ -154,19 +154,19 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+        return 'bg-green-100 text-green-800';
       case 'failed':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+        return 'bg-red-100 text-red-800';
       case 'running':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+        return 'bg-blue-100 text-blue-800';
       default:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+        return 'bg-yellow-100 text-yellow-800';
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] dark:bg-[#0B0D13]/50 backdrop-blur-xl overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] bg-card backdrop-blur-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Server className="h-5 w-5" />
@@ -206,9 +206,9 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                             }}
                             className="flex-shrink-0"
                           />
-                          <label htmlFor="production" className="text-sm cursor-pointer flex-grow text-gray-700 dark:text-gray-300">
+                          <label htmlFor="production" className="text-sm cursor-pointer flex-grow text-foreground">
                             <span className="font-medium">Production</span>
-                            <span className="text-gray-500 dark:text-gray-400 ml-2">
+                            <span className="text-muted-foreground ml-2">
                               - Standard configuration for production clusters
                             </span>
                           </label>
@@ -222,9 +222,9 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                             }}
                             className="flex-shrink-0"
                           />
-                          <label htmlFor="local" className="text-sm cursor-pointer flex-grow text-gray-700 dark:text-gray-300">
+                          <label htmlFor="local" className="text-sm cursor-pointer flex-grow text-foreground">
                             <span className="font-medium">Local Cluster</span>
-                            <span className="text-gray-500 dark:text-gray-400 ml-2">
+                            <span className="text-muted-foreground ml-2">
                               - Adds --kubelet-insecure-tls for local clusters (kind, minikube)
                             </span>
                           </label>
@@ -234,9 +234,9 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                   </div>
 
                   {error && (
-                    <Alert className="border-red-200 bg-red-50 dark:bg-red-900/30">
+                    <Alert className="border-destructive/30 bg-destructive/10">
                       <AlertCircle className="h-4 w-4 text-red-600" />
-                      <AlertDescription className="text-red-600 dark:text-red-400">
+                      <AlertDescription className="text-destructive">
                         {error}
                       </AlertDescription>
                     </Alert>
@@ -310,9 +310,9 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                       </div>
 
                       {operationDetails.error && (
-                        <Alert className="border-red-200 bg-red-50 dark:bg-red-900/30">
+                        <Alert className="border-destructive/30 bg-destructive/10">
                           <AlertCircle className="h-4 w-4 text-red-600" />
-                          <AlertDescription className="text-red-600 dark:text-red-400">
+                          <AlertDescription className="text-destructive">
                             {operationDetails.error}
                           </AlertDescription>
                         </Alert>
@@ -321,9 +321,9 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                   )}
 
                   {installationComplete && (
-                    <Alert className="border-green-200 bg-green-50 dark:bg-green-900/30">
-                      <AlertDescription className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-600" />
+                    <Alert className="border-green-200 bg-green-50">
+                      <AlertDescription className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
                         Metrics server installation completed successfully!
                       </AlertDescription>
                     </Alert>
@@ -364,8 +364,8 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Installed</span>
                       <Badge className={currentStatus.installed
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                       }>
                         {currentStatus.installed ? 'Yes' : 'No'}
                       </Badge>
@@ -374,8 +374,8 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Ready</span>
                       <Badge className={currentStatus.ready
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                       }>
                         {currentStatus.ready ? 'Yes' : 'No'}
                       </Badge>
@@ -403,8 +403,8 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                             <div key={index} className="flex items-center justify-between p-2 border rounded">
                               <span className="text-sm">{component.name} ({component.type})</span>
                               <Badge className={component.status === 'Ready'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
                               }>
                                 {component.status}
                               </Badge>
@@ -433,9 +433,9 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                 </div>
 
                 {error && (
-                  <Alert className="border-red-200 bg-red-50 dark:bg-red-900/30">
+                  <Alert className="border-destructive/30 bg-destructive/10">
                     <AlertCircle className="h-4 w-4 text-red-600" />
-                    <AlertDescription className="text-red-600 dark:text-red-400">
+                    <AlertDescription className="text-destructive">
                       {error}
                     </AlertDescription>
                   </Alert>

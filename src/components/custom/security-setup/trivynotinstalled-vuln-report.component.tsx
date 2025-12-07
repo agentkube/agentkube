@@ -49,7 +49,7 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
 
   // For the demo dialog
   const [isDemoOpen, setIsDemoOpen] = useState(false);
-  
+
   // For button animation
   const [isButtonExpanded, setIsButtonExpanded] = useState(false);
 
@@ -66,11 +66,11 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
     const expandTimer = setTimeout(() => {
       setIsButtonExpanded(true);
     }, 500);
-    
+
     const collapseTimer = setTimeout(() => {
       setIsButtonExpanded(false);
     }, 3000); // 500ms + 2500ms = 3000ms total
-    
+
     return () => {
       clearTimeout(expandTimer);
       clearTimeout(collapseTimer);
@@ -128,10 +128,10 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
 
       // Filter by severity - check if report has vulnerabilities with the selected severity
       const hasSeverity = selectedSeverity === "CRITICAL" ? report.summary.critical > 0 :
-                         selectedSeverity === "HIGH" ? report.summary.high > 0 :
-                         selectedSeverity === "MEDIUM" ? report.summary.medium > 0 :
-                         selectedSeverity === "LOW" ? report.summary.low > 0 :
-                         selectedSeverity === "UNKNOWN" ? report.summary.unknown > 0 : false;
+        selectedSeverity === "HIGH" ? report.summary.high > 0 :
+          selectedSeverity === "MEDIUM" ? report.summary.medium > 0 :
+            selectedSeverity === "LOW" ? report.summary.low > 0 :
+              selectedSeverity === "UNKNOWN" ? report.summary.unknown > 0 : false;
       return matchesSearch && hasSeverity;
     });
 
@@ -250,10 +250,10 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
               >
                 <motion.div
                   initial={{ width: 40 }}
-                  animate={{ 
-                    width: isButtonExpanded ? 144 : 14 
+                  animate={{
+                    width: isButtonExpanded ? 144 : 14
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 0.4,
                     ease: "easeInOut"
                   }}
@@ -262,11 +262,11 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
                   <Play className="w-4 h-4 flex-shrink-0" />
                   <motion.span
                     initial={{ opacity: 0, width: 0 }}
-                    animate={{ 
+                    animate={{
                       opacity: isButtonExpanded ? 1 : 0,
                       width: isButtonExpanded ? 'auto' : 0
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 0.3,
                       delay: isButtonExpanded ? 0.2 : 0,
                       ease: "easeOut"
@@ -368,7 +368,7 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
             <div className="w-48">
               <Select
                 value="all-namespaces"
-                onValueChange={() => {}}
+                onValueChange={() => { }}
               >
                 <SelectTrigger className="border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
                   <SelectValue placeholder="All Namespaces" />
@@ -699,7 +699,7 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
                   <Info className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">Detailed vulnerability information for {selectedReportForDrawer.owner.kind} {selectedReportForDrawer.name}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Install Trivy to see individual vulnerability details</p>
-                  
+
                   <div className="mt-4 space-y-2">
                     <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800/20 rounded">
                       <span className="text-sm font-medium">Total Vulnerabilities:</span>

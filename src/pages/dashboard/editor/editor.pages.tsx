@@ -143,7 +143,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
       });
       return;
     }
-    
+
     if (!currentContext?.name || !resourceName || !hasChanges) return;
 
     setIsSaving(true);
@@ -210,10 +210,10 @@ const AIEditor: React.FC<AIEditorProps> = ({
         apiGroup,
         apiVersion
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -315,7 +315,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
             <Button
               variant={showSidebar ? "default" : "outline"}
               onClick={toggleAssist}
-              className="relative text-black dark:text-gray-300 bg-gray-50 hover:bg-gray-200 dark:hover:bg-gray-800"
+            // className="relative text-black dark:text-gray-300 bg-gray-50 hover:bg-gray-200 dark:hover:bg-gray-800"
             >
               <Wand2 className="h-4 w-4 mr-2" /> Assist
               <span className="text-xs opacity-70 ml-1">(⌘+B)</span>
@@ -324,7 +324,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
             <Button
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
-              className={hasChanges ? "bg-blue-700 hover:bg-blue-700 text-white" : "text-black dark:text-gray-300 bg-gray-50 hover:bg-gray-200 dark:hover:bg-gray-800"}
+              className={hasChanges ? "" : "text-black dark:text-gray-300 bg-gray-50 hover:bg-gray-200 dark:hover:bg-gray-800"}
             >
               {isSaving ? 'Saving...' : <><Save className="h-4 w-4 mr-2" /> Save</>}
             </Button>

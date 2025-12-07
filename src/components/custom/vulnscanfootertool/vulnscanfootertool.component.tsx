@@ -35,12 +35,12 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
 
   const handleScanCluster = async () => {
     if (!currentContext) return;
-    
+
     // First fetch images to know what we're working with
     if (clusterImages.length === 0) {
       await fetchClusterImages();
     }
-    
+
     // Then trigger scan
     await reScan();
   };
@@ -49,15 +49,15 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
     if (loading || scanning) {
       return { icon: Loader2, color: 'text-blue-400', extraClass: 'animate-spin' };
     }
-    
+
     if (scannedImages > 0 && hasVulns) {
       return { icon: AlertTriangle, color: 'text-red-400', extraClass: '' };
     }
-    
+
     if (scannedImages > 0 && !hasVulns) {
       return { icon: ShieldCheck, color: 'text-green-400', extraClass: '' };
     }
-    
+
     return { icon: Image, color: 'text-gray-400', extraClass: '' };
   };
 
@@ -88,40 +88,40 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
               </button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <TooltipContent className="bg-white dark:bg-[#0B0D13]/60 backdrop-blur-md p-1 text-gray-900 dark:text-gray-100">
+          <TooltipContent className="bg-card backdrop-blur-md p-1 text-foreground">
             <p>Vulnerability Scanner {imageCount > 0 && `(${imageCount} images)`}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
 
       <DropdownMenuContent
-        className="w-80 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-200 rounded-lg dark:border-neutral-600/30"
+        className="w-80 bg-card/80 backdrop-blur-md border-border rounded-lg"
         align="end"
         sideOffset={5}
       >
-        <div className="flex items-center justify-between bg-gray-300/50 dark:bg-gray-300/10 backdrop-blur-md">
-          <DropdownMenuLabel className="flex items-center gap-1 text-sm font-light text-gray-900 dark:text-gray-100">
+        <div className="flex items-center justify-between bg-secondary/50 backdrop-blur-md">
+          <DropdownMenuLabel className="flex items-center gap-1 text-sm font-light text-foreground">
             {/* <Shield className='h-4 w-4' /> */}
             Image Vulnerability Scanner
           </DropdownMenuLabel>
         </div>
 
-      
+
         <div className="p-4 space-y-4">
           {/* Cluster Info */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Cluster</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <span className="text-sm text-muted-foreground">Cluster</span>
+              <span className="text-sm font-medium text-foreground">
                 {currentContext?.name || 'No cluster selected'}
               </span>
             </div>
-            
+
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Images</span>
+              <span className="text-sm text-muted-foreground">Images</span>
               <div className="flex items-center gap-1">
                 <Image className="h-3 w-3 text-gray-500" />
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <span className="text-sm font-medium text-foreground">
                   {imageCount}
                 </span>
               </div>
@@ -129,8 +129,8 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
 
             {scannedImages > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Scanned</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <span className="text-sm text-muted-foreground">Scanned</span>
+                <span className="text-sm font-medium text-foreground">
                   {scannedImages}
                 </span>
               </div>
@@ -138,7 +138,7 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
 
             {scannedImages > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                <span className="text-sm text-muted-foreground">Status</span>
                 <div className="flex items-center gap-1">
                   {hasVulns ? (
                     <>
@@ -160,7 +160,7 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
           <Button
             onClick={handleScanCluster}
             disabled={loading || scanning || !currentContext}
-            className="flex justify-between w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex justify-between w-full bg-primary hover:bg-primary/80"
             size="sm"
           >
             {loading || scanning ? (
@@ -176,7 +176,7 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
             ) : (
               <>
                 <Shield className="h-3 w-3 mr-2" />
-                Scan Cluster 
+                Scan Cluster
               </>
             )}
           </Button>

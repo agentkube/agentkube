@@ -109,96 +109,96 @@ const ClusterCard = memo<{
       <div
         className={`relative rounded-lg p-1 flex items-center gap-4 cursor-pointer transition-colors
           ${isSelected
-            ? 'bg-gray-200 dark:bg-gray-800/20 border-r-2 border-blue-500'
-            : 'hover:bg-gray-200 dark:hover:bg-gray-800/50 border-2 border-transparent'}`}
+            ? 'bg-secondary/50 border-r-2 border-blue-500'
+            : 'hover:bg-secondary/50 border-2 border-transparent'}`}
         onContextMenu={handleRightClick}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
-      <ClusterHealth clusterId={cluster.id} onHealthStatusChange={onHealthStatusChange} />
-      <div className="w-10 h-10 rounded-xl dark:bg-gray-700/30 flex items-center justify-center text-white">
-        <ClusterIcon type={cluster.type} theme={theme} />
-      </div>
-      <div className="flex-1">
-        <h3
-          className={`text-md font-medium ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'dark:text-white'}`}
-        >
-          {displayName}
-        </h3>
-
-        <p className="dark:text-gray-400 text-xs">
-          {displayDescription}
-        </p>
-      </div>
-
-      {/* Action Icons - Only show in list/tree view and when selected */}
-      {(viewMode === 'list' || viewMode === 'tree') && isSelected && (
-        <div className="flex items-center gap-2 ml-auto">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleConnectClick}
-                  className="p-1.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Unplug size={16} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className='p-1'>
-                <p>Connect</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handlePinClick}
-                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Pin size={16} className={`text-gray-600 dark:text-gray-400 ${isPinned ? '-rotate-45' : 'rotate-45'}`} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className='p-1'>
-                <p>{isPinned ? 'Unpin' : 'Pin'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleRenameClick}
-                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Edit3 size={16} className="text-gray-600 dark:text-gray-400" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className='p-1'>
-                <p>Rename</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleDeleteClick}
-                  className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <Trash2 size={16} className="text-red-500" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent  className='p-1'>
-                <p>Delete</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <ClusterHealth clusterId={cluster.id} onHealthStatusChange={onHealthStatusChange} />
+        <div className="w-10 h-10 rounded-xl bg-secondary/30 flex items-center justify-center text-white">
+          <ClusterIcon type={cluster.type} theme={theme} />
         </div>
-      )}
+        <div className="flex-1">
+          <h3
+            className={`text-md font-medium ${isSelected ? 'text-blue-500' : 'text-foreground'}`}
+          >
+            {displayName}
+          </h3>
+
+          <p className="text-muted-foreground text-xs">
+            {displayDescription}
+          </p>
+        </div>
+
+        {/* Action Icons - Only show in list/tree view and when selected */}
+        {(viewMode === 'list' || viewMode === 'tree') && isSelected && (
+          <div className="flex items-center gap-2 ml-auto">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleConnectClick}
+                    className="p-1.5 rounded text-muted-foreground hover:bg-secondary transition-colors"
+                  >
+                    <Unplug size={16} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className='p-1'>
+                  <p>Connect</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handlePinClick}
+                    className="p-1.5 rounded hover:bg-secondary transition-colors"
+                  >
+                    <Pin size={16} className={`text-muted-foreground ${isPinned ? '-rotate-45' : 'rotate-45'}`} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className='p-1'>
+                  <p>{isPinned ? 'Unpin' : 'Pin'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleRenameClick}
+                    className="p-1.5 rounded hover:bg-secondary transition-colors"
+                  >
+                    <Edit3 size={16} className="text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className='p-1'>
+                  <p>Rename</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleDeleteClick}
+                    className="p-1.5 rounded hover:bg-secondary hover:bg-destructive/10 transition-colors"
+                  >
+                    <Trash2 size={16} className="text-red-500" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className='p-1'>
+                  <p>Delete</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
       </div>
     </ClusterInfoTooltip>
   );

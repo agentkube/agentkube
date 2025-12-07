@@ -33,7 +33,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   const [terminalHeight, setTerminalHeight] = useState('40vh');
   const [isDragging, setIsDragging] = useState(false);
   const terminalHeaderRef = useRef<HTMLDivElement>(null);
-  
+
   // Track if this is the initial connection
   const isInitialConnectionRef = useRef<boolean>(true);
 
@@ -199,7 +199,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     const terminal = terminalInstanceRef.current;
     const fitAddon = fitAddonRef.current;
-    
+
     if (!terminal) return;
 
     const handleMessage = (message: any) => {
@@ -246,7 +246,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     const handleOpen = () => {
       connectedRef.current = true;
-      
+
       if (fitAddon) {
         const dimensions = fitAddon.proposeDimensions();
         if (dimensions) {
@@ -277,7 +277,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     const protocol = window.location.protocol;
     const host = OPERATOR_URL;
     const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
-    
+
     // Create a session and then connect
     const createSessionAndConnect = async () => {
       try {
@@ -288,13 +288,13 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             'Accept': 'application/json',
           },
         });
-        
+
         if (!response.ok) {
           throw new Error(`Failed to create terminal session: ${response.statusText}`);
         }
-        
+
         const session = await response.json();
-        
+
         // Now create the WebSocket URL with the session credentials
         const OPERATOR_WS_URL = host.replace(/^http?:\/\//, '')
         const wsUrl = `${wsProtocol}//${OPERATOR_WS_URL}/terminal?id=${encodeURIComponent(session.id)}&shellToken=${encodeURIComponent(session.shellToken)}`;
@@ -307,9 +307,9 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           handleError,
           { id: session.id, shellToken: session.shellToken }
         );
-        
+
         connectionIdRef.current = connectionId;
-        
+
         // Set up ping interval to keep connection alive
         const pingInterval = setInterval(() => {
           if (terminalApi.isConnected()) {
@@ -326,7 +326,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     };
 
     let pingInterval: NodeJS.Timeout | null = null;
-    
+
     createSessionAndConnect().then((interval) => {
       pingInterval = interval;
     });
@@ -355,7 +355,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       if (pingInterval) {
         clearInterval(pingInterval);
       }
-      
+
       // Do not close WebSocket connection here - we want to keep it alive
       // even when the terminal is hidden
     };
@@ -376,7 +376,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     if (isOpen && initialized && terminalInstanceRef.current && fitAddonRef.current) {
       const terminal = terminalInstanceRef.current;
       const fitAddon = fitAddonRef.current;
-      
+
       // When terminal becomes visible again, resize it
       setTimeout(() => {
         try {
@@ -497,7 +497,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           <TerminalIcon className="h-4 w-4 text-gray-300" />
           <span className="text-gray-300 text-sm font-medium">Terminal</span>
           {initialized && <span className={`text-xs ml-2 ${focused ? 'text-green-500' : 'text-yellow-500'}`}>●</span>}
-          <div className="px-2 py-0.5 text-xs font-semibold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded-full whitespace-nowrap">
+          <div className="px-2 py-0.5 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full whitespace-nowrap">
             Experimental
           </div>
         </div>

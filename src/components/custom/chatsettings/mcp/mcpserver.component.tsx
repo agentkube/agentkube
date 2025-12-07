@@ -104,13 +104,13 @@ const MCPServer = ({ onAddManually, onAddFromMarketplace }: MCPServerProps) => {
           <div className="flex justify-center space-x-3">
             <Button
               onClick={onAddManually}
-              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 h-7"
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
             >
               Add Manually
             </Button>
             <Button
               onClick={onAddFromMarketplace}
-              className="bg-white dark:bg-white text-black dark:text-black hover:bg-gray-200 dark:hover:text-white"
+              className=""
             >
               Add from Marketplace
             </Button>

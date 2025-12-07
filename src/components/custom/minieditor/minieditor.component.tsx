@@ -163,19 +163,19 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
   // Fetch template content and create tab with it (for auto-loading)
   const fetchTemplateAndCreateTab = async (template: TemplateItem, resourceType: string) => {
     setIsTemplateLoading(true);
-    
+
     try {
       const response = await fetch(`${GITHUB_BASE_URL}/${template.path}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const templateContent = await response.text();
-      
+
       // Create tab with template content directly
       addNewTab(resourceType, templateContent);
-      
+
       toast({
         title: "Template Applied",
         description: `${template.name} template applied to editor`,
@@ -231,8 +231,8 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
       } else {
         // Update current tab content and metadata
         setResourceTabs(tabs => tabs.map(tab =>
-          tab.id === activeTabId ? { 
-            ...tab, 
+          tab.id === activeTabId ? {
+            ...tab,
             content: templateContent,
             resourceType: template.resourceType || '',
             name: template.name ? `${template.name.toLowerCase()}.yaml` : tab.name
@@ -468,7 +468,7 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
         <TooltipTrigger asChild>
           <Button
             onClick={onToggle}
-            className={`fixed bottom-8 right-4 w-14 h-14 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md  transition-all duration-300 z-40 ${isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 dark:bg-[#0B0D13]/30 hover:bg-blue-600'
+            className={`fixed text-forground bottom-8 right-4 w-14 h-14 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md  transition-all duration-300 z-40 ${isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 dark:bg-[#0B0D13]/30 hover:bg-blue-600'
               }`}
             size="icon"
           >
@@ -596,14 +596,14 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 max-h-80 dark:bg-[#0B0D13]/40 overflow-y-auto">
+                  <DropdownMenuContent align="end" className="w-56 max-h-80 bg-card/40 overflow-y-auto">
                     {TEMPLATE_CATEGORIES.map((category) => (
                       <DropdownMenuSub key={category.name} >
                         <DropdownMenuSubTrigger className='backdrop-blur-md'>
                           <Folder className="h-4 w-4 mr-2 text-blue-500" />
                           {category.displayName}
                         </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="w-56 dark:bg-[#0B0D13]/40 backdrop-blur-md border-none">
+                        <DropdownMenuSubContent className="w-56 bg-card/40 backdrop-blur-md border-none">
                           {category.items.map((template) => (
                             <DropdownMenuItem
                               key={template.path}

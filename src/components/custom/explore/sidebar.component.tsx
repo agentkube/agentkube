@@ -49,7 +49,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd+S (Mac) or Ctrl+S (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 's')) {
-        e.preventDefault(); 
+        e.preventDefault();
 
         const sidebar = document.querySelector('[aria-label="Expand sidebar"], [aria-label="Collapse sidebar"]');
         if (sidebar) {
@@ -126,9 +126,9 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
       onItemClick(null);
       return;
     }
-    
+
     const nodeId = nodeIds[0];
-    
+
     // Find the item by ID (check both parent and child items)
     const findItemById = (sidebarItems: SidebarItem[], targetId: string): SidebarItem | null => {
       for (const item of sidebarItems) {
@@ -145,11 +145,11 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
       }
       return null;
     };
-    
+
     const selectedItem = findItemById(items, nodeId);
     if (selectedItem) {
       const hasChildren = selectedItem.children && selectedItem.children.length > 0;
-      
+
       if (hasChildren && selectedItem.children) {
         // If parent has multiple children, don't navigate - just expand
         if (selectedItem.children.length > 1) {
@@ -165,7 +165,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
         return;
       }
     }
-    
+
     // Fallback
     onItemClick(nodeId);
   };
@@ -173,7 +173,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
   // Render sidebar items using tree components
   const renderSidebarNode = (item: SidebarItem, level: number = 0, isLast: boolean = false) => {
     const hasChildren = item.children && item.children.length > 0;
-    
+
     return (
       <TreeNode key={item.id} nodeId={item.id} level={level} isLast={isLast}>
         <TreeNodeTrigger>
@@ -184,7 +184,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
         </TreeNodeTrigger>
         {hasChildren && (
           <TreeNodeContent hasChildren={hasChildren}>
-            {item.children?.map((child, index) => 
+            {item.children?.map((child, index) =>
               renderSidebarNode(child, level + 1, index === (item.children?.length || 0) - 1)
             )}
           </TreeNodeContent>
@@ -200,13 +200,13 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
 
   return (
     <div
-      className={`flex flex-col mt-1  border-r dark:border-gray-400/20 border-gray-200 transition-all duration-300 ${isCollapsed ? 'min-w-16 w-16' : 'min-w-64'
+      className={`flex flex-col mt-1  border-r border-border transition-all duration-300 bg-sidebar ${isCollapsed ? 'min-w-16 w-16' : 'min-w-64'}
         }`}
     >
       <div className="flex items-center justify-between p-4">
         {!isCollapsed && (
           <div onClick={() => navigate('/dashboard')}>
-            <h1 className="text-3xl dark:text-gray-500/50 hover:text-gray-500/80 dark:hover:text-gray-500/80 font-semibold hover:cursor-pointer">Overview</h1>
+            <h1 className="text-3xl text-muted-foreground hover:text-foreground font-semibold hover:cursor-pointer">Overview</h1>
           </div>
         )}
         <TooltipProvider>
@@ -214,7 +214,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
             <TooltipTrigger asChild>
               <button
                 onClick={toggleCollapse}
-                className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700/50 text-gray-400 dark:text-gray-500"
+                className="p-1 rounded-md hover:bg-accent text-muted-foreground"
                 aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 {isCollapsed ? (
@@ -225,7 +225,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
               </button>
             </TooltipTrigger>
             <TooltipContent className="py-1 px-2 flex gap-1 dark:bg-gray-800 dark:text-gray-300" side="right">
-              <p>{isCollapsed ? "Expand" : "Close"} Sidebar <span className='bg-gray-600/20 dark:bg-gray-500/20 px-0.5 rounded-sm text-xs'>⌘</span> + <span className='bg-gray-600/20 dark:bg-gray-500/20 px-1 rounded-sm text-xs'>S</span> </p>
+              <p>{isCollapsed ? "Expand" : "Close"} Sidebar <span className='bg-secondary px-0.5 rounded-sm text-xs'>⌘</span> + <span className='bg-secondary px-1 rounded-sm text-xs'>S</span> </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -252,13 +252,12 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
       />
 
       {/* Resources Section */}
-      <div className="text-xs font-medium text-gray-800 dark:text-gray-500 px-2 py-1">
+      <div className="text-xs font-medium text-muted-foreground px-2 py-1">
         {!isCollapsed && "Resources"}
       </div>
 
       <div className="
-        text-gray-800
-        dark:text-gray-300 
+        text-foreground 
         px-2
         w-full
         flex-1
@@ -282,7 +281,7 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
             animateExpand={true}
           >
             <TreeView className="p-0">
-              {items.map((item, index) => 
+              {items.map((item, index) =>
                 renderSidebarNode(item, 0, index === items.length - 1)
               )}
             </TreeView>
@@ -292,48 +291,44 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
           <div className="space-y-1">
             {items.map((item) => {
               const hasChildren = item.children && item.children.length > 0;
-              
+
               if (hasChildren) {
                 return (
                   <div key={item.id} className="py-1 relative group">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
-                          className={`w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors
-                            ${selectedItem === item.id ? 'bg-gray-400/30' : ''}`}
+                          className={`w-full flex justify-center items-center p-2 hover:bg-accent rounded-[5px] transition-colors
+                            ${selectedItem === item.id ? 'bg-accent' : ''}`}
                           title={item.label}
                         >
                           {item.icon}
                         </button>
                       </DropdownMenuTrigger>
-                      
+
                       {/* Tooltip for collapsed view */}
-                      <div className="absolute left-full ml-2 -mt-8 z-10 bg-gray-200 dark:bg-[#0B0D13]/30 backdrop-blur-md dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+                      <div className="absolute left-full ml-2 -mt-8 z-10 bg-card backdrop-blur-md text-card-foreground text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
                         <p className="font-medium">{item.label}</p>
-                        <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+                        <div className="absolute w-2 h-2 bg-card rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
                       </div>
-                      
+
                       <DropdownMenuContent
                         side="right"
                         align="start"
-                        className="mt-0 ml-4 z-50 bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-md border border-gray-200 dark:border-gray-800/60 w-48 overflow-hidden"
+                        className="mt-0 ml-4 z-50 bg-card backdrop-blur-md shadow-lg rounded-md border border-border w-48 overflow-hidden"
                       >
-                        <div className="p-2 text-sm font-medium text-gray-800 dark:text-gray-300 font-[Anton] uppercase border-b border-gray-200 dark:border-gray-800">
+                        <div className="p-2 text-sm font-medium text-foreground font-[Anton] uppercase border-b border-border">
                           {item.label}
                         </div>
                         <div className="py-1">
                           {item.children?.map((child) => (
                             <DropdownMenuItem
                               key={child.id}
-                              className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900 ${
-                                selectedItem === child.id ? 'bg-blue-50 dark:bg-blue-900/10' : ''
-                              }`}
+                              className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent ${selectedItem === child.id ? 'bg-accent/50' : ''
+                                }`}
                               onClick={() => onItemClick(child.id)}
                             >
-                              <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-                                {child.icon}
-                              </span>
-                              <span className="text-sm font-medium text-gray-800 dark:text-gray-300">{child.label}</span>
+                              <span className="text-sm font-medium text-foreground">{child.label}</span>
                             </DropdownMenuItem>
                           ))}
                         </div>
@@ -346,18 +341,18 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
                 return (
                   <div key={item.id} className="py-1 relative group">
                     <button
-                      className={`w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors
-                        ${selectedItem === item.id ? 'bg-gray-400/30' : ''}`}
+                      className={`w-full flex justify-center items-center p-2 hover:bg-accent rounded-[5px] transition-colors
+                        ${selectedItem === item.id ? 'bg-accent' : ''}`}
                       onClick={() => onItemClick(item.id)}
                       title={item.label}
                     >
                       {item.icon}
                     </button>
-                    
+
                     {/* Tooltip */}
-                    <div className="absolute left-full ml-2 -mt-8 z-10 bg-gray-200 dark:bg-[#0B0D13]/30 backdrop-blur-md dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+                    <div className="absolute left-full ml-2 -mt-8 z-10 bg-card backdrop-blur-md text-card-foreground text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
                       <p className="font-medium">{item.label}</p>
-                      <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+                      <div className="absolute w-2 h-2 bg-card rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
                     </div>
                   </div>
                 );

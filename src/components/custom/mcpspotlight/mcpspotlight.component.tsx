@@ -102,7 +102,7 @@ const ServerRow = memo(({
 
   return (
     <div
-      className={`flex items-center px-4 py-2 ${index === activeIndex ? 'bg-gray-200 dark:bg-gray-600/10' : 'hover:bg-gray-200 dark:hover:bg-gray-800/20'
+      className={`flex items-center px-4 py-2 ${index === activeIndex ? 'bg-accent' : 'hover:bg-accent-hover'
         }`}
     >
       <div className="w-6 h-6 mr-3 flex items-center justify-center">
@@ -116,12 +116,12 @@ const ServerRow = memo(({
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm">{server.name}</span>
             <span className={`text-xs px-2 py-0.3 rounded ${server.enabled
-              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+              ? 'bg-green-100 text-green-700'
+              : 'bg-secondary text-muted-foreground'
               }`}>
               {server.enabled ? 'Enabled' : 'Disabled'}
             </span>
-            <span className="bg-gray-200 dark:bg-gray-700/50 dark:text-gray-300 px-1.5 py-0.3 rounded text-xs mr-2">
+            <span className="bg-secondary text-foreground px-1.5 py-0.3 rounded text-xs mr-2">
               {server.transport}
             </span>
           </div>
@@ -135,7 +135,7 @@ const ServerRow = memo(({
             <span>{server.url}</span>
           )}
           {server.tools_count !== undefined && (
-            <span className="ml-2 text-blue-600 dark:text-blue-400">
+            <span className="ml-2 text-blue-600">
               {server.tools_count} tools
             </span>
           )}

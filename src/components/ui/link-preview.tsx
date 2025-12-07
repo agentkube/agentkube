@@ -20,9 +20,9 @@ type LinkPreviewProps = {
   quality?: number;
   layout?: string;
 } & (
-  | { isStatic: true; imageSrc: string }
-  | { isStatic?: false; imageSrc?: never }
-);
+    | { isStatic: true; imageSrc: string }
+    | { isStatic?: false; imageSrc?: never }
+  );
 
 export const LinkPreview = ({
   children,
@@ -82,7 +82,7 @@ export const LinkPreview = ({
             height={height}
             loading="eager"
             alt="hidden image"
-            style={{ 
+            style={{
               maxWidth: '100%',
               height: 'auto'
             }}
@@ -99,7 +99,7 @@ export const LinkPreview = ({
       >
         <HoverCard.Trigger
           onMouseMove={handleMouseMove}
-          className={cn("text-black dark:text-white", className)}
+          className={cn("text-foreground", className)}
           asChild
         >
           <a>{children}</a>
@@ -140,7 +140,7 @@ export const LinkPreview = ({
                 >
                   <a
                     onClick={() => openExternalUrl(url)}
-                    className="block p-1 bg-white dark:bg-gray-800/50 backdrop-blur-sm border-2 border-transparent shadow rounded-lg hover:border-neutral-200 dark:hover:border-neutral-800"
+                    className="block p-1 bg-card backdrop-blur-sm border-2 border-transparent shadow rounded-lg hover:border-border"
                     style={{ fontSize: 0 }}
                   >
                     <img
@@ -150,7 +150,7 @@ export const LinkPreview = ({
                       loading="eager"
                       className="rounded-lg"
                       alt="preview image"
-                      style={{ 
+                      style={{
                         maxWidth: '100%',
                         height: 'auto'
                       }}

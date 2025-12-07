@@ -232,7 +232,7 @@ const Investigations: React.FC = () => {
 
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // For demo dialog and animation
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [isWatchDemoExpanded, setIsWatchDemoExpanded] = useState(false);
@@ -297,11 +297,11 @@ const Investigations: React.FC = () => {
     const expandTimer = setTimeout(() => {
       setIsWatchDemoExpanded(true);
     }, 500);
-    
+
     const collapseTimer = setTimeout(() => {
       setIsWatchDemoExpanded(false);
     }, 3000); // 500ms + 2500ms = 3000ms total
-    
+
     return () => {
       clearTimeout(expandTimer);
       clearTimeout(collapseTimer);
@@ -584,10 +584,10 @@ const Investigations: React.FC = () => {
             >
               <motion.div
                 initial={{ width: 40 }}
-                animate={{ 
-                  width: isWatchDemoExpanded ? 144 : 14 
+                animate={{
+                  width: isWatchDemoExpanded ? 144 : 14
                 }}
-                transition={{ 
+                transition={{
                   duration: 0.4,
                   ease: "easeInOut"
                 }}
@@ -596,11 +596,11 @@ const Investigations: React.FC = () => {
                 <Play className="w-4 h-4 flex-shrink-0" />
                 <motion.span
                   initial={{ opacity: 0, width: 0 }}
-                  animate={{ 
+                  animate={{
                     opacity: isWatchDemoExpanded ? 1 : 0,
                     width: isWatchDemoExpanded ? 'auto' : 0
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 0.3,
                     delay: isWatchDemoExpanded ? 0.2 : 0,
                     ease: "easeOut"
@@ -765,125 +765,125 @@ const Investigations: React.FC = () => {
                             </TableRow>
                           ) : (
                             sortedTasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((task: Task) => (
-                            <TableRow
-                              key={task.task_id}
-                              className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
-                              onClick={() => handleNavigateToTask(task.task_id)}
-                            >
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-3">
-                                  {getStatusIcon(task.status)}
-                                  <div>
-                                    <div className="hover:text-blue-500 hover:underline font-medium text-xs">
-                                      {task.title}
-                                    </div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                      ID: {task.task_id}
+                              <TableRow
+                                key={task.task_id}
+                                className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
+                                onClick={() => handleNavigateToTask(task.task_id)}
+                              >
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-3">
+                                    {getStatusIcon(task.status)}
+                                    <div>
+                                      <div className="hover:text-blue-500 hover:underline font-medium text-xs">
+                                        {task.title}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        ID: {task.task_id}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </TableCell>
+                                </TableCell>
 
-                              <TableCell className="text-center">
-                                {getSeverityBadge(task.severity)}
-                              </TableCell>
+                                <TableCell className="text-center">
+                                  {getSeverityBadge(task.severity)}
+                                </TableCell>
 
-                              <TableCell className="text-center">
-                                <div className="flex flex-wrap gap-1 justify-center">
-                                  {task.tags.slice(0, 2).map((tag: string, index: number) => (
-                                    <span key={index} className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700/30 border border-gray-500/40 dark:border-gray-600/50  text-xs rounded">
-                                      {tag}
-                                    </span>
-                                  ))}
-                                  {task.tags.length > 2 && (
-                                    <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700/30 border border-gray-500/40 dark:border-gray-600/50 text-xs rounded">
-                                      +{task.tags.length - 2}
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex flex-wrap gap-1 justify-center">
+                                    {task.tags.slice(0, 2).map((tag: string, index: number) => (
+                                      <span key={index} className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700/30 border border-gray-500/40 dark:border-gray-600/50  text-xs rounded">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                    {task.tags.length > 2 && (
+                                      <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700/30 border border-gray-500/40 dark:border-gray-600/50 text-xs rounded">
+                                        +{task.tags.length - 2}
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
 
-                              <TableCell className='w-[120px] text-center'>
-                                {getStatusBadge(task.status)}
-                              </TableCell>
+                                <TableCell className='w-[120px] text-center'>
+                                  {getStatusBadge(task.status)}
+                                </TableCell>
 
-                              <TableCell className='text-center dark:text-gray-400'>
-                                {task.duration ? (() => {
-                                  const minutes = Math.floor(task.duration / 60);
-                                  const seconds = task.duration % 60;
-                                  if (minutes > 0) {
-                                    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
-                                  }
-                                  return `${seconds}s`;
-                                })() : ''}
-                              </TableCell>
+                                <TableCell className='text-center dark:text-gray-400'>
+                                  {task.duration ? (() => {
+                                    const minutes = Math.floor(task.duration / 60);
+                                    const seconds = task.duration % 60;
+                                    if (minutes > 0) {
+                                      return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+                                    }
+                                    return `${seconds}s`;
+                                  })() : ''}
+                                </TableCell>
 
-                              <TableCell className='text-center dark:text-gray-400'>
-                                {formatAge(task.created_at)}
-                              </TableCell>
+                                <TableCell className='text-center dark:text-gray-400'>
+                                  {formatAge(task.created_at)}
+                                </TableCell>
 
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                      }}
-                                    >
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleViewTask(task);
-                                      }}
-                                      className='hover:text-gray-700 dark:hover:text-gray-500'
-                                    >
-                                      <FileText className="mr-2 h-4 w-4" />
-                                      View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleReRunTask(task);
-                                      }}
-                                      className='hover:text-gray-700 dark:hover:text-gray-500'
-                                    >
-                                      <RotateCcw className="mr-2 h-4 w-4" />
-                                      Re-run Task
-                                    </DropdownMenuItem>
-                                    {task.status === 'processed' && (
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                        }}
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleStopInvestigation(task);
+                                          handleViewTask(task);
                                         }}
-                                        className='hover:text-gray-700 dark:hover:text-gray-500 text-orange-600 dark:text-orange-400'
+                                        className='hover:text-gray-700 dark:hover:text-gray-500'
                                       >
-                                        <StopCircle className="mr-2 h-4 w-4" />
-                                        Stop
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        View Details
                                       </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteTask(task);
-                                      }}
-                                      className='hover:text-gray-700 dark:hover:text-gray-500 text-red-600 dark:text-red-400'
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleReRunTask(task);
+                                        }}
+                                        className='hover:text-gray-700 dark:hover:text-gray-500'
+                                      >
+                                        <RotateCcw className="mr-2 h-4 w-4" />
+                                        Re-run Task
+                                      </DropdownMenuItem>
+                                      {task.status === 'processed' && (
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStopInvestigation(task);
+                                          }}
+                                          className='hover:text-gray-700 dark:hover:text-gray-500 text-orange-600 dark:text-orange-400'
+                                        >
+                                          <StopCircle className="mr-2 h-4 w-4" />
+                                          Stop
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteTask(task);
+                                        }}
+                                        className='hover:text-gray-700 dark:hover:text-gray-500 text-red-600 dark:text-red-400'
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
 
-                            </TableRow>
-                          ))
+                              </TableRow>
+                            ))
                           )}
                         </TableBody>
                       </Table>

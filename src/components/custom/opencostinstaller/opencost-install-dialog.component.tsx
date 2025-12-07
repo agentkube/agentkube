@@ -30,7 +30,7 @@ interface OpenCostInstallDialogProps {
 const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, onClose, onInstallSuccess }) => {
   const { currentContext } = useCluster();
   const { availableNamespaces } = useNamespace();
-  
+
   // Installation form state
   const [releaseName, setReleaseName] = useState('opencost');
   const [namespace, setNamespace] = useState('opencost');
@@ -90,9 +90,9 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
   // Manual status check function
   const handleCheckStatus = async () => {
     if (!releaseName || !currentContext) return;
-    
+
     const targetNamespace = createNamespace ? customNamespace : namespace;
-    
+
     try {
       setLoading(true);
       const status = await getHelmActionStatus(
@@ -197,8 +197,8 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
       opencost: {
         exporter: {
           cloudProviderApiKey: selectedCloudProvider === 'aws' ? 'AWS_ACCESS_KEY' :
-                               selectedCloudProvider === 'gcp' ? 'GOOGLE_APPLICATION_CREDENTIALS' :
-                               'AZURE_SERVICE_KEY'
+            selectedCloudProvider === 'gcp' ? 'GOOGLE_APPLICATION_CREDENTIALS' :
+              'AZURE_SERVICE_KEY'
         },
         prometheus: {
           internal: {
@@ -286,8 +286,8 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
       }
 
       // Step 2: Prepare values
-      const valuesToUse = useCustomValues && customValues.trim() 
-        ? encodeHelmValues(customValues) 
+      const valuesToUse = useCustomValues && customValues.trim()
+        ? encodeHelmValues(customValues)
         : generateHelmValues();
 
       // Step 3: Install the release with values
@@ -305,7 +305,7 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
       console.log('Installing OpenCost with request:', installRequest);
 
       await installHelmRelease(currentContext.name, installRequest);
-      
+
       console.log('OpenCost installation request submitted successfully');
     } catch (error) {
       console.error('Error installing OpenCost:', error);
@@ -317,26 +317,26 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl bg-gray-100 dark:bg-[#0B0D13]/50 border-gray-200 dark:border-gray-900/10 backdrop-blur-lg">
+      <DialogContent className="sm:max-w-3xl bg-card border-border backdrop-blur-lg">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
             <DollarSign className="w-8 h-8 text-green-500" />
             <DialogTitle className="text-xl">Install OpenCost</DialogTitle>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             Open source cost monitoring for Kubernetes workloads
           </p>
         </DialogHeader>
 
         <div className="flex justify-between items-center mt-2">
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Version:</span>
+            <span className="text-sm text-muted-foreground">Version:</span>
           </div>
           <Select value={selectedVersion} onValueChange={setSelectedVersion}>
-            <SelectTrigger className="w-36 bg-transparent dark:text-white dark:border-gray-500/40">
+            <SelectTrigger className="w-36 bg-transparent text-foreground border-border">
               <SelectValue placeholder="Version" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
+            <SelectContent className="bg-card backdrop-blur-md text-foreground">
               {versions.map((v) => (
                 <SelectItem key={v.version} value={v.version}>
                   {v.version}
@@ -354,32 +354,32 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
           </TabsList>
 
           <TabsContent value="details" className="mt-4 space-y-4">
-            <div className="bg-white dark:bg-transparent p-6 rounded-md space-y-4">
+            <div className="bg-card p-6 rounded-md space-y-4">
               <h3 className="text-lg font-medium">Chart Information</h3>
-              
-              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md">
+
+              <div className="bg-secondary p-4 rounded-md">
                 <h4 className="text-sm font-medium mb-2">Chart Details</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500 dark:text-gray-400">Chart:</span>
+                    <span className="text-muted-foreground">Chart:</span>
                     <span className="ml-2 font-medium">{openCostChart.name}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 dark:text-gray-400">Version:</span>
+                    <span className="text-muted-foreground">Version:</span>
                     <span className="ml-2 font-medium">{selectedVersion}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-gray-500 dark:text-gray-400">Repository:</span>
+                    <span className="text-muted-foreground">Repository:</span>
                     <span className="ml-2 font-medium">{openCostChart.repository.url}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-gray-500 dark:text-gray-400">Description:</span>
+                    <span className="text-muted-foreground">Description:</span>
                     <span className="ml-2 font-medium">{openCostChart.description}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md">
+              <div className="bg-secondary p-4 rounded-md">
                 <h4 className="text-sm font-medium mb-2">Recent Versions</h4>
                 {versions.length > 1 ? (
                   <ul className="space-y-2 text-sm max-h-48 overflow-y-auto scrollbar-thin">
@@ -467,7 +467,7 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
           <TabsContent value="install" className="mt-4 space-y-6">
             <div className="bg-white dark:bg-transparent p-6 rounded-md space-y-4">
               <h3 className="text-lg font-medium">Installation Configuration</h3>
-              
+
               {installStatus === 'installing' && (
                 <Alert>
                   <Loader2 className="flex items-center h-4 w-4 animate-spin" />
@@ -487,7 +487,7 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
                   </div>
                 </Alert>
               )}
-              
+
               {installStatus === 'success' && (
                 <Alert className="flex items-center border-green-200 bg-green-50 dark:bg-green-900/20">
                   <CheckCircle className="h-4 w-4 text-green-600" />
@@ -496,7 +496,7 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
                   </h1>
                 </Alert>
               )}
-              
+
               {installStatus === 'error' && (
                 <Alert className="flex items-center border-red-200 bg-red-50 dark:bg-red-900/20">
                   <AlertCircle className="h-4 w-4 text-red-600" />
@@ -533,7 +533,7 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
                       <SelectTrigger>
                         <SelectValue placeholder="Select namespace" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
+                      <SelectContent className="bg-card backdrop-blur-md text-foreground">
                         {availableNamespaces.map((ns) => (
                           <SelectItem key={ns} value={ns}>
                             {ns}
@@ -605,7 +605,7 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
                   <SelectTrigger className="bg-transparent backdrop-blur-sm dark:text-white dark:border-gray-500/40">
                     <SelectValue placeholder="Select cloud provider" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
+                  <SelectContent className="bg-card backdrop-blur-md text-foreground">
                     <SelectItem value="aws">
                       <div className="flex items-center gap-2">
                         <img src={AWS_PROVIDER} alt="AWS" className="h-5 w-5" />
@@ -655,7 +655,7 @@ const OpenCostInstallDialog: React.FC<OpenCostInstallDialogProps> = ({ isOpen, o
               Install
             </Button>
           )}
-          
+
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

@@ -31,14 +31,14 @@ const TipsModal: React.FC = () => {
   return (
     <Modal shouldAutoOpen={true} featureKey="featured_update_shown">
       <ModalTrigger className="text-blue-600 backdrop-blur-md hover:text-blue-500 cursor-pointer group px-2 hover:bg-gray-100/10">
-        <Lightbulb 
-          onClick={() => setActiveIndex(0)} 
-          className="h-3 w-3 text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors" 
+        <Lightbulb
+          onClick={() => setActiveIndex(0)}
+          className="h-3 w-3 text-muted-foreground group-hover:text-blue-400 transition-colors"
         />
       </ModalTrigger>
       <ModalBody className="md:max-w-xl">
         <ModalContent>
-          <h4 className="text-lg md:text-2xl text-neutral-600 dark:text-neutral-100 font-bold text-center mb-6">
+          <h4 className="text-lg md:text-2xl text-foreground font-bold text-center mb-6">
             <span className="flex items-center justify-center gap-4 text-4xl">
               <Lightbulb className="h-8 w-8 text-yellow-400" />
               <h1 className="font-[Anton] uppercase">Tips & Features</h1>
@@ -63,7 +63,7 @@ const TipsModal: React.FC = () => {
                     <div className="p-0">
                       <Card className="border-none shadow-none">
                         <CardContent className="flex flex-col items-center justify-center p-0">
-                          <div className={`overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 w-full ${!tip.title && !tip.description ? 'h-full' : 'mb-4'}`}>
+                          <div className={`overflow-hidden bg-gradient-to-br from-secondary to-secondary w-full ${!tip.title && !tip.description ? 'h-full' : 'mb-4'}`}>
                             <img
                               src={tip.imageUrl}
                               alt={tip.title || "Tip image"}
@@ -72,16 +72,16 @@ const TipsModal: React.FC = () => {
                           </div>
                           <div className="px-8 md:px-10">
 
-                          {tip.title && (
-                            <h3 className="text-xl font-medium mb-2 text-center text-gray-800 dark:text-gray-100">
-                              {tip.title}
-                            </h3>
-                          )}
-                          {tip.description && (
-                            <p className="text-sm text-center text-neutral-600 dark:text-neutral-300">
-                              {tip.description}
-                            </p>
-                          )}
+                            {tip.title && (
+                              <h3 className="text-xl font-medium mb-2 text-center text-foreground">
+                                {tip.title}
+                              </h3>
+                            )}
+                            {tip.description && (
+                              <p className="text-sm text-center text-muted-foreground">
+                                {tip.description}
+                              </p>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -90,8 +90,8 @@ const TipsModal: React.FC = () => {
                 ))}
               </CarouselContent>
               <div className="flex justify-between mt-4 px-8 md:px-10">
-                <CarouselPrevious className="relative static transform-none bg-neutral-200 dark:bg-neutral-800 border-none hover:bg-neutral-300 dark:hover:bg-neutral-700" />
-                <CarouselNext className="relative static transform-none bg-neutral-200 dark:bg-neutral-800 border-none hover:bg-neutral-300 dark:hover:bg-neutral-700" />
+                <CarouselPrevious className="relative static transform-none bg-secondary border-none hover:bg-accent-hover" />
+                <CarouselNext className="relative static transform-none bg-secondary border-none hover:bg-accent-hover" />
               </div>
             </Carousel>
 
@@ -101,7 +101,7 @@ const TipsModal: React.FC = () => {
                   key={index}
                   className={`h-1.5 rounded-full transition-all duration-300 ${activeIndex === index
                     ? "w-4 bg-blue-500"
-                    : "w-1.5 bg-gray-300 dark:bg-gray-700"
+                    : "w-1.5 bg-secondary"}
                     }`}
                 />
               ))}
@@ -109,13 +109,13 @@ const TipsModal: React.FC = () => {
           </div>
         </ModalContent>
         <ModalFooter className="gap-4 flex items-center">
-          <div className="flex-1 text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="flex-1 text-xs text-muted-foreground">
             {activeIndex + 1} of {tips.length}
           </div>
           <Button
             onClick={handleSkip}
             variant="link"
-            className="underline text-gray-800/50 dark:text-gray-300/40 hover:text-gray-800 dark:hover:text-gray-300 transition-all text-sm px-4 py-1.5 rounded-md"
+            className="underline text-muted-foreground hover:text-foreground transition-all text-sm px-4 py-1.5 rounded-md"
           >
             Skip for now
           </Button>

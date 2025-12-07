@@ -2,7 +2,7 @@ import React from 'react';
 import LOGO from '@/assets/logo.png';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 
-const ErrorComponent = ({ 
+const ErrorComponent = ({
   message = "Please check your port forwarding",
   title = "Oups! Something went wrong!",
   subMessage = "Will you please try one more time? Pretty please? 🥺",
@@ -11,7 +11,7 @@ const ErrorComponent = ({
 }) => {
   return (
     <div className="flex items-center justify-center min-h-[80vh] p-4">
-      <div className="w-full max-w-md bg-gray-100 dark:bg-gray-900/30 backdrop-blur-sm rounded-xl overflow-hidden">
+      <div className="w-full max-w-md bg-card backdrop-blur-sm rounded-xl overflow-hidden">
         <div className="p-8 flex flex-col items-center">
           {/* Pencil Break Icon */}
           {/* <div className="mb-6 relative w-24 h-24">
@@ -36,30 +36,30 @@ const ErrorComponent = ({
             </div>
 
           </div> */}
-          
+
           {/* Text Content */}
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-300  text-center">{title}</h2>
+          <h2 className="text-2xl font-bold text-foreground  text-center">{title}</h2>
           {/* <div className="bg-gray-200 p-3 rounded-[0.5rem] font-mono text-sm mb-4 overflow-x-auto max-w-full">
             <code>kubectl port-forward -n agentkube-operator-system svc/agentkube-operator-controller 8082:8082</code>
           </div> */}
           <div className='flex items-center justify-center my-4'>
             <img src={KUBERNETES_LOGO} className='h-12 w-12' alt='kubernetes' />
           </div>
-          <p className="text-gray-700 dark:text-gray-300 mb-2 text-center">{message}</p>
-          <p className="text-gray-600 dark:text-gray-300 mb-8 text-center text-sm">{subMessage}</p>
-          
+          <p className="text-foreground mb-2 text-center">{message}</p>
+          <p className="text-muted-foreground mb-8 text-center text-sm">{subMessage}</p>
+
           {/* Button */}
-          <button 
+          <button
             className="py-3 px-6 w-full bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-[0.4rem] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
             onClick={onRetry}
           >
             {buttonText}
           </button>
         </div>
-        
+
         {/* Footer */}
-        <div className="flex justify-center p-4 border-t border-gray-100 dark:border-gray-800/20">
-          <div className="flex items-center text-gray-800 dark:text-gray-300">
+        <div className="flex justify-center p-4 border-t border-border">
+          <div className="flex items-center text-foreground">
             <img src={LOGO} className='h-8 w-8' alt='logo' />
             <span className="font-semibold">Agentkube</span>
           </div>

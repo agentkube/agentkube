@@ -77,7 +77,7 @@ export const IngressView: React.FC<IngressViewProps> = ({ resourceData }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin dark:text-gray-300" />
+        <Loader2 className="h-6 w-6 animate-spin text-foreground" />
         <span className="ml-2 text-sm text-gray-500">Loading ingress data...</span>
       </div>
     );
@@ -94,7 +94,7 @@ export const IngressView: React.FC<IngressViewProps> = ({ resourceData }) => {
   if (!ingressData) {
     return (
       <div className="text-center py-8">
-        <p className="text-sm text-gray-500 dark:text-gray-400">No ingress data available</p>
+        <p className="text-sm text-muted-foreground">No ingress data available</p>
       </div>
     );
   }
@@ -107,10 +107,10 @@ export const IngressView: React.FC<IngressViewProps> = ({ resourceData }) => {
         {ingressData.spec?.rules?.map((rule, ruleIndex) => (
           <div key={ruleIndex} className="ml-4 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-purple-600 dark:text-purple-400">
+              <span className="text-purple-600">
                 <Shuffle className='h-4 w-4' />
               </span>
-              <span className="text-gray-800 dark:text-gray-200 font-medium text-lg">
+              <span className="text-foreground font-medium text-lg">
                 {resourceData.resourceName}
               </span>
             </div>
@@ -118,12 +118,12 @@ export const IngressView: React.FC<IngressViewProps> = ({ resourceData }) => {
 
               {rule.http?.paths?.map((path, pathIndex) => (
                 <div key={pathIndex} className="ml-8 space-y-1">
-                  <div className="text-gray-600 dark:text-gray-400">
-                    Service: <span className="text-gray-800 dark:text-gray-200">{path.backend.service?.name}</span>
+                  <div className="text-muted-foreground">
+                    Service: <span className="text-foreground">{path.backend.service?.name}</span>
                   </div>
 
-                  <div className="text-gray-600 dark:text-gray-400">
-                    Host: <span className="text-gray-800 dark:text-gray-200">{rule.host}</span>
+                  <div className="text-muted-foreground">
+                    Host: <span className="text-foreground">{rule.host}</span>
                   </div>
 
                   {/* Paths with copy functionality */}
@@ -131,10 +131,10 @@ export const IngressView: React.FC<IngressViewProps> = ({ resourceData }) => {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className="ml-8 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/50 p-1 rounded flex items-center gap-2 w-fit"
+                          className="ml-8 cursor-pointer hover:bg-accent-hover p-1 rounded flex items-center gap-2 w-fit"
                           onClick={() => copyToClipboard(path.path!)}
                         >
-                          <span className="text-gray-800 dark:text-gray-200">{path.path}</span>
+                          <span className="text-foreground">{path.path}</span>
                           {copiedPath === path.path ? (
                             <CheckCircle className="h-3 w-3 text-green-500" />
                           ) : (

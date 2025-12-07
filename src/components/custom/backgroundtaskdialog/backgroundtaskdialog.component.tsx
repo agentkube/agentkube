@@ -97,7 +97,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 
 			// Submit investigation
 			const response: InvestigationResponse = await submitInvestigationTask(investigationRequest);
-			
+
 			sooner("Investigation Started", {
 				description: `Task ID: ${response.task_id}`,
 				action: {
@@ -109,7 +109,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 				},
 				cancel: {
 					label: "Dismiss",
-					onClick: () => {},
+					onClick: () => { },
 				}
 			});
 
@@ -197,19 +197,19 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 
 	return (
 		<div className="fixed inset-0 z-50 pt-40 flex justify-center">
-			<div className="absolute inset-0 dark:bg-gray-900/20 backdrop-blur-sm" onClick={onClose} />
+			<div className="absolute inset-0 bg-background/20 backdrop-blur-sm" onClick={onClose} />
 			<AnimatePresence>
 				<motion.div
-					className="relative w-full max-w-2xl bg-gray-100  h-fit dark:bg-[#1B1C26]/50 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
+					className="relative w-full max-w-2xl bg-popover h-fit backdrop-blur-md rounded-xl shadow-2xl border border-border overflow-hidden"
 					initial={{ scale: 0.95, opacity: 0 }}
 					animate={{ scale: 1, opacity: 1 }}
 					exit={{ scale: 0.95, opacity: 0 }}
 					transition={{ duration: 0.2 }}
 				>
 					{/* Background Task Header */}
-					<div className="flex items-center justify-between  px-2 border-b dark:border-gray-700/30">
+					<div className="flex items-center justify-between  px-2 border-b border-border">
 						<div className='flex items-center space-x-2 text-xs '>
-							<div className='flex items-center text-gray-800 dark:text-gray-300 space-x-1'>
+							<div className='flex items-center text-foreground space-x-1'>
 								<ScanSearch className='h-4' />
 								<h3 className="text-xs font-medium">
 									Investigation Task
@@ -218,7 +218,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 
 							{resourceName && (
 								<>
-									<span className="text-gray-500 dark:text-gray-400/80">
+									<span className="text-muted-foreground">
 										{resourceType}/{resourceName}
 									</span>
 								</>
@@ -228,7 +228,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 							variant="ghost"
 							size="sm"
 							onClick={onClose}
-							className="p-1 dark:text-gray-400"
+							className="p-1 text-muted-foreground"
 						>
 							<X className="h-4 w-4" />
 						</Button>
@@ -255,7 +255,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 										"Run Stress testing on my deployment in kube-system namespace"
 									]}
 									disabled={isLoading}
-									className="dark:border-transparent h-64"
+									className="border-transparent h-64"
 									autoFocus={true}
 									mentionItems={mentionData}
 									onMentionSelect={handleMentionSelect}
@@ -270,7 +270,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 									{contextFiles.map(file => (
 										<div
 											key={file.resourceName}
-											className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-1"
+											className="flex items-center text-xs bg-secondary border border-border rounded px-2 py-1"
 										>
 											<div
 												className="flex items-center cursor-pointer"
@@ -320,7 +320,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 						<SignInContainer />
 						<UpgradeToProContainer />
 
-						<div className='flex items-center text-xs p-2 text-blue-800 dark:text-blue-400 bg-blue-400/20 dark:bg-blue-500/10 my-2 rounded-lg'>
+						<div className='flex items-center text-xs p-2 text-muted-foreground bg-muted-foreground/20 my-2 rounded-lg'>
 							<Lightbulb size={14} className="mr-1" />
 							<p> Describe what you'd like to investigate about this resource. The analysis will run in the background.</p>
 						</div>
@@ -343,7 +343,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 									type="submit"
 									onClick={handleSubmit}
 									disabled={isLoading || !inputValue.trim()}
-									className="p-3 h-6 w-6 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+									className="p-3 h-6 w-6 rounded-full text-primary-foreground bg-primary hover:bg-primary/90"
 								>
 									{isLoading ? (
 										<Loader className="animate-spin rounded-full h-4 w-4" />

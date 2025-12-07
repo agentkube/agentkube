@@ -38,21 +38,21 @@ const ClusterTreeView: React.FC<ClusterTreeViewProps> = ({
   // Group clusters by their kubeconfig source
   const groupedClusters = useMemo(() => {
     const groups = new Map<string, { contexts: any[], clusters: ClusterItem[] }>();
-    
+
     contexts.forEach((context) => {
       const kubeconfigPath = context.meta_data.origin.kubeconfig;
       const cluster = clusters.find(c => c.id === context.name);
-      
+
       if (!groups.has(kubeconfigPath)) {
         groups.set(kubeconfigPath, { contexts: [], clusters: [] });
       }
-      
+
       groups.get(kubeconfigPath)!.contexts.push(context);
       if (cluster) {
         groups.get(kubeconfigPath)!.clusters.push(cluster);
       }
     });
-    
+
     return Array.from(groups.entries()).map(([path, data]) => ({
       path,
       displayName: path.split('/').pop() || path,
@@ -81,7 +81,7 @@ const ClusterTreeView: React.FC<ClusterTreeViewProps> = ({
               />
               <TreeLabel className="font-medium text-sm">
                 {group.displayName}
-                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="ml-2 text-xs text-muted-foreground">
                   ({group.clusters.length} {group.clusters.length === 1 ? 'context' : 'contexts'})
                 </span>
               </TreeLabel>

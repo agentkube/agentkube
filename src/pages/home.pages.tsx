@@ -94,20 +94,20 @@ const HomePage: React.FC = () => {
   // Function to clean invalid contexts from workspace cache
   const cleanWorkspaceCache = useCallback((validContextNames: string[]) => {
     const validNameSet = new Set(validContextNames);
-    
+
     // Clean pinned clusters
-    const pinnedKey = selectedWorkspace === 'home' 
+    const pinnedKey = selectedWorkspace === 'home'
       ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
       : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
-    
+
     const storedPinned = localStorage.getItem(pinnedKey);
     if (storedPinned) {
       try {
         const pinnedClusters: ClusterItem[] = JSON.parse(storedPinned);
-        const validPinnedClusters = pinnedClusters.filter(cluster => 
+        const validPinnedClusters = pinnedClusters.filter(cluster =>
           validNameSet.has(cluster.id)
         );
-        
+
         if (validPinnedClusters.length !== pinnedClusters.length) {
           localStorage.setItem(pinnedKey, JSON.stringify(validPinnedClusters));
           setPinnedClusters(validPinnedClusters);
@@ -119,20 +119,20 @@ const HomePage: React.FC = () => {
         setPinnedClusters([]);
       }
     }
-    
+
     // Clean recent connections
     const recentKey = selectedWorkspace === 'home'
       ? STORAGE_KEYS.HOME_RECENT_CONNECTIONS
       : STORAGE_KEYS.workspaceRecentConnections(selectedWorkspace);
-    
+
     const storedRecent = localStorage.getItem(recentKey);
     if (storedRecent) {
       try {
         const recentConnections: RecentConnection[] = JSON.parse(storedRecent);
-        const validRecentConnections = recentConnections.filter(conn => 
+        const validRecentConnections = recentConnections.filter(conn =>
           validNameSet.has(conn.kubeContext.name)
         );
-        
+
         if (validRecentConnections.length !== recentConnections.length) {
           localStorage.setItem(recentKey, JSON.stringify(validRecentConnections));
           setRecentConnections(validRecentConnections);
@@ -148,7 +148,7 @@ const HomePage: React.FC = () => {
 
   // Workspace-specific pinned clusters
   const [pinnedClusters, setPinnedClusters] = useState<ClusterItem[]>(() => {
-    const key = selectedWorkspace === 'home' 
+    const key = selectedWorkspace === 'home'
       ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
       : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
     const savedPinnedClusters = localStorage.getItem(key);
@@ -196,7 +196,7 @@ const HomePage: React.FC = () => {
 
   // Memoize available clusters (exclude pinned and recent)
   const availableClusters = useMemo(() => {
-    return clusterItems.filter(item => 
+    return clusterItems.filter(item =>
       !pinnedClusterIds.has(item.id) && !recentClusterIds.has(item.id)
     );
   }, [clusterItems, pinnedClusterIds, recentClusterIds]);
@@ -204,7 +204,7 @@ const HomePage: React.FC = () => {
   // Memoize filtered clusters (recent + available, with search)
   const filteredClusters = useMemo(() => {
     const allAvailableClusters = [...recentClusterItems, ...availableClusters];
-    
+
     if (!searchQuery) return allAvailableClusters;
 
     const query = searchQuery.toLowerCase();
@@ -231,7 +231,7 @@ const HomePage: React.FC = () => {
     try {
       console.log('Fetching user profile...');
       const profile = await getUserProfile();
-      
+
       console.log('User profile loaded:', profile.email);
       // If we get a valid profile, user is authenticated
       setUser(prevUser => {
@@ -271,22 +271,22 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     // Check if this is the first load (no reload flag in sessionStorage)
     const hasReloadedFlag = sessionStorage.getItem('agentkube_home_reloaded');
-    
+
     if (!hasReloadedFlag && !hasReloaded) {
       console.log('First load detected, checking if contexts need sync...');
-      
+
       const checkContextHealth = () => {
         // Check if contexts are properly loaded
         const isClusterLoaded = contexts.length > 0 || !isContextsLoading;
         const isUserLoaded = user !== null;
         // const isThemeLoaded = document.documentElement.style.getPropertyValue('--font-family');
-        
+
         // console.log('Context health check:', { isClusterLoaded, isUserLoaded, isThemeLoaded });
-        
+
         // Only reload if contexts appear to be broken
         if (!isClusterLoaded || !isUserLoaded
           //  || !isThemeLoaded
-          ) {
+        ) {
           setTimeout(() => {
             sessionStorage.setItem('agentkube_home_reloaded', 'true');
             setHasReloaded(true);
@@ -297,11 +297,11 @@ const HomePage: React.FC = () => {
           console.log('Contexts appear healthy, no reload needed');
         }
       };
-      
+
       // Check context health after 2 seconds to allow initial loading
       const healthCheckTimer = setTimeout(checkContextHealth, 1000);
       return () => clearTimeout(healthCheckTimer);
-      
+
     } else if (hasReloadedFlag) {
       // Clear the flag after successful load to allow future reloads if needed
       setTimeout(() => {
@@ -320,19 +320,19 @@ const HomePage: React.FC = () => {
 
   // Update workspace-specific data when workspace changes
   useEffect(() => {
-    const pinnedKey = selectedWorkspace === 'home' 
+    const pinnedKey = selectedWorkspace === 'home'
       ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
       : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
     const recentKey = selectedWorkspace === 'home'
       ? STORAGE_KEYS.HOME_RECENT_CONNECTIONS
       : STORAGE_KEYS.workspaceRecentConnections(selectedWorkspace);
-    
+
     const storedPinned = localStorage.getItem(pinnedKey);
     const storedRecent = localStorage.getItem(recentKey);
-    
+
     setPinnedClusters(storedPinned ? JSON.parse(storedPinned) : []);
     setRecentConnections(storedRecent ? JSON.parse(storedRecent) : []);
-    
+
     // Clean cache for the new workspace if we have contexts
     if (contexts.length > 0) {
       const validContextNames = contexts.map(ctx => ctx.name);
@@ -342,7 +342,7 @@ const HomePage: React.FC = () => {
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    const key = selectedWorkspace === 'home' 
+    const key = selectedWorkspace === 'home'
       ? STORAGE_KEYS.HOME_PINNED_CLUSTERS
       : STORAGE_KEYS.workspacePinnedClusters(selectedWorkspace);
     localStorage.setItem(key, JSON.stringify(pinnedClusters));
@@ -404,10 +404,10 @@ const HomePage: React.FC = () => {
   }, []);
 
   const updateRecentConnectionName = useCallback((oldName: string, newName: string) => {
-    setRecentConnections((prev: RecentConnection[]) => 
-      prev.map((conn: RecentConnection) => 
-        conn.kubeContext.name === oldName 
-          ? { ...conn, kubeContext: { ...conn.kubeContext, name: newName }}
+    setRecentConnections((prev: RecentConnection[]) =>
+      prev.map((conn: RecentConnection) =>
+        conn.kubeContext.name === oldName
+          ? { ...conn, kubeContext: { ...conn.kubeContext, name: newName } }
           : conn
       )
     );
@@ -445,7 +445,7 @@ const HomePage: React.FC = () => {
 
       // Check for last visited location for this specific cluster
       const lastVisitedLocation = ClusterNavigationStorage.getLastVisitedLocation(clusterId);
-      
+
       if (lastVisitedLocation) {
         // Navigate to last visited location for this specific cluster
         navigate(lastVisitedLocation);
@@ -488,8 +488,8 @@ const HomePage: React.FC = () => {
   const handlePin = useCallback(() => {
     if (contextMenu.clusterId) {
       // Check in recent connections first, then available clusters
-      const clusterToPin = recentClusterItems.find((c: ClusterItem) => c.id === contextMenu.clusterId) || 
-                          availableClusters.find((c: ClusterItem) => c.id === contextMenu.clusterId);
+      const clusterToPin = recentClusterItems.find((c: ClusterItem) => c.id === contextMenu.clusterId) ||
+        availableClusters.find((c: ClusterItem) => c.id === contextMenu.clusterId);
       if (clusterToPin) {
         // Add to pinned clusters
         setPinnedClusters(prev => [...prev, clusterToPin]);
@@ -654,8 +654,8 @@ const HomePage: React.FC = () => {
 
   const handleDirectPin = useCallback((clusterId: string) => {
     // Check in recent connections first, then available clusters
-    const clusterToPin = recentClusterItems.find((c: ClusterItem) => c.id === clusterId) || 
-                        availableClusters.find((c: ClusterItem) => c.id === clusterId);
+    const clusterToPin = recentClusterItems.find((c: ClusterItem) => c.id === clusterId) ||
+      availableClusters.find((c: ClusterItem) => c.id === clusterId);
     if (clusterToPin) {
       setPinnedClusters(prev => [...prev, clusterToPin]);
     }
@@ -761,7 +761,7 @@ const HomePage: React.FC = () => {
                 <Button
                   className={`flex items-center gap-2 
                   ${hasSelectedCluster
-                      ? 'bg-blue-700 dark:bg-blue-800 hover:bg-blue-700 text-white'
+                      ? 'bg-blue-700 dark:bg-sky-700 hover:bg-blue-700 text-white'
                       : 'bg-gray-300 hover:bg-gray-300 text-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-600'}`}
                   onClick={handleMainConnect}
                   disabled={isContextsLoading || (!recentClusterItems.length && !pinnedClusters.length && !availableClusters.length)}
@@ -860,7 +860,6 @@ const HomePage: React.FC = () => {
             <Input
               type="text"
               placeholder="Search cluster"
-              className="w-full border border-gray-400 dark:ring:border-gray-700 dark:text-white"
               value={searchQuery}
               onChange={handleSearch}
             />
@@ -884,13 +883,12 @@ const HomePage: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className={`${
-            viewMode === 'grid' 
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
-              : viewMode === 'tree'
+          <div className={`${viewMode === 'grid'
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+            : viewMode === 'tree'
               ? 'w-full'
               : 'space-y-1 max-h-96 pb-16 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50'
-          }`}>
+            }`}>
             {viewMode === 'tree' ? (
               filteredClusters.length > 0 ? (
                 <ClusterTreeView

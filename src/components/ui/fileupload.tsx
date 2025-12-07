@@ -15,7 +15,7 @@ import {
 
 // Add File type import
 declare const File: {
-  new (parts: (string | Blob | ArrayBuffer | ArrayBufferView)[], filename: string, options?: FilePropertyBag): File;
+  new(parts: (string | Blob | ArrayBuffer | ArrayBufferView)[], filename: string, options?: FilePropertyBag): File;
 };
 
 interface FileWithPreview {
@@ -48,7 +48,7 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
   // Process dropped or selected files
   const handleFiles = (fileList: FileList) => {
     const newFiles = Array.from(fileList).map((file) => {
-      
+
       return {
         id: `${URL.createObjectURL(file)}-${Date.now()}`,
         preview: URL.createObjectURL(file),
@@ -61,7 +61,7 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
         isFromText: false,
       };
     });
-    
+
     setFiles((prev) => [...prev, ...newFiles]);
     newFiles.forEach((f) => simulateUpload(f.id));
   };
@@ -108,7 +108,7 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
         const updated = prev.map((f) =>
           f.id === id ? { ...f, progress: Math.min(progress, 100) } : f
         );
-        
+
         // Call callback when upload completes
         if (progress >= 100 && onFilesUploaded) {
           const completedFile = updated.find(f => f.id === id);
@@ -116,10 +116,10 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
             setTimeout(() => onFilesUploaded(updated), 100);
           }
         }
-        
+
         return updated;
       });
-  
+
       if (progress >= 100) {
         clearInterval(interval);
         if (navigator.vibrate) navigator.vibrate(100);
@@ -155,14 +155,14 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
   return (
     <div className="w-full max-w-3xl mx-auto p-4 md:p-6">
       {/* Mode Toggle */}
-      <div className="flex text-sm gap-2 mb-6 dark:bg-zinc-800/40 w-fit p-1.5 rounded-lg">
+      <div className="flex text-sm gap-2 mb-6 bg-secondary/40 w-fit p-1.5 rounded-lg">
         <button
           onClick={() => setUploadMode('files')}
           className={clsx(
             "flex items-center gap-2 px-4 py-1 rounded-md font-medium transition-all duration-200",
             uploadMode === 'files'
               ? "bg-white text-black shadow-md"
-              : "bg-zinc-100 dark:bg-transparent text-zinc-700 dark:text-zinc-300"
+              : "bg-secondary text-secondary-foreground"
           )}
         >
           <UploadCloud className="w-4 h-4" />
@@ -174,7 +174,7 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
             "flex items-center gap-2 px-4 py-1 rounded-md font-medium transition-all duration-200",
             uploadMode === 'text'
               ? "bg-white text-black shadow-md"
-              : "bg-zinc-100 dark:bg-transparent text-zinc-700 dark:text-zinc-300"
+              : "bg-secondary text-secondary-foreground"
           )}
         >
           <FileText className="w-4 h-4" />
@@ -229,20 +229,20 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
                   "w-16 h-16 md:w-20 md:h-10 drop-shadow-sm",
                   isDragging
                     ? "text-blue-500"
-                    : "text-zinc-700 dark:text-zinc-300 group-hover:text-blue-500 transition-colors duration-300"
+                    : "text-foreground group-hover:text-blue-500 transition-colors duration-300"
                 )}
               />
             </motion.div>
 
             <div className="space-y-2">
-              <h3 className="text-xl md:text-2xl font-semibold text-zinc-800 dark:text-zinc-100">
+              <h3 className="text-xl md:text-2xl font-semibold text-foreground">
                 {isDragging
                   ? "Drop files here"
                   : files.length
-                  ? "Add more files"
-                  : "Upload kubeconfig files"}
+                    ? "Add more files"
+                    : "Upload kubeconfig files"}
               </h3>
-              <p className="text-zinc-600 dark:text-zinc-300 md:text-lg max-w-md mx-auto">
+              <p className="text-muted-foreground md:text-lg max-w-md mx-auto">
                 {isDragging ? (
                   <span className="font-medium text-blue-500">
                     Release to upload
@@ -254,7 +254,7 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
                   </>
                 )}
               </p>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 Supports .yaml, .yml and .json
               </p>
             </div>
@@ -282,7 +282,7 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
           <div className="rounded-2xl bg-background shadow-2xl/10 backdrop-blur">
             {/* File Name Input */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 File Name (optional)
               </label>
               <input
@@ -290,13 +290,13 @@ export default function FileUpload({ onFilesUploaded }: FileUploadProps) {
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
                 placeholder="kubeconfig.yaml"
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
               />
             </div>
 
             {/* YAML Content Textarea */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 YAML Content
               </label>
               <textarea
@@ -320,7 +320,7 @@ users:
   user:
     token: ...`}
                 rows={12}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors font-mono text-sm resize-y min-h-[200px]"
+                className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors font-mono text-sm resize-y min-h-[200px]"
               />
             </div>
 
@@ -332,7 +332,7 @@ users:
                 "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200",
                 yamlContent.trim()
                   ? "bg-white hover:bg-blue-600 text-black shadow-md hover:shadow-lg"
-                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
+                  : "bg-secondary text-secondary-foreground cursor-not-allowed"
               )}
             >
               <Plus className="w-4 h-4" />
@@ -351,13 +351,13 @@ users:
               animate={{ opacity: 1 }}
               className="flex justify-between items-center mb-2 px-2"
             >
-              <h3 className="font-semibold text-md text-zinc-800 dark:text-zinc-200">
+              <h3 className="font-semibold text-md text-foreground">
                 Uploaded files ({files.length})
               </h3>
               {files.length > 1 && (
                 <button
                   onClick={() => setFiles([])}
-                  className="text-sm font-medium px-3 py-1 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 rounded-md text-zinc-700 hover:text-red-600 dark:text-zinc-300 dark:hover:text-red-400 transition-colors duration-200"
+                  className="text-sm font-medium px-3 py-1 bg-secondary hover:bg-secondary/80 rounded-md text-secondary-foreground hover:text-destructive transition-colors duration-200"
                 >
                   Clear all
                 </button>
@@ -370,7 +370,7 @@ users:
           className={clsx(
             "flex flex-col gap-3 overflow-y-auto pr-2",
             files.length > 3 &&
-              "max-h-96 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-transparent"
+            "max-h-96 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-transparent"
           )}
         >
           <AnimatePresence>
@@ -381,14 +381,14 @@ users:
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                className="px-4 py-4 flex items-start gap-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/80 shadow hover:shadow-md transition-all duration-200"
+                className="px-4 py-4 flex items-start gap-4 rounded-xl bg-secondary/50 shadow hover:shadow-md transition-all duration-200"
               >
                 {/* File icon */}
                 <div className="relative flex-shrink-0">
                   <div className={clsx(
-                    "w-10 h-10 md:w-16 md:h-16 rounded-lg border dark:border-zinc-700 shadow-sm flex items-center justify-center",
-                    file.isFromText 
-                      ? "bg-green-50 dark:bg-green-900/20" 
+                    "w-10 h-10 md:w-16 md:h-16 rounded-lg border border-border shadow-sm flex items-center justify-center",
+                    file.isFromText
+                      ? "bg-green-50 dark:bg-green-900/20"
                       : "bg-blue-50 dark:bg-blue-900/20"
                   )}>
                     {file.isFromText ? (
@@ -401,7 +401,7 @@ users:
                     <motion.div
                       initial={{ opacity: 0, scale: 0.5 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="absolute -right-2 -bottom-2 bg-white dark:bg-zinc-800 rounded-full shadow-sm"
+                      className="absolute -right-2 -bottom-2 bg-background rounded-full shadow-sm"
                     >
                       <CheckCircle className="w-5 h-5 text-emerald-500" />
                     </motion.div>
@@ -419,7 +419,7 @@ users:
                         <FileIcon className="w-4 h-4 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                       )}
                       <h4
-                        className="font-medium text-sm truncate text-zinc-800 dark:text-zinc-200"
+                        className="font-medium text-sm truncate text-foreground"
                         title={file.name}
                       >
                         {file.name}
@@ -444,7 +444,7 @@ users:
                           <Loader className="w-4 h-4 animate-spin text-blue-500" />
                         ) : (
                           <Trash2
-                            className="w-4 h-4 cursor-pointer text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors duration-200"
+                            className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-destructive transition-colors duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               setFiles((prev) =>
@@ -459,7 +459,7 @@ users:
                   </div>
 
                   {/* Progress bar */}
-                  <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mt-3">
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden mt-3">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${file.progress}%` }}
@@ -471,7 +471,7 @@ users:
                       }}
                       className={clsx(
                         "h-full rounded-full shadow-inner",
-                        file.progress < 100 
+                        file.progress < 100
                           ? (file.isFromText ? "bg-green-500" : "bg-blue-500")
                           : "bg-emerald-500"
                       )}

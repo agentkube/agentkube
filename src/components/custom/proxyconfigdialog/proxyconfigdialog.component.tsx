@@ -105,7 +105,7 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md border-gray-200/10 dark:border-gray-200/10">
+      <DialogContent className="sm:max-w-md bg-card backdrop-blur-md border-border">
         <DialogHeader>
           <DialogTitle className="text-xl font-[Anton] uppercase flex items-center space-x-2">
             {serviceImage && (
@@ -126,14 +126,14 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
 
         <div className="space-y-4 py-4">
           {error && (
-            <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <AlertDescription className="text-red-600 dark:text-red-400">{error}</AlertDescription>
+            <Alert className="bg-destructive/10 border-destructive/30">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-destructive">{error}</AlertDescription>
             </Alert>
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="namespace" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label htmlFor="namespace" className="text-sm font-medium text-foreground">
               Namespace
             </Label>
             <Input
@@ -141,15 +141,15 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
               value={namespace}
               onChange={(e) => setNamespace(e.target.value)}
               placeholder={defaultNamespace}
-              className="col-span-3 bg-transparent dark:text-white"
+              className="col-span-3 bg-transparent text-foreground"
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               The Kubernetes namespace where {serviceName} is installed
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="service" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label htmlFor="service" className="text-sm font-medium text-foreground">
               Service
             </Label>
             <Input
@@ -157,9 +157,9 @@ const ProxyConfigDialog: React.FC<ProxyConfigDialogProps> = ({
               value={service}
               onChange={(e) => setService(e.target.value)}
               placeholder={defaultService}
-              className="col-span-3 bg-transparent dark:text-white"
+              className="col-span-3 bg-transparent text-foreground"
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               The {serviceName} service name and port (e.g., {defaultService})
             </p>
           </div>

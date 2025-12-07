@@ -136,12 +136,12 @@ export function ManageWorkspacesDialog({
         description: editedDescription.trim(),
         clusters
       })
-      
+
       // Update selected workspace if name changed
       if (editedName !== selectedWorkspaceData.name) {
         setSelectedWorkspace(editedName)
       }
-      
+
       setIsEditing(false)
     } catch (error) {
       console.error("Failed to update workspace:", error)
@@ -156,7 +156,7 @@ export function ManageWorkspacesDialog({
     setIsDeleting(true)
     try {
       await deleteWorkspace(selectedWorkspaceData.name)
-      
+
       // Clear selection
       setSelectedWorkspace("")
       setSelectedWorkspaceData(null)
@@ -178,7 +178,7 @@ export function ManageWorkspacesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg dark:bg-[#0B0D13]/40 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-lg bg-background/95 backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle>Manage Workspaces</DialogTitle>
           <DialogDescription>
@@ -227,7 +227,7 @@ export function ManageWorkspacesDialog({
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-red-400 dark:text-red-500"
+                    className="text-destructive"
                     onClick={() => setShowDeleteConfirm(true)}
                     disabled={isDeleting || isUpdating}
                   >
@@ -250,7 +250,7 @@ export function ManageWorkspacesDialog({
                     disabled={isUpdating}
                   />
                 ) : (
-                  <div className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded text-sm">
+                  <div className="p-2 bg-secondary/50 rounded text-sm">
                     {selectedWorkspaceData.name}
                   </div>
                 )}
@@ -271,7 +271,7 @@ export function ManageWorkspacesDialog({
                     disabled={isUpdating}
                   />
                 ) : (
-                  <div className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded text-sm min-h-[60px]">
+                  <div className="p-2 bg-secondary/50 rounded text-sm min-h-[60px]">
                     {selectedWorkspaceData.description || "No description provided"}
                   </div>
                 )}
@@ -290,7 +290,7 @@ export function ManageWorkspacesDialog({
                         return (
                           <TagsValue
                             key={clusterId}
-                            className="p-2 dark:bg-gray-700/30"
+                            className="p-2 bg-secondary/30"
                             onRemove={() => handleClusterRemove(clusterId)}
                           >
                             {context?.name || clusterId}
@@ -300,7 +300,7 @@ export function ManageWorkspacesDialog({
                     </TagsTrigger>
                     <TagsContent className="">
                       <TagsInput placeholder="Search clusters..." />
-                      <TagsList className="dark:bg-[#0B0D13]/30 backdrop-blur-md">
+                      <TagsList className="bg-background/95 backdrop-blur-md">
                         <TagsEmpty>No clusters found.</TagsEmpty>
                         <TagsGroup className="">
                           {allContexts.map((context) => (
@@ -327,7 +327,7 @@ export function ManageWorkspacesDialog({
                       selectedWorkspaceData.clusters.map((cluster, index) => (
                         <div
                           key={index}
-                          className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded text-sm"
+                          className="flex items-center space-x-3 p-2 bg-secondary/50 rounded text-sm"
                         >
                           <Server className="h-4 w-4 text-gray-500" />
                           <div className="flex-1">
@@ -360,15 +360,15 @@ export function ManageWorkspacesDialog({
 
           {/* Delete Confirmation */}
           {showDeleteConfirm && selectedWorkspaceData && (
-            <div className="border border-red-200 dark:border-red-800/40 rounded-lg p-4 bg-red-50 dark:bg-red-900/20">
+            <div className="border border-destructive/40 rounded-lg p-4 bg-destructive/10">
               <div className="flex items-start space-x-3">
                 <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-medium text-red-800 dark:text-red-400">
+                  <h4 className="font-medium text-destructive">
                     Confirm Deletion
                   </h4>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                    Are you sure you want to delete the workspace "{selectedWorkspaceData.name}"? 
+                  <p className="text-sm text-destructive mt-1">
+                    Are you sure you want to delete the workspace "{selectedWorkspaceData.name}"?
                     This action cannot be undone.
                   </p>
                   <div className="flex space-x-2 mt-3">

@@ -95,14 +95,14 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   // Check if output is large and needs truncation
   const isLargeOutput = outputText.length > 2000;
   const maxLines = 50;
-  
+
   // Memoize truncated output
   const displayOutput = useMemo(() => {
     if (!isLargeOutput || showFullOutput) return outputText;
-    
+
     const lines = outputText.split('\n');
     if (lines.length <= maxLines) return outputText;
-    
+
     return lines.slice(0, maxLines).join('\n') + '\n... (truncated)';
   }, [outputText, isLargeOutput, showFullOutput, maxLines]);
 
@@ -121,7 +121,7 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
 
   const handleCopyOutput = async () => {
     if (!outputText) return;
-    
+
     try {
       await navigator.clipboard.writeText(outputText);
       setIsCopied(true);
@@ -136,13 +136,11 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   }
 
   return (
-    <div className="border border-gray-400/20 dark:border-gray-800/50 rounded-md mb-3 overflow-hidden">
+    <div className="border border-border rounded-md mb-3 overflow-hidden">
       {/* Accordion header */}
       <div
-        className={`flex items-center justify-between px-2 py-1 cursor-pointer ${
-          toolCall.isPending 
-            ? 'bg-yellow-100 dark:bg-yellow-900/20' 
-            : 'bg-gray-200 dark:bg-transparent'
+        className={`flex items-center justify-between px-2 py-1 cursor-pointer ${toolCall.isPending} 
+            : 'bg-secondary'
         }`}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -169,88 +167,91 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
       </div>
 
       {/* Accordion content */}
-      {isOpen && (
-        <div className="bg-gray-100 dark:bg-transparent">
-          {/* Parameters section */}
-          {formattedArguments && (
-            <div className="p-2 space-y-1">
-              <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
-                Parameters
-              </h4>
-              <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
-                <SyntaxHighlighter
-                  language="json"
-                  style={oneDark}
-                  customStyle={customStyle}
-                  wrapLines={true}
-                  codeTagProps={{
-                    style: {
-                      fontSize: '0.75rem',
-                      fontFamily: 'Monaco, Menlo, monospace',
-                    }
-                  }}
-                >
-                  {formattedArguments}
-                </SyntaxHighlighter>
-              </div>
-            </div>
-          )}
-
-          {/* Output section */}
-          {toolCall.output && !toolCall.isPending && (
-            <div className="p-2 pt-0 space-y-1">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
-                  Output {isLargeOutput && (
-                    <span className="text-xs text-gray-400">
-                      ({outputText.split('\n').length} lines)
-                    </span>
-                  )}
+      {
+        isOpen && (
+          <div className="bg-muted">
+            {/* Parameters section */}
+            {formattedArguments && (
+              <div className="p-2 space-y-1">
+                <h4 className="text-xs uppercase text-muted-foreground">
+                  Parameters
                 </h4>
-                <div className="flex items-center gap-1">
-                  {isLargeOutput && (
-                    <button
-                      onClick={() => setShowFullOutput(!showFullOutput)}
-                      className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors text-xs"
-                      title={showFullOutput ? "Show less" : "Show more"}
-                    >
-                      {showFullOutput ? "Show less" : "Show more"}
-                    </button>
-                  )}
-                  <button
-                    onClick={handleCopyOutput}
-                    className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors"
-                    title="Copy output"
+                <div className="bg-muted/50 rounded-md overflow-x-auto">
+                  <SyntaxHighlighter
+                    language="json"
+                    style={oneDark}
+                    customStyle={customStyle}
+                    wrapLines={true}
+                    codeTagProps={{
+                      style: {
+                        fontSize: '0.75rem',
+                        fontFamily: 'Monaco, Menlo, monospace',
+                      }
+                    }}
                   >
-                    {isCopied ? (
-                      <Check className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <Copy className="h-3 w-3 text-gray-500 dark:text-gray-400" />
-                    )}
-                  </button>
+                    {formattedArguments}
+                  </SyntaxHighlighter>
                 </div>
               </div>
-              <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
-                <SyntaxHighlighter
-                  language="bash"
-                  style={oneDark}
-                  customStyle={customStyle}
-                  wrapLines={true}
-                  codeTagProps={{
-                    style: {
-                      fontSize: '0.75rem',
-                      fontFamily: 'Monaco, Menlo, monospace',
-                    }
-                  }}
-                >
-                  {displayOutput}
-                </SyntaxHighlighter>
+            )}
+
+            {/* Output section */}
+            {toolCall.output && !toolCall.isPending && (
+              <div className="p-2 pt-0 space-y-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs uppercase text-muted-foreground">
+                    Output {isLargeOutput && (
+                      <span className="text-xs text-gray-400">
+                        ({outputText.split('\n').length} lines)
+                      </span>
+                    )}
+                  </h4>
+                  <div className="flex items-center gap-1">
+                    {isLargeOutput && (
+                      <button
+                        onClick={() => setShowFullOutput(!showFullOutput)}
+                        className="p-1 rounded hover:bg-muted/50 transition-colors text-xs"
+                        title={showFullOutput ? "Show less" : "Show more"}
+                      >
+                        {showFullOutput ? "Show less" : "Show more"}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleCopyOutput}
+                      className="p-1 rounded hover:bg-muted/50 transition-colors"
+                      title="Copy output"
+                    >
+                      {isCopied ? (
+                        <Check className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-muted/50 rounded-md overflow-x-auto">
+                  <SyntaxHighlighter
+                    language="bash"
+                    style={oneDark}
+                    customStyle={customStyle}
+                    wrapLines={true}
+                    codeTagProps={{
+                      style: {
+                        fontSize: '0.75rem',
+                        fontFamily: 'Monaco, Menlo, monospace',
+                      }
+                    }}
+                  >
+                    {displayOutput}
+                  </SyntaxHighlighter>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+            )
+            }
+          </div >
+        )
+      }
+    </div >
   );
 };
 

@@ -184,7 +184,7 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
   const getSelectedIds = () => {
     const selectedFeature = advancedFeatures.find(f => f.path === locationPathname);
     if (selectedFeature) return [selectedFeature.id];
-    
+
     // Check if a child is selected
     for (const feature of advancedFeatures) {
       if (feature.children) {
@@ -197,15 +197,15 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
 
   const handleFeatureSelect = (nodeIds: string[]) => {
     if (nodeIds.length === 0) return;
-    
+
     const nodeId = nodeIds[0];
-    
+
     // Find the feature by ID
     const feature = advancedFeatures.find(f => f.id === nodeId);
     if (feature) {
       // Check if this is a parent with children
       const hasChildren = feature.children && feature.children.length > 0;
-      
+
       if (hasChildren && feature.children) {
         // If parent has multiple children, don't navigate - just expand
         if (feature.children.length > 1) {
@@ -221,7 +221,7 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
         return;
       }
     }
-    
+
     // Check children (leaf items)
     for (const parentFeature of advancedFeatures) {
       if (parentFeature.children) {
@@ -236,17 +236,17 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
 
   const renderFeatureNode = (feature: FeatureItem, level: number = 0, isLast: boolean = false) => {
     const hasChildren = feature.children && feature.children.length > 0;
-    
+
     return (
       <TreeNode key={feature.id} nodeId={feature.id} level={level} isLast={isLast}>
         <TreeNodeTrigger>
           <TreeExpander hasChildren={hasChildren} />
           <TreeIcon icon={feature.icon} hasChildren={hasChildren} />
-          <TreeLabel className='dark:text-gray-300 text-xs'>{feature.label}</TreeLabel>
+          <TreeLabel className='text-foreground text-xs'>{feature.label}</TreeLabel>
         </TreeNodeTrigger>
         {hasChildren && (
           <TreeNodeContent hasChildren={hasChildren}>
-            {feature.children?.map((child, index) => 
+            {feature.children?.map((child, index) =>
               renderFeatureNode(child, level + 1, index === (feature.children?.length || 0) - 1)
             )}
           </TreeNodeContent>
@@ -257,25 +257,25 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
 
   return (
     <div className="flex flex-col mb-2">
-      <button 
-        className="flex items-center justify-between px-2 py-1 cursor-pointer hover:bg-gray-300/10"
+      <button
+        className="flex items-center justify-between px-2 py-1 cursor-pointer hover:bg-accent-hover"
         onClick={toggleAdvancedCollapse}
         aria-label={isAdvancedCollapsed ? "Expand advanced features" : "Collapse advanced features"}
       >
-        <div className="text-xs font-medium text-gray-800 dark:text-gray-500">
+        <div className="text-xs font-medium text-muted-foreground">
           {!isCollapsed && "Advanced Features"}
         </div>
         {!isCollapsed && (
           <span className="mr-1">
             {isAdvancedCollapsed ? (
-              <ChevronRight className="w-3 h-3 text-gray-800 dark:text-gray-500" />
+              <ChevronRight className="w-3 h-3 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-3 h-3 text-gray-800 dark:text-gray-500" />
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
             )}
           </span>
         )}
       </button>
-      
+
       {!isAdvancedCollapsed && !isCollapsed && (
         <div className="pt-1">
           <TreeProvider
@@ -290,29 +290,29 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({
             animateExpand={true}
           >
             <TreeView className="p-0">
-              {advancedFeatures.map((feature, index) => 
+              {advancedFeatures.map((feature, index) =>
                 renderFeatureNode(feature, 0, index === advancedFeatures.length - 1)
               )}
             </TreeView>
           </TreeProvider>
         </div>
       )}
-      
+
       {/* Collapsed view - show icons only */}
       {!isAdvancedCollapsed && isCollapsed && (
         <div className="flex flex-col space-y-1 pt-1 px-2">
           {advancedFeatures.map(feature => (
             <button
               key={feature.id}
-              className="w-full flex justify-center items-center p-2 hover:bg-gray-400/20 rounded-[5px] transition-colors relative group"
+              className="w-full flex justify-center items-center p-2 hover:bg-accent-hover rounded-[5px] transition-colors relative group"
               onClick={() => onFeatureClick(feature)}
               title={feature.label}
             >
               {feature.icon}
               {/* Tooltip */}
-              <div className="absolute left-full ml-2 -mt-8 z-10 bg-gray-200 dark:bg-[#0B0D13]/30 backdrop-blur-md  dark:text-white text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+              <div className="absolute left-full ml-2 -mt-8 z-10 bg-card backdrop-blur-md text-card-foreground text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
                 <p className="font-medium">{feature.label}</p>
-                <div className="absolute w-2 h-2 bg-gray-200 dark:bg-gray-900 rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+                <div className="absolute w-2 h-2 bg-card rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
               </div>
             </button>
           ))}

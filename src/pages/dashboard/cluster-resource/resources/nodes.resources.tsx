@@ -159,7 +159,7 @@ const Nodes: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('nodes', defaultColumnConfig)
   );
 
@@ -169,7 +169,7 @@ const Nodes: React.FC = () => {
       // Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault(); // Prevent browser's default find behavior
-        
+
         // Find the search input and focus it
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) {
@@ -177,11 +177,11 @@ const Nodes: React.FC = () => {
         }
       }
     };
-  
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   const filteredNodes = useMemo(() => {
     if (!searchQuery.trim()) {
       return nodes;
@@ -546,10 +546,10 @@ const Nodes: React.FC = () => {
         '',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -747,7 +747,7 @@ const Nodes: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className='flex items-center justify-between md:flex-row gap-4 md:items-end'>
         <div>
-          <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Nodes</h1>
+          <h1 className='text-5xl font-[Anton] uppercase text-foreground/20 font-medium'>Nodes</h1>
           <div className="w-full md:w-96 mt-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -776,7 +776,7 @@ const Nodes: React.FC = () => {
 
       {/* Resource Information Cards */}
       <div className="grid grid-cols-3 gap-1">
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+        <Card className="bg-transparent rounded-md border border-accent/40 shadow-none min-h-44">
           <CardContent className="py-2 flex flex-col h-full">
             <h2 className="text-sm uppercase font-medium text-gray-800 dark:text-gray-500 mb-auto">CPU</h2>
             <div className="mt-auto">
@@ -790,7 +790,7 @@ const Nodes: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
+              <div className="w-full h-1 bg-accent/40 rounded-[0.3rem] mt-1">
                 {selectedNode.metrics && (
                   <div
                     className="h-1 bg-blue-500 dark:bg-blue-400 rounded-[0.3rem]"
@@ -801,7 +801,7 @@ const Nodes: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+        <Card className="bg-transparent rounded-md border border-accent/40 shadow-none min-h-44">
           <CardContent className="py-2 flex flex-col h-full">
             <div className="flex items-center justify-between gap-2 mb-auto">
               <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Memory</h2>
@@ -820,7 +820,7 @@ const Nodes: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/50 rounded-[0.3rem]">
+              <div className="w-full h-1 bg-accent/40 rounded-[0.3rem]">
                 {selectedNode.metrics && (
                   <div
                     className="h-1 bg-purple-500 dark:bg-purple-400 rounded-[0.3rem]"
@@ -831,7 +831,7 @@ const Nodes: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
+        <Card className="bg-transparent rounded-md border border-accent/40 shadow-none min-h-44">
           <CardContent className="py-2 flex flex-col h-full">
             <div className="flex items-center justify-between gap-2 mb-auto">
               <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">Disk</h2>
@@ -850,11 +850,11 @@ const Nodes: React.FC = () => {
       </div>
 
       {/* Nodes Table */}
-      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+      <Card className="bg-transparent border-accent/40 rounded-2xl shadow-none">
         <div className="rounded-md border">
-          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+          <Table className="bg-transparent rounded-2xl">
             <TableHeader>
-              <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+              <TableRow className="border-b border-accent dark:border-accent/80">
                 {columnConfig.map(col => renderTableHeader(col))}
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -863,7 +863,7 @@ const Nodes: React.FC = () => {
               {sortedNodes.map((node, index) => (
                 <TableRow
                   key={node.name}
-                  className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedNodeIndex === index ? 'bg-gray-300/70 dark:bg-gray-900/50' : ''}`}
+                  className={`bg-transparent border-b border-accent dark:border-accent/80 hover:cursor-pointer hover:bg-accent/20 ${selectedNodeIndex === index ? 'bg-accent/30' : ''}`}
                   onClick={() => handleRowClick(node, index)}
                 >
                   {columnConfig.map(col => renderTableCell(node, col))}
@@ -898,7 +898,7 @@ const Nodes: React.FC = () => {
             </TableBody>
           </Table>
           {filteredNodes.length === 0 && searchQuery && (
-            <Alert className="m-6 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+            <Alert className="m-6 bg-transparent border-accent/40 rounded-2xl shadow-none">
               <AlertDescription>No nodes matching "{searchQuery}"</AlertDescription>
             </Alert>
           )}

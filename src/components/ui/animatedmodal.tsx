@@ -25,10 +25,10 @@ interface ModalProviderProps {
   featureKey?: string;
 }
 
-export const ModalProvider = ({ 
-  children, 
-  shouldAutoOpen = false, 
-  featureKey = '' 
+export const ModalProvider = ({
+  children,
+  shouldAutoOpen = false,
+  featureKey = ''
 }: ModalProviderProps) => {
   const [open, setOpen] = useState(false);
 
@@ -37,7 +37,7 @@ export const ModalProvider = ({
     if (shouldAutoOpen && featureKey) {
       const checkAndAutoOpen = async () => {
         let currentVersion = "1.0.0";
-        
+
         try {
           // Import and use getVersion similar to your example
           const { getVersion } = await import('@tauri-apps/api/app');
@@ -46,23 +46,23 @@ export const ModalProvider = ({
         } catch (error) {
           console.log("Not in Tauri environment or error getting version", error);
         }
-        
+
         const storageKey = `${currentVersion}.${featureKey}`;
         const hasBeenShown = localStorage.getItem(storageKey) === 'true';
-        
+
         if (!hasBeenShown) {
           // Wait 10 seconds then open the modal
           const timer = setTimeout(() => {
             setOpen(true);
-            
+
             // Mark as shown
             localStorage.setItem(storageKey, 'true');
           }, 3000);
-          
+
           return () => clearTimeout(timer);
         }
       };
-      
+
       checkAndAutoOpen();
     }
   }, [shouldAutoOpen, featureKey]);
@@ -88,10 +88,10 @@ interface ModalProps {
   featureKey?: string;
 }
 
-export function Modal({ 
-  children, 
-  shouldAutoOpen = false, 
-  featureKey = '' 
+export function Modal({
+  children,
+  shouldAutoOpen = false,
+  featureKey = ''
 }: ModalProps) {
   return (
     <ModalProvider shouldAutoOpen={shouldAutoOpen} featureKey={featureKey}>
@@ -111,7 +111,7 @@ export const ModalTrigger = ({
   return (
     <div
       className={cn(
-        "px-4 py-1.5 text-black dark:text-white text-center relative overflow-hidden",
+        "px-4 py-1.5 text-foreground text-center relative overflow-hidden",
         className
       )}
       onClick={() => setOpen(true)}
@@ -164,7 +164,7 @@ export const ModalBody = ({
           <motion.div
             ref={modalRef}
             className={cn(
-              "min-h-[50%] max-h-[90%] md:max-w-[40%] bg-white dark:bg-neutral-950 border border-transparent dark:border-neutral-800 md:rounded-2xl relative z-50 flex flex-col flex-1 overflow-hidden",
+              "min-h-[50%] max-h-[90%] md:max-w-[40%] bg-card border border-border md:rounded-2xl relative z-50 flex flex-col flex-1 overflow-hidden",
               className
             )}
             initial={{
@@ -224,7 +224,7 @@ export const ModalFooter = ({
   return (
     <div
       className={cn(
-        "flex justify-end p-4 bg-gray-100 dark:bg-neutral-900",
+        "flex justify-end p-4 bg-secondary",
         className
       )}
     >
@@ -269,7 +269,7 @@ const CloseIcon = () => {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-black dark:text-white h-4 w-4 group-hover:scale-125 group-hover:rotate-3 transition duration-200"
+        className="text-foreground h-4 w-4 group-hover:scale-125 group-hover:rotate-3 transition duration-200"
       >
         <path stroke="none" d="M0 0h24v24H0z" fill="none" />
         <path d="M18 6l-12 12" />

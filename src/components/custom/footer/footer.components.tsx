@@ -199,14 +199,14 @@ const Footer: React.FC = () => {
 
 
   return (
-    <footer className="absolute w-full bottom-0 text-xs border-t dark:border-gray-300/10 pr-2">
+    <footer className="absolute w-full bottom-0 text-xs border-t border-border pr-2">
       <div className="flex justify-between items-center">
         <div className='flex items-center '>
           <TerminalContainer />
           {showClusterToolStats && <DriftAnalysisContainer />}
           {showClusterToolStats && (
             <div
-              className='backdrop-blur-md cursor-pointer py-1 px-2 text-xs dark:text-gray-300 hover:bg-gray-800/50 flex gap-1.5 items-center'
+              className='backdrop-blur-md cursor-pointer py-1 px-2 text-xs text-foreground hover:bg-accent-hover flex gap-1.5 items-center'
               onClick={() => setIsOpen(true)}
             >
               <ScanSearch className='h-3 w-3' /> <span>Investigation Task</span>
@@ -215,7 +215,7 @@ const Footer: React.FC = () => {
 
         </div>
         <div className="flex">
-          <button className="text-gray-600 backdrop-blur-md px-2 py-1 hover:bg-gray-200/10 hover:dark:bg-gray-200/10">
+          <button className="text-muted-foreground backdrop-blur-md px-2 py-1 hover:bg-accent-hover">
             v{currentVersion}
           </button>
 
@@ -254,9 +254,9 @@ const Footer: React.FC = () => {
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent className="bg-white dark:bg-[#131112] text-gray-900 dark:text-gray-100 space-y-2">
+              <TooltipContent className="bg-card text-foreground space-y-2">
                 <button
-                  className="rounded-[0.3rem] py-1 px-3 bg-gray-200 dark:bg-gray-400/10 hover:dark:bg-gray-300/10 transition-all"
+                  className="rounded-[0.3rem] py-1 px-3 bg-secondary hover:bg-accent-hover transition-all"
                   onClick={updateAvailable ? openUpdateDialog : checkForUpdates}
                 >
                   {updateAvailable ? 'Install update' : 'Check for updates'}
@@ -278,10 +278,10 @@ const Footer: React.FC = () => {
 
       {/* Update Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-black dark:bg-gradient-to-b dark:from-blue-400/10 dark:to-gray-950/50 backdrop-blur-md text-gray-100 border-gray-800">
+        <DialogContent className="sm:max-w-[425px] bg-card backdrop-blur-md text-foreground border-border">
           <DialogHeader>
-            <DialogTitle className="text-black dark:text-gray-200 text-2xl font-[Anton] uppercase flex items-center"><Sparkles className='text-yellow-400 h-5 w-5 mr-2' /> Update Available</DialogTitle>
-            <DialogDescription className="text-black dark:text-gray-400">
+            <DialogTitle className="text-foreground text-2xl font-[Anton] uppercase flex items-center"><Sparkles className='text-yellow-400 h-5 w-5 mr-2' /> Update Available</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               {updateInfo && (
                 <div className="space-y-2 py-2">
                   <p>A new version of Agentkube is available: v{updateInfo.version}</p>
@@ -289,7 +289,7 @@ const Footer: React.FC = () => {
                   {updateInfo.body && (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium mb-1">Release Notes:</h4>
-                      <div className="text-sm bg-gray-200 dark:bg-gray-200/10 p-3 rounded-xl max-h-[200px] overflow-y-auto">
+                      <div className="text-sm bg-secondary p-3 rounded-xl max-h-[200px] overflow-y-auto">
                         {updateInfo.body}
                       </div>
                     </div>
@@ -340,14 +340,14 @@ const Footer: React.FC = () => {
               variant="outline"
               onClick={() => setDialogOpen(false)}
               disabled={installing}
-              className="bg-gray-200 dark:bg-transparent text-gray-800 dark:text-gray-300 hover:bg-gray-300 hover:dark:bg-gray-800"
+              className="bg-secondary text-foreground hover:bg-accent-hover"
             >
               Later
             </Button>
             <Button
               onClick={installUpdate}
               disabled={installing}
-              className="bg-blue-600 dark:bg-gray-200/10 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {installing ? (
                 <>

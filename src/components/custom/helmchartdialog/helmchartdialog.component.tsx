@@ -24,14 +24,14 @@ interface HelmChartDialogProps {
 const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClose }) => {
   const { currentContext } = useCluster();
   const { availableNamespaces } = useNamespace();
-  
+
   const [activeTab, setActiveTab] = useState("details");
   const [chartValues, setChartValues] = useState<string>('# Loading values...');
   const [loading, setLoading] = useState(false);
   const [versions, setVersions] = useState<ChartVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<string>('');
   const [copied, setCopied] = useState(false);
-  
+
   // Installation form state
   const [releaseName, setReleaseName] = useState('');
   const [namespace, setNamespace] = useState('default');
@@ -69,9 +69,9 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
   // Manual status check function
   const handleCheckStatus = async () => {
     if (!releaseName || !currentContext) return;
-    
+
     const targetNamespace = createNamespace ? customNamespace : namespace;
-    
+
     try {
       setLoading(true);
       const status = await getHelmActionStatus(
@@ -189,8 +189,8 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
       }
 
       // Step 2: Prepare values
-      const valuesToUse = useCustomValues && customValues.trim() 
-        ? encodeHelmValues(customValues) 
+      const valuesToUse = useCustomValues && customValues.trim()
+        ? encodeHelmValues(customValues)
         : '';
 
       const installRequest = {
@@ -208,7 +208,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
 
       // Step 3: Install the release
       await installHelmRelease(currentContext.name, installRequest);
-      
+
       console.log('Installation request submitted successfully');
     } catch (error) {
       console.error('Error installing chart:', error);
@@ -254,7 +254,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-5xl bg-gray-100 dark:bg-[#0B0D13]/50 border-gray-200 dark:border-gray-900/10 backdrop-blur-lg">
+      <DialogContent className="sm:max-w-5xl bg-card border-border backdrop-blur-lg">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
             {chart.logo_image_id ? (
@@ -264,37 +264,37 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                 className="w-10 h-10 rounded"
               />
             ) : (
-              <Package className="w-8 h-8 text-gray-500 dark:text-gray-400" />
+              <Package className="w-8 h-8 text-muted-foreground" />
             )}
             <DialogTitle className="text-xl">{chart.display_name || chart.name}</DialogTitle>
           </div>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
+          <DialogDescription className="text-muted-foreground">
             {chart.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex justify-between items-center mt-2">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
+            <div className="flex items-center gap-1 text-amber-500">
               <Star className="h-4 w-4" />
               <span className="text-sm">{chart.stars}</span>
             </div>
             {chart.repository.verified_publisher && (
-              <span className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 text-xs px-2 py-1 rounded-full">
+              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                 Verified Publisher
               </span>
             )}
-            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+            <span className="text-sm text-muted-foreground flex items-center gap-1">
               <Clock className="h-4 w-4" />
               {formatRelativeTime(chart.ts)}
             </span>
           </div>
 
           <Select value={selectedVersion} onValueChange={setSelectedVersion}>
-            <SelectTrigger className="w-36 bg-transparent dark:text-white dark:border-gray-500/40">
+            <SelectTrigger className="w-36 bg-transparent text-foreground border-border">
               <SelectValue placeholder="Version" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
+            <SelectContent className="bg-card backdrop-blur-md text-foreground">
               {versions.map((v) => (
                 <SelectItem key={v.version} value={v.version}>
                   {v.version}
@@ -314,30 +314,30 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
           <TabsContent value="details" className="mt-4 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
-                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
+                <div className="bg-card p-4 rounded-md">
                   <h3 className="text-sm font-medium mb-2">Chart Information</h3>
                   <ul className="space-y-2 text-sm">
                     <li className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Version:</span>
+                      <span className="text-muted-foreground">Version:</span>
                       <span className="font-medium">{chart.version}</span>
                     </li>
                     <li className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">App Version:</span>
+                      <span className="text-muted-foreground">App Version:</span>
                       <span className="font-medium">{chart.app_version}</span>
                     </li>
                     <li className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Repository:</span>
+                      <span className="text-muted-foreground">Repository:</span>
                       <span className="font-medium">{chart.repository.display_name || chart.repository.name}</span>
                     </li>
                     {chart.license && (
                       <li className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">License:</span>
+                        <span className="text-muted-foreground">License:</span>
                         <span className="font-medium">{chart.license}</span>
                       </li>
                     )}
                     {chart.production_organizations_count !== undefined && (
                       <li className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Production Use:</span>
+                        <span className="text-muted-foreground">Production Use:</span>
                         <span className="font-medium">{chart.production_organizations_count} organizations</span>
                       </li>
                     )}
@@ -345,7 +345,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                 </div>
 
                 {chart.security_report_summary && (
-                  <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
+                  <div className="bg-card p-4 rounded-md">
                     <h3 className="text-sm font-medium mb-2 flex items-center gap-1">
                       <Shield className="h-4 w-4" />
                       Security Report
@@ -353,13 +353,12 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                     <div className="grid grid-cols-5 gap-2 mt-3">
                       {['critical', 'high', 'medium', 'low', 'unknown'].map((level) => (
                         <div key={level} className="flex flex-col items-center">
-                          <span className={`text-lg font-bold ${
-                            level === 'critical' && chart.security_report_summary!.critical > 0 ? 'text-red-600' :
+                          <span className={`text-lg font-bold ${level === 'critical' && chart.security_report_summary!.critical > 0 ? 'text-red-600' :
                             level === 'high' && chart.security_report_summary!.high > 0 ? 'text-orange-500' :
-                            level === 'medium' && chart.security_report_summary!.medium > 0 ? 'text-yellow-600' :
-                            level === 'low' && chart.security_report_summary!.low > 0 ? 'text-blue-500' :
-                            'text-gray-500'
-                          }`}>
+                              level === 'medium' && chart.security_report_summary!.medium > 0 ? 'text-yellow-600' :
+                                level === 'low' && chart.security_report_summary!.low > 0 ? 'text-blue-500' :
+                                  'text-gray-500'
+                            }`}>
                             {chart.security_report_summary![level as keyof typeof chart.security_report_summary]}
                           </span>
                           <span className="text-xs text-gray-500 capitalize">{level}</span>
@@ -371,10 +370,10 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
               </div>
 
               <div className="space-y-4">
-                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
+                <div className="bg-card p-4 rounded-md">
                   <h3 className="text-sm font-medium mb-2">Installation</h3>
-                  <div className="mt-3 bg-gray-50 dark:bg-gray-900/50 p-3 rounded border border-gray-200 dark:border-gray-700">
-                    <code className="text-sm text-gray-700 dark:text-gray-300 block whitespace-pre overflow-x-auto">
+                  <div className="mt-3 bg-secondary p-3 rounded border border-border">
+                    <code className="text-sm text-foreground block whitespace-pre overflow-x-auto">
                       helm repo add {chart.repository.name} {chart.repository.url}
                       <br />
                       helm install {chart.name} {chart.repository.name}/{chart.name} --version {selectedVersion}
@@ -382,21 +381,21 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-md">
+                <div className="bg-card p-4 rounded-md">
                   <h3 className="text-sm font-medium mb-2">Recent Versions</h3>
                   {versions.length > 1 ? (
                     <ul className="space-y-2 text-sm max-h-48 overflow-y-auto scrollbar-thin">
                       {versions.slice(0, 10).map((v) => (
-                        <li key={v.version} className={`flex justify-between ${v.version === selectedVersion ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}`}>
+                        <li key={v.version} className={`flex justify-between ${v.version === selectedVersion ? 'text-blue-600 font-medium' : ''}`}>
                           <span>{v.version}</span>
-                          <span className="text-gray-500 dark:text-gray-400 text-xs">
+                          <span className="text-muted-foreground text-xs">
                             {new Date(v.publishedAt).toLocaleDateString()}
                           </span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 p-2">
+                    <div className="text-sm text-muted-foreground p-2">
                       Currently showing version {chart.version}.
                     </div>
                   )}
@@ -435,9 +434,9 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                 </Button>
               </div>
 
-              <div className="h-96 mt-2 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
+              <div className="h-96 mt-2 rounded-md overflow-hidden border border-border">
                 {loading ? (
-                  <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
+                  <div className="flex items-center justify-center h-full bg-secondary">
                     <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
                   </div>
                 ) : (
@@ -462,16 +461,16 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
               </div>
             </div>
 
-            <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center">
+            <div className="mt-4 text-sm text-muted-foreground flex items-center">
               <FileCode className="h-4 w-4 mr-1" />
               These are the default values for the {chart.name} chart (version {selectedVersion}).
             </div>
           </TabsContent>
 
           <TabsContent value="install" className="mt-4 space-y-6">
-            <div className="bg-white dark:bg-transparent p-6 rounded-md space-y-4">
+            <div className="bg-card p-6 rounded-md space-y-4">
               <h3 className="text-lg font-medium">Installation Configuration</h3>
-              
+
               {installStatus === 'installing' && (
                 <Alert>
                   <Loader2 className="flex items-center h-4 w-4 animate-spin" />
@@ -491,20 +490,20 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                   </div>
                 </Alert>
               )}
-              
+
               {installStatus === 'success' && (
-                <Alert className="flex items-center border-green-200 bg-green-50 dark:bg-green-900/20">
+                <Alert className="flex items-center border-green-200 bg-green-50">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  <h1 className="text-green-800 dark:text-green-300">
+                  <h1 className="text-green-800">
                     Successfully installed {releaseName} in namespace {createNamespace ? customNamespace : namespace}!
                   </h1>
                 </Alert>
               )}
-              
+
               {installStatus === 'error' && (
-                <Alert className="flex items-center border-red-200 bg-red-50 dark:bg-red-900/20">
+                <Alert className="flex items-center border-red-200 bg-red-50">
                   <AlertCircle className="h-4 w-4 text-red-600" />
-                  <h1 className="text-red-800 dark:text-red-300">
+                  <h1 className="text-red-800">
                     Installation failed: {installError}
                   </h1>
                 </Alert>
@@ -537,7 +536,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                       <SelectTrigger>
                         <SelectValue placeholder="Select namespace" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
+                      <SelectContent className="bg-card backdrop-blur-md text-foreground">
                         {availableNamespaces.map((ns) => (
                           <SelectItem key={ns} value={ns}>
                             {ns}
@@ -577,7 +576,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
                 {useCustomValues && (
                   <div className="space-y-2">
                     <Label htmlFor="custom-values">Custom Values (YAML)</Label>
-                    <div className="h-64 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div className="h-64 rounded-md overflow-hidden border border-border">
                       <Editor
                         height="100%"
                         width="100%"
@@ -628,7 +627,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
               Install
             </Button>
           )}
-          
+
           <Button
             onClick={() => openExternalUrl(`https://artifacthub.io/packages/helm/${chart.repository.name}/${chart.name}`)}
             className="flex items-center"
@@ -637,7 +636,7 @@ const HelmChartDialog: React.FC<HelmChartDialogProps> = ({ chart, isOpen, onClos
             <ExternalLink className="h-4 w-4 mr-2" />
             View on Artifact Hub
           </Button>
-          
+
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

@@ -540,7 +540,7 @@ const AIResourceEditor: React.FC = () => {
                   <Button
                     variant={showSidebar ? "default" : "outline"}
                     onClick={toggleAssist}
-                    className="relative text-black dark:text-gray-300 bg-gray-50 hover:bg-gray-200 dark:hover:bg-gray-800"
+                  // className="relative bg-primary"
                   >
                     <Wand2 className="h-4 w-4 mr-2" /> Assist
                   </Button>

@@ -44,10 +44,10 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
     setLoading(true);
     try {
       const parsedConfig = JSON.parse(jsonConfig);
-      
+
       // Get current MCP config
       const currentMcpConfig = await getMcpConfig();
-      
+
       // Merge the new server configuration
       const updatedMcpConfig = {
         ...currentMcpConfig,
@@ -56,16 +56,16 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
           ...parsedConfig.mcpServers
         }
       };
-      
+
       // Update the MCP configuration
       await updateMcpConfig(updatedMcpConfig);
-      
+
       toast({
         title: "MCP Configuration Added",
         description: "Manual MCP configuration has been successfully saved.",
         variant: "success"
       });
-      
+
       onSave(updatedMcpConfig);
     } catch (error) {
       console.error('Error saving MCP config:', error);
@@ -100,20 +100,20 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 px-16 top-5 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md border dark:border-gray-700/30 rounded-lg w-[600px] max-w-full mx-4 max-h-[90vh] overflow-hidden">
+      <div className="bg-card backdrop-blur-md border border-border rounded-lg w-[600px] max-w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 dark:text-white rounded-md flex items-center justify-center">
+            <div className="w-8 h-8 text-foreground rounded-md flex items-center justify-center">
               <SiModelcontextprotocol />
             </div>
             <div className='flex items-center space-x-2'>
-              <h3 className="text-lg font-semibold dark:text-white">Add Manually</h3>
+              <h3 className="text-lg font-semibold text-foreground">Add Manually</h3>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -122,7 +122,7 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
         {/* Content */}
         <div className="px-4">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Configure your MCP server manually by editing the JSON below.
             </p>
             <Button
@@ -135,14 +135,14 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
               <ArrowUpRight className="w-3 h-3" />
             </Button>
           </div>
-          
+
           <div className="relative">
             <div className="absolute top-2 right-2 z-10">
-              <span className="bg-gray-100 dark:bg-gray-700/50 backdrop-blur-md text-xs px-2 py-1 rounded text-gray-600 dark:text-gray-300">
+              <span className="bg-secondary backdrop-blur-md text-xs px-2 py-1 rounded text-foreground">
                 JSON Configuration
               </span>
             </div>
-            <div className="border dark:border-gray-600 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <MonacoEditor
                 height="280px"
                 defaultLanguage="json"
@@ -170,20 +170,20 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
             <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center">
               <span className="text-white text-xs">i</span>
             </div>
             <span>Manual Configuration</span>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={onClose} className="dark:border-gray-600">
+            <Button variant="outline" onClick={onClose} className="border-border">
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleSave}
               disabled={loading}
-              className="dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {loading ? 'Adding...' : 'Save Configuration'}
             </Button>

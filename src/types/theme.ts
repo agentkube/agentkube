@@ -1,223 +1,151 @@
+// Simplified Theme System - Following Themer Approach
+// Colors are ONLY defined in globals.css, not here!
+
 import wallLight from '@/assets/background/sky.jpg';
 import wall from '@/assets/background/wall.jpg';
 import wall3 from '@/assets/background/wall3.jpg';
 import wall4 from '@/assets/background/wall4.jpg';
 import wallpaper from '@/assets/background/wallpaper.avif';
 
+// ============================================
+// THEME TYPES (Simplified)
+// ============================================
+
+export type ThemeMode = 'light' | 'dark' | 'system'
+export type ThemePattern =
+  | 'default'
+  | 'warm'
+  | 'brutalist'
+  | 'modern-purple'
+  | 'vercel'
+  | 'perpetuity'
+  | 'tangerine'
+  | 'supabase'
+  | 'bubblegum'
+  | 'caffiene'
+  | 'doom64'
+  | 'mono'
+  | 'sage-garden'
+  | 'claude'
+  | 'darkmatter'
+  | 'notebook'
+
+// Just metadata for the UI - no color definitions
+export interface ThemeInfo {
+  id: ThemePattern
+  name: string
+  description: string
+  previewColor: string // Just for UI preview, not actual theme colors
+}
+
+export const AVAILABLE_THEMES: ThemeInfo[] = [
+  {
+    id: 'default',
+    name: 'Default',
+    description: 'Clean and contemporary',
+    previewColor: '#232531'
+  },
+  {
+    id: 'modern-purple',
+    name: 'Modern Purple',
+    description: 'Vibrant purple accents',
+    previewColor: '#7033ff'
+  },
+  {
+    id: 'warm',
+    name: 'Warm Earth',
+    description: 'Cozy earth tones',
+    previewColor: '#644a40'
+  },
+  {
+    id: 'brutalist',
+    name: 'Neo Brutalism',
+    description: 'Bold and sharp',
+    previewColor: '#ff3333'
+  },
+  {
+    id: 'vercel',
+    name: 'Vercel',
+    description: 'Minimalist black & white',
+    previewColor: '#000000'
+  },
+  {
+    id: 'perpetuity',
+    name: 'Perpetuity',
+    description: 'Teal monospace retro',
+    previewColor: '#06858e'
+  },
+  {
+    id: 'tangerine',
+    name: 'Tangerine',
+    description: 'Warm orange and blue',
+    previewColor: '#e05d38'
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase',
+    description: 'Fresh green aesthetic',
+    previewColor: '#72e3ad'
+  },
+  {
+    id: 'bubblegum',
+    name: 'Bubblegum',
+    description: 'Playful pink and cyan',
+    previewColor: '#d04f99'
+  },
+  {
+    id: 'caffiene',
+    name: 'Caffiene',
+    description: 'Coffee-inspired browns',
+    previewColor: '#644a40'
+  },
+  {
+    id: 'doom64',
+    name: 'Doom 64',
+    description: 'Retro game aesthetic',
+    previewColor: '#b71c1c'
+  },
+  {
+    id: 'mono',
+    name: 'Mono',
+    description: 'Minimalist grayscale',
+    previewColor: '#737373'
+  },
+  {
+    id: 'sage-garden',
+    name: 'Sage Garden',
+    description: 'Natural green tones',
+    previewColor: '#7c9082'
+  },
+  {
+    id: 'claude',
+    name: 'Claude',
+    description: 'Warm earthy aesthetic',
+    previewColor: '#d66a3c'
+  },
+  {
+    id: 'darkmatter',
+    name: 'Dark Matter',
+    description: 'Deep space theme',
+    previewColor: '#d66a40'
+  },
+  {
+    id: 'notebook',
+    name: 'Notebook',
+    description: 'Paper-like aesthetic',
+    previewColor: '#8a7968'
+  },
+]
+
+// ============================================
+// WALLPAPER TYPES (Separate from theme)
+// ============================================
+
 export interface ThemeBackground {
   type: 'color' | 'gradient' | 'image' | 'none';
   value: string;
   name: string;
 }
-
-export interface CustomTheme {
-  id: string;
-  name: string;
-  baseMode: 'light' | 'dark';
-  background: ThemeBackground;
-  colors: {
-    foreground: string;
-    card: string;
-    cardForeground: string;
-    popover: string;
-    popoverForeground: string;
-    primary: string;
-    primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
-    muted: string;
-    mutedForeground: string;
-    accent: string;
-    accentForeground: string;
-    destructive: string;
-    destructiveForeground: string;
-    border: string;
-    input: string;
-    ring: string;
-    drawerGradient: string;
-  };
-  fontFamily?: string;
-}
-
-export interface ThemeConfig {
-  baseMode: 'light' | 'dark' | 'system';
-  customTheme?: CustomTheme;
-  wallpaper?: ThemeBackground;
-  allowCustomWallpaper: boolean;
-}
-
-export interface AppearanceSettings {
-  fontFamily: string;
-  fontSize: number;
-  colorMode: string;
-  themeConfig: ThemeConfig;
-  customThemes: CustomTheme[];
-}
-
-export const DEFAULT_THEMES: CustomTheme[] = [
-  {
-    id: 'default-light',
-    name: 'Default Light',
-    baseMode: 'light',
-    background: { type: 'color', value: '#ffffff', name: 'White' },
-    colors: {
-      foreground: '224 71.4% 4.1%',
-      card: '0 0% 100%',
-      cardForeground: '224 71.4% 4.1%',
-      popover: '0 0% 100%',
-      popoverForeground: '224 71.4% 4.1%',
-      primary: '220.9 39.3% 11%',
-      primaryForeground: '210 20% 98%',
-      secondary: '220 14.3% 95.9%',
-      secondaryForeground: '220.9 39.3% 11%',
-      muted: '220 14.3% 95.9%',
-      mutedForeground: '220 8.9% 46.1%',
-      accent: '220 14.3% 95.9%',
-      accentForeground: '220.9 39.3% 11%',
-      destructive: '0 84.2% 60.2%',
-      destructiveForeground: '210 20% 98%',
-      border: '220 13% 91%',
-      input: '220 13% 91%',
-      ring: '224 71.4% 4.1%',
-      drawerGradient: 'none',
-    },
-  },
-  {
-    id: 'default-dark',
-    name: 'Default Dark',
-    baseMode: 'dark',
-    background: { type: 'gradient', value: 'linear-gradient(to bottom right, #232531, #000000)', name: 'Dark Gradient' },
-    colors: {
-      foreground: '210 20% 98%',
-      card: '224 71.4% 4.1%',
-      cardForeground: '210 20% 98%',
-      popover: '224 71.4% 4.1%',
-      popoverForeground: '210 20% 98%',
-      primary: '210 20% 98%',
-      primaryForeground: '220.9 39.3% 11%',
-      secondary: '215 27.9% 16.9%',
-      secondaryForeground: '210 20% 98%',
-      muted: '215 27.9% 16.9%',
-      mutedForeground: '217.9 10.6% 64.9%',
-      accent: '215 27.9% 16.9%',
-      accentForeground: '210 20% 98%',
-      destructive: '0 62.8% 30.6%',
-      destructiveForeground: '210 20% 98%',
-      border: '215 27.9% 16.9%',
-      input: '215 27.9% 16.9%',
-      ring: '216 12.2% 83.9%',
-      drawerGradient: 'linear-gradient(to bottom right, #232531, #000000)',
-    },
-  },
-  {
-    id: 'notion-light',
-    name: 'Notion Light',
-    baseMode: 'light',
-    background: { type: 'color', value: '#ffffff', name: 'White' },
-    colors: {
-      foreground: '#37352f',
-      card: '#ffffff',
-      cardForeground: '#37352f',
-      popover: '#ffffff',
-      popoverForeground: '#37352f',
-      primary: '#37352f',
-      primaryForeground: '#ffffff',
-      secondary: '#f7f6f3',
-      secondaryForeground: '#37352f',
-      muted: '#f7f6f3',
-      mutedForeground: '#787774',
-      accent: '#f1f1ef',
-      accentForeground: '#37352f',
-      destructive: '#eb5757',
-      destructiveForeground: '#ffffff',
-      border: '#e9e9e7',
-      input: '#f7f6f3',
-      ring: '#37352f',
-      drawerGradient: '#ffffff',
-    }
-  },
-  {
-    id: 'notion-dark',
-    name: 'Notion Dark',
-    baseMode: 'dark',
-    background: { type: 'color', value: '#191919', name: 'Dark Gray' },
-    colors: {
-      foreground: '210 20% 98%',
-      card: '#2f3437',
-      cardForeground: '#ffffff',
-      popover: '#2f3437',
-      popoverForeground: '#ffffff',
-      primary: '#ffffff',
-      primaryForeground: '#191919',
-      secondary: '#373737',
-      secondaryForeground: '#ffffff',
-      muted: '#373737',
-      mutedForeground: '#9b9a97',
-      accent: '#373737',
-      accentForeground: '#ffffff',
-      destructive: '#eb5757',
-      destructiveForeground: '#ffffff',
-      border: '#373737',
-      input: '#373737',
-      ring: '#ffffff',
-      drawerGradient: '#191919',
-    },
-  },
-  {
-    id: 'dark-emerald',
-    name: 'Dark Emerald',
-    baseMode: 'dark',
-    background: { type: 'gradient', value: 'linear-gradient(to bottom right, #62bca630, #182525)', name: 'Emerald Gradient' },
-    colors: {
-      foreground: '210 20% 98%',
-      card: '160 50% 15%',
-      cardForeground: '210 20% 98%',
-      popover: '160 50% 15%',
-      popoverForeground: '210 20% 98%',
-      primary: '210 20% 98%',
-      primaryForeground: '160 84% 39%',
-      secondary: '160 60% 20%',
-      secondaryForeground: '210 20% 98%',
-      muted: '160 60% 20%',
-      mutedForeground: '217.9 10.6% 64.9%',
-      accent: '160 60% 20%',
-      accentForeground: '210 20% 98%',
-      destructive: '0 62.8% 30.6%',
-      destructiveForeground: '210 20% 98%',
-      border: '160 60% 20%',
-      input: '160 60% 20%',
-      ring: '160 84% 39%',
-      drawerGradient: 'linear-gradient(to bottom right, #064e3b, #042f2e)',
-    },
-  },
-  {
-    id: 'dark-violet',
-    name: 'Dark Violet',
-    baseMode: 'dark',
-    background: { type: 'gradient', value: 'linear-gradient(to bottom right, #4b238668, #160d26)', name: 'Violet Gradient' },
-    colors: {
-      foreground: '210 20% 98%',
-      card: '270 50% 15%',
-      cardForeground: '210 20% 98%',
-      popover: '270 50% 15%',
-      popoverForeground: '210 20% 98%',
-      primary: '210 20% 98%',
-      primaryForeground: '270 84% 39%',
-      secondary: '270 60% 20%',
-      secondaryForeground: '210 20% 98%',
-      muted: '270 60% 20%',
-      mutedForeground: '217.9 10.6% 64.9%',
-      accent: '270 60% 20%',
-      accentForeground: '210 20% 98%',
-      destructive: '0 62.8% 30.6%',
-      destructiveForeground: '210 20% 98%',
-      border: '270 60% 20%',
-      input: '270 60% 20%',
-      ring: '270 84% 39%',
-      drawerGradient: 'linear-gradient(to bottom right, #4c1d95, #0a0611)',
-    },
-  },
-];
 
 export const DEFAULT_WALLPAPERS: ThemeBackground[] = [
   { type: 'none', value: 'none', name: 'None' },
@@ -227,3 +155,68 @@ export const DEFAULT_WALLPAPERS: ThemeBackground[] = [
   { type: 'image', value: wall4, name: 'Mountain' },
   { type: 'image', value: wallpaper, name: 'Wallpaper' },
 ];
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+// Get theme class name for a pattern
+export function getThemeClassName(pattern: ThemePattern): string {
+  if (pattern === 'default') return ''
+  return `theme-${pattern}`
+}
+
+// Get all theme class names for removal
+export function getAllThemeClassNames(): string[] {
+  return [
+    'theme-warm',
+    'theme-brutalist',
+    'theme-modern-purple',
+    'theme-vercel',
+    'theme-perpetuity',
+    'theme-tangerine',
+    'theme-supabase',
+    'theme-bubblegum',
+    'theme-caffiene',
+    'theme-doom64',
+    'theme-mono',
+    'theme-sage-garden',
+    'theme-claude',
+    'theme-darkmatter',
+    'theme-notebook',
+  ]
+}
+
+// Apply theme to document
+export function applyThemeToDocument(pattern: ThemePattern, mode: ThemeMode) {
+  const root = document.documentElement
+
+  // Remove all theme-related classes
+  root.classList.remove('light', 'dark', ...getAllThemeClassNames())
+
+  // Apply mode (light/dark/system)
+  if (mode === 'system') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    root.classList.add(prefersDark ? 'dark' : 'light')
+  } else {
+    root.classList.add(mode)
+  }
+
+  // Apply theme pattern if not default
+  const patternClass = getThemeClassName(pattern)
+  if (patternClass) {
+    root.classList.add(patternClass)
+  }
+}
+
+// ============================================
+// APPEARANCE SETTINGS (For API compatibility)
+// ============================================
+
+export interface AppearanceSettings {
+  fontFamily: string;
+  fontSize: number;
+  colorMode: string; // Can be: 'light', 'dark', 'system', or a ThemePattern
+  themePattern?: ThemePattern;
+  wallpaper?: ThemeBackground;
+}

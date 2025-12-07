@@ -51,18 +51,18 @@ const RenameContextDialog: React.FC<RenameContextDialogProps> = ({
       setValidationError('Context name cannot be empty');
       return false;
     }
-    
+
     if (name.trim() === contextToRename) {
       setValidationError('New name must be different from the current name');
       return false;
     }
-    
+
     // Basic validation for kubernetes context names
     if (!/^[a-zA-Z0-9._-]+$/.test(name.trim())) {
       setValidationError('Context name can only contain letters, numbers, dots, hyphens, and underscores');
       return false;
     }
-    
+
     setValidationError('');
     return true;
   };
@@ -71,7 +71,7 @@ const RenameContextDialog: React.FC<RenameContextDialogProps> = ({
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setNewName(value);
-    
+
     // Clear validation error when user starts typing
     if (validationError) {
       setValidationError('');
@@ -81,25 +81,25 @@ const RenameContextDialog: React.FC<RenameContextDialogProps> = ({
   // Handle form submission
   const handleRename = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!contextToRename || !validateContextName(newName)) {
       return;
     }
 
     const trimmedNewName = newName.trim();
     setIsRenaming(true);
-    
+
     try {
       const result = await renameContext(contextToRename, trimmedNewName);
-      
+
       toast({
         title: "Success",
         description: result.message || `Context renamed from "${contextToRename}" to "${trimmedNewName}"`
       });
-      
+
       // Notify parent component of successful rename
       onRenameSuccess(contextToRename, trimmedNewName);
-      
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
@@ -115,7 +115,7 @@ const RenameContextDialog: React.FC<RenameContextDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md">
+      <DialogContent className="sm:max-w-[425px] bg-card backdrop-blur-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit3 size={20} />
@@ -125,9 +125,9 @@ const RenameContextDialog: React.FC<RenameContextDialogProps> = ({
             Rename the context "{contextToRename}" to a new name.
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleRename}>
-          <div className="grid gap-4 py-4">          
+          <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="new-name">New name</Label>
               <Input
@@ -149,17 +149,17 @@ const RenameContextDialog: React.FC<RenameContextDialogProps> = ({
               )}
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button 
+            <Button
               type="button"
-              variant="outline" 
-              onClick={onCancel} 
+              variant="outline"
+              onClick={onCancel}
               disabled={isRenaming}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               type="submit"
               disabled={isRenaming || !newName.trim() || newName.trim() === contextToRename || !!validationError}
             >

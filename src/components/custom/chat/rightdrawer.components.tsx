@@ -656,7 +656,7 @@ const RightDrawer: React.FC = () => {
           <>
             {/* Backdrop with animation */}
             <motion.div
-              className="fixed inset-0 bg-black/20 dark:bg-gray-900/40 z-40"
+              className="fixed inset-0 bg-black/20 z-40"
               initial="hidden"
               animate="visible"
               exit="exit"
@@ -666,21 +666,21 @@ const RightDrawer: React.FC = () => {
 
             {/* Drawer with smooth animation */}
             <motion.div
-              className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg  shadow-lg z-40"
+              className="fixed top-0 right-0 h-full w-1/2 bg-drawer/60 backdrop-blur-lg shadow-lg z-40"
               initial="hidden"
               animate="visible"
               exit="exit"
               variants={drawerVariants}
             >
               <div className="flex flex-col h-full">
-                <div className="px-2 py-2 dark:bg-gray-800/20 flex items-center justify-between">
+                <div className="px-2 py-2 bg-muted/20 flex items-center justify-between">
                   <div className='flex items-center space-x-2'>
                     {showChatSettings && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowChatSettings(false)}
-                        className="p-1 text-gray-700 dark:text-gray-300"
+                        className="p-1 text-foreground"
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Back to Chat
@@ -689,15 +689,15 @@ const RightDrawer: React.FC = () => {
                     {!showChatSettings && (
                       <>
                         <div>
-                          <div className='dark:bg-gray-700/20 p-1 rounded-md'>
+                          <div className='bg-muted/20 p-1 rounded-md'>
                             <AgentkubeBot className='text-green-400 h-5 w-5' />
                           </div>
                         </div>
-                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200"><span className='text-gray-600 dark:text-gray-400/80'>Assistant</span> Talk to Cluster</h3>
+                        <h3 className="font-medium text-sm text-foreground"><span className='text-muted-foreground'>Assistant</span> Talk to Cluster</h3>
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-gray-800 dark:text-gray-500">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     {!showChatSettings && (
                       <>
                         <Tooltip>
@@ -751,9 +751,9 @@ const RightDrawer: React.FC = () => {
 
     [&::-webkit-scrollbar]:w-1.5
     [&::-webkit-scrollbar-track]:bg-transparent
-    [&::-webkit-scrollbar-thumb]:bg-gray-700/30
+    [&::-webkit-scrollbar-thumb]:bg-border
     [&::-webkit-scrollbar-thumb]:rounded-full
-    [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+    [&::-webkit-scrollbar-thumb:hover]:bg-border/70
     overflow-auto transition-all duration-300 ${isCollapsed ? 'max-h-0' : 'max-h-full'}`}
                 >
                   {!showChatSettings ? (
@@ -777,7 +777,7 @@ const RightDrawer: React.FC = () => {
                 {!showChatSettings && <UpgradeToProContainer />}
 
                 {!showChatSettings && (
-                  <div className="border-t dark:border-gray-700/40 px-3 py-4 mt-auto relative">
+                  <div className="border-t border-border px-3 py-4 mt-auto relative">
                     {/* Stack container for prompts - grows upward from bottom */}
                     {(showTodoProgress && persistedTodos.length > 0 || pendingToolApproval && currentTraceId) && (
                       <div className="absolute bottom-full left-0 right-0 mb-2 px-3 z-50 flex flex-col-reverse gap-2">
@@ -808,7 +808,7 @@ const RightDrawer: React.FC = () => {
                         {structuredContent.map((item, index) => (
                           <div
                             key={index}
-                            className="flex items-center max-w-52 text-xs text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-700/30 rounded px-1 py-2"
+                            className="flex items-center max-w-52 text-xs text-foreground bg-secondary border border-border rounded px-1 py-2"
                           >
                             <div
                               className="flex items-center cursor-pointer truncate max-w-44"
@@ -881,7 +881,7 @@ const RightDrawer: React.FC = () => {
                         {contextFiles.map(file => (
                           <div
                             key={file.resourceName}
-                            className="flex items-center text-xs bg-gray-100 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-800 rounded px-2 py-0.5"
+                            className="flex items-center text-xs bg-secondary border border-border rounded px-2 py-0.5"
                           >
                             <div
                               className="flex items-center cursor-pointer"
@@ -919,7 +919,7 @@ const RightDrawer: React.FC = () => {
                         onSubmit={isLoading ? undefined : handleSubmit}
                         placeholder={isLoading ? "Waiting for response..." : "Ask anything (⌘L)"}
                         disabled={false}
-                        className="dark:border-transparent"
+                        className="border-transparent"
                         autoFocus={true}
                         mentionItems={mentionData}
                         onMentionSelect={handleMentionSelect}
@@ -938,7 +938,7 @@ const RightDrawer: React.FC = () => {
                                     description: "Add Image feature is yet to be implemented",
                                   });
                                 }}
-                                className="flex items-center gap-1.5 px-2 py-1 h-auto text-xs text-gray-700 dark:text-gray-300 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/40 rounded-md"
+                                className="flex items-center gap-1.5 px-2 py-1 h-auto text-xs text-muted-foreground hover:text-foreground hover:bg-accent-hover rounded-md"
                               >
                                 <Image className="h-3.5 w-3.5" />
                               </button>
@@ -959,7 +959,7 @@ const RightDrawer: React.FC = () => {
                                     description: "Browser feature is yet to be implemented",
                                   });
                                 }}
-                                className="flex items-center gap-1.5 px-2 py-1 h-auto text-xs text-gray-700 dark:text-gray-300 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/40 rounded-md"
+                                className="flex items-center gap-1.5 px-2 py-1 h-auto text-xs text-muted-foreground hover:text-foreground hover:bg-accent-hover rounded-md"
                               >
                                 <AppWindow className="h-4 w-4" />
                               </button>
@@ -981,7 +981,7 @@ const RightDrawer: React.FC = () => {
                           <Button
                             variant="outline"
                             onClick={handleStop}
-                            className="rounded-md text-white dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-800"
+                            className="rounded-md text-primary-foreground bg-primary hover:bg-primary/90"
                           >
                             <Pause className='h-1 w-1 rounded-md' />
                           </Button>
@@ -989,7 +989,7 @@ const RightDrawer: React.FC = () => {
                           <Button
                             onClick={handleSubmit}
                             disabled={!inputValue.trim()}
-                            className="p-3 h-2 w-2 rounded-full dark:text-black text-white bg-black dark:bg-white hover:dark:bg-gray-300"
+                            className="p-3 h-2 w-2 rounded-full text-primary-foreground bg-primary hover:bg-primary/90"
                           >
                             <ArrowUp className='h-2 w-2' />
                           </Button>

@@ -60,12 +60,12 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 			return validateYamlContent(content);
 		}
 	};
-	
+
 	const validateParsedConfig = (config: any) => {
 		const hasApiVersion = config.apiVersion;
 		const hasContexts = config.contexts && Array.isArray(config.contexts);
 		const hasClusters = config.clusters && Array.isArray(config.clusters);
-	
+
 		if (!hasApiVersion) {
 			return {
 				isValid: false,
@@ -74,7 +74,7 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 				message: 'Missing apiVersion field'
 			};
 		}
-	
+
 		return {
 			isValid: true,
 			contexts: config.contexts?.map((ctx: any) => ctx.name) || [],
@@ -82,12 +82,12 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 			message: 'Valid kubeconfig'
 		};
 	};
-	
+
 	const validateYamlContent = (content: string) => {
 		const hasApiVersion = content.includes('apiVersion:');
 		const hasContexts = content.includes('contexts:');
 		const hasClusters = content.includes('clusters:');
-	
+
 		if (!hasApiVersion) {
 			return {
 				isValid: false,
@@ -96,7 +96,7 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 				message: 'Missing apiVersion field'
 			};
 		}
-	
+
 		if (!hasContexts && !hasClusters) {
 			return {
 				isValid: false,
@@ -105,13 +105,13 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 				message: 'No contexts or clusters found'
 			};
 		}
-	
+
 		// Extract context names
 		const contextMatches = content.match(/- name:\s*([^\n\r]+)/g) || [];
 		const contexts = contextMatches
 			.map(match => match.replace('- name:', '').trim())
 			.filter(name => name);
-	
+
 		return {
 			isValid: true,
 			contexts: contexts.slice(0, 5),
@@ -123,9 +123,9 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 	// Custom file handler that validates kubeconfig files
 	const handleFileUpload = async (uploadedFiles: any[]) => {
 		setIsProcessing(true);
-	
+
 		const validatedFiles: KubeConfigFile[] = [];
-	
+
 		for (const uploadedFile of uploadedFiles) {
 			if (uploadedFile.file && uploadedFile.progress === 100) {
 				// Filter for kubeconfig-like files
@@ -138,13 +138,13 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 					uploadedFile.name.endsWith('.yml') ||
 					uploadedFile.name.endsWith('.json') ||
 					!uploadedFile.name.includes('.'); // Files without extension (common for kubeconfig)
-	
+
 				if (!isConfigFile) {
 					continue; // Skip non-config files
 				}
-	
+
 				const validation = await validateKubeConfig(uploadedFile.file);
-				
+
 				// Check for duplicate contexts
 				const duplicateContexts = checkForDuplicateContexts(validation.contexts);
 				let validationMessage = validation.message;
@@ -170,14 +170,14 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 				});
 			}
 		}
-	
+
 		setProcessedFiles(validatedFiles);
 		setIsProcessing(false);
 	};
 
 	const handleAddConfigs = async () => {
 		const validFiles = processedFiles.filter(f => f.isValid);
-	
+
 		if (validFiles.length === 0) {
 			toast({
 				title: "No valid files",
@@ -186,11 +186,11 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 			});
 			return;
 		}
-	
+
 		try {
 			const results = [];
 			const uploadedPaths = []; // Add this line
-	
+
 			for (const file of validFiles) {
 				if (file.file) {
 					if (file.isFromText) {
@@ -217,16 +217,16 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 							isFromText: file.isFromText,
 							hasFile: !!file.file
 						});
-						
+
 						const sourceName = file.primaryContext || file.name.replace(/\.(yaml|yml|json)$/, '');
-						
+
 						const result = await uploadKubeconfigFile(
 							file.file,
 							sourceName,
 							0 // No expiry for now
 						);
 
-						if(result.success === false) {
+						if (result.success === false) {
 							toast({
 								title: "Error uploading files",
 								description: result.message,
@@ -244,18 +244,18 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 					}
 				}
 			}
-	
+
 			const successfulUploads = results.filter(r => r.success);
 			const totalContexts = successfulUploads.reduce((acc, r) => acc + (r.contextsAdded?.length || 0), 0);
-	
+
 			toast({
 				title: "Kubeconfig files uploaded",
 				description: `Successfully added ${totalContexts} context(s) from ${successfulUploads.length} file(s).`,
 			});
-	
+
 			// Trigger refresh of contexts with uploaded file paths
 			onFilesAdded(uploadedPaths); // Change this line
-	
+
 			// Reset and close dialog
 			setProcessedFiles([]);
 			onOpenChange(false);

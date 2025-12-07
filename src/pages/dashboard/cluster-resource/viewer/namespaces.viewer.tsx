@@ -160,7 +160,7 @@ const NamespaceViewer: React.FC = () => {
       });
       return;
     }
-    
+
     setShowDeleteDialog(true);
   };
 
@@ -627,7 +627,7 @@ const NamespaceViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="resources" className="space-y-6">
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+            <div className="rounded-lg border border-accent/40 dark:border-accent/40 p-4">
               <h2 className="text-lg font-medium mb-4">Resources in {namespaceData.metadata.name}</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

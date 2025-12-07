@@ -148,7 +148,7 @@ const AgentModelMap = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Configure which model each agent should use. Set to "Default" to use openai/gpt-4o-mini.
           </p>
         </div>
@@ -156,10 +156,10 @@ const AgentModelMap = () => {
 
       <div className="space-y-4">
         {AGENTS.map((agent) => (
-          <div key={agent.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700/50 rounded-lg  bg-transparent dark:bg-transparent">
+          <div key={agent.id} className="flex items-center justify-between p-4 border border-border rounded-lg bg-transparent">
             <div className="flex-1">
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white">{agent.name}</h4>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{agent.description}</p>
+              <h4 className="text-sm font-medium text-foreground">{agent.name}</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">{agent.description}</p>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -174,23 +174,23 @@ const AgentModelMap = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="min-w-[280px] justify-between bg-transparent border border-gray-300 dark:border-gray-700/60 text-gray-900 dark:text-white"
+                    className="min-w-[280px] justify-between bg-transparent border border-border text-foreground"
                     disabled={loading[agent.id]}
                   >
                     <span className="text-sm">{getModelDisplayName(agentConfigs[agent.id])}</span>
                     <ChevronDown className="ml-2 h-4 w-4 text-gray-500" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align='end' className="bg-white dark:bg-[#0B0D13]/80 dark:border-gray-400/10 backdrop-blur-sm">
-                  <div className="p-0 sticky top-0 z-10 bg-white dark:bg-[#0B0D13]/80 backdrop-blur-sm border-none border-gray-100 dark:border-gray-800/50">
+                <DropdownMenuContent align='end' className="bg-card/95 border-border backdrop-blur-sm">
+                  <div className="p-0 sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-none">
                     <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="Search models..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onClick={handleSearchClick}
-                        className="pl-8 h-9 bg-transparent dark:bg-transparent border-b border-gray-200 dark:border-gray-600/30 rounded-none text-gray-900 dark:text-white text-sm"
+                        className="pl-8 h-9 bg-transparent border-b border-border rounded-none text-foreground text-sm"
                       />
                     </div>
                   </div>
@@ -199,21 +199,20 @@ const AgentModelMap = () => {
                     <div className="p-1">
                       {/* Default option */}
                       <DropdownMenuItem
-                        className={`flex items-center w-80 justify-between cursor-pointer px-3 text-sm rounded-sm ${
-                          agentConfigs[agent.id].provider === 'default' && !agentConfigs[agent.id].model
-                            ? 'bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-white'
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900/10'
-                        }`}
+                        className={`flex items-center w-80 justify-between cursor-pointer px-3 text-sm rounded-sm ${agentConfigs[agent.id].provider === 'default' && !agentConfigs[agent.id].model
+                            ? 'bg-secondary text-foreground'
+                            : 'text-foreground/70 hover:bg-secondary/50'
+                          }`}
                         onClick={() => handleModelChange(agent.id, 'default', '')}
                       >
                         <span>Default</span>
                         {agentConfigs[agent.id].provider === 'default' && !agentConfigs[agent.id].model && (
-                          <Check className="h-4 w-4 text-gray-900 dark:text-white" />
+                          <Check className="h-4 w-4 text-foreground" />
                         )}
                       </DropdownMenuItem>
 
                       {/* Divider */}
-                      <div className="my-1 h-px bg-gray-200 dark:bg-gray-700/50" />
+                      <div className="my-1 h-px bg-border" />
 
                       {/* Model options */}
                       {filteredModels.length > 0 ? (
@@ -225,23 +224,22 @@ const AgentModelMap = () => {
                           return (
                             <DropdownMenuItem
                               key={model.id}
-                              className={`flex items-center w-80 justify-between cursor-pointer px-3 text-sm rounded-sm ${
-                                isSelected
-                                  ? 'bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-white'
-                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900/10'
-                              }`}
+                              className={`flex items-center w-80 justify-between cursor-pointer px-3 text-sm rounded-sm ${isSelected
+                                  ? 'bg-secondary text-foreground'
+                                  : 'text-foreground/70 hover:bg-secondary/50'
+                                }`}
                               onClick={() => handleModelChange(agent.id, model.provider, model.id)}
                             >
                               <span>{model.provider}/{model.name}</span>
                               {isSelected && (
-                                <Check className="h-4 w-4 text-gray-900 dark:text-white" />
+                                <Check className="h-4 w-4 text-foreground" />
                               )}
-                              <OpenRouter className='dark:text-gray-400' size={10} />
+                              <OpenRouter className='text-muted-foreground' size={10} />
                             </DropdownMenuItem>
                           );
                         })
                       ) : (
-                        <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
                           No models found
                         </div>
                       )}
@@ -254,8 +252,8 @@ const AgentModelMap = () => {
         ))}
       </div>
 
-      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-md">
-        <p className="text-xs text-blue-800 dark:text-blue-300">
+      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
+        <p className="text-xs text-blue-500">
           <strong>Default:</strong> Uses openai/gpt-4o-mini. If you have custom providers configured (OpenAI, Anthropic, Ollama, etc.), you can select specific models for each agent.
         </p>
       </div>

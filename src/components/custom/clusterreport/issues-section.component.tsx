@@ -93,10 +93,10 @@ const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function 
 
   const getSeverityBadge = (level: number) => {
     const config = {
-      0: { label: 'OK', class: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-      1: { label: 'INFO', class: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' },
-      2: { label: 'WARNING', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' },
-      3: { label: 'ERROR', class: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' }
+      0: { label: 'OK', class: 'bg-green-500/10 text-green-500' },
+      1: { label: 'INFO', class: 'bg-blue-500/10 text-blue-500' },
+      2: { label: 'WARNING', class: 'bg-yellow-500/10 text-yellow-500' },
+      3: { label: 'ERROR', class: 'bg-red-500/10 text-red-500' }
     };
 
     const { label, class: className } = config[level as keyof typeof config] || config[1];
@@ -234,7 +234,7 @@ const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function 
         return (
           <TableCell key={column.key} className="font-medium">
             <div
-              className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+              className="text-blue-500 cursor-pointer hover:underline"
               onClick={() => navigateToResource(issue.resource, issue.gvr)}
             >
               {issue.resource}
@@ -262,14 +262,14 @@ const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function 
       case 'message':
         return (
           <TableCell key={column.key}>
-            <div className="max-w-sm text-sm dark:text-gray-400 truncate">{issue.message}</div>
+            <div className="max-w-sm text-sm text-muted-foreground truncate">{issue.message}</div>
           </TableCell>
         );
 
       case 'group':
         return (
           <TableCell key={column.key}>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-muted-foreground">
               {issue.group === '__root__' ? 'Root' : issue.group}
             </span>
           </TableCell>
@@ -282,11 +282,11 @@ const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function 
 
   return (
     <>
-      <Card className="bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
+      <Card className="bg-secondary/50 border-border rounded-2xl shadow-none">
         <div className="rounded-md border">
-          <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
+          <Table className="bg-secondary/30 rounded-2xl">
             <TableHeader>
-              <TableRow className="border-b border-gray-300 dark:border-gray-800/80">
+              <TableRow className="border-b border-border">
                 {columnConfig.map(col => renderTableHeader(col))}
               </TableRow>
             </TableHeader>
@@ -294,7 +294,7 @@ const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function 
               {sortedIssues.map((issue) => (
                 <TableRow
                   key={issue.key}
-                  className="bg-gray-50 dark:bg-transparent border-b border-gray-200 dark:border-gray-800/80"
+                  className="bg-secondary/30 border-b border-border"
                 >
                   {columnConfig.map(col => renderTableCell(issue, col))}
                 </TableRow>

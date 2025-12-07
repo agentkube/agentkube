@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTheme } from 'next-themes';
 import { EditorTheme, Wallpaper, WallpaperSelector } from '@/components/custom';
 import { useCustomTheme } from '@/components/theme-provider';
-import { DEFAULT_THEMES, CustomTheme } from '@/types/theme';
+import { AVAILABLE_THEMES, ThemeMode, ThemePattern } from '@/types/theme';
 
 const Appearance = () => {
   // State for appearance settings
@@ -20,7 +20,7 @@ const Appearance = () => {
 
   // UI state
   const { setTheme, theme } = useTheme();
-  const { currentTheme, applyTheme } = useCustomTheme();
+  const { themePattern, themeMode, setThemePattern, setThemeMode } = useCustomTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -81,7 +81,7 @@ const Appearance = () => {
         } else {
           appliedFontFamily = `"${fontFamily}", sans-serif`;
         }
-        
+
         document.documentElement.style.setProperty('--font-family', appliedFontFamily);
       } catch (error) {
         console.error('Failed to load appearance settings:', error);
@@ -98,35 +98,19 @@ const Appearance = () => {
     fetchSettings();
   }, [toast]);
 
-  // Handle theme changes using our custom theme system
+  // Handle theme changes using simplified theme system
   const handleThemeChange = async (themeId: string) => {
     try {
       setIsSaving(true);
       setColorMode(themeId);
 
-      // Find the theme to apply
-      let themeToApply: CustomTheme | undefined;
-      
-      if (themeId === 'light') {
-        themeToApply = DEFAULT_THEMES.find(t => t.id === 'default-light');
-        setTheme('light');
-      } else if (themeId === 'dark') {
-        themeToApply = DEFAULT_THEMES.find(t => t.id === 'default-dark');
-        setTheme('dark');
-      } else if (themeId === 'system') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        themeToApply = DEFAULT_THEMES.find(t => t.id === (prefersDark ? 'default-dark' : 'default-light'));
-        setTheme('system');
+      // Handle mode changes (light/dark/system)
+      if (themeId === 'light' || themeId === 'dark' || themeId === 'system') {
+        setThemeMode(themeId as ThemeMode);
+        setTheme(themeId);
       } else {
-        // Find custom theme
-        themeToApply = DEFAULT_THEMES.find(t => t.id === themeId);
-        if (themeToApply) {
-          setTheme(themeToApply.baseMode);
-        }
-      }
-
-      if (themeToApply) {
-        applyTheme(themeToApply);
+        // Handle theme pattern changes
+        setThemePattern(themeId as ThemePattern);
       }
 
       // Save to settings
@@ -158,22 +142,19 @@ const Appearance = () => {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
       const handleChange = (e: MediaQueryListEvent) => {
-        const themeToApply = DEFAULT_THEMES.find(t => t.id === (e.matches ? 'default-dark' : 'default-light'));
-        if (themeToApply) {
-          applyTheme(themeToApply);
-        }
+        setThemeMode('system');
       };
 
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [colorMode, applyTheme]);
+  }, [colorMode, setThemeMode]);
 
 
   // Load Google Font dynamically
   const loadGoogleFont = (fontName: string) => {
     const fontId = `google-font-${fontName.replace(/\s+/g, '-').toLowerCase()}`;
-    
+
     // Check if font is already loaded
     if (document.getElementById(fontId)) {
       return;
@@ -195,7 +176,7 @@ const Appearance = () => {
 
       // Find font option to check its type
       const fontOption = fontOptions.find(f => f.value === font);
-      
+
       // Load Google Font if needed
       if (fontOption?.type === 'google') {
         loadGoogleFont(font);
@@ -229,7 +210,7 @@ const Appearance = () => {
         // Custom fonts (like DM Sans)
         fontFamily = `"${font}", sans-serif`;
       }
-      
+
       document.documentElement.style.setProperty('--font-family', fontFamily);
 
       toast({
@@ -282,17 +263,6 @@ const Appearance = () => {
     }
   };
 
-  const themes = [
-    { id: 'aubergine', name: 'Aubergine', color: '#5D3F6A' },
-    { id: 'clementine', name: 'Clementine', color: '#D93F0B' },
-    { id: 'banana', name: 'Banana', color: '#9C6A1D' },
-    { id: 'jade', name: 'Jade', color: '#1A6152' },
-    { id: 'lagoon', name: 'Lagoon', color: '#1D5C8D' },
-    { id: 'barbra', name: 'Barbra', color: '#BE1934' },
-    { id: 'gray', name: 'Gray', color: '#242424' },
-    { id: 'mood-indigo', name: 'Mood Indigo', color: '#162854' },
-  ];
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
@@ -306,103 +276,28 @@ const Appearance = () => {
     <div className="p-4 space-y-8">
       <div>
         <div className='flex items-start gap-1'>
-          <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Appearance</h1>
-          <div className='bg-gray-200 dark:bg-gray-500/40 text-gray-800 dark:text-gray-400 px-0.5 text-xs uppercase'>
+          <h1 className="text-4xl font-[Anton] uppercase text-foreground/20 font-medium">Appearance</h1>
+          <div className='bg-secondary text-secondary-foreground px-0.5 text-xs uppercase'>
             <span>Beta</span>
           </div>
         </div>
-        <p className="text-gray-500 dark:text-gray-400">Customize how Agentkube looks and feels</p>
+        <p className="text-muted-foreground">Customize how Agentkube looks and feels</p>
       </div>
 
-      {/* Font Selection */}
-      <div className="mb-8">
-        <h2 className="text-lg font-medium mb-2">Font</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Font Family</label>
-            <Select
-              value={fontFamily}
-              onValueChange={handleFontChange}
-              disabled={isSaving}
 
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select font family" />
-              </SelectTrigger>
-              <SelectContent className='dark:bg-[#0B0D13]/40 backdrop-blur-md'>
-                {/* Custom Fonts */}
-                <div className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Custom Fonts
-                </div>
-                {fontOptions.filter(f => f.type === 'custom').map((font) => (
-                  <SelectItem key={font.value} value={font.value} className="font-dm-sans">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      {font.label}
-                    </span>
-                  </SelectItem>
-                ))}
-                
-                {/* Google Fonts */}
-                <div className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2">
-                  Google Fonts
-                </div>
-                {fontOptions.filter(f => f.type === 'google').map((font) => (
-                  <SelectItem key={font.value} value={font.value}>
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      {font.label}
-                    </span>
-                  </SelectItem>
-                ))}
-                
-                {/* System Fonts */}
-                <div className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2">
-                  System Fonts
-                </div>
-                {fontOptions.filter(f => f.type === 'system').map((font) => (
-                  <SelectItem key={font.value} value={font.value}>
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
-                      {font.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Uncomment if you want to include font size selector */}
-          {/* <div>
-            <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Font Size</label>
-            <div className="flex items-center space-x-2">
-              <input 
-                type="range" 
-                min="12" 
-                max="20" 
-                value={fontSize} 
-                onChange={(e) => setFontSize(parseInt(e.target.value))}
-                onMouseUp={() => handleFontSizeChange(fontSize)}
-                className="flex-grow"
-              />
-              <span className="text-sm">{fontSize}px</span>
-            </div>
-          </div> */}
-        </div>
-      </div>
 
       {/* Color Mode */}
       <div className="mb-8">
         <h2 className="text-lg font-medium mb-2">Color Mode</h2>
-        <p className="text-gray-700 dark:text-gray-400 text-sm mb-4">
+        <p className="text-muted-foreground text-sm mb-4">
           Choose if the appearance should be light or dark, or follow your computer's settings.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             disabled={isSaving}
             className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'light'
-              ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-              : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+              ? 'border-primary bg-accent'
+              : 'border-border hover:bg-accent'
               }`}
             onClick={() => handleThemeChange('light')}
           >
@@ -421,8 +316,8 @@ const Appearance = () => {
           <button
             disabled={isSaving}
             className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'dark'
-              ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-              : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+              ? 'border-primary bg-accent'
+              : 'border-border hover:bg-accent'
               }`}
             onClick={() => handleThemeChange('dark')}
           >
@@ -441,8 +336,8 @@ const Appearance = () => {
           <button
             disabled={isSaving}
             className={`flex flex-col items-center justify-center p-4 rounded border ${colorMode === 'system'
-              ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-              : 'border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+              ? 'border-primary bg-accent'
+              : 'border-border hover:bg-accent'
               }`}
             onClick={() => handleThemeChange('system')}
           >
@@ -463,40 +358,37 @@ const Appearance = () => {
       {/* Theme variants */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-medium">Theme Variants</h2>
+          <h2 className="text-lg font-medium">Theme Patterns</h2>
         </div>
-        <p className="text-gray-700 dark:text-gray-400 text-sm mb-4">
-          Choose a color variation for your selected mode.
+        <p className="text-muted-foreground text-sm mb-4">
+          Choose a color theme pattern.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {DEFAULT_THEMES.filter(t => t.id !== 'default-light' && t.id !== 'default-dark').map((themeVariant) => (
+          {AVAILABLE_THEMES.map((themeVariant) => (
             <button
               key={themeVariant.id}
               disabled={isSaving}
               className={`flex items-center p-3 rounded border ${colorMode === themeVariant.id
-                ? 'border-blue-500 bg-gray-100 dark:bg-gray-800'
-                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+                ? 'border-primary bg-accent'
+                : 'border-border hover:bg-accent'
                 }`}
               onClick={() => handleThemeChange(themeVariant.id)}
             >
               <div
                 className="w-6 h-6 rounded-full mr-2"
-                style={{ 
-                  background: themeVariant.background.type === 'color' 
-                    ? themeVariant.background.value 
-                    : themeVariant.background.type === 'gradient'
-                    ? themeVariant.background.value
-                    : '#666666'
-                }}
+                style={{ background: themeVariant.previewColor }}
               ></div>
-              <span className="text-sm">{themeVariant.name}</span>
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-medium">{themeVariant.name}</span>
+                <span className="text-xs text-muted-foreground">{themeVariant.description}</span>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Custom Wallpaper Section */}
-      <WallpaperSelector />
+      {/* Custom Wallpaper Section: Keep it Commented only  */}
+      {/* <WallpaperSelector /> */}
 
       <EditorTheme />
 

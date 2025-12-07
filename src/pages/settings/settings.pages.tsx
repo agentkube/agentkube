@@ -13,7 +13,7 @@ const Settings: React.FC = () => {
   return (
     <div className="flex w-full">
       <SettingSidebar isCollapsed={isCollapsed} toggleCollapse={toggleCollapse} />
-      
+
       <div className={`flex-1 
           max-h-[92vh] overflow-y-auto
           

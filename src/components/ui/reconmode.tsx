@@ -40,7 +40,7 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
             "peer relative inline-flex h-6 w-16 shrink-0 cursor-pointer items-center rounded-md border-2 border-transparent shadow-lg transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
             isReconMode
               ? "bg-gradient-to-r from-emerald-500 to-emerald-600"
-              : "bg-gray-300 dark:bg-gray-600/20",
+              : "bg-input",
             isLoading && "opacity-50 cursor-not-allowed",
             className
           )}
@@ -55,7 +55,7 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
             "absolute text-[9px] font-mono font-medium transition-all duration-300 pointer-events-none select-none",
             isReconMode
               ? "left-1.5 text-black "
-              : "right-1.5 text-gray-600 dark:text-gray-300"
+              : "right-1.5 text-muted-foreground"
           )}>
             {isReconMode ? "RECON" : "AGENT"}
           </span>
@@ -65,7 +65,7 @@ const ReconModeSwitch = React.forwardRef<HTMLButtonElement, ReconModeSwitchProps
               "pointer-events-none flex h-5 w-5 items-center justify-center rounded-md shadow-lg ring-0 transition-all duration-300 z-10",
               isReconMode
                 ? "translate-x-10 bg-white"
-                : "translate-x-0.5 bg-gray-100 dark:bg-gray-600/40"
+                : "translate-x-0.5 bg-muted"
             )}
           >
             {/* Icon inside the thumb */}

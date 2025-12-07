@@ -106,7 +106,7 @@ export function CreateWorkspaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] dark:bg-[#0B0D13]/40 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-[425px] bg-background/95 backdrop-blur-xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create New Workspace</DialogTitle>
@@ -152,7 +152,7 @@ export function CreateWorkspaceDialog({
                     return (
                       <TagsValue
                         key={clusterId}
-                        className="p-2 dark:bg-gray-700/30"
+                        className="p-2 bg-secondary/30"
                         onRemove={() => handleClusterRemove(clusterId)}
                       >
                         {context?.name || clusterId}
@@ -162,7 +162,7 @@ export function CreateWorkspaceDialog({
                 </TagsTrigger>
                 <TagsContent className="">
                   <TagsInput placeholder="Search clusters..." />
-                  <TagsList className="dark:bg-[#0B0D13]/30 backdrop-blur-md">
+                  <TagsList className="bg-background/95 backdrop-blur-md">
                     <TagsEmpty>No clusters found.</TagsEmpty>
                     <TagsGroup className="">
                       {allContexts.map((context) => (

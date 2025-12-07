@@ -36,7 +36,7 @@ const AttackPathDrawer: React.FC<AttackPathDrawerProps> = ({
     if (!resourceData) return [];
     const resourceType = resourceData.resourceType?.toLowerCase();
     console.log("ok", resourceType)
-    
+
     switch (resourceType) {
       case 'image':
         return ['image'];
@@ -99,33 +99,33 @@ const AttackPathDrawer: React.FC<AttackPathDrawerProps> = ({
     <SideDrawer isOpen={isOpen} onClose={onClose} offsetTop="-top-2">
       <DrawerHeader onClose={onClose}>
         <div className="py-1">
-          <div className="text-xl dark:text-gray-500 mt-1 flex items-center gap-2">
-            <div className="flex-shrink-0 bg-gray-300/50 dark:bg-gray-700/50 p-1 rounded-lg">
+          <div className="text-xl text-muted-foreground mt-1 flex items-center gap-2">
+            <div className="flex-shrink-0 bg-secondary p-1 rounded-lg">
               {(() => {
                 const resourceType = resourceData.resourceType?.toLowerCase() as KubeResourceType;
                 const icon = KubeResourceIconMap[resourceType] || KubeResourceIconMap.default;
                 const isLucideIcon = resourceType === 'container' || resourceType === 'image';
-                
+
                 return isLucideIcon ? (
-                  React.createElement(icon as React.ComponentType<any>, { 
-                    className: "w-6 h-6 text-gray-700 dark:text-gray-300" 
+                  React.createElement(icon as React.ComponentType<any>, {
+                    className: "w-6 h-6 text-foreground"
                   })
                 ) : (
                   <img src={icon as string} alt={resourceData.resourceType} className="w-6 h-6" />
                 );
               })()}
             </div>
-            <span className="text-black dark:text-white">{resourceData.resourceType.charAt(0).toUpperCase() + resourceData.resourceType.slice(1)}</span>
+            <span className="text-foreground">{resourceData.resourceType.charAt(0).toUpperCase() + resourceData.resourceType.slice(1)}</span>
             {" "}{resourceData.resourceName}
             <button
               onClick={handleCopy}
-              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="p-1 rounded hover:bg-accent-hover transition-colors"
               title="Copy resource name"
             >
               {copied ? (
                 <CheckCheck className="w-4 h-4 text-green-500" />
               ) : (
-                <Copy className="w-4 h-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+                <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
               )}
             </button>
           </div>
@@ -136,16 +136,15 @@ const AttackPathDrawer: React.FC<AttackPathDrawerProps> = ({
         <div className="p-2 space-y-4">
           {/* Tab Navigation */}
           {availableTabs.length > 1 && (
-            <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex gap-1 border-b border-border">
               {availableTabs.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
-                  className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                    activeTab === tab
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
+                  className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === tab
+                      ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
+                      : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)} Analysis
                 </button>

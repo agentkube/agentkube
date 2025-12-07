@@ -263,10 +263,10 @@ const PromQLSpotlight: React.FC = () => {
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-40">
-        <div className="absolute inset-0 dark:bg-gray-800/20 backdrop-blur-sm" onClick={onClose} />
+        <div className="absolute inset-0 bg-background/20 backdrop-blur-sm" onClick={onClose} />
         <AnimatePresence>
           <motion.div
-            className="relative w-full max-w-4xl  bg-gray-100 dark:bg-[#1B1C26]/90 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700/30 overflow-hidden"
+            className="relative w-full max-w-4xl  bg-card backdrop-blur-md rounded-xl shadow-2xl border border-border overflow-hidden"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{
               scale: tabPressed || enterPressed ? [1, 1.03, 1] : 1,
@@ -336,7 +336,7 @@ const PromQLSpotlight: React.FC = () => {
                       ? "Enter PromQL query..."
                       : "Search for Prometheus queries..."
                   }
-                  className={`w-full p-2 text-gray-900 dark:text-gray-100 placeholder-gray-600 bg-transparent border-none focus:outline-none focus:ring-0 ${promqlMode ? 'font-mono' : ''
+                  className={`w-full p-2 text-foreground placeholder-muted-foreground bg-transparent border-none focus:outline-none focus:ring-0 ${promqlMode ? 'font-mono' : ''
                     }`}
                   style={promqlMode ? {
                     fontSize: `${getDynamicFontSize(promqlQuery)}px`,
@@ -346,18 +346,18 @@ const PromQLSpotlight: React.FC = () => {
                 />
 
                 {/* Query hint */}
-                <div className="absolute right-0 text-gray-600 dark:text-gray-400 text-sm flex items-center">
+                <div className="absolute right-0 text-muted-foreground text-sm flex items-center">
                   {!promqlMode ? (
                     <>
                       <span>PromQL mode</span>
-                      <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
+                      <div className="bg-secondary rounded px-1.5 py-0.5 ml-2 flex items-center">
                         <span>Tab</span>
                       </div>
                     </>
                   ) : (
                     <>
                       <span>Execute query</span>
-                      <div className="bg-gray-200 dark:bg-gray-700/40 rounded px-1.5 py-0.5 ml-2 flex items-center">
+                      <div className="bg-secondary rounded px-1.5 py-0.5 ml-2 flex items-center">
                         <span>Enter</span>
                       </div>
                     </>
@@ -368,13 +368,13 @@ const PromQLSpotlight: React.FC = () => {
 
             {/* Suggestions dropdown */}
             {promqlMode && promqlQuery && filteredSuggestions.length > 0 && (
-              <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700/30">
+              <div className="px-4 py-2 border-t border-border">
                 <div className="flex flex-wrap gap-2">
                   {filteredSuggestions.map((suggestion, index) => (
                     <button
                       key={index}
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="px-2 py-1 bg-gray-200 dark:bg-gray-700/40 rounded text-xs hover:bg-gray-300 dark:hover:bg-gray-600/40 font-mono"
+                      className="px-2 py-1 bg-secondary rounded text-xs hover:bg-accent-hover font-mono"
                     >
                       {suggestion}
                     </button>
@@ -390,9 +390,9 @@ const PromQLSpotlight: React.FC = () => {
 
             {/* Query results (only show when visualize is not selected) */}
             {promqlMode && queryResult && !isVisualizeSelected && (
-              <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700/30 max-h-64 overflow-y-auto py-1 ">
+              <div className="px-4 py-2 border-t border-border max-h-64 overflow-y-auto py-1 ">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-muted-foreground">
                     Query Results ({queryResult.data?.result?.length || 0} series)
                   </div>
                 </div>
@@ -400,14 +400,14 @@ const PromQLSpotlight: React.FC = () => {
                 {queryResult.status === 'success' && queryResult.data?.result ? (
                   <div className="space-y-2">
                     {queryResult.data.result.slice(0, visibleResultsCount).map((result, index) => (
-                      <div key={index} className="bg-gray-200 dark:bg-gray-800/50 rounded p-2 text-xs">
-                        <div className="font-mono text-blue-600 dark:text-blue-400">
+                      <div key={index} className="bg-muted rounded p-2 text-xs">
+                        <div className="font-mono text-blue-600">
                           {Object.entries(result.metric).map(([key, value]) =>
                             `${key}="${value}"`
                           ).join(', ')}
                         </div>
                         {result.value && (
-                          <div className="text-green-600 dark:text-green-400 mt-1">
+                          <div className="text-green-600 mt-1">
                             Value: {result.value[1]} @ {new Date(result.value[0] * 1000).toLocaleString()}
                           </div>
                         )}
@@ -417,7 +417,7 @@ const PromQLSpotlight: React.FC = () => {
                       <div className="text-center">
                         <button
                           onClick={showMoreResults}
-                          className="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 underline"
+                          className="text-xs text-blue-500 hover:text-blue-600 underline"
                         >
                           Show {Math.min(10, queryResult.data.result.length - visibleResultsCount)} more results
                         </button>
@@ -433,10 +433,10 @@ const PromQLSpotlight: React.FC = () => {
             )}
             {/* Status line */}
             {promqlMode && (
-              <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700/30">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="px-4 py-2 border-t border-border">
+                <div className="text-xs text-muted-foreground">
                   {promqlQuery ? (
-                    <span>Ready to execute: <code className="font-mono bg-gray-200 dark:bg-gray-800/50 px-1 rounded">{promqlQuery}</code></span>
+                    <span>Ready to execute: <code className="font-mono bg-secondary px-1 rounded">{promqlQuery}</code></span>
                   ) : (
                     <span>Type a PromQL query and press Enter to execute</span>
                   )}
@@ -445,7 +445,7 @@ const PromQLSpotlight: React.FC = () => {
             )}
 
             {/* Footer */}
-            <div className='bg-gray-200/80 dark:bg-gray-500/10 text-gray-500 dark:text-gray-500 py-1 px-4 text-xs flex justify-between items-center'>
+            <div className='bg-muted text-muted-foreground py-1 px-4 text-xs flex justify-between items-center'>
               <div className='flex items-center space-x-1'>
                 <button
                   onClick={fetchTargets}
@@ -475,24 +475,24 @@ const PromQLSpotlight: React.FC = () => {
               <div className='flex items-center'>
                 {promqlMode ? (
                   <>
-                    <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                    <div className="bg-secondary rounded px-1.5 py-0.5 mr-1 flex items-center">
                       <span>Enter</span>
                     </div>
                     <span className='mr-4'>execute</span>
-                    <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                    <div className="bg-secondary rounded px-1.5 py-0.5 mr-1 flex items-center">
                       <span>Backspace</span>
                     </div>
                     <span className='mr-4'>exit PromQL mode</span>
                   </>
                 ) : (
                   <>
-                    <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                    <div className="bg-secondary rounded px-1.5 py-0.5 mr-1 flex items-center">
                       <span>Tab</span>
                     </div>
                     <span className='mr-4'>PromQL mode</span>
                   </>
                 )}
-                <div className="bg-gray-300 dark:bg-gray-700/40 rounded px-1.5 py-0.5 mr-1 flex items-center">
+                <div className="bg-secondary rounded px-1.5 py-0.5 mr-1 flex items-center">
                   <span>Esc</span>
                 </div>
                 <span className=''>close</span>

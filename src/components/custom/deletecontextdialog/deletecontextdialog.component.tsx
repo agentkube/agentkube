@@ -105,17 +105,17 @@ const DeleteContextDialog: React.FC<DeleteContextDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-[#0B0D13]">
+      <DialogContent className="sm:max-w-[425px] bg-background">
         <DialogHeader>
           <DialogTitle>Delete Kubernetes Context</DialogTitle>
           <DialogDescription>
             Are you sure you want to delete the context "{contextToDelete}"?
           </DialogDescription>
         </DialogHeader>
-        
+
         {isCurrentContext && (
           <div className="py-4">
-            <Alert variant="destructive" className="mb-4  dark:text-red-500/80">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Warning</AlertTitle>
               <AlertDescription>
@@ -138,13 +138,13 @@ const DeleteContextDialog: React.FC<DeleteContextDialogProps> = ({
                 </Select>
               </div>
             ) : (
-              <p className="text-sm text-red-500">
+              <p className="text-sm text-destructive">
                 No other contexts available. You cannot delete your only context.
               </p>
             )}
           </div>
         )}
-        
+
         {/* Checkbox for allowing system kubeconfig deletion */}
         <div className="py-4">
           <div className="flex items-center space-x-2">
@@ -160,7 +160,7 @@ const DeleteContextDialog: React.FC<DeleteContextDialogProps> = ({
               Allow system kubeconfig deletion (modifies ~/.kube/config)
             </label>
           </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-6">
+          <p className="text-xs text-muted-foreground mt-1 ml-6">
             When checked, this will also remove the context from your system kubeconfig file (~/.kube/config).
             Leave unchecked for safer deletion that only affects Agentkube.
           </p>

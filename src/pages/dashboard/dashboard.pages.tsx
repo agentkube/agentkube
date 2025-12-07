@@ -6,21 +6,21 @@ import { sidebarItems } from '@/constants/kubernetes-resource.constants';
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Initialize state from localStorage or from URL path
   const [selectedItem, setSelectedItem] = useState<string | null>(() => {
     const saved = localStorage.getItem('sidebar-selected-item');
     if (saved) return JSON.parse(saved);
-    
+
     // Extract from current path as fallback
     const pathParts = location.pathname.split('/');
     if (pathParts.length > 2 && pathParts[1] === 'explore') {
       return pathParts[2];
     }
-    
+
     return null;
   });
-  
+
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     const saved = localStorage.getItem('sidebar-expanded-items');
     return saved ? JSON.parse(saved) : [];
@@ -30,7 +30,7 @@ const Dashboard = () => {
   useEffect(() => {
     localStorage.setItem('sidebar-selected-item', JSON.stringify(selectedItem));
   }, [selectedItem]);
-  
+
   useEffect(() => {
     localStorage.setItem('sidebar-expanded-items', JSON.stringify(expandedItems));
   }, [expandedItems]);
