@@ -57,7 +57,7 @@ const StatCard: React.FC<StatCardProps> = ({ count, label, timeframe, icon, colo
     }}
     className="flex-1"
   >
-    <div className="flex-1 bg-gray-400/10 dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-md p-3 flex flex-col justify-end min-h-[150px]">
+    <div className="flex-1 bg-card/10 dark:bg-card/30 border border-gray-200 dark:border-gray-800/50 rounded-md p-3 flex flex-col justify-end min-h-[150px]">
       <div className="flex items-end justify-between">
         <div>
           <h2 className="text-5xl font-light text-gray-900 dark:text-gray-200">

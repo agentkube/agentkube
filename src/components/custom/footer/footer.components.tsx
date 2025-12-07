@@ -1,4 +1,4 @@
-import { Rss, Sparkles, Terminal, Download, ExternalLink, Lightbulb, ScanSearch, Bell, BellDot } from 'lucide-react';
+import { Rss, Sparkles, Terminal, Download, ExternalLink, Lightbulb, ScanSearch, Bell, BellDot, Palette } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import TerminalContainer from '../terminal/terminalcontainer.component';
@@ -30,6 +30,7 @@ import { useBackgroundTask } from '@/contexts/useBackgroundTask';
 import BackgroundTaskDialog from '../backgroundtaskdialog/backgroundtaskdialog.component';
 import VulnScanFooterTool from '../vulnscanfootertool/vulnscanfootertool.component';
 import MetricsServerStatusFooter from '../metrics-server/metrics-server-status-footer.component';
+import ThemePickerDialog from '../themepicker/themepickerdialog.component';
 
 // Define types for Update object
 interface UpdateInfo {
@@ -84,6 +85,7 @@ const Footer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<string>("v1.0.0")
   const { isOpen: isBackgroundTaskOpen, onClose: closeBackgroundTask, setIsOpen } = useBackgroundTask();
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
 
   // Determine if we should show metrics server status (NOT on home and settings pages)
   const showClusterToolStats = location.pathname !== '/' && !location.pathname.startsWith('/settings');
@@ -237,6 +239,22 @@ const Footer: React.FC = () => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
+                <button
+                  onClick={() => setThemePickerOpen(true)}
+                  className="text-gray-500 py-1.5 px-2 group backdrop-blur-md hover:bg-gray-100/10 hover:text-gray-300 transition-all cursor-pointer"
+                >
+                  <Palette className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-card text-foreground">
+                <p>Change Theme</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <div
                   className="text-gray-500 py-1.5 px-2 group backdrop-blur-md hover:bg-gray-100/10 hover:text-gray-300 transition-all cursor-pointer"
                   onClick={updateAvailable ? openUpdateDialog : checkForUpdates}
@@ -268,6 +286,11 @@ const Footer: React.FC = () => {
           <NotificationDropdown className="py-1.5" />
         </div>
       </div>
+
+      <ThemePickerDialog
+        externalOpen={themePickerOpen}
+        onExternalOpenChange={setThemePickerOpen}
+      />
 
       <BackgroundTaskDialog
         isOpen={isBackgroundTaskOpen}

@@ -282,9 +282,9 @@ const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function 
 
   return (
     <>
-      <Card className="bg-secondary/50 border-border rounded-2xl shadow-none">
+      <Card className="border-border rounded-2xl shadow-none">
         <div className="rounded-md border">
-          <Table className="bg-secondary/30 rounded-2xl">
+          <Table className="rounded-2xl">
             <TableHeader>
               <TableRow className="border-b border-border">
                 {columnConfig.map(col => renderTableHeader(col))}
@@ -294,7 +294,7 @@ const IssuesSection = forwardRef<IssuesSectionRef, IssuesSectionProps>(function 
               {sortedIssues.map((issue) => (
                 <TableRow
                   key={issue.key}
-                  className="bg-secondary/30 border-b border-border"
+                  className="bg-transparent border-b border-border"
                 >
                   {columnConfig.map(col => renderTableCell(issue, col))}
                 </TableRow>

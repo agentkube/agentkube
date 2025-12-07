@@ -179,7 +179,7 @@ const ClusterDisplay: React.FC<ClusterDisplayProps> = ({
             {contexts.map((ctx) => (
               <div
                 key={ctx.name}
-                className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${currentContext?.name === ctx.name ? 'bg-muted-foreground/10' : ''
+                className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted-foreground/10 dark:hover:bg-muted-foreground/20 ${currentContext?.name === ctx.name ? 'bg-muted-foreground/10' : ''
                   }`}
                 onClick={() => handleClusterSelect(ctx.name)}
               >

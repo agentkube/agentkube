@@ -346,9 +346,8 @@ const ArgoCDView = () => {
               className="flex items-center gap-2"
             >
               <RefreshCw
-                className={`h-4 w-4 text-gray-600 dark:text-gray-300 ${
-                  isRefreshing ? 'animate-spin' : ''
-                }`}
+                className={`h-4 w-4 text-gray-600 dark:text-gray-300 ${isRefreshing ? 'animate-spin' : ''
+                  }`}
               />
             </Button>
 
@@ -366,8 +365,8 @@ const ArgoCDView = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-4">
           {/* Total Applications */}
-          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4">
-            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">
+          <div className="bg-gray-200/30 dark:bg-card/40 rounded-lg p-4">
+            <div className="text-foreground dark:text-foreground/60 text-xs mb-2">
               TOTAL APPLICATIONS
             </div>
             <div className="text-4xl font-light text-black dark:text-white">
@@ -376,40 +375,40 @@ const ArgoCDView = () => {
           </div>
 
           {/* Synced Applications */}
-          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4">
-            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2 flex justify-between items-center">
+          <div className="bg-gray-200/30 dark:bg-card/40 rounded-lg p-4">
+            <div className="text-foreground dark:text-foreground/60 text-xs mb-2 flex justify-between items-center">
               SYNCED
               <div className="text-green-500">●</div>
             </div>
             <div className="text-4xl font-light text-green-500">
               {stats.syncedApplications}
             </div>
-            <div className="text-gray-800 dark:text-gray-400 text-xs mt-1">
+            <div className="text-foreground dark:text-foreground/60 text-xs mt-1">
               {stats.outOfSyncApplications} out of sync
             </div>
           </div>
 
           {/* Healthy Applications */}
-          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4">
-            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2 flex justify-between items-center">
+          <div className="bg-gray-200/30 dark:bg-card/40 rounded-lg p-4">
+            <div className="text-foreground dark:text-foreground/60 text-xs mb-2 flex justify-between items-center">
               HEALTHY
               <Activity className="h-4 w-4 text-green-500" />
             </div>
             <div className="text-4xl font-light text-green-500">
               {stats.healthyApplications}
             </div>
-            <div className="text-gray-800 dark:text-gray-400 text-xs mt-1">
+            <div className="text-foreground dark:text-foreground/60 text-xs mt-1">
               {stats.degradedApplications} degraded
             </div>
           </div>
 
           {/* Projects */}
-          <div className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4">
-            <div className="text-gray-800 dark:text-gray-400 text-xs mb-2">PROJECTS</div>
+          <div className="bg-gray-200/30 dark:bg-card/40 rounded-lg p-4">
+            <div className="text-foreground dark:text-foreground/60 text-xs mb-2">PROJECTS</div>
             <div className="text-4xl font-light text-black dark:text-white">
               {stats.totalProjects}
             </div>
-            <div className="text-gray-800 dark:text-gray-400 text-xs mt-1">
+            <div className="text-foreground dark:text-foreground/60 text-xs mt-1">
               {stats.progressingApplications} progressing
             </div>
           </div>
@@ -511,7 +510,7 @@ const ArgoCDView = () => {
 
         {/* Applications Grid */}
         {filteredApplications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center py-16 text-gray-500 dark:text-foreground/60">
             <SiArgo className="h-16 w-16 mb-4 opacity-30" />
             <p className="text-lg font-medium">No applications found</p>
             <p className="text-sm mt-2">

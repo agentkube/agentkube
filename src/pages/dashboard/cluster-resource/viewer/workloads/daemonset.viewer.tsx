@@ -62,18 +62,18 @@ const DaemonSetViewer: React.FC = () => {
   // Fetch events for the daemonset
   const fetchEvents = async () => {
     if (!currentContext || !namespace || !daemonSetName) return;
-  
+
     try {
       // Fetch events specific to this daemonset using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { 
+        {
           namespace,
           fieldSelector: `involvedObject.name=${daemonSetName},involvedObject.kind=DaemonSet`
         }
       );
-  
+
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -434,7 +434,7 @@ const DaemonSetViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-2 bg-transparent">
             {/* DaemonSet Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Server className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Scheduled</h3>
@@ -447,7 +447,7 @@ const DaemonSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Box className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Ready</h3>
@@ -460,7 +460,7 @@ const DaemonSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Available</h3>
@@ -473,7 +473,7 @@ const DaemonSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Status</h3>
@@ -489,21 +489,21 @@ const DaemonSetViewer: React.FC = () => {
 
             {/* DaemonSet Scheduling Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className={`text-4xl font-light ${daemonSetData.status?.numberMisscheduled ? "text-red-500 " : ""} `}>
                   {daemonSetData.status?.numberMisscheduled || 0}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Misscheduled</div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className={`text-4xl font-light ${unavailableNumber ? "text-red-500 font-medium" : ""}`}>
                   {unavailableNumber}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Unavailable</div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className='text-4xl font-light'>
                   {daemonSetData.status?.updatedNumberScheduled || 0}/{desiredNumber}
                 </div>
@@ -549,7 +549,7 @@ const DaemonSetViewer: React.FC = () => {
             />
 
             {/* DaemonSet Update Strategy */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-gray-900/30 p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Update Strategy</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -582,7 +582,7 @@ const DaemonSetViewer: React.FC = () => {
             </div>
 
             {/* Pod Template */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-gray-900/30 p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Pod Template</h2>
               <div className="space-y-4">
                 {/* Template Labels */}
@@ -594,7 +594,7 @@ const DaemonSetViewer: React.FC = () => {
                         <Badge
                           key={key}
                           variant="outline"
-                          className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs"
+                          className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-accent/50 text-xs"
                         >
                           {key}: {value}
                         </Badge>
@@ -648,7 +648,7 @@ const DaemonSetViewer: React.FC = () => {
                     {daemonSetData.spec?.template?.spec?.containers.map((container, index) => (
                       <div
                         key={container.name}
-                        className="p-3 rounded-lg border border-gray-200 dark:border-gray-800"
+                        className="p-3 rounded-lg border border-gray-200 dark:border-accent/50"
                       >
                         <div className="font-medium mb-1">{container.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -708,11 +708,11 @@ const DaemonSetViewer: React.FC = () => {
 
             {/* Volumes */}
             {daemonSetData.spec?.template?.spec?.volumes && daemonSetData.spec.template.spec.volumes.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-gray-900/30 p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Volumes</h2>
                 <div className="space-y-3">
                   {daemonSetData.spec.template.spec.volumes.map((volume, index) => (
-                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-accent/50">
                       <div className="font-medium mb-1">{volume.name}</div>
                       <div className="text-sm">
                         {volume.configMap && (
@@ -766,7 +766,7 @@ const DaemonSetViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="canvas" className="space-y-6">
-            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-accent/50 overflow-hidden">
               {daemonSetData && (
                 <ResourceCanvas
                   resourceDetails={{

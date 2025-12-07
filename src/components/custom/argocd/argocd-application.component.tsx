@@ -88,7 +88,7 @@ const ArgoApplicationCard: React.FC<ArgoApplicationCardProps> = ({ application, 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       onClick={onClick}
-      className="bg-gray-200/30 dark:bg-gray-800/20 rounded-lg p-4 hover:bg-gray-200/50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer border border-transparent hover:border-blue-500/30"
+      className="bg-card/30 dark:bg-card/50 rounded-lg p-4 hover:bg-card/50 dark:hover:bg-card/50 transition-colors cursor-pointer border border-transparent hover:border-accent/30"
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-3">

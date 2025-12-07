@@ -66,7 +66,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
       case 'OutOfSync':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-400';
+        return 'bg-gray-100 text-card 4ark:bg-card/40 dark:text-gray-400';
     }
   };
 
@@ -81,7 +81,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
       case 'Suspended':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-400';
+        return 'bg-gray-100 text-card 4ark:bg-card/40 dark:text-gray-400';
     }
   };
 
@@ -136,9 +136,9 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
       return 'bg-red-200 text-red-800 dark:bg-red-900/30 dark:text-red-400';
     }
     if (kindLower.includes('pod')) {
-      return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+      return 'bg-gray-200 text-gray-700 dark:bg-card 4ark:text-gray-300';
     }
-    return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+    return 'bg-gray-200 text-gray-700 dark:bg-card 4ark:text-gray-300';
   };
 
   const formatTimestamp = (timestamp?: string) => {
@@ -177,7 +177,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
           <div className="flex items-start gap-2">
             <div className="py-0.5">{getSyncStatusIcon(syncStatus)}</div>
             <div>
-              <h3 className="font-medium text-md text-gray-800 dark:text-gray-200 leading-tight">
+              <h3 className="font-medium text-md text-card 4ark:text-gray-200 leading-tight">
                 {application.metadata.name}
               </h3>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
@@ -191,7 +191,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
       <DrawerContent>
         <div className="p-6 space-y-4">
           {/* Status Overview */}
-          <Card className="bg-transparent dark:bg-drawer border-gray-200/70 dark:border-gray-700/30">
+          <Card className="bg-transparent dark:bg-card/40 border-gray-200/70 dark:border-accent/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm uppercase flex items-center gap-2">
                 <Activity className="h-4 w-4" />
@@ -245,7 +245,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
           </Card>
 
           {/* Source Information */}
-          <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+          <Card className="bg-transparent dark:bg-card/40 border-gray-200/70 dark:border-gray-700/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm uppercase flex items-center gap-2">
                 <GitBranch className="h-4 w-4" />
@@ -302,7 +302,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
           </Card>
 
           {/* Destination Information */}
-          <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+          <Card className="bg-transparent dark:bg-card/40 border-gray-200/70 dark:border-gray-700/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm uppercase flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -327,7 +327,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
           </Card>
 
           {/* Resources */}
-          <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+          <Card className="bg-transparent dark:bg-card/40 border-gray-200/70 dark:border-gray-700/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm uppercase flex items-center gap-2">
                 <Package className="h-4 w-4" />
@@ -341,10 +341,10 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
                   <p className="text-xs text-gray-500 dark:text-gray-400">No resources found</p>
                 </div>
               ) : (
-                <div className="border border-gray-200 dark:border-gray-800/50 rounded-md">
+                <div className="border border-gray-200 dark:border-card/40 rounded-md">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+                      <TableRow className="border-b border-gray-400 dark:border-card/40">
                         <TableHead className="text-xs">Resource Name</TableHead>
                         <TableHead className="text-xs">Kind</TableHead>
                         <TableHead className="text-xs">Namespace</TableHead>
@@ -363,7 +363,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
                         return (
                           <TableRow
                             key={`${resource.kind}-${resource.name}-${index}`}
-                            className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:bg-gray-300/50 dark:hover:bg-gray-800/30 hover:cursor-pointer"
+                            className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-card/40 hover:bg-gray-300/50 dark:hover:bg-card/40 hover:cursor-pointer"
                             onClick={() => navigate(resourcePath)}
                           >
                             <TableCell className="font-medium">
@@ -427,7 +427,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
 
           {/* Sync Policy */}
           {application.spec.syncPolicy && (
-            <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+            <Card className="bg-transparent dark:bg-card/40 border-gray-200/70 dark:border-gray-700/30">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm uppercase flex items-center gap-2">
                   <Settings className="h-4 w-4" />
@@ -435,7 +435,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
+                <div className="bg-gray-300/50 dark:bg-card/40 rounded-md overflow-x-auto">
                   <SyntaxHighlighter
                     language="json"
                     style={nord}
@@ -452,7 +452,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
 
           {/* Operation State */}
           {application.status?.operationState && (
-            <Card className="bg-transparent dark:bg-gray-800/20 border-gray-200/70 dark:border-gray-700/30">
+            <Card className="bg-transparent dark:bg-card/40 border-gray-200/70 dark:border-gray-700/30">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm uppercase flex items-center gap-2">
                   <Clock className="h-4 w-4" />

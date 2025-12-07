@@ -50,18 +50,18 @@ const ReplicaSetViewer: React.FC = () => {
   // Fetch events for the replicaset
   const fetchEvents = async () => {
     if (!currentContext || !namespace || !replicaSetName) return;
-  
+
     try {
       // Fetch events specific to this replicaset using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { 
+        {
           namespace,
           fieldSelector: `involvedObject.name=${replicaSetName},involvedObject.kind=ReplicaSet`
         }
       );
-  
+
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -421,7 +421,7 @@ const ReplicaSetViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* ReplicaSet Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Box className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Replicas</h3>
@@ -434,7 +434,7 @@ const ReplicaSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Copy className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Available</h3>
@@ -447,7 +447,7 @@ const ReplicaSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Labeled</h3>
@@ -460,7 +460,7 @@ const ReplicaSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Status</h3>
@@ -512,7 +512,7 @@ const ReplicaSetViewer: React.FC = () => {
             />
 
             {/* Pod Template */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Pod Template</h2>
               <div className="space-y-4">
                 {/* Template Labels */}
@@ -524,7 +524,7 @@ const ReplicaSetViewer: React.FC = () => {
                         <Badge
                           key={key}
                           variant="outline"
-                          className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-800"
+                          className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-800/30 border border-gray-200 dark:border-accent/50"
                         >
                           {key}: {value}
                         </Badge>
@@ -542,7 +542,7 @@ const ReplicaSetViewer: React.FC = () => {
                     {replicaSetData.spec?.template?.spec?.containers.map((container, index) => (
                       <div
                         key={container.name}
-                        className="p-3 rounded-lg border border-gray-200 dark:border-gray-800"
+                        className="p-3 rounded-lg border border-gray-200 dark:border-accent/50"
                       >
                         <div className="font-medium mb-1">{container.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -602,11 +602,11 @@ const ReplicaSetViewer: React.FC = () => {
 
             {/* Volumes */}
             {replicaSetData.spec?.template?.spec?.volumes && replicaSetData.spec.template.spec.volumes.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Volumes</h2>
                 <div className="space-y-3">
                   {replicaSetData.spec.template.spec.volumes.map((volume, index) => (
-                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-accent/50">
                       <div className="font-medium mb-1">{volume.name}</div>
                       <div className="text-sm">
                         {volume.configMap && (

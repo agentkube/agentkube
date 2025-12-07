@@ -61,18 +61,18 @@ const JobViewer: React.FC = () => {
   // Fetch events for the job
   const fetchEvents = async () => {
     if (!currentContext || !namespace || !jobName) return;
-  
+
     try {
       // Fetch events specific to this job using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { 
+        {
           namespace,
           fieldSelector: `involvedObject.name=${jobName},involvedObject.kind=Job`
         }
       );
-  
+
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -558,7 +558,7 @@ const JobViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* Job Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Check className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Succeeded</h3>
@@ -571,7 +571,7 @@ const JobViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <X className="h-4 w-4 text-red-500" />
                   <h3 className="text-sm font-medium">Failed</h3>
@@ -584,7 +584,7 @@ const JobViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <PlayCircle className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Active</h3>
@@ -597,7 +597,7 @@ const JobViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Duration</h3>
@@ -649,7 +649,7 @@ const JobViewer: React.FC = () => {
             />
 
             {/* Job Timing */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Job Timing</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -675,11 +675,11 @@ const JobViewer: React.FC = () => {
 
             {/* Job Conditions */}
             {jobData.status?.conditions && jobData.status.conditions.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Conditions</h2>
                 <div className="space-y-3">
                   {jobData.status.conditions.map((condition, index) => (
-                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-accent/50">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-medium">{condition.type}</span>
                         <span className={condition.status === 'True'
@@ -712,7 +712,7 @@ const JobViewer: React.FC = () => {
             )}
 
             {/* Pod Template */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Pod Template</h2>
               <div className="space-y-4">
                 {/* Template Labels */}
@@ -724,7 +724,7 @@ const JobViewer: React.FC = () => {
                         <Badge
                           key={key}
                           variant="outline"
-                          className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-800"
+                          className="text-xs font-normal px-2 py-1 bg-gray-100 dark:bg-gray-800/30 border border-gray-200 dark:border-accent/50"
                         >
                           {key}: {value}
                         </Badge>
@@ -742,7 +742,7 @@ const JobViewer: React.FC = () => {
                     {jobData.spec?.template?.spec?.containers.map((container, index) => (
                       <div
                         key={container.name}
-                        className="p-3 rounded-lg border border-gray-200 dark:border-gray-800"
+                        className="p-3 rounded-lg border border-gray-200 dark:border-accent/50"
                       >
                         <div className="font-medium mb-1">{container.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -826,7 +826,7 @@ const JobViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="canvas" className="space-y-6">
-            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-accent/50 overflow-hidden">
               {jobData && (
                 <ResourceCanvas
                   resourceDetails={{

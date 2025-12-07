@@ -62,18 +62,18 @@ const StatefulSetViewer: React.FC = () => {
   // Fetch events for the statefulset
   const fetchEvents = async () => {
     if (!currentContext || !namespace || !statefulSetName) return;
-  
+
     try {
       // Fetch events specific to this statefulset using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { 
+        {
           namespace,
           fieldSelector: `involvedObject.name=${statefulSetName},involvedObject.kind=StatefulSet`
         }
       );
-  
+
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -451,7 +451,7 @@ const StatefulSetViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* StatefulSet Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Box className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Replicas</h3>
@@ -464,7 +464,7 @@ const StatefulSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Current</h3>
@@ -477,7 +477,7 @@ const StatefulSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Updated</h3>
@@ -490,7 +490,7 @@ const StatefulSetViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Status</h3>
@@ -538,7 +538,7 @@ const StatefulSetViewer: React.FC = () => {
             />
 
             {/* StatefulSet Specific Features */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">StatefulSet Configuration</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -601,11 +601,11 @@ const StatefulSetViewer: React.FC = () => {
 
             {/* Volume Claim Templates */}
             {statefulSetData.spec?.volumeClaimTemplates && statefulSetData.spec.volumeClaimTemplates.length > 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
                 <h2 className="text-lg font-medium mb-4">Volume Claim Templates</h2>
                 <div className="space-y-3">
                   {statefulSetData.spec.volumeClaimTemplates.map((template, index) => (
-                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <div key={index} className="p-3 rounded-lg border border-gray-200 dark:border-accent/50">
                       <div className="font-medium mb-1">{template.metadata?.name || `Template ${index + 1}`}</div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                         <div>
@@ -632,7 +632,7 @@ const StatefulSetViewer: React.FC = () => {
             )}
 
             {/* Pod Template */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-transparent p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Pod Template</h2>
               <div className="space-y-4">
                 {/* Template Labels */}
@@ -644,7 +644,7 @@ const StatefulSetViewer: React.FC = () => {
                         <Badge
                           key={key}
                           variant="outline"
-                          className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs"
+                          className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-accent/50 text-xs"
                         >
                           {key}: {value}
                         </Badge>
@@ -662,7 +662,7 @@ const StatefulSetViewer: React.FC = () => {
                     {statefulSetData.spec?.template?.spec?.containers.map((container, index) => (
                       <div
                         key={container.name}
-                        className="p-3 rounded-lg border border-gray-200 dark:border-gray-800"
+                        className="p-3 rounded-lg border border-gray-200 dark:border-accent/50"
                       >
                         <div className="font-medium mb-1">{container.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -757,7 +757,7 @@ const StatefulSetViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="canvas" className="space-y-6">
-            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="h-[calc(100vh-300px)] min-h-[500px] rounded-lg border border-gray-200 dark:border-accent/50 overflow-hidden">
               {statefulSetData && (
                 <ResourceCanvas
                   resourceDetails={{

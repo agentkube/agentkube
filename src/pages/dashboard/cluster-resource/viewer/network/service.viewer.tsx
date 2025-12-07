@@ -61,18 +61,18 @@ const ServiceViewer: React.FC = () => {
   // Fetch events for the service
   const fetchEvents = async () => {
     if (!currentContext || !namespace || !serviceName) return;
-  
+
     try {
       // Fetch events specific to this service using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { 
+        {
           namespace,
           fieldSelector: `involvedObject.name=${serviceName},involvedObject.kind=Service`
         }
       );
-  
+
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -124,7 +124,7 @@ const ServiceViewer: React.FC = () => {
       });
       return;
     }
-    
+
     setShowDeleteDialog(true);
   };
 
@@ -216,7 +216,7 @@ const ServiceViewer: React.FC = () => {
       case 'ExternalName':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
+        return 'bg-gray-100 text-gray-800 dark:bg-card/40 dark:text-gray-300';
     }
   };
 
@@ -258,7 +258,7 @@ const ServiceViewer: React.FC = () => {
       // For targetPort, if it's a named port (string), use the service port number instead
       // This ensures we always use numeric ports for port forwarding
       let targetPort = port.targetPort || port.port;
-      
+
       // If targetPort is a string (named port), use the service port number instead
       if (typeof targetPort === 'string') {
         targetPort = port.port;
@@ -459,7 +459,7 @@ const ServiceViewer: React.FC = () => {
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* Service Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-card/40 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Network className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Type</h3>
@@ -472,7 +472,7 @@ const ServiceViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-card/40 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Server className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Cluster IP</h3>
@@ -485,7 +485,7 @@ const ServiceViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-card/40 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Globe className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">External Access</h3>
@@ -504,7 +504,7 @@ const ServiceViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-card/40 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <ExternalLink className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Ports</h3>
@@ -551,7 +551,7 @@ const ServiceViewer: React.FC = () => {
             />
 
             {/* Service Networking */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-card/40 p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Networking</h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -635,7 +635,7 @@ const ServiceViewer: React.FC = () => {
             </div>
 
             {/* Endpoints and Selector */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white dark:bg-card/40 p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Selectors and Targeting</h2>
               <div className="space-y-4">
                 <div>
