@@ -24,7 +24,7 @@ export { default as IssuesSection } from './clusterreport/issues-section.compone
 export { default as Provisioner } from './provisoner/provisioner.component';
 export { default as ProvisionDrawer } from './provisioningdrawer/provisioningdrawer.component';
 export { default as Wallpaper } from './wallpaper/wallpaper.component';
-export { default as WallpaperSelector } from './wallpaper-selector';
+// export { default as WallpaperSelector } from './wallpaper-selector';
 export { default as ThemePickerDialog } from './themepicker/themepickerdialog.component';
 
 export { default as HelmChartDialog } from './helmchartdialog/helmchartdialog.component';

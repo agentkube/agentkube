@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme } from 'next-themes';
-import { EditorTheme, Wallpaper, WallpaperSelector } from '@/components/custom';
+import { EditorTheme } from '@/components/custom';
 import { useCustomTheme } from '@/components/theme-provider';
 import { AVAILABLE_THEMES, ThemeMode, ThemePattern } from '@/types/theme';
 
