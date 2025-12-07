@@ -65,7 +65,7 @@ const ImageVulnerabilitySummaryComponent = (
           { label: 'Medium', count: scanResult.summary.medium, severity: 'medium' },
           { label: 'Low', count: scanResult.summary.low, severity: 'low' }
         ].map(({ label, count, severity }) => (
-          <Card key={label} className="bg-secondary/50 rounded-md border border-border shadow-none min-h-32">
+          <Card key={label} className="bg-card/50 rounded-md border border-border shadow-none min-h-32">
             <CardContent className="py-2 px-2 flex flex-col h-full">
               <h2 className="text-sm uppercase font-medium text-muted-foreground mb-auto">{label}</h2>
               <div className="mt-auto">
@@ -247,7 +247,7 @@ const ArgoApplicationsListComponent: React.FC<ArgoApplicationsListProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-secondary/30 rounded-lg p-4 hover:bg-secondary/50 transition-colors border border-transparent hover:border-blue-500/30"
+              className="bg-card/30 rounded-lg p-4 hover:bg-card/50 transition-colors border border-transparent hover:border-blue-500/30"
             >
               {/* Header */}
               <div className="flex justify-between items-start mb-3">
@@ -426,7 +426,7 @@ const ArgoApplicationDetailComponent: React.FC<ArgoApplicationDetailProps> = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="bg-secondary/30 hover:bg-secondary/50 rounded-lg p-6 border border-border hover:cursor-pointer"
+        className="bg-card/30 hover:bg-card/50 rounded-lg p-6 border border-border hover:cursor-pointer"
         onClick={() => navigate("/dashboard/integrations/argo")}
       >
         {/* Title Section */}
@@ -638,7 +638,7 @@ const DriftAnalysisComponent: React.FC<DriftAnalysisProps> = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="bg-secondary/30 rounded-lg p-4 border border-border hover:bg-secondary/50 transition-colors cursor-pointer"
+        className="bg-card/30 rounded-lg p-4 border border-border hover:bg-card/50 transition-colors cursor-pointer"
         onClick={handleOpenDriftAnalysis}
       >
         {/* Resource Info */}
@@ -695,7 +695,7 @@ const DriftAnalysisComponent: React.FC<DriftAnalysisProps> = ({
                 return (
                   <div
                     key={`${drift.resource.namespace}-${drift.resource.name}-${index}`}
-                    className="flex items-center justify-between p-2 bg-secondary/50 rounded border border-border"
+                    className="flex items-center justify-between p-2 bg-card/50 rounded border border-border"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
