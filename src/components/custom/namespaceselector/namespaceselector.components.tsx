@@ -114,7 +114,7 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full h-full p-2.5 justify-between text-foreground bg-secondary border-border"
+            className="w-full h-full p-2.5 justify-between text-foreground bg-card/20 border-border"
           >
             <span className="truncate text-sm">{getDisplayText()}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -123,7 +123,7 @@ export const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
         <PopoverContent className="w-full p-0 bg-card backdrop-blur-md border-border " align="start">
           <div className="p-1">
             <input
-              className="w-full px-2 py-1 text-sm bg-secondary rounded-md focus:outline-none focus:ring-2 focus:ring-blue-800"
+              className="w-full px-2 py-1 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-800"
               placeholder="Search namespaces..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
