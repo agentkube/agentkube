@@ -3,7 +3,7 @@
   "notes": "View changelog at https://docs.agentkube.com/changelog",
   "pub_date": "2025-12-07T14:30:00Z",
   "platforms": {
-    "linux-x86_64": {
+    "linux-x86_64-deb": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVURjJWSVZRVUpabW9TWkNsRXppcHFKdktFYkRlQU5tWFAvVVNNTk5jQzlsRitvZFJlTlJTYTZXYUFDYWt5b0tBSGo4WkVpdzhxanBwZi9aQ0VybGM2L2YzczBiYlQxYkFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzY1MDk1OTU0CWZpbGU6QWdlbnRrdWJlLmFwcC50YXIuZ3oKOEZIZXd5NDdRSHBKdEUxT3VoYTlxU256dGZHTnlIZEpUaGxFcUdjY2dRb0x3ZmdaUElDb21vd0VQeGdIK1grTUJVZzFWMGxvUytvaDR3d0ZwMFVUQXc9PQo",
       "url": "https://github.com/agentkube/agentkube/releases/download/v0.0.11/Agentkube_0.0.11_amd64.deb"
     },
