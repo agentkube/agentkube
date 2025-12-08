@@ -24,8 +24,8 @@ fn get_orchestrator_binary_path() -> String {
         ("macos", "aarch64") => "/Applications/Agentkube.app/Contents/Resources/bin/orchestrator/agentkube-orchestrator-aarch64-apple-darwin".to_string(),
         
         // Linux platforms
-        ("linux", "x86_64") => "bin/orchestrator/agentkube-orchestrator-x86_64-unknown-linux-gnu".to_string(),
-        ("linux", "aarch64") => "bin/orchestrator/agentkube-orchestrator-aarch64-unknown-linux-gnu".to_string(),
+        ("linux", "x86_64") => "/lib/Agentkube/bin/orchestrator/agentkube-orchestrator-x86_64-unknown-linux-gnu".to_string(),
+        ("linux", "aarch64") => "/lib/Agentkube/bin/orchestrator/agentkube-orchestrator-aarch64-unknown-linux-gnu".to_string(),
         
         // Fallback
         _ => {
@@ -56,8 +56,8 @@ fn get_operator_binary_path() -> String {
         ("macos", "aarch64") => "/Applications/Agentkube.app/Contents/Resources/bin/operator/agentkube-operator-aarch64-apple-darwin".to_string(),
         
         // Linux platforms
-        ("linux", "x86_64") => "bin/operator/agentkube-operator-x86_64-unknown-linux-gnu".to_string(),
-        ("linux", "aarch64") => "bin/operator/agentkube-operator-aarch64-unknown-linux-gnu".to_string(),
+        ("linux", "x86_64") => "/lib/Agentkube/bin/operator/agentkube-operator-x86_64-unknown-linux-gnu".to_string(),
+        ("linux", "aarch64") => "/lib/Agentkube/bin/operator/agentkube-operator-aarch64-unknown-linux-gnu".to_string(),
         
         // Fallback
         _ => {
