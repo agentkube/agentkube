@@ -1231,6 +1231,14 @@ const Pods: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [pods, isMetricsServerInstalled]);
 
+  // Get total restart count for a pod
+  const getTotalRestarts = (pod: V1Pod): number => {
+    return (pod.status?.containerStatuses || []).reduce(
+      (total, status) => total + (status.restartCount || 0),
+      0
+    );
+  };
+
   // Filter pods based on search query
   const filteredPods = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -1472,20 +1480,12 @@ const Pods: React.FC = () => {
   // Function to check if pod is in a failing state (should show sparkle icon)
   const isPodFailing = (pod: V1Pod): boolean => {
     const phase = pod.status?.phase?.toLowerCase();
-    return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' || 
-           (pod.status?.containerStatuses || []).some(status => 
+    return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' ||
+           (pod.status?.containerStatuses || []).some(status =>
              status.state?.waiting?.reason === 'CrashLoopBackOff' ||
              status.state?.waiting?.reason === 'ImagePullBackOff' ||
              status.state?.waiting?.reason === 'ErrImagePull'
            );
-  };
-
-  // Get total restart count for a pod
-  const getTotalRestarts = (pod: V1Pod): number => {
-    return (pod.status?.containerStatuses || []).reduce(
-      (total, status) => total + (status.restartCount || 0),
-      0
-    );
   };
 
   // Resource usage tooltip handlers
