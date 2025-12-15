@@ -22,7 +22,6 @@ import { toast } from '@/hooks/use-toast';
 import { deleteContext } from '@/api/cluster';
 import { useAuth } from '@/contexts/useAuth';
 import { getUserProfile } from '@/api/auth';
-import { ClusterNavigationStorage } from '@/utils/clusterNavigation';
 
 
 // Interface for context menu position
@@ -443,17 +442,8 @@ const HomePage: React.FC = () => {
       // Add to workspace-specific recent connections
       addToRecentConnections(contextToConnect);
 
-      // Check for last visited location for this specific cluster
-      const lastVisitedLocation = ClusterNavigationStorage.getLastVisitedLocation(clusterId);
-
-      if (lastVisitedLocation) {
-        // Navigate to last visited location for this specific cluster
-        navigate(lastVisitedLocation);
-      } else {
-        // Navigate to default dashboard
-        // navigate('/dashboard');
-        navigate(`/dashboard?cluster=${clusterId}`);
-      }
+      // Always navigate to default dashboard
+      navigate(`/dashboard?cluster=${clusterId}`);
     }
   }, [contexts, setCurrentContext, navigate, clusterHealthStatus, toast, addToRecentConnections]);
 

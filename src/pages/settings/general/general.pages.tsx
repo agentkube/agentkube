@@ -24,6 +24,10 @@ const GeneralSettings: React.FC = () => {
   const [usageAnalytics, setUsageAnalytics] = useState<boolean | undefined>(undefined);
   const [startOnLogin, setStartOnLogin] = useState<boolean | undefined>(undefined);
   const [excludeNamespaces, setExcludeNamespaces] = useState<string[] | undefined>(undefined);
+  const [showRecentVisits, setShowRecentVisits] = useState<boolean>(() => {
+    const saved = localStorage.getItem('show-recent-visits');
+    return saved ? JSON.parse(saved) : true; // default to true
+  });
 
   // Loading and saving states
   const [isLoading, setIsLoading] = useState(true);
@@ -68,6 +72,10 @@ const GeneralSettings: React.FC = () => {
     fetchSettings();
   }, [toast]);
 
+  // Save showRecentVisits to localStorage
+  useEffect(() => {
+    localStorage.setItem('show-recent-visits', JSON.stringify(showRecentVisits));
+  }, [showRecentVisits]);
 
   // Handle language change
   const handleLanguageChange = (lang: string) => {
@@ -272,6 +280,21 @@ const GeneralSettings: React.FC = () => {
             onCheckedChange={setFullWidth}
           />
         </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="show-recent-visits">Show Recent Visited Resources and Favorites</Label>
+            <div className="text-sm text-muted-foreground">
+              Display recently visited resources in the sidebar
+            </div>
+          </div>
+          <Switch
+            id="show-recent-visits"
+            checked={showRecentVisits}
+            onCheckedChange={setShowRecentVisits}
+          />
+        </div>
+
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="auto-update" className="block">Automatic Updates</Label>

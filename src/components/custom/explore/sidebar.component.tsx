@@ -6,6 +6,7 @@ import { useCluster } from '@/contexts/clusterContext';
 import { SidebarItem } from '@/types/sidebar';
 import FeatureSection from './featuresection/featuresection.components';
 import ClusterDisplay from './clusterdisplay/clusterdisplay.component';
+import RecentAndFavSection from './recentandfavsection/recentandfavsection.component';
 import { TreeProvider, TreeView, TreeNode, TreeNodeTrigger, TreeNodeContent, TreeExpander, TreeIcon, TreeLabel } from '@/components/ui/tree';
 import {
   DropdownMenu,
@@ -239,6 +240,9 @@ const ExploreSidebar: React.FC<ExploreSidebarProps> = ({
         setCurrentContext={setCurrentContext}
         navigate={navigate}
       />
+
+      {/* Recent Visits Section */}
+      <RecentAndFavSection isCollapsed={isCollapsed} />
 
       {/* Advanced Features Section */}
       <FeatureSection
