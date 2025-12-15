@@ -659,6 +659,18 @@ const ReplicaSets: React.FC = () => {
     });
   }, [replicaSets, searchQuery]);
 
+  // Get owner references
+  const getOwnerReference = (replicaSet: any): { name: string, kind: string } | null => {
+    const ownerRefs = replicaSet.metadata?.ownerReferences || [];
+    if (ownerRefs.length > 0) {
+      return {
+        name: ownerRefs[0].name,
+        kind: ownerRefs[0].kind
+      };
+    }
+    return null;
+  };
+
   // Sort replica sets based on sort state
   const sortedReplicaSets = useMemo(() => {
     if (!sort.field || !sort.direction) {
@@ -736,18 +748,6 @@ const ReplicaSets: React.FC = () => {
       }
     });
   }, [filteredReplicaSets, sort.field, sort.direction]);
-
-  // Get owner references
-  const getOwnerReference = (replicaSet: any): { name: string, kind: string } | null => {
-    const ownerRefs = replicaSet.metadata?.ownerReferences || [];
-    if (ownerRefs.length > 0) {
-      return {
-        name: ownerRefs[0].name,
-        kind: ownerRefs[0].kind
-      };
-    }
-    return null;
-  };
 
   const handleReplicaSetDetails = (replicaSet: any) => {
     if (replicaSet.metadata?.name && replicaSet.metadata?.namespace) {
