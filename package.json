@@ -71,7 +71,10 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@visx/visx": "^3.12.0",
     "@vitejs/plugin-react-swc": "^3.3.2",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.15.0",
     "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/xterm": "^5.5.0",
     "@xyflow/react": "^12.4.3",
     "canvas-confetti": "^1.9.3",
     "chart.js": "^4.5.0",
@@ -111,8 +114,6 @@
     "uplot-react": "^1.2.4",
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
-    "xterm": "^5.3.0",
-    "xterm-addon-fit": "^0.8.0",
     "zod": "^3.21.4"
   },
   "devDependencies": {

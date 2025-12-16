@@ -36,6 +36,9 @@ tauri-plugin-fs = "2.0.0-rc"
 serde_yaml = "0.9.34"
 url = "2.5.4"
 reqwest = "0.12"
+portable-pty = "0.8"
+anyhow = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
 
 # Platform-specific network monitoring dependencies
 [target.'cfg(target_os = "macos")'.dependencies]

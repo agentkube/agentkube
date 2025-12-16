@@ -1,20 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Terminal } from 'lucide-react';
-import TerminalComponent from './terminal.component';
+import TerminalManager from './terminal.component';
 
 const TerminalContainer: React.FC = () => {
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
-  const toggleTerminal = () => {
-    setIsTerminalOpen(!isTerminalOpen);
-  };
+  const toggleTerminal = useCallback(() => {
+    setIsTerminalOpen((prev) => !prev);
+  }, []);
+
+  const closeTerminal = useCallback(() => {
+    setIsTerminalOpen(false);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Ctrl + ~ (key code 192 is for the backtick/tilde key)
-      if (event.ctrlKey && event.keyCode === 192) {
-        toggleTerminal();
+      // Ctrl/Cmd + ` (backtick) to toggle terminal
+      if ((event.ctrlKey || event.metaKey) && event.key === '`') {
         event.preventDefault();
+        toggleTerminal();
+      }
+
+      // Escape to close terminal when it's open
+      if (event.key === 'Escape' && isTerminalOpen) {
+        // Only close if not focused on an input or terminal
+        const activeElement = document.activeElement;
+        const isInTerminal = activeElement?.closest('.xterm');
+        if (!isInTerminal) {
+          closeTerminal();
+        }
       }
     };
 
@@ -23,22 +37,26 @@ const TerminalContainer: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isTerminalOpen]);
+  }, [isTerminalOpen, toggleTerminal, closeTerminal]);
 
   return (
     <>
-      <button 
-        className="py-1 backdrop-blur-md flex items-center px-4 bg-gray-200 dark:text-gray-200 dark:bg-gray-600/20 hover:bg-gray-800/50 space-x-1"
+      <button
+        className={`py-1 backdrop-blur-md flex items-center px-4 dark:text-gray-200 hover:bg-accent-hover space-x-1 transition-colors ${isTerminalOpen
+          ? 'bg-accent text-foreground'
+          : 'bg-gray-200 dark:bg-gray-600/20'
+          }`}
         onClick={toggleTerminal}
+        title="Toggle Terminal (⌃`)"
       >
-        <Terminal className='h-3 w-3' /> 
+        <Terminal className="h-3 w-3" />
         <span>Terminal</span>
+        {isTerminalOpen && (
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+        )}
       </button>
-      
-      <TerminalComponent 
-        isOpen={isTerminalOpen} 
-        onClose={() => setIsTerminalOpen(false)} 
-      />
+
+      <TerminalManager isOpen={isTerminalOpen} onClose={closeTerminal} />
     </>
   );
 };
