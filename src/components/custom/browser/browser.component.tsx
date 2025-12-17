@@ -198,31 +198,46 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
       unlistenUrl = await listen<BrowserUrlChangedEvent>('browser-url-changed', (event) => {
         if (event.payload.session_id === sessionId) {
           const newUrl = event.payload.url;
-          console.log('URL changed:', newUrl, 'isNavigatingHistory:', isNavigatingHistory.current, 'historyIndex:', historyIndexRef.current);
 
-          setState(prev => ({
-            ...prev,
-            url: newUrl,
-            displayUrl: newUrl,
-          }));
+          setState(prev => {
+            // Skip if same URL (avoid duplicates)
+            if (prev.url === newUrl) {
+              return prev;
+            }
+            return {
+              ...prev,
+              url: newUrl,
+              displayUrl: newUrl,
+            };
+          });
 
           // Only update history if NOT navigating via back/forward
           if (!isNavigatingHistory.current) {
-            // Use ref for current index to avoid stale closure
             const currentIndex = historyIndexRef.current;
 
             setHistory(prevHistory => {
+              // Check if we're at the current position and URL matches
+              if (prevHistory[currentIndex] === newUrl) {
+                return prevHistory;
+              }
+
               // Truncate forward history and add new URL
               const newHistory = prevHistory.slice(0, currentIndex + 1);
+
+              // Only add if different from last entry
               if (newHistory[newHistory.length - 1] !== newUrl) {
                 newHistory.push(newUrl);
+
+                // Update index for the new entry
+                const newIndex = newHistory.length - 1;
+                setHistoryIndex(newIndex);
+                historyIndexRef.current = newIndex;
               }
+
               return newHistory;
             });
-            setHistoryIndex(currentIndex + 1);
-            historyIndexRef.current = currentIndex + 1;
           } else {
-            // Reset the navigation flag
+            // Reset the navigation flag after back/forward
             isNavigatingHistory.current = false;
           }
 
