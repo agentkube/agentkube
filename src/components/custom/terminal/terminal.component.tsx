@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check } from 'lucide-react';
+import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check, Globe } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { SiClaude } from '@icons-pack/react-simple-icons';
 import TerminalTab from './terminaltab.component';
+import BrowserTab from '../browser/browser.component';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,17 @@ interface TerminalSession {
   created_at: number;
 }
 
+interface BrowserSession {
+  id: string;
+  name: string;
+  url: string;
+  created_at: number;
+}
+
+type Session =
+  | { type: 'terminal'; data: TerminalSession }
+  | { type: 'browser'; data: BrowserSession };
+
 interface PendingRequest {
   command?: string;
   name?: string;
@@ -49,7 +61,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   pendingRequest,
   onPendingRequestHandled
 }) => {
-  const [sessions, setSessions] = useState<TerminalSession[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [terminalHeight, setTerminalHeight] = useState('40vh');
   const [isDragging, setIsDragging] = useState(false);
@@ -68,7 +80,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         initialCommand: initialCommand || undefined,
       });
 
-      setSessions((prev) => [...prev, session]);
+      setSessions((prev) => [...prev, { type: 'terminal', data: session }]);
       setActiveSessionId(session.id);
 
       return session;
@@ -78,41 +90,65 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     }
   }, []);
 
-  // Close a terminal session
+  // Create a new browser session
+  const createBrowserSession = useCallback((url?: string, name?: string) => {
+    const id = `browser-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const browserSession: BrowserSession = {
+      id,
+      name: name || 'Browser',
+      url: url || '',
+      created_at: Date.now(),
+    };
+
+    setSessions((prev) => [...prev, { type: 'browser', data: browserSession }]);
+    setActiveSessionId(id);
+
+    return browserSession;
+  }, []);
+
+  // Close a session (terminal or browser)
   const closeSession = useCallback(async (sessionId: string) => {
-    try {
-      await invoke('close_session', { sessionId });
+    // Find if this is a terminal session
+    const session = sessions.find((s) => s.data.id === sessionId);
 
-      setSessions((prev) => {
-        const newSessions = prev.filter((s) => s.id !== sessionId);
-
-        // If closing the active session, switch to another one
-        if (activeSessionId === sessionId && newSessions.length > 0) {
-          setActiveSessionId(newSessions[newSessions.length - 1].id);
-        } else if (newSessions.length === 0) {
-          setActiveSessionId(null);
-        }
-
-        return newSessions;
-      });
-    } catch (err) {
-      console.error('Failed to close terminal session:', err);
-    }
-  }, [activeSessionId]);
-
-  // Close all sessions except the specified one
-  const closeOtherSessions = useCallback(async (keepSessionId: string) => {
-    const sessionsToClose = sessions.filter((s) => s.id !== keepSessionId);
-
-    for (const session of sessionsToClose) {
+    // Only call backend close for terminal sessions
+    if (session?.type === 'terminal') {
       try {
-        await invoke('close_session', { sessionId: session.id });
+        await invoke('close_session', { sessionId });
       } catch (err) {
-        console.error('Failed to close session:', session.id, err);
+        console.error('Failed to close terminal session:', err);
       }
     }
 
-    setSessions((prev) => prev.filter((s) => s.id === keepSessionId));
+    setSessions((prev) => {
+      const newSessions = prev.filter((s) => s.data.id !== sessionId);
+
+      // If closing the active session, switch to another one
+      if (activeSessionId === sessionId && newSessions.length > 0) {
+        setActiveSessionId(newSessions[newSessions.length - 1].data.id);
+      } else if (newSessions.length === 0) {
+        setActiveSessionId(null);
+      }
+
+      return newSessions;
+    });
+  }, [activeSessionId, sessions]);
+
+  // Close all sessions except the specified one
+  const closeOtherSessions = useCallback(async (keepSessionId: string) => {
+    const sessionsToClose = sessions.filter((s) => s.data.id !== keepSessionId);
+
+    for (const session of sessionsToClose) {
+      if (session.type === 'terminal') {
+        try {
+          await invoke('close_session', { sessionId: session.data.id });
+        } catch (err) {
+          console.error('Failed to close session:', session.data.id, err);
+        }
+      }
+    }
+
+    setSessions((prev) => prev.filter((s) => s.data.id === keepSessionId));
     setActiveSessionId(keepSessionId);
   }, [sessions]);
 
@@ -129,21 +165,31 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
   // Rename a session
   const renameSession = useCallback(async (sessionId: string, newName: string) => {
-    try {
-      await invoke('rename_session', { sessionId, newName });
+    const session = sessions.find((s) => s.data.id === sessionId);
 
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, name: newName } : s))
-      );
-    } catch (err) {
-      console.error('Failed to rename session:', err);
+    // Only call backend rename for terminal sessions
+    if (session?.type === 'terminal') {
+      try {
+        await invoke('rename_session', { sessionId, newName });
+      } catch (err) {
+        console.error('Failed to rename session:', err);
+      }
     }
-  }, []);
+
+    setSessions((prev) =>
+      prev.map((s): Session => {
+        if (s.data.id === sessionId) {
+          return { ...s, data: { ...s.data, name: newName } } as Session;
+        }
+        return s;
+      })
+    );
+  }, [sessions]);
 
   // Start editing a session name
-  const startEditing = useCallback((session: TerminalSession) => {
-    setEditingSessionId(session.id);
-    setEditingName(session.name);
+  const startEditing = useCallback((session: Session) => {
+    setEditingSessionId(session.data.id);
+    setEditingName(session.data.name);
     setTimeout(() => {
       editInputRef.current?.focus();
       editInputRef.current?.select();
@@ -211,19 +257,19 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         e.preventDefault();
         const index = parseInt(e.key) - 1;
         if (sessions[index]) {
-          setActiveSessionId(sessions[index].id);
+          setActiveSessionId(sessions[index].data.id);
         }
       }
 
       // Cmd/Ctrl + Shift + [ or ]: Previous/Next tab
       if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
-        const currentIndex = sessions.findIndex((s) => s.id === activeSessionId);
+        const currentIndex = sessions.findIndex((s) => s.data.id === activeSessionId);
         if (e.key === '[' && currentIndex > 0) {
           e.preventDefault();
-          setActiveSessionId(sessions[currentIndex - 1].id);
+          setActiveSessionId(sessions[currentIndex - 1].data.id);
         } else if (e.key === ']' && currentIndex < sessions.length - 1) {
           e.preventDefault();
-          setActiveSessionId(sessions[currentIndex + 1].id);
+          setActiveSessionId(sessions[currentIndex + 1].data.id);
         }
       }
     };
@@ -276,12 +322,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     // closeAllSessions, 
     onClose]);
 
-  if (!isOpen) return null;
-
   return (
     <div
       className="fixed bottom-0 left-0 right-0 backdrop-blur-xl z-50 border-t border-border"
-      style={{ height: terminalHeight }}
+      style={{
+        height: terminalHeight,
+        display: isOpen ? 'block' : 'none',
+      }}
     >
       {/* Resize handle */}
       <div
@@ -303,16 +350,16 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
           <div className="flex items-center">
             {sessions.map((session, index) => (
-              <ContextMenu key={session.id}>
+              <ContextMenu key={session.data.id}>
                 <ContextMenuTrigger>
                   <div
-                    className={`group flex items-center gap-1 px-3 py-1.5 border-r border-border cursor-pointer transition-colors ${activeSessionId === session.id
+                    className={`group flex items-center gap-1 px-3 py-1.5 border-r border-border cursor-pointer transition-colors ${activeSessionId === session.data.id
                       ? 'bg-accent/50 text-foreground'
                       : 'text-muted-foreground hover:bg-background/50 hover:text-foreground'
                       }`}
-                    onClick={() => setActiveSessionId(session.id)}
+                    onClick={() => setActiveSessionId(session.data.id)}
                   >
-                    {editingSessionId === session.id ? (
+                    {editingSessionId === session.data.id ? (
                       <div className="flex items-center gap-1">
                         <input
                           ref={editInputRef}
@@ -338,19 +385,30 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                       </div>
                     ) : (
                       <>
-                        <span className="text-xs whitespace-nowrap">
-                          Terminal{' '}
-                          <span className="text-muted-foreground/50">
-                            {session.name.replace('Terminal ', '')}
-                          </span>
-                        </span>
+                        {session.type === 'browser' ? (
+                          <>
+                            <Globe className="h-3 w-3 text-blue-400" />
+                            <span className="text-xs whitespace-nowrap">
+                              {session.data.name}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs whitespace-nowrap">
+                              Terminal{' '}
+                              <span className="text-muted-foreground/50">
+                                {session.data.name.replace('Terminal ', '')}
+                              </span>
+                            </span>
+                          </>
+                        )}
                         <span className="text-[10px] text-muted-foreground/60">
                           {index + 1}
                         </span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            closeSession(session.id);
+                            closeSession(session.data.id);
                           }}
                           className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity"
                         >
@@ -370,14 +428,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                   </ContextMenuItem>
                   <ContextMenuSeparator />
                   <ContextMenuItem
-                    onClick={() => closeSession(session.id)}
+                    onClick={() => closeSession(session.data.id)}
                     className="text-xs"
                   >
                     <X className="h-3 w-3 mr-2" />
                     Close
                   </ContextMenuItem>
                   <ContextMenuItem
-                    onClick={() => closeOtherSessions(session.id)}
+                    onClick={() => closeOtherSessions(session.data.id)}
                     className="text-xs"
                     disabled={sessions.length === 1}
                   >
@@ -394,14 +452,33 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             ))}
           </div>
 
-          {/* New tab button */}
-          <button
-            onClick={() => createNewSession()}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="New Terminal (⌘T)"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+          {/* New tab dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                title="New Tab (⌘T)"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-card border-border">
+              <DropdownMenuItem
+                onClick={() => createNewSession()}
+                className="text-xs"
+              >
+                <Terminal className="h-3.5 w-3.5 mr-2" />
+                New Terminal
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => createBrowserSession()}
+                className="text-xs"
+              >
+                <Globe className="h-3.5 w-3.5 mr-2" />
+                New Browser
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Right side: Actions */}
@@ -511,13 +588,22 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             </div>
           </div>
         ) : (
-          sessions.map((session) => (
-            <TerminalTab
-              key={session.id}
-              sessionId={session.id}
-              isActive={activeSessionId === session.id}
-            />
-          ))
+          sessions.map((session) =>
+            session.type === 'browser' ? (
+              <BrowserTab
+                key={session.data.id}
+                sessionId={session.data.id}
+                isActive={activeSessionId === session.data.id}
+                initialUrl={(session.data as BrowserSession).url}
+              />
+            ) : (
+              <TerminalTab
+                key={session.data.id}
+                sessionId={session.data.id}
+                isActive={activeSessionId === session.data.id}
+              />
+            )
+          )
         )}
       </div>
     </div>
