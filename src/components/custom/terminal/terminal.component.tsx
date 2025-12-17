@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { SiClaude } from '@icons-pack/react-simple-icons';
 import TerminalTab from './terminaltab.component';
 import {
   DropdownMenu,
@@ -16,6 +17,12 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface TerminalSession {
   id: string;
@@ -238,7 +245,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         const viewportHeight = window.innerHeight;
         const mouseY = e.clientY;
         const heightFromBottom = viewportHeight - mouseY;
-        const heightPercentage = Math.min(Math.max((heightFromBottom / viewportHeight) * 100, 20), 80);
+        const heightPercentage = Math.min(Math.max((heightFromBottom / viewportHeight) * 100, 20), 90);
         setTerminalHeight(`${heightPercentage}vh`);
       }
     };
@@ -263,9 +270,11 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
   // Handle close - close all sessions when terminal panel is closed
   const handleClose = useCallback(() => {
-    closeAllSessions();
+    // closeAllSessions();
     onClose();
-  }, [closeAllSessions, onClose]);
+  }, [
+    // closeAllSessions, 
+    onClose]);
 
   if (!isOpen) return null;
 
@@ -397,8 +406,25 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
         {/* Right side: Actions */}
         <div className="flex items-center gap-1 px-2">
+          {/* Claude AI button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => createNewSession('Claude Code', 'claude')}
+                  className="p-1.5 text-[#D97757] hover:bg-accent rounded transition-colors"
+                >
+                  <SiClaude className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="bg-card text-foreground border-border">
+                <p>Open Claude Code</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* External terminal dropdown */}
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors">
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -424,7 +450,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 Open in System Terminal
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
           {/* More options */}
           <DropdownMenu>
