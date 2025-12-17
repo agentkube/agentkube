@@ -3,10 +3,16 @@ use std::sync::Arc;
 use tauri::{Manager, RunEvent};
 use tokio::sync::Mutex;
 
+mod browser;
 mod network_commands;
 mod network_monitor;
 mod terminal;
 
+use browser::{
+    browser_go_back, browser_go_forward, browser_navigate, browser_reload, close_browser_webview,
+    create_browser_webview, get_browser_url, hide_browser_webview, show_browser_webview,
+    update_browser_bounds, BrowserManager, BrowserManagerState,
+};
 use network_commands::{get_network_status, start_network_monitoring, NetworkMonitorState};
 use network_monitor::NetworkMonitor;
 use terminal::{
@@ -134,7 +140,18 @@ pub fn run() {
             get_all_sessions,
             rename_session,
             close_all_sessions,
-            launch_external_terminal
+            launch_external_terminal,
+            // Browser commands
+            create_browser_webview,
+            browser_navigate,
+            browser_go_back,
+            browser_go_forward,
+            browser_reload,
+            update_browser_bounds,
+            show_browser_webview,
+            hide_browser_webview,
+            close_browser_webview,
+            get_browser_url
         ])
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
@@ -169,6 +186,20 @@ pub fn run() {
             let terminal_manager: TerminalManagerState =
                 std::sync::Arc::new(std::sync::Mutex::new(TerminalManager::new()));
             app.manage(terminal_manager);
+
+            // Initialize browser manager
+            let browser_manager: BrowserManagerState =
+                std::sync::Arc::new(std::sync::Mutex::new(BrowserManager::new()));
+            app.manage(browser_manager);
+
+            // Close any leftover browser windows from previous sessions
+            let app_handle = app.handle().clone();
+            for (label, window) in app_handle.webview_windows() {
+                if label.starts_with("browser-") {
+                    log::info!("Closing leftover browser window: {}", label);
+                    let _ = window.close();
+                }
+            }
 
             // Enhanced logging configuration
             app.handle().plugin(
