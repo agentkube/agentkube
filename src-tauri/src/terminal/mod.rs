@@ -81,6 +81,7 @@ pub async fn create_local_shell(
     name: Option<String>,
     cols: Option<u16>,
     rows: Option<u16>,
+    initial_command: Option<String>,
 ) -> Result<TerminalSessionInfo, String> {
     let pty_system = NativePtySystem::default();
 
@@ -132,6 +133,8 @@ pub async fn create_local_shell(
         .take_writer()
         .map_err(|e| format!("Failed to get PTY writer: {}", e))?;
 
+    let writer = Arc::new(Mutex::new(writer));
+
     let session_id = Uuid::new_v4().to_string();
     let session_id_clone = session_id.clone();
     let created_at = std::time::SystemTime::now()
@@ -170,13 +173,31 @@ pub async fn create_local_shell(
         }
     });
 
+    // If an initial command was provided, write it to the PTY after a short delay
+    if let Some(command) = initial_command {
+        let writer_clone = Arc::clone(&writer);
+        thread::spawn(move || {
+            // Wait for shell to initialize
+            thread::sleep(std::time::Duration::from_millis(500));
+
+            if let Ok(mut w) = writer_clone.lock() {
+                // Write the command followed by newline
+                let cmd_with_newline = format!("{}\n", command);
+                if let Err(e) = w.write_all(cmd_with_newline.as_bytes()) {
+                    log::error!("Failed to write initial command: {}", e);
+                }
+                let _ = w.flush();
+            }
+        });
+    }
+
     let session = PtySession {
         id: session_id.clone(),
         session_type: SessionType::Local,
         name: session_name.clone(),
         created_at,
         pty_pair,
-        writer: Arc::new(Mutex::new(writer)),
+        writer,
         output_receiver,
         _reader_thread: reader_thread,
     };

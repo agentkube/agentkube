@@ -24,12 +24,24 @@ interface TerminalSession {
   created_at: number;
 }
 
+interface PendingRequest {
+  command?: string;
+  name?: string;
+}
+
 interface TerminalManagerProps {
   isOpen: boolean;
   onClose: () => void;
+  pendingRequest?: PendingRequest | null;
+  onPendingRequestHandled?: () => void;
 }
 
-const TerminalManager: React.FC<TerminalManagerProps> = ({ isOpen, onClose }) => {
+const TerminalManager: React.FC<TerminalManagerProps> = ({
+  isOpen,
+  onClose,
+  pendingRequest,
+  onPendingRequestHandled
+}) => {
   const [sessions, setSessions] = useState<TerminalSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [terminalHeight, setTerminalHeight] = useState('40vh');
@@ -40,12 +52,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({ isOpen, onClose }) =>
   const editInputRef = useRef<HTMLInputElement>(null);
 
   // Create a new local terminal session
-  const createNewSession = useCallback(async (name?: string) => {
+  const createNewSession = useCallback(async (name?: string, initialCommand?: string) => {
     try {
       const session = await invoke<TerminalSession>('create_local_shell', {
         name: name || undefined,
         cols: 80,
         rows: 24,
+        initialCommand: initialCommand || undefined,
       });
 
       setSessions((prev) => [...prev, session]);
@@ -156,10 +169,18 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({ isOpen, onClose }) =>
 
   // Create initial session when terminal opens and there are no sessions
   useEffect(() => {
-    if (isOpen && sessions.length === 0) {
+    if (isOpen && sessions.length === 0 && !pendingRequest) {
       createNewSession();
     }
-  }, [isOpen, sessions.length, createNewSession]);
+  }, [isOpen, sessions.length, createNewSession, pendingRequest]);
+
+  // Handle pending command requests from context
+  useEffect(() => {
+    if (isOpen && pendingRequest) {
+      createNewSession(pendingRequest.name, pendingRequest.command);
+      onPendingRequestHandled?.();
+    }
+  }, [isOpen, pendingRequest, createNewSession, onPendingRequestHandled]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -250,7 +271,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({ isOpen, onClose }) =>
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 bg-[#0F1015]/80 backdrop-blur-xl z-50 border-t border-border"
+      className="fixed bottom-0 left-0 right-0 backdrop-blur-xl z-50 border-t border-border"
       style={{ height: terminalHeight }}
     >
       {/* Resize handle */}
@@ -262,7 +283,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({ isOpen, onClose }) =>
       {/* Header with tabs */}
       <div
         ref={terminalHeaderRef}
-        className="flex items-center justify-between bg-[#1a1b23] border-b border-border"
+        className="flex items-center justify-between bg-card/20 border-b border-border"
       >
         {/* Left side: Tabs */}
         <div className="flex items-center flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-700">
@@ -277,8 +298,8 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({ isOpen, onClose }) =>
                 <ContextMenuTrigger>
                   <div
                     className={`group flex items-center gap-1 px-3 py-1.5 border-r border-border cursor-pointer transition-colors ${activeSessionId === session.id
-                      ? 'bg-[#0F1015] text-foreground'
-                      : 'text-muted-foreground hover:bg-[#0F1015]/50 hover:text-foreground'
+                      ? 'bg-accent/50 text-foreground'
+                      : 'text-muted-foreground hover:bg-background/50 hover:text-foreground'
                       }`}
                     onClick={() => setActiveSessionId(session.id)}
                   >

@@ -147,13 +147,13 @@ const CostOverviewReport = () => {
 
       // Extract data directly from OpenCost API response
       let currentClusterData: OpenCostClusterData | null = null;
-      
+
       // Handle current response
       const currentData = currentResponse?.data || currentResponse;
       console.log('OpenCost API Response:', currentResponse);
       console.log('Current Data:', currentData);
       console.log('Cluster Name:', currentContext.name);
-      
+
       if (currentData && currentData.length > 0) {
         currentClusterData = currentData[0][currentContext.name] || null;
         console.log('Extracted Cluster Data:', currentClusterData);
@@ -201,7 +201,7 @@ const CostOverviewReport = () => {
   }
 
   return (
-    <Card className="bg-white dark:bg-gray-800/10 border-gray-200/50 border dark:border-gray-600/30">
+    <Card className="bg-card/20 border-gray-200/50 border dark:border-gray-600/30">
       <CardContent className="p-5">
         <Tabs defaultValue="balance" className="w-full text-xs">
           <TabsList className="bg-gray-100 dark:bg-gray-900/30 mb-2">
@@ -209,13 +209,13 @@ const CostOverviewReport = () => {
             <TabsTrigger className='text-gray-700 dark:text-gray-300' value="audience">Resources</TabsTrigger>
             {/* <TabsTrigger className='text-gray-700 dark:text-gray-300' value="refunds">Alerts</TabsTrigger> */}
           </TabsList>
-          
+
           <TabsContent value="balance">
             <div className="flex flex-col h-full space-y-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-light text-gray-700 dark:text-gray-300">Last 24h</h2>
               </div>
-              {}
+              { }
               <div className="text-5xl font-light text-gray-900 dark:text-white">
                 {isOpenCostInstalled ? (
                   <>
@@ -226,7 +226,7 @@ const CostOverviewReport = () => {
                   <span className="text-gray-500 dark:text-gray-400">Not Configured</span>
                 )}
               </div>
-              
+
               {/* <div className="flex items-center gap-2 mt-4">
                 <div className="flex -space-x-2">
                   {Array.from({ length: Math.min(7, Math.ceil(clusterMetrics.namespaces / 2)) }).map((_, i) => (
@@ -241,13 +241,13 @@ const CostOverviewReport = () => {
                   )}
                 </div>
               </div> */}
-              
+
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 Cluster cost data from OpenCost
               </div>
-              
+
               <div className="flex-grow"></div>
-              
+
               {isOpenCostInstalled && (
                 <div className="mt-auto">
                   <Button className="bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-gray-700 flex justify-between w-44 text-gray-800 dark:text-white gap-2" onClick={() => navigate('/dashboard/cost')}>
@@ -255,7 +255,7 @@ const CostOverviewReport = () => {
                   </Button>
                 </div>
               )}
-              
+
               {!isOpenCostInstalled && (
                 <div className="mt-auto">
                   <Button variant="outline" className="flex justify-between w-56 gap-2" onClick={handleInstallOpenCost}>
@@ -265,13 +265,13 @@ const CostOverviewReport = () => {
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="audience" className="mt-0">
             <div className="space-y-3">
               {isOpenCostInstalled ? (
                 <>
                   <h2 className="text-sm font-light text-gray-700 dark:text-gray-300 mb-3">Resource Breakdown (24h)</h2>
-                  
+
                   <div className="grid grid-cols-3 gap-2">
                     {/* CPU Cost */}
                     <div className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-800/50 rounded-lg p-3">
@@ -313,10 +313,10 @@ const CostOverviewReport = () => {
                         <span className="text-xs font-medium text-green-700 dark:text-green-300 uppercase">Network</span>
                       </div>
                       <div className="text-lg font-light text-green-800 dark:text-green-100">
-                        ${((costData.current?.networkCost || 0) + 
-                           (costData.current?.networkCrossZoneCost || 0) + 
-                           (costData.current?.networkCrossRegionCost || 0) + 
-                           (costData.current?.networkInternetCost || 0)).toFixed(3)}
+                        ${((costData.current?.networkCost || 0) +
+                          (costData.current?.networkCrossZoneCost || 0) +
+                          (costData.current?.networkCrossRegionCost || 0) +
+                          (costData.current?.networkInternetCost || 0)).toFixed(3)}
                       </div>
                     </div>
 
@@ -332,26 +332,26 @@ const CostOverviewReport = () => {
                         </div>
                       </div>
                     )}
-  
+
                     {/* Efficiency */}
-                    <div className={`${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/30' : 
+                    <div className={`${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/30' :
                       ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30' :
-                      ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30' : 
-                      'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30'} col-span-2 border rounded-lg p-3`}>
+                        ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30' :
+                          'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30'} col-span-2 border rounded-lg p-3`}>
                       <div className="flex items-center gap-2 mb-2">
                         <Gauge className={`h-4 w-4 ${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'text-green-600 dark:text-green-400' :
                           ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'text-blue-600 dark:text-blue-400' :
-                          ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-600 dark:text-amber-400' : 
-                          'text-red-600 dark:text-red-400'}`} />
+                            ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-600 dark:text-amber-400' :
+                              'text-red-600 dark:text-red-400'}`} />
                         <span className={`text-xs font-medium uppercase ${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'text-green-700 dark:text-green-300' :
                           ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'text-blue-700 dark:text-blue-300' :
-                          ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-700 dark:text-amber-300' : 
-                          'text-red-700 dark:text-red-300'}`}>Efficiency</span>
+                            ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-700 dark:text-amber-300' :
+                              'text-red-700 dark:text-red-300'}`}>Efficiency</span>
                       </div>
                       <div className={`text-lg font-light ${((costData.current?.totalEfficiency || 0) * 100) > 75 ? 'text-green-800 dark:text-green-100' :
                         ((costData.current?.totalEfficiency || 0) * 100) > 50 ? 'text-blue-800 dark:text-blue-100' :
-                        ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-800 dark:text-amber-100' : 
-                        'text-red-800 dark:text-red-100'}`}>
+                          ((costData.current?.totalEfficiency || 0) * 100) > 25 ? 'text-amber-800 dark:text-amber-100' :
+                            'text-red-800 dark:text-red-100'}`}>
                         {((costData.current?.totalEfficiency || 0) * 100).toFixed(1)}%
                         <Progress className='h-1' value={(costData.current?.totalEfficiency || 0) * 100} />
                       </div>
@@ -379,7 +379,7 @@ const CostOverviewReport = () => {
               )}
             </div>
           </TabsContent>
-          
+
           {/* <TabsContent value="refunds" className="mt-0">
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Cost Alerts</h2>

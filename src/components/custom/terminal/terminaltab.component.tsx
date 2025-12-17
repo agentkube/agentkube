@@ -36,7 +36,7 @@ interface TerminalTheme {
 }
 
 const defaultTheme: TerminalTheme = {
-  background: '#0F1015',
+  background: '#1d1a2607',
   foreground: '#e4e4e4',
   cursor: '#ffffff',
   cursorAccent: '#000000',
@@ -76,7 +76,7 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
       cursorStyle: 'block',
       theme: defaultTheme,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      fontSize: 14,
+      fontSize: 12,
       lineHeight: 1.2,
       scrollback: 5000,
       convertEol: true,
@@ -227,7 +227,7 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
   return (
     <div
       ref={terminalRef}
-      className={`w-full h-full cursor-text ${!isActive ? 'hidden' : ''}`}
+      className={`w-full h-full bg-background/95 cursor-text ${!isActive ? 'hidden' : ''}`}
       onClick={handleClick}
       style={{
         display: isActive ? 'block' : 'none',

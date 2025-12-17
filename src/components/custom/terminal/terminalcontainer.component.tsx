@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Terminal } from 'lucide-react';
 import TerminalManager from './terminal.component';
+import { useTerminal } from '@/contexts/useTerminal';
 
 const TerminalContainer: React.FC = () => {
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
-
-  const toggleTerminal = useCallback(() => {
-    setIsTerminalOpen((prev) => !prev);
-  }, []);
-
-  const closeTerminal = useCallback(() => {
-    setIsTerminalOpen(false);
-  }, []);
+  const {
+    isTerminalOpen,
+    toggleTerminal,
+    closeTerminal,
+    pendingRequest,
+    clearPendingRequest
+  } = useTerminal();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -56,7 +55,12 @@ const TerminalContainer: React.FC = () => {
         )}
       </button>
 
-      <TerminalManager isOpen={isTerminalOpen} onClose={closeTerminal} />
+      <TerminalManager
+        isOpen={isTerminalOpen}
+        onClose={closeTerminal}
+        pendingRequest={pendingRequest}
+        onPendingRequestHandled={clearPendingRequest}
+      />
     </>
   );
 };
