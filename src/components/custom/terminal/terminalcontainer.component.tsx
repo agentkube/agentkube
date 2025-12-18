@@ -9,7 +9,9 @@ const TerminalContainer: React.FC = () => {
     toggleTerminal,
     closeTerminal,
     pendingRequest,
-    clearPendingRequest
+    clearPendingRequest,
+    pendingBrowserRequest,
+    clearPendingBrowserRequest
   } = useTerminal();
 
   useEffect(() => {
@@ -60,6 +62,8 @@ const TerminalContainer: React.FC = () => {
         onClose={closeTerminal}
         pendingRequest={pendingRequest}
         onPendingRequestHandled={clearPendingRequest}
+        pendingBrowserRequest={pendingBrowserRequest}
+        onPendingBrowserRequestHandled={clearPendingBrowserRequest}
       />
     </>
   );

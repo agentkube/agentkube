@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, Server, Copy } from "lucide-react";
+import { Loader2, ExternalLink, Server, Copy, Globe } from "lucide-react";
 import { SiGrafana, SiDatadog, SiNewrelic, SiPrometheus } from '@icons-pack/react-simple-icons';
 import { SigNoz } from '@/assets/icons';
 import {
@@ -18,6 +18,7 @@ import {
   PortForwardResponse
 } from '@/api/internal/portforward';
 import { listResources } from '@/api/internal/resources';
+import { useTerminal } from '@/contexts/useTerminal';
 
 interface MonitoringDashDialogProps {
   isOpen: boolean;
@@ -55,6 +56,7 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
   selectedTool
 }) => {
   const { toast } = useToast();
+  const { openBrowserWithUrl } = useTerminal();
   const [loading, setLoading] = useState(false);
   const [fetchingInstances, setFetchingInstances] = useState(false);
   const [fetchingPods, setFetchingPods] = useState(false);
@@ -240,6 +242,14 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
   };
 
   const handleOpenInBrowser = () => {
+    if (portForwardResult) {
+      const url = getPortForwardUrl(portForwardResult.port?.toString() || '');
+      openBrowserWithUrl(url, `${toolNames[selectedTool]} Dashboard`);
+      handleClose();
+    }
+  };
+
+  const handleOpenInExternalBrowser = () => {
     if (portForwardResult) {
       openPortForwardInBrowser(portForwardResult.port?.toString() || '');
     }
@@ -477,7 +487,11 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
                 <div className="text-gray-500 dark:text-gray-400">URL:</div>
                 <a
                   className="transition-all duration-200 hover:cursor-pointer p-0 col-span-2 truncate underline hover:text-gray-500 dark:hover:text-blue-400"
-                  onClick={() => openPortForwardInBrowser(portForwardResult.port?.toString() || '')}
+                  onClick={() => {
+                    const url = getPortForwardUrl(portForwardResult.port?.toString() || '');
+                    openBrowserWithUrl(url, `${toolNames[selectedTool]} Dashboard`);
+                    handleClose();
+                  }}
                 >
                   {getPortForwardUrl(portForwardResult.port?.toString() || '')}
                 </a>
@@ -514,7 +528,7 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
                 Close
               </Button>
               <Button onClick={handleOpenInBrowser}>
-                <ExternalLink className="mr-2 h-4 w-4" />
+                <Globe className="mr-2 h-4 w-4" />
                 Open in Browser
               </Button>
             </>

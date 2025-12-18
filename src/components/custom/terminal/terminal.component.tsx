@@ -48,18 +48,27 @@ interface PendingRequest {
   name?: string;
 }
 
+interface PendingBrowserRequest {
+  url: string;
+  name?: string;
+}
+
 interface TerminalManagerProps {
   isOpen: boolean;
   onClose: () => void;
   pendingRequest?: PendingRequest | null;
   onPendingRequestHandled?: () => void;
+  pendingBrowserRequest?: PendingBrowserRequest | null;
+  onPendingBrowserRequestHandled?: () => void;
 }
 
 const TerminalManager: React.FC<TerminalManagerProps> = ({
   isOpen,
   onClose,
   pendingRequest,
-  onPendingRequestHandled
+  onPendingRequestHandled,
+  pendingBrowserRequest,
+  onPendingBrowserRequestHandled
 }) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -234,6 +243,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
       onPendingRequestHandled?.();
     }
   }, [isOpen, pendingRequest, createNewSession, onPendingRequestHandled]);
+
+  // Handle pending browser requests from context
+  useEffect(() => {
+    if (isOpen && pendingBrowserRequest) {
+      createBrowserSession(pendingBrowserRequest.url, pendingBrowserRequest.name);
+      onPendingBrowserRequestHandled?.();
+    }
+  }, [isOpen, pendingBrowserRequest, createBrowserSession, onPendingBrowserRequestHandled]);
 
   // Keyboard shortcuts
   useEffect(() => {

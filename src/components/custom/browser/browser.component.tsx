@@ -58,6 +58,7 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const isNavigatingHistory = useRef(false); // Track if we're navigating via back/forward
   const historyIndexRef = useRef(initialUrl ? 0 : -1); // Ref to avoid stale closure
+  const hasInitiatedNavigation = useRef(false); // Track if we've already initiated auto-navigation
   const [state, setState] = useState<BrowserState>({
     url: initialUrl || '',
     displayUrl: initialUrl || '',
@@ -109,8 +110,6 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
     };
   }, []);
 
-  // Webview is created only when user navigates (in navigate function)
-  // No automatic creation on mount
 
   // Update webview bounds when container size changes or tab becomes active
   useEffect(() => {
@@ -320,6 +319,18 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
       }));
     }
   }, [sessionId, state.webviewCreated, getContainerBounds]);
+
+  // Auto-navigate to initialUrl when component mounts with a URL
+  useEffect(() => {
+    if (initialUrl && !hasInitiatedNavigation.current && !state.webviewCreated) {
+      hasInitiatedNavigation.current = true;
+      // Small delay to ensure the container is ready
+      const timer = setTimeout(() => {
+        navigate(initialUrl);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initialUrl, state.webviewCreated, navigate]);
 
   // Handle URL input submit
   const handleUrlSubmit = (e: React.FormEvent) => {

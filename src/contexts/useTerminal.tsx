@@ -5,6 +5,11 @@ interface TerminalRequest {
   name?: string;
 }
 
+interface BrowserRequest {
+  url: string;
+  name?: string;
+}
+
 interface TerminalContextType {
   isTerminalOpen: boolean;
   openTerminal: () => void;
@@ -13,6 +18,10 @@ interface TerminalContextType {
   openTerminalWithCommand: (command: string, name?: string) => void;
   pendingRequest: TerminalRequest | null;
   clearPendingRequest: () => void;
+  // Browser functionality
+  openBrowserWithUrl: (url: string, name?: string) => void;
+  pendingBrowserRequest: BrowserRequest | null;
+  clearPendingBrowserRequest: () => void;
 }
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
@@ -24,6 +33,7 @@ interface TerminalProviderProps {
 export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) => {
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<TerminalRequest | null>(null);
+  const [pendingBrowserRequest, setPendingBrowserRequest] = useState<BrowserRequest | null>(null);
 
   const openTerminal = useCallback(() => {
     setIsTerminalOpen(true);
@@ -46,6 +56,15 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
     setPendingRequest(null);
   }, []);
 
+  const openBrowserWithUrl = useCallback((url: string, name?: string) => {
+    setPendingBrowserRequest({ url, name });
+    setIsTerminalOpen(true);
+  }, []);
+
+  const clearPendingBrowserRequest = useCallback(() => {
+    setPendingBrowserRequest(null);
+  }, []);
+
   return (
     <TerminalContext.Provider
       value={{
@@ -56,6 +75,9 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
         openTerminalWithCommand,
         pendingRequest,
         clearPendingRequest,
+        openBrowserWithUrl,
+        pendingBrowserRequest,
+        clearPendingBrowserRequest,
       }}
     >
       {children}
