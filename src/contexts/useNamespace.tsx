@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, useLayoutEffect } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { getNamespaces } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
@@ -20,17 +20,65 @@ const NamespaceContext = createContext<NamespaceContextType | undefined>(undefin
 
 export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [namespaces, setNamespaces] = useState<V1Namespace[]>([]);
-  const [selectedNamespaces, setSelectedNamespaces] = useState<string[]>([]);
+  const [selectedNamespaces, setSelectedNamespacesInternal] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isNamespacePickerOpen, setIsNamespacePickerOpen] = useState(false);
   const { currentContext } = useCluster();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 
   // Ref to track if initial namespace fetch is complete
   const initialFetchComplete = useRef(false);
 
+  // Track the last URL pathname+search to detect navigation
+  const lastLocationRef = useRef<string>('');
+
+  // Compute available namespaces
+  const availableNamespaces = namespaces
+    .map(ns => ns.metadata?.name)
+    .filter(Boolean) as string[];
+  availableNamespaces.sort((a, b) => a.localeCompare(b));
+
+  // Get URL namespace
+  const urlNamespace = searchParams.get('namespace');
+
+  // Get current location key to detect navigation
+  const currentLocationKey = location.pathname + location.search;
+
+  // Sync URL namespace when navigation occurs (location changes)
+  useLayoutEffect(() => {
+    // Skip if namespaces haven't been loaded yet
+    if (availableNamespaces.length === 0) return;
+
+    // Only process if location has actually changed (navigation occurred)
+    if (currentLocationKey === lastLocationRef.current) return;
+
+    lastLocationRef.current = currentLocationKey;
+
+    if (urlNamespace && availableNamespaces.includes(urlNamespace)) {
+      // URL has a valid namespace - select only that namespace
+      setSelectedNamespacesInternal([urlNamespace]);
+    }
+    // Note: If URL doesn't have namespace or it's invalid, keep current selection
+  }, [currentLocationKey, urlNamespace, availableNamespaces]);
+
+  // Wrapper for setSelectedNamespaces that also clears URL param
+  const setSelectedNamespaces = useCallback((namespaces: string[]) => {
+    setSelectedNamespacesInternal(namespaces);
+
+    // Clear the namespace param from URL when user manually changes selection
+    // This prevents the URL from overriding user's choice on next render
+    const currentUrlNamespace = searchParams.get('namespace');
+    if (currentUrlNamespace) {
+      setSearchParams(params => {
+        params.delete('namespace');
+        return params;
+      }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Fetch namespaces only when cluster context changes
   useEffect(() => {
     const fetchNamespaces = async () => {
       if (!currentContext) {
@@ -50,14 +98,18 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
           .filter(Boolean) as string[];
 
         // Check if there's a namespace query parameter in the URL
-        const urlNamespace = searchParams.get('namespace');
-        if (urlNamespace && namespaceNames.includes(urlNamespace)) {
-          // If URL has a specific namespace, select only that namespace
-          setSelectedNamespaces([urlNamespace]);
+        const currentUrlNamespace = searchParams.get('namespace');
+
+        if (currentUrlNamespace && namespaceNames.includes(currentUrlNamespace)) {
+          // If URL has a specific namespace, select it
+          setSelectedNamespacesInternal([currentUrlNamespace]);
         } else {
           // Initially select all namespaces
-          setSelectedNamespaces(namespaceNames);
+          setSelectedNamespacesInternal(namespaceNames);
         }
+
+        // Update location ref after initial setup
+        lastLocationRef.current = location.pathname + location.search;
 
         initialFetchComplete.current = true;
         setError(null);
@@ -70,27 +122,7 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     fetchNamespaces();
-  }, [currentContext, searchParams]);
-
-  // Effect to sync namespace selection when URL changes (navigation)
-  useEffect(() => {
-    // Only run after initial fetch is complete and namespaces are loaded
-    if (!initialFetchComplete.current || namespaces.length === 0) return;
-
-    const urlNamespace = searchParams.get('namespace');
-    const availableNs = namespaces
-      .map(ns => ns.metadata?.name)
-      .filter(Boolean) as string[];
-
-    if (urlNamespace && availableNs.includes(urlNamespace)) {
-      // If URL has a specific namespace, select only that namespace
-      setSelectedNamespaces([urlNamespace]);
-    }
-    // Note: We don't reset to all namespaces if urlNamespace is not present
-    // to allow users to manually change namespace selection without URL override
-  }, [location.search, namespaces]);
-
-
+  }, [currentContext]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Check for Ctrl+N or Cmd+N
@@ -105,36 +137,8 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const availableNamespaces = namespaces
-    .map(ns => ns.metadata?.name)
-    .filter(Boolean) as string[];
-
-  availableNamespaces.sort((a, b) => a.localeCompare(b));
-
   const openNamespacePicker = () => setIsNamespacePickerOpen(true);
   const closeNamespacePicker = () => setIsNamespacePickerOpen(false);
-
-  // TODO: refresh namespace every 10s, instead use websocket
-  /*
-  useEffect(() => {
-    if (!currentContext) return;
-    const interval = setInterval(async () => {
-      try {
-        const namespacesData = await getNamespaces(currentContext.name);
-        setNamespaces(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(namespacesData)) {
-            return namespacesData;
-          }
-          return prev;
-        });
-      } catch (err) {
-        console.error('Failed to refresh namespaces:', err);
-      }
-    }, 10000);
-  
-    return () => clearInterval(interval);
-  }, [currentContext]);
-  */
 
   return (
     <NamespaceContext.Provider
