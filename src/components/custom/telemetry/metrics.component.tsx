@@ -489,7 +489,7 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 	if (error) {
 		return (
 			<div className="flex flex-col items-center justify-center h-64 text-center">
-				<div className="text-red-500 mb-2">� Error loading metrics</div>
+				<div className="text-red-500 mb-2">Error loading metrics</div>
 				<div className="text-sm text-gray-500 dark:text-gray-400 mb-4">{error}</div>
 				<Button onClick={fetchMetrics} size="sm" variant="outline">
 					Retry
@@ -500,252 +500,41 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 
 	return (
 		<TooltipProvider>
-		<div className="space-y-2 pb-10">
-			{/* Header with Pod Selection and Time Range */}
-			<div className="flex justify-between items-center">
-				<div className="flex items-center gap-3">
-				</div>
-				<div className="flex gap-0.5">
-					{(['5m', '15m', '1h', '6h', '24h'] as const).map((range) => (
-						<button
-							key={range}
-							onClick={() => setTimeRange(range)}
-							className={`px-3 py-1 text-xs rounded transition-colors ${timeRange === range
-								? 'bg-gray-700/50 text-white'
-								: 'bg-gray-200 dark:bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600/40'
-								}`}
-						>
-							{range}
-						</button>
-					))}
-				</div>
-			</div>
-
-			{/* Charts Grid */}
-			<div className="grid grid-cols-1 gap-2">
-				{/* CPU Usage Chart */}
-				<div className="bg-gray-50 min-h-64 dark:bg-gray-800/20 rounded-lg ">
-					<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
-						<div className='flex items-center gap-1'>
-							<Cpu className="h-4 w-4 text-blue-500" />
-							<h4 className="text-gray-900 dark:text-gray-400 uppercase">CPU Usage</h4>
-						</div>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Sparkles 
-									className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300' 
-									onClick={() => handleAskAgentkube('cpu')}
-								/>
-							</TooltipTrigger>
-							<TooltipContent className='p-1' side="left">
-								<p>Ask Agentkube</p>
-							</TooltipContent>
-						</Tooltip>
+			<div className="space-y-2 pb-10">
+				{/* Header with Pod Selection and Time Range */}
+				<div className="flex justify-between items-center">
+					<div className="flex items-center gap-3">
 					</div>
-					<div className="h-68 p-2">
-						{cpuData.length > 0 ? (
-							<VisualChart
-								type="area"
-								data={[{
-									label: 'CPU (millicores)',
-									data: convertToChartData(cpuData),
-									borderColor: '#06b6d4',
-									backgroundColor: '#06b6d4',
-								}]}
-								gradient={CPU_GRADIENT}
-								className='h-64'
-								showLegend={false}
-								yAxisUnit="m"
-								formatValue={(value) => formatValue(value, 'millicores')}
-								animate={true}
-								customOptions={{
-									scales: {
-										y: {
-											min: 0,
-											suggestedMax: Math.max(1, Math.max(...cpuData.map(d => d.value)) * 1.1),
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
-											},
-										},
-										x: {
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
-											},
-										},
-									},
-								}}
-							/>
-						) : (
-							<div className="flex items-center justify-center h-full text-gray-500">
-								No CPU data available
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Memory Usage Chart */}
-				<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
-					<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
-						<div className='flex items-center gap-1'>
-							<MemoryStick className="h-4 w-4 text-green-500" />
-							<h4 className="text-gray-900 dark:text-gray-400 uppercase">Memory Usage</h4>
-						</div>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Sparkles 
-									className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300' 
-									onClick={() => handleAskAgentkube('memory')}
-								/>
-							</TooltipTrigger>
-							<TooltipContent className='p-1' side="left">
-								<p>Ask Agentkube</p>
-							</TooltipContent>
-						</Tooltip>
-					</div>
-					<div className="h-68 p-2">
-						{memoryData.length > 0 ? (
-							<VisualChart
-								type="area"
-								data={[{
-									label: 'Memory (MB)',
-									data: convertToChartData(memoryData),
-									borderColor: '#10b981',
-									backgroundColor: '#10b981',
-								}]}
-								gradient={MEMORY_GRADIENT}
-								className='h-64'
-								showLegend={false}
-								yAxisUnit=" MB"
-								formatValue={(value) => formatValue(value, 'MB')}
-								animate={true}
-								customOptions={{
-									scales: {
-										y: {
-											min: 0,
-											suggestedMax: Math.max(1, Math.max(...memoryData.map(d => d.value)) * 1.1),
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
-											},
-										},
-										x: {
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
-											},
-										},
-									},
-								}}
-							/>
-						) : (
-							<div className="flex items-center justify-center h-full text-gray-500">
-								No memory data available
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Network I/O Chart */}
-				<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
-					<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
-						<div className='flex items-center gap-1'>
-							<Network className="h-4 w-4 text-purple-500" />
-							<h4 className="text-gray-900 dark:text-gray-400 uppercase">Network I/O</h4>
-						</div>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Sparkles 
-									className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300' 
-									onClick={() => handleAskAgentkube('network')}
-								/>
-							</TooltipTrigger>
-							<TooltipContent className='p-1' side="left">
-								<p>Ask Agentkube</p>
-							</TooltipContent>
-						</Tooltip>
-					</div>
-					<div className="h-68 p-2">
-						{(networkInData.length > 0 || networkOutData.length > 0) ? (
-							<VisualChart
-								type="line"
-								data={[
-									{
-										label: 'Network In (KB/s)',
-										data: convertToChartData(networkInData),
-										borderColor: '#8b5cf6',
-										backgroundColor: 'transparent',
-									},
-									{
-										label: 'Network Out (KB/s)',
-										data: convertToChartData(networkOutData),
-										borderColor: '#ec4899',
-										backgroundColor: 'transparent',
-									},
-								]}
-								className='h-64'
-								showLegend={true}
-								yAxisUnit=" KB/s"
-								formatValue={(value) => formatValue(value, 'KB/s')}
-								animate={true}
-								customOptions={{
-									scales: {
-										y: {
-											min: 0,
-											suggestedMax: Math.max(1, Math.max(...networkInData.map(d => d.value), ...networkOutData.map(d => d.value)) * 1.1),
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
-											},
-										},
-										x: {
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
-											},
-										},
-									},
-								}}
-							/>
-						) : (
-							<div className="flex items-center justify-center h-full text-gray-500">
-								No network data available
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Disk I/O Chart */}
-				<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
-					<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
-						<div className='flex items-center gap-1'>
-							<Activity className="h-4 w-4 text-orange-500" />
-							<h4 className="text-gray-900 dark:text-gray-400 uppercase">Disk I/O</h4>
-						</div>
-						<div className="flex items-center gap-2">
-							{/* Filter buttons */}
-							<div className="flex gap-1">
-								<button
-									onClick={() => setShowDiskRead(!showDiskRead)}
-									className={`px-2 py-1 text-xs rounded transition-colors ${
-										showDiskRead
-											? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
-											: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
+					<div className="flex gap-0.5">
+						{(['5m', '15m', '1h', '6h', '24h'] as const).map((range) => (
+							<button
+								key={range}
+								onClick={() => setTimeRange(range)}
+								className={`px-3 py-1 text-xs rounded transition-colors ${timeRange === range
+									? 'bg-gray-700/50 text-white'
+									: 'bg-gray-200 dark:bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600/40'
 									}`}
-								>
-									Read
-								</button>
-								<button
-									onClick={() => setShowDiskWrite(!showDiskWrite)}
-									className={`px-2 py-1 text-xs rounded transition-colors ${
-										showDiskWrite
-											? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
-											: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
-									}`}
-								>
-									Write
-								</button>
+							>
+								{range}
+							</button>
+						))}
+					</div>
+				</div>
+
+				{/* Charts Grid */}
+				<div className="grid grid-cols-1 gap-2">
+					{/* CPU Usage Chart */}
+					<div className="bg-gray-50 min-h-64 dark:bg-gray-800/20 rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+							<div className='flex items-center gap-1'>
+								<Cpu className="h-4 w-4 text-blue-500" />
+								<h4 className="text-gray-900 dark:text-gray-400 uppercase">CPU Usage</h4>
 							</div>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Sparkles 
-										className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300' 
-										onClick={() => handleAskAgentkube('disk')}
+									<Sparkles
+										className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300'
+										onClick={() => handleAskAgentkube('cpu')}
 									/>
 								</TooltipTrigger>
 								<TooltipContent className='p-1' side="left">
@@ -753,60 +542,269 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 								</TooltipContent>
 							</Tooltip>
 						</div>
+						<div className="h-68 p-2">
+							{cpuData.length > 0 ? (
+								<VisualChart
+									type="area"
+									data={[{
+										label: 'CPU (millicores)',
+										data: convertToChartData(cpuData),
+										borderColor: '#06b6d4',
+										backgroundColor: '#06b6d4',
+									}]}
+									gradient={CPU_GRADIENT}
+									className='h-64'
+									showLegend={false}
+									yAxisUnit="m"
+									formatValue={(value) => formatValue(value, 'millicores')}
+									animate={true}
+									customOptions={{
+										scales: {
+											y: {
+												min: 0,
+												suggestedMax: Math.max(1, Math.max(...cpuData.map(d => d.value)) * 1.1),
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
+											},
+											x: {
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
+											},
+										},
+									}}
+								/>
+							) : (
+								<div className="flex items-center justify-center h-full text-gray-500">
+									No CPU data available
+								</div>
+							)}
+						</div>
 					</div>
-					<div className="h-68 p-2">
-						{(diskReadData.length > 0 || diskWriteData.length > 0) ? (
-							<VisualChart
-								type="line"
-								data={[
-									...(showDiskRead ? [{
-										label: 'Disk Read (KB/s)',
-										data: convertToChartData(diskReadData),
+
+					{/* Memory Usage Chart */}
+					<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+							<div className='flex items-center gap-1'>
+								<MemoryStick className="h-4 w-4 text-green-500" />
+								<h4 className="text-gray-900 dark:text-gray-400 uppercase">Memory Usage</h4>
+							</div>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Sparkles
+										className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300'
+										onClick={() => handleAskAgentkube('memory')}
+									/>
+								</TooltipTrigger>
+								<TooltipContent className='p-1' side="left">
+									<p>Ask Agentkube</p>
+								</TooltipContent>
+							</Tooltip>
+						</div>
+						<div className="h-68 p-2">
+							{memoryData.length > 0 ? (
+								<VisualChart
+									type="area"
+									data={[{
+										label: 'Memory (MB)',
+										data: convertToChartData(memoryData),
 										borderColor: '#10b981',
 										backgroundColor: '#10b981',
-									}] : []),
-									...(showDiskWrite ? [{
-										label: 'Disk Write (KB/s)',
-										data: convertToChartData(diskWriteData),
-										borderColor: '#f97316',
-										backgroundColor: '#f97316',
-									}] : []),
-								]}
-								gradient={showDiskRead && !showDiskWrite ? DISK_READ_GRADIENT : showDiskWrite && !showDiskRead ? DISK_WRITE_GRADIENT : undefined}
-								className='h-64'
-								showLegend={true}
-								yAxisUnit=" KB/s"
-								formatValue={(value) => formatValue(value, 'KB/s')}
-								animate={true}
-								customOptions={{
-									scales: {
-										y: {
-											min: 0,
-											suggestedMax: Math.max(1, 
-												...(showDiskRead ? diskReadData.map((d: MetricData) => d.value) : []),
-												...(showDiskWrite ? diskWriteData.map((d: MetricData) => d.value) : [])
-											) * 1.1,
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
+									}]}
+									gradient={MEMORY_GRADIENT}
+									className='h-64'
+									showLegend={false}
+									yAxisUnit=" MB"
+									formatValue={(value) => formatValue(value, 'MB')}
+									animate={true}
+									customOptions={{
+										scales: {
+											y: {
+												min: 0,
+												suggestedMax: Math.max(1, Math.max(...memoryData.map(d => d.value)) * 1.1),
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
+											},
+											x: {
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
 											},
 										},
-										x: {
-											grid: {
-												color: 'rgba(156, 163, 175, 0.1)',
-											},
-										},
-									},
-								}}
-							/>
-						) : (
-							<div className="flex items-center justify-center h-full text-gray-500">
-								No disk I/O data available
+									}}
+								/>
+							) : (
+								<div className="flex items-center justify-center h-full text-gray-500">
+									No memory data available
+								</div>
+							)}
+						</div>
+					</div>
+
+					{/* Network I/O Chart */}
+					<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+							<div className='flex items-center gap-1'>
+								<Network className="h-4 w-4 text-purple-500" />
+								<h4 className="text-gray-900 dark:text-gray-400 uppercase">Network I/O</h4>
 							</div>
-						)}
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Sparkles
+										className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300'
+										onClick={() => handleAskAgentkube('network')}
+									/>
+								</TooltipTrigger>
+								<TooltipContent className='p-1' side="left">
+									<p>Ask Agentkube</p>
+								</TooltipContent>
+							</Tooltip>
+						</div>
+						<div className="h-68 p-2">
+							{(networkInData.length > 0 || networkOutData.length > 0) ? (
+								<VisualChart
+									type="line"
+									data={[
+										{
+											label: 'Network In (KB/s)',
+											data: convertToChartData(networkInData),
+											borderColor: '#8b5cf6',
+											backgroundColor: 'transparent',
+										},
+										{
+											label: 'Network Out (KB/s)',
+											data: convertToChartData(networkOutData),
+											borderColor: '#ec4899',
+											backgroundColor: 'transparent',
+										},
+									]}
+									className='h-64'
+									showLegend={true}
+									yAxisUnit=" KB/s"
+									formatValue={(value) => formatValue(value, 'KB/s')}
+									animate={true}
+									customOptions={{
+										scales: {
+											y: {
+												min: 0,
+												suggestedMax: Math.max(1, Math.max(...networkInData.map(d => d.value), ...networkOutData.map(d => d.value)) * 1.1),
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
+											},
+											x: {
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
+											},
+										},
+									}}
+								/>
+							) : (
+								<div className="flex items-center justify-center h-full text-gray-500">
+									No network data available
+								</div>
+							)}
+						</div>
+					</div>
+
+					{/* Disk I/O Chart */}
+					<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+							<div className='flex items-center gap-1'>
+								<Activity className="h-4 w-4 text-orange-500" />
+								<h4 className="text-gray-900 dark:text-gray-400 uppercase">Disk I/O</h4>
+							</div>
+							<div className="flex items-center gap-2">
+								{/* Filter buttons */}
+								<div className="flex gap-1">
+									<button
+										onClick={() => setShowDiskRead(!showDiskRead)}
+										className={`px-2 py-1 text-xs rounded transition-colors ${showDiskRead
+												? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
+												: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
+											}`}
+									>
+										Read
+									</button>
+									<button
+										onClick={() => setShowDiskWrite(!showDiskWrite)}
+										className={`px-2 py-1 text-xs rounded transition-colors ${showDiskWrite
+												? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
+												: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
+											}`}
+									>
+										Write
+									</button>
+								</div>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Sparkles
+											className='h-4 w-4 text-green-400 cursor-pointer hover:text-green-300'
+											onClick={() => handleAskAgentkube('disk')}
+										/>
+									</TooltipTrigger>
+									<TooltipContent className='p-1' side="left">
+										<p>Ask Agentkube</p>
+									</TooltipContent>
+								</Tooltip>
+							</div>
+						</div>
+						<div className="h-68 p-2">
+							{(diskReadData.length > 0 || diskWriteData.length > 0) ? (
+								<VisualChart
+									type="line"
+									data={[
+										...(showDiskRead ? [{
+											label: 'Disk Read (KB/s)',
+											data: convertToChartData(diskReadData),
+											borderColor: '#10b981',
+											backgroundColor: '#10b981',
+										}] : []),
+										...(showDiskWrite ? [{
+											label: 'Disk Write (KB/s)',
+											data: convertToChartData(diskWriteData),
+											borderColor: '#f97316',
+											backgroundColor: '#f97316',
+										}] : []),
+									]}
+									gradient={showDiskRead && !showDiskWrite ? DISK_READ_GRADIENT : showDiskWrite && !showDiskRead ? DISK_WRITE_GRADIENT : undefined}
+									className='h-64'
+									showLegend={true}
+									yAxisUnit=" KB/s"
+									formatValue={(value) => formatValue(value, 'KB/s')}
+									animate={true}
+									customOptions={{
+										scales: {
+											y: {
+												min: 0,
+												suggestedMax: Math.max(1,
+													...(showDiskRead ? diskReadData.map((d: MetricData) => d.value) : []),
+													...(showDiskWrite ? diskWriteData.map((d: MetricData) => d.value) : [])
+												) * 1.1,
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
+											},
+											x: {
+												grid: {
+													color: 'rgba(156, 163, 175, 0.1)',
+												},
+											},
+										},
+									}}
+								/>
+							) : (
+								<div className="flex items-center justify-center h-full text-gray-500">
+									No disk I/O data available
+								</div>
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
 		</TooltipProvider>
 	);
 };
