@@ -19,6 +19,7 @@ import {
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { openExternalUrl } from '@/api/external';
 
 export interface BrowserTabProps {
   sessionId: string;
@@ -395,8 +396,68 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
 
   // Open in external browser
   const openExternal = useCallback(() => {
-    window.open(state.url, '_blank');
+    openExternalUrl(state.url);
   }, [state.url]);
+
+  // Restart browser - close and recreate the webview
+  const restartBrowser = useCallback(async () => {
+    const urlToRestore = state.url || state.displayUrl;
+
+    // First, try to close existing webview
+    if (state.webviewCreated) {
+      try {
+        await invoke('close_browser_webview', { sessionId });
+      } catch {
+        // Ignore close errors - webview might already be gone
+      }
+    }
+
+    // Reset state
+    setState(prev => ({
+      ...prev,
+      webviewCreated: false,
+      isLoading: true,
+      error: null,
+    }));
+
+    // Wait a bit for cleanup
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Recreate webview if we have a URL
+    if (urlToRestore) {
+      try {
+        const bounds = await getContainerBounds();
+        if (bounds) {
+          await invoke('create_browser_webview', {
+            sessionId,
+            initialUrl: urlToRestore,
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+          });
+          setState(prev => ({
+            ...prev,
+            webviewCreated: true,
+            url: urlToRestore,
+            displayUrl: urlToRestore,
+            error: null,
+          }));
+        }
+      } catch (err) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: `Failed to restart browser: ${err}`,
+        }));
+      }
+    } else {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+      }));
+    }
+  }, [sessionId, state.url, state.displayUrl, state.webviewCreated, getContainerBounds]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -571,13 +632,21 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-background">
             <Globe className="h-12 w-12 mb-4 opacity-50" />
             <h3 className="text-lg font-medium mb-2">Connection Failed</h3>
-            <p className="text-sm text-center max-w-md mb-1">{state.error}</p>
-            <button
-              onClick={() => navigate(state.url)}
-              className="mt-4 px-4 py-2 text-sm bg-accent hover:bg-accent/80 rounded transition-colors"
-            >
-              Retry
-            </button>
+            <p className="text-sm text-center max-w-md mb-4">{state.error}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate(state.url)}
+                className="px-4 py-2 text-sm bg-accent hover:bg-accent/80 rounded transition-colors"
+              >
+                Retry
+              </button>
+              <button
+                onClick={restartBrowser}
+                className="px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded transition-colors"
+              >
+                Restart Browser
+              </button>
+            </div>
           </div>
         ) : !state.webviewCreated && !state.url ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-background">
