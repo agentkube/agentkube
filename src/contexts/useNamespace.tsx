@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { getNamespaces } from '@/api/internal/resources';
 import { useCluster } from '@/contexts/clusterContext';
 import { V1Namespace } from '@kubernetes/client-node';
@@ -24,6 +25,11 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [error, setError] = useState<string | null>(null);
   const [isNamespacePickerOpen, setIsNamespacePickerOpen] = useState(false);
   const { currentContext } = useCluster();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  // Ref to track if initial namespace fetch is complete
+  const initialFetchComplete = useRef(false);
 
   useEffect(() => {
     const fetchNamespaces = async () => {
@@ -37,14 +43,23 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         setLoading(true);
         const namespacesData = await getNamespaces(currentContext.name);
         setNamespaces(namespacesData);
-        
+
         // Extract namespace names
         const namespaceNames = namespacesData
           .map(ns => ns.metadata?.name)
           .filter(Boolean) as string[];
-        
-        // Initially select all namespaces
-        setSelectedNamespaces(namespaceNames);
+
+        // Check if there's a namespace query parameter in the URL
+        const urlNamespace = searchParams.get('namespace');
+        if (urlNamespace && namespaceNames.includes(urlNamespace)) {
+          // If URL has a specific namespace, select only that namespace
+          setSelectedNamespaces([urlNamespace]);
+        } else {
+          // Initially select all namespaces
+          setSelectedNamespaces(namespaceNames);
+        }
+
+        initialFetchComplete.current = true;
         setError(null);
       } catch (err) {
         console.error('Failed to fetch namespaces:', err);
@@ -55,9 +70,25 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     fetchNamespaces();
-  }, [currentContext]);
+  }, [currentContext, searchParams]);
 
+  // Effect to sync namespace selection when URL changes (navigation)
+  useEffect(() => {
+    // Only run after initial fetch is complete and namespaces are loaded
+    if (!initialFetchComplete.current || namespaces.length === 0) return;
 
+    const urlNamespace = searchParams.get('namespace');
+    const availableNs = namespaces
+      .map(ns => ns.metadata?.name)
+      .filter(Boolean) as string[];
+
+    if (urlNamespace && availableNs.includes(urlNamespace)) {
+      // If URL has a specific namespace, select only that namespace
+      setSelectedNamespaces([urlNamespace]);
+    }
+    // Note: We don't reset to all namespaces if urlNamespace is not present
+    // to allow users to manually change namespace selection without URL override
+  }, [location.search, namespaces]);
 
 
 
@@ -77,7 +108,7 @@ export const NamespaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const availableNamespaces = namespaces
     .map(ns => ns.metadata?.name)
     .filter(Boolean) as string[];
-    
+
   availableNamespaces.sort((a, b) => a.localeCompare(b));
 
   const openNamespacePicker = () => setIsNamespacePickerOpen(true);
