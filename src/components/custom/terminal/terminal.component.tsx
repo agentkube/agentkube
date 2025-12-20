@@ -10,6 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import {
   ContextMenu,
@@ -53,6 +56,14 @@ interface PendingBrowserRequest {
   name?: string;
 }
 
+interface TerminalProfile {
+  id: string;
+  name: string;
+  shell_path: string;
+  icon: string | null;
+  is_default: boolean;
+}
+
 interface TerminalManagerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -76,17 +87,32 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [terminalProfiles, setTerminalProfiles] = useState<TerminalProfile[]>([]);
   const terminalHeaderRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch available terminal profiles on mount
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      try {
+        const profiles = await invoke<TerminalProfile[]>('get_available_profiles');
+        setTerminalProfiles(profiles);
+      } catch (err) {
+        console.error('Failed to fetch terminal profiles:', err);
+      }
+    };
+    fetchProfiles();
+  }, []);
+
   // Create a new local terminal session
-  const createNewSession = useCallback(async (name?: string, initialCommand?: string) => {
+  const createNewSession = useCallback(async (name?: string, initialCommand?: string, shellPath?: string) => {
     try {
       const session = await invoke<TerminalSession>('create_local_shell', {
         name: name || undefined,
         cols: 80,
         rows: 24,
         initialCommand: initialCommand || undefined,
+        shellPath: shellPath || undefined,
       });
 
       setSessions((prev) => [...prev, { type: 'terminal', data: session }]);
@@ -479,7 +505,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-card border-border">
+            <DropdownMenuContent align="start" className="bg-card border-border min-w-[180px]">
               <DropdownMenuItem
                 onClick={() => createNewSession()}
                 className="text-xs"
@@ -487,6 +513,28 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 <Terminal className="h-3.5 w-3.5 mr-2" />
                 New Terminal
               </DropdownMenuItem>
+
+              {/* Terminal Profiles */}
+              {terminalProfiles.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  {terminalProfiles.map((profile) => (
+                    <DropdownMenuItem
+                      key={profile.id}
+                      onClick={() => createNewSession(profile.name, undefined, profile.shell_path)}
+                      className="text-xs"
+                    >
+                      <Terminal className="h-3.5 w-3.5 mr-2" />
+                      {profile.name}
+                      {profile.is_default && (
+                        <span className="ml-auto text-[10px] text-muted-foreground">(default)</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => createBrowserSession()}
                 className="text-xs"
@@ -553,14 +601,40 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-border">
+            <DropdownMenuContent align="end" className="bg-card border-border min-w-[180px]">
               <DropdownMenuItem
                 onClick={() => createNewSession()}
                 className="text-xs"
               >
-                <Plus className="h-3 w-3 mr-2" />
+                <Terminal className="h-3 w-3 mr-2" />
                 New Terminal
               </DropdownMenuItem>
+
+              {/* Terminal Profiles Submenu */}
+              {terminalProfiles.length > 0 && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="text-xs">
+                    <ChevronDown className="h-3 w-3 mr-2" />
+                    Launch Profile
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-card border-border">
+                    {terminalProfiles.map((profile) => (
+                      <DropdownMenuItem
+                        key={profile.id}
+                        onClick={() => createNewSession(profile.name, undefined, profile.shell_path)}
+                        className="text-xs"
+                      >
+                        <Terminal className="h-3 w-3 mr-2" />
+                        <span className="flex-1">{profile.name}</span>
+                        {profile.is_default && (
+                          <span className="ml-2 text-[10px] text-muted-foreground">(default)</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={closeAllSessions}

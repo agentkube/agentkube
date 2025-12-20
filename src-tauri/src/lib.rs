@@ -17,8 +17,8 @@ use network_commands::{get_network_status, start_network_monitoring, NetworkMoni
 use network_monitor::NetworkMonitor;
 use terminal::{
     close_all_sessions, close_session, create_local_shell, get_all_sessions,
-    launch_external_terminal, read_from_pty, rename_session, resize_pty, write_to_pty,
-    TerminalManager, TerminalManagerState,
+    get_available_profiles, launch_external_terminal, read_from_pty, rename_session, resize_pty,
+    write_to_pty, TerminalManager, TerminalManagerState,
 };
 
 #[cfg(windows)]
@@ -141,6 +141,7 @@ pub fn run() {
             rename_session,
             close_all_sessions,
             launch_external_terminal,
+            get_available_profiles,
             // Browser commands
             create_browser_webview,
             browser_navigate,

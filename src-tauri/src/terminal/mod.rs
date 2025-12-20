@@ -62,6 +62,16 @@ impl Default for TerminalManager {
 /// Global terminal manager state type for Tauri
 pub type TerminalManagerState = Arc<Mutex<TerminalManager>>;
 
+/// Terminal profile information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TerminalProfile {
+    pub id: String,
+    pub name: String,
+    pub shell_path: String,
+    pub icon: Option<String>,
+    pub is_default: bool,
+}
+
 /// Get the default shell for the current platform
 fn get_default_shell() -> String {
     #[cfg(target_os = "windows")]
@@ -74,6 +84,182 @@ fn get_default_shell() -> String {
     }
 }
 
+/// Check if a shell/program exists at the given path
+fn shell_exists(path: &str) -> bool {
+    std::path::Path::new(path).exists() || which::which(path).is_ok()
+}
+
+/// Get available terminal profiles for the current platform
+#[tauri::command]
+pub async fn get_available_profiles() -> Result<Vec<TerminalProfile>, String> {
+    let default_shell = get_default_shell();
+    let mut profiles = Vec::new();
+
+    #[cfg(target_os = "windows")]
+    {
+        // PowerShell
+        if shell_exists("powershell.exe") {
+            profiles.push(TerminalProfile {
+                id: "powershell".to_string(),
+                name: "PowerShell".to_string(),
+                shell_path: "powershell.exe".to_string(),
+                icon: Some("powershell".to_string()),
+                is_default: default_shell.to_lowercase().contains("powershell"),
+            });
+        }
+
+        // PowerShell Core (pwsh)
+        if shell_exists("pwsh.exe") || shell_exists("pwsh") {
+            profiles.push(TerminalProfile {
+                id: "pwsh".to_string(),
+                name: "PowerShell Core".to_string(),
+                shell_path: if shell_exists("pwsh.exe") {
+                    "pwsh.exe".to_string()
+                } else {
+                    "pwsh".to_string()
+                },
+                icon: Some("powershell".to_string()),
+                is_default: false,
+            });
+        }
+
+        // Command Prompt
+        if shell_exists("cmd.exe") {
+            profiles.push(TerminalProfile {
+                id: "cmd".to_string(),
+                name: "Command Prompt".to_string(),
+                shell_path: "cmd.exe".to_string(),
+                icon: Some("cmd".to_string()),
+                is_default: default_shell.to_lowercase().contains("cmd"),
+            });
+        }
+
+        // Git Bash - check common installation paths
+        let git_bash_paths = [
+            "C:\\Program Files\\Git\\bin\\bash.exe",
+            "C:\\Program Files (x86)\\Git\\bin\\bash.exe",
+            "C:\\Git\\bin\\bash.exe",
+        ];
+        for path in git_bash_paths.iter() {
+            if shell_exists(path) {
+                profiles.push(TerminalProfile {
+                    id: "git-bash".to_string(),
+                    name: "Git Bash".to_string(),
+                    shell_path: path.to_string(),
+                    icon: Some("git".to_string()),
+                    is_default: false,
+                });
+                break;
+            }
+        }
+
+        // WSL Bash
+        if shell_exists("wsl.exe") {
+            profiles.push(TerminalProfile {
+                id: "wsl".to_string(),
+                name: "WSL".to_string(),
+                shell_path: "wsl.exe".to_string(),
+                icon: Some("linux".to_string()),
+                is_default: false,
+            });
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // Zsh
+        if shell_exists("/bin/zsh") || shell_exists("/usr/bin/zsh") || shell_exists("zsh") {
+            let zsh_path = if shell_exists("/bin/zsh") {
+                "/bin/zsh"
+            } else if shell_exists("/usr/bin/zsh") {
+                "/usr/bin/zsh"
+            } else {
+                "zsh"
+            };
+            profiles.push(TerminalProfile {
+                id: "zsh".to_string(),
+                name: "zsh".to_string(),
+                shell_path: zsh_path.to_string(),
+                icon: Some("zsh".to_string()),
+                is_default: default_shell.contains("zsh"),
+            });
+        }
+
+        // Bash
+        if shell_exists("/bin/bash") || shell_exists("/usr/bin/bash") || shell_exists("bash") {
+            let bash_path = if shell_exists("/bin/bash") {
+                "/bin/bash"
+            } else if shell_exists("/usr/bin/bash") {
+                "/usr/bin/bash"
+            } else {
+                "bash"
+            };
+            profiles.push(TerminalProfile {
+                id: "bash".to_string(),
+                name: "bash".to_string(),
+                shell_path: bash_path.to_string(),
+                icon: Some("bash".to_string()),
+                is_default: default_shell.contains("bash"),
+            });
+        }
+
+        // Fish
+        if shell_exists("/usr/bin/fish")
+            || shell_exists("/usr/local/bin/fish")
+            || shell_exists("fish")
+        {
+            let fish_path = if shell_exists("/usr/bin/fish") {
+                "/usr/bin/fish"
+            } else if shell_exists("/usr/local/bin/fish") {
+                "/usr/local/bin/fish"
+            } else {
+                "fish"
+            };
+            profiles.push(TerminalProfile {
+                id: "fish".to_string(),
+                name: "fish".to_string(),
+                shell_path: fish_path.to_string(),
+                icon: Some("fish".to_string()),
+                is_default: default_shell.contains("fish"),
+            });
+        }
+
+        // Sh (fallback)
+        if shell_exists("/bin/sh") {
+            profiles.push(TerminalProfile {
+                id: "sh".to_string(),
+                name: "sh".to_string(),
+                shell_path: "/bin/sh".to_string(),
+                icon: Some("sh".to_string()),
+                is_default: default_shell == "/bin/sh",
+            });
+        }
+
+        // Nu Shell
+        if shell_exists("nu") || shell_exists("/usr/bin/nu") || shell_exists("/usr/local/bin/nu") {
+            let nu_path = if shell_exists("/usr/bin/nu") {
+                "/usr/bin/nu"
+            } else if shell_exists("/usr/local/bin/nu") {
+                "/usr/local/bin/nu"
+            } else {
+                "nu"
+            };
+            profiles.push(TerminalProfile {
+                id: "nushell".to_string(),
+                name: "Nushell".to_string(),
+                shell_path: nu_path.to_string(),
+                icon: Some("nushell".to_string()),
+                is_default: default_shell.contains("nu"),
+            });
+        }
+    }
+
+    // Sort so default is first
+    profiles.sort_by(|a, b| b.is_default.cmp(&a.is_default));
+
+    Ok(profiles)
+}
+
 /// Create a new local terminal session
 #[tauri::command]
 pub async fn create_local_shell(
@@ -82,6 +268,7 @@ pub async fn create_local_shell(
     cols: Option<u16>,
     rows: Option<u16>,
     initial_command: Option<String>,
+    shell_path: Option<String>,
 ) -> Result<TerminalSessionInfo, String> {
     let pty_system = NativePtySystem::default();
 
@@ -96,7 +283,8 @@ pub async fn create_local_shell(
         .openpty(size)
         .map_err(|e| format!("Failed to open PTY: {}", e))?;
 
-    let shell = get_default_shell();
+    // Use provided shell_path or fall back to default
+    let shell = shell_path.unwrap_or_else(get_default_shell);
     let mut cmd = CommandBuilder::new(&shell);
 
     // Set up environment
@@ -109,6 +297,8 @@ pub async fn create_local_shell(
             cmd.args(["-i"]);
         } else if shell.contains("bash") {
             cmd.args(["--login", "-i"]);
+        } else if shell.contains("fish") {
+            cmd.args(["--interactive"]);
         }
     }
 
