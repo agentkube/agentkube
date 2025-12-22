@@ -4,13 +4,18 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './codeblock.righdrawer';
 import ToolCallAccordion from '@/components/ui/toolcall';
-import { ToolCall } from '@/api/orchestrator.chat';
+import TodoList from './todolist.component';
+import { ToolCall, TodoItem } from '@/api/orchestrator.chat';
 import { openExternalUrl } from '@/api/external';
 import { LinkPreview } from '@/components/ui/link-preview';
 import ResponseFeedback from '../../responsefeedback/responsefeedback.component';
 import { ChartLineDotsColors, ChartBarStacked, ChartBarLabelCustom, ChartNetworkTrafficStep, ChartCryptoPortfolio } from '@/components/custom/promgraphcontainer/graphs.component';
 import { AgentkubeBot } from '@/assets/icons';
 import { ComponentMap } from '@/components/custom/genui/components';
+
+// Define todo tool names that should be rendered as TodoList instead of ToolCallAccordion
+// Includes both the agent tools (todo_*) and planning tools (write_todos, read_todos)
+const TODO_TOOLS = ['todo_write', 'todo_read', 'todo_update', 'todo_delete', 'todo_clear', 'write_todos', 'read_todos'];
 
 interface CodeProps {
   inline?: boolean;
@@ -36,9 +41,93 @@ interface AssistantMessageProps {
   onRetry?: (userMessage: string) => void;
   userMessage?: string;
   isStreaming?: boolean;
+  todos?: TodoItem[]; // OpenCode-style todos passed from parent
 }
 
-const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [], onRetry, userMessage, isStreaming = false }) => {
+const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [], onRetry, userMessage, isStreaming = false, todos = [] }) => {
+  // Use todos from props (passed from parent) OR try to extract from events
+  const aggregatedTodos = useMemo(() => {
+    // If todos are passed from parent, use them directly - this is the reliable path
+    if (todos && todos.length > 0) {
+      return todos;
+    }
+
+    // Try to extract from plan_created or plan_updated events first
+    const planEvent = events.find(e => e.type === 'plan_created' || e.type === 'plan_updated');
+    if (planEvent && planEvent.data.todos && Array.isArray(planEvent.data.todos)) {
+      // Convert to TodoItem format (planning tools use different structure)
+      return planEvent.data.todos.map((t: any, index: number) => ({
+        id: t.id || `todo-${index}`,
+        content: t.content,
+        status: t.status || 'pending',
+        priority: t.priority
+      }));
+    }
+
+    // Otherwise try to extract from tool_end events (fallback)
+    const todoMap = new Map<string, TodoItem>();
+
+    events.forEach(event => {
+      // Handle tool_end events for todo tools
+      if (event.type === 'tool_end' && TODO_TOOLS.includes(event.data.tool)) {
+        try {
+          const result = typeof event.data.result === 'string'
+            ? JSON.parse(event.data.result)
+            : event.data.result;
+
+          if (event.data.tool === 'todo_write' && result.todo) {
+            const todo: TodoItem = {
+              id: result.todo.id,
+              content: result.todo.content,
+              status: result.todo.status || 'pending',
+              priority: result.todo.priority
+            };
+            todoMap.set(todo.id, todo);
+          } else if (event.data.tool === 'todo_update' && result.todo) {
+            const existingTodo = todoMap.get(result.todo.id);
+            if (existingTodo) {
+              existingTodo.status = result.todo.status;
+            } else {
+              todoMap.set(result.todo.id, {
+                id: result.todo.id,
+                content: result.todo.content,
+                status: result.todo.status,
+                priority: result.todo.priority
+              });
+            }
+          } else if (event.data.tool === 'todo_read' && result.todos) {
+            // Full todo list from read
+            result.todos.forEach((t: any) => {
+              todoMap.set(t.id, {
+                id: t.id,
+                content: t.content,
+                status: t.status || 'pending',
+                priority: t.priority
+              });
+            });
+          } else if (event.data.tool === 'write_todos' && result.success) {
+            // Handle write_todos from planning module - todos are in result
+            // but we need to parse them from the raw response
+          }
+        } catch (e) {
+          console.log('Failed to parse todo result:', e);
+        }
+      }
+    });
+
+    return Array.from(todoMap.values());
+  }, [events, todos]);
+
+  // Find the position for the TodoList (first todo tool position)
+  const todoListPosition = useMemo(() => {
+    for (const event of events) {
+      if (event.type === 'tool_start' && TODO_TOOLS.includes(event.data.tool)) {
+        return event.textPosition ?? 0;
+      }
+    }
+    return -1; // No todo tools
+  }, [events]);
+
   // Create sequential content by interleaving text and tool events based on textPosition
   const sequentialContent = useMemo(() => {
     if (!events || events.length === 0) {
@@ -47,17 +136,26 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
     }
 
     // Group tool events by call_id and find their text position
-    const toolGroups = new Map<string, { position: number; events: StreamEvent[] }>();
+    const toolGroups = new Map<string, { position: number; events: StreamEvent[]; isTodoTool: boolean; toolName?: string }>();
     const customComponents = new Map<string, { position: number; event: StreamEvent }>();
 
     events.forEach(event => {
       if (event.type.startsWith('tool_')) {
         const callId = event.data.callId;
+        const toolName = event.data.tool;
+
         if (!toolGroups.has(callId)) {
           toolGroups.set(callId, {
             position: event.textPosition ?? 0,
-            events: []
+            events: [],
+            isTodoTool: toolName ? TODO_TOOLS.includes(toolName) : false,
+            toolName
           });
+        } else if (toolName && !toolGroups.get(callId)!.toolName) {
+          // Update toolName and isTodoTool if we found the name from a later event
+          const group = toolGroups.get(callId)!;
+          group.toolName = toolName;
+          group.isTodoTool = TODO_TOOLS.includes(toolName);
         }
         toolGroups.get(callId)!.events.push(event);
       } else if (event.type === 'custom_component') {
@@ -69,8 +167,8 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
       }
     });
 
-    // Create insertion points for tool calls
-    const insertionPoints: Array<{ position: number; callId: string; events: StreamEvent[]; showRedirect?: { newInstruction: string } }> = [];
+    // Create insertion points for tool calls (excluding todo tools)
+    const insertionPoints: Array<{ position: number; callId: string; events: StreamEvent[]; showRedirect?: { newInstruction: string }; isTodoTool: boolean }> = [];
     toolGroups.forEach((group, callId) => {
       const redirectEvent = group.events.find(e => e.type === 'tool_redirected');
 
@@ -78,26 +176,31 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
         position: group.position,
         callId,
         events: group.events,
-        showRedirect: redirectEvent ? { newInstruction: redirectEvent.data.newInstruction } : undefined
+        showRedirect: redirectEvent ? { newInstruction: redirectEvent.data.newInstruction } : undefined,
+        isTodoTool: group.isTodoTool
       });
     });
 
     // Sort by position
     insertionPoints.sort((a, b) => a.position - b.position);
 
+    // Track if we've inserted the TodoList already
+    let todoListInserted = false;
+
     // Build sequential items
     const items: Array<{
-      type: 'text' | 'tool' | 'redirect' | 'custom_component';
+      type: 'text' | 'tool' | 'redirect' | 'custom_component' | 'todolist';
       content?: string;
       callId?: string;
       events?: StreamEvent[];
       newInstruction?: string;
       componentName?: string;
       componentProps?: any;
+      todos?: TodoItem[];
     }> = [];
     let lastPosition = 0;
 
-    insertionPoints.forEach(({ position, callId, events, showRedirect }) => {
+    insertionPoints.forEach(({ position, callId, events, showRedirect, isTodoTool }) => {
       // Add text before this tool call
       if (position > lastPosition) {
         const textChunk = content.substring(lastPosition, position);
@@ -106,23 +209,32 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
         }
       }
 
-      // Add tool call
-      items.push({ type: 'tool', callId, events });
+      // If this is a todo tool, insert TodoList once (at first todo tool position)
+      if (isTodoTool) {
+        if (!todoListInserted && aggregatedTodos.length > 0) {
+          items.push({ type: 'todolist', todos: aggregatedTodos });
+          todoListInserted = true;
+        }
+        // Skip adding the todo tool call accordion - it will be shown as TodoList
+      } else {
+        // Add regular tool call
+        items.push({ type: 'tool', callId, events });
 
-      // Check if there's a custom component for this tool call
-      const customComp = customComponents.get(callId);
-      if (customComp) {
-        items.push({
-          type: 'custom_component',
-          callId,
-          componentName: customComp.event.data.component,
-          componentProps: customComp.event.data.props
-        });
-      }
+        // Check if there's a custom component for this tool call
+        const customComp = customComponents.get(callId);
+        if (customComp) {
+          items.push({
+            type: 'custom_component',
+            callId,
+            componentName: customComp.event.data.component,
+            componentProps: customComp.event.data.props
+          });
+        }
 
-      // Add redirect instruction immediately after redirected tool (only once)
-      if (showRedirect) {
-        items.push({ type: 'redirect', newInstruction: showRedirect.newInstruction });
+        // Add redirect instruction immediately after redirected tool (only once)
+        if (showRedirect) {
+          items.push({ type: 'redirect', newInstruction: showRedirect.newInstruction });
+        }
       }
 
       lastPosition = position;
@@ -136,8 +248,13 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
       }
     }
 
+    // If there are todos but we haven't inserted the list yet (no tool events with positions), add at end
+    if (!todoListInserted && aggregatedTodos.length > 0) {
+      items.push({ type: 'todolist', todos: aggregatedTodos });
+    }
+
     return items;
-  }, [content, events]);
+  }, [content, events, aggregatedTodos]);
 
   return (
     <div className="w-full relative">
@@ -223,8 +340,8 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                               <button
                                 onClick={handleCopy}
                                 className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 ${copied
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-secondary hover:bg-accent-hover'
+                                  ? 'bg-green-100 text-green-600'
+                                  : 'bg-secondary hover:bg-accent-hover'
                                   }`}
                               >
                                 {copied ? (
@@ -334,6 +451,9 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                     Redirected: {item.newInstruction}
                   </div>
                 );
+              } else if (item.type === 'todolist' && item.todos && item.todos.length > 0) {
+                // Render OpenCode-style TodoList component
+                return <TodoList key={`todolist-${index}`} todos={item.todos} />;
               }
 
               return null;

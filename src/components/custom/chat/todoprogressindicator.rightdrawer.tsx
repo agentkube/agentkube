@@ -42,36 +42,43 @@ export const TodoProgressIndicator: React.FC<TodoProgressIndicatorProps> = ({
         transformOrigin: 'bottom',
       }}
     >
-      <div className="bg-gray-50 dark:bg-[#0B0D13]/80 backdrop-blur-xl rounded-lg border dark:border-gray-700/40 shadow-xl">
+      <div className="bg-secondary/30 dark:bg-secondary/20 backdrop-blur-xl rounded-lg border border-border shadow-xl overflow-hidden">
         {/* Header with progress summary */}
-        <div className="p-2 flex dark:bg-gray-800/50 hover:opacity-80 cursor-pointer transition-opacity items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-          <button
-
-            className="flex items-center gap-2 "
-          >
-            <div className="flex items-center gap-2">
-              <ListTodo className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {completedCount} out of {totalCount} tasks completed
-              </span>
-            </div>
-          </button>
-          <div className='flex gap-2'>
+        <div
+          className="px-3 py-2 flex items-center justify-between hover:bg-secondary/40 cursor-pointer transition-colors"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <ListTodo className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              To-dos
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {completedCount}/{totalCount}
+            </span>
+          </div>
+          <div className='flex items-center gap-1.5'>
             <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
             >
               {isExpanded ? (
-                <Minimize2 className="h-3.5 w-3.5 text-gray-500" />
+                <ChevronUp className="w-4 h-4" />
               ) : (
-                <Maximize2 className="h-3.5 w-3.5 text-gray-500" />
+                <ChevronDown className="w-4 h-4" />
               )}
             </button>
             <button
-              onClick={() => onClose()}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
             >
-              <X className="h-4 w-4 text-gray-500" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -84,40 +91,58 @@ export const TodoProgressIndicator: React.FC<TodoProgressIndicatorProps> = ({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden p-3"
+              className="overflow-hidden"
             >
-              <div className="space-y-2 max-h-48 mt-2 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-400/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+              <div className="px-3 pb-3 pt-1 space-y-1 max-h-60 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {todos.map((todo, index) => (
                   <div
-                    key={index}
-                    className="flex items-center gap-2 text-xs"
+                    key={todo.id || index}
+                    className="flex items-start gap-2.5 py-1.5"
                   >
-                    {/* Status icon */}
+                    {/* Checkbox/Status indicator - matching TodoList design */}
                     <div className="flex-shrink-0 mt-0.5">
-                      {todo.status === 'completed' && (
-                        <div className="w-4 h-4 rounded-full bg-white dark:bg-white flex items-center justify-center">
-                          <Check className="w-3 h-3 text-black" strokeWidth={3} />
+                      {todo.status === 'completed' ? (
+                        <div className="w-4 h-4 rounded border border-muted-foreground/30 bg-muted-foreground/10 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-muted-foreground" strokeWidth={2.5} />
                         </div>
-                      )}
-                      {todo.status === 'in_progress' && (
-                        <Loader2 className="w-4 h-4 text-blue-500 dark:text-blue-400 animate-spin" />
-                      )}
-                      {todo.status === 'pending' && (
-                        <Circle className="w-4 h-4 text-gray-400 dark:text-gray-500" strokeWidth={2} />
+                      ) : todo.status === 'in_progress' ? (
+                        <div className="w-4 h-4 rounded border border-blue-500/50 bg-blue-500/10 flex items-center justify-center">
+                          <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+                        </div>
+                      ) : todo.status === 'cancelled' ? (
+                        <div className="w-4 h-4 rounded border border-red-500/30 bg-red-500/10 flex items-center justify-center">
+                          <span className="text-xs text-red-500">×</span>
+                        </div>
+                      ) : (
+                        <div className="w-4 h-4 rounded border border-muted-foreground/30 bg-transparent" />
                       )}
                     </div>
 
                     {/* Todo content */}
                     <span
-                      className={`flex-1 ${todo.status === 'completed'
-                        ? 'text-gray-500 dark:text-gray-400 line-through'
-                        : todo.status === 'in_progress'
-                          ? 'text-gray-700 dark:text-gray-200 font-medium'
-                          : 'text-gray-600 dark:text-gray-300'
+                      className={`flex-1 text-sm leading-snug ${todo.status === 'completed'
+                          ? 'text-muted-foreground'
+                          : todo.status === 'cancelled'
+                            ? 'text-muted-foreground line-through'
+                            : todo.status === 'in_progress'
+                              ? 'text-foreground'
+                              : 'text-foreground/80'
                         }`}
                     >
                       {todo.content}
                     </span>
+
+                    {/* Priority indicator - matching TodoList design */}
+                    {todo.priority && todo.status !== 'completed' && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${todo.priority === 'high'
+                          ? 'bg-red-500/10 text-red-500'
+                          : todo.priority === 'medium'
+                            ? 'bg-yellow-500/10 text-yellow-500'
+                            : 'bg-green-500/10 text-green-500'
+                        }`}>
+                        {todo.priority}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

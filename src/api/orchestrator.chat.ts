@@ -92,10 +92,12 @@ export interface ToolCall {
   isPending?: boolean;
 }
 
-// Todo item interface
+// Todo item interface - OpenCode style with id and priority
 export interface TodoItem {
-  status: 'pending' | 'in_progress' | 'completed';
+  id: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   content: string;
+  priority?: 'high' | 'medium' | 'low';
 }
 
 // TODO: Custom Component Mapping Strategy (Option 1)
@@ -126,6 +128,11 @@ export interface ChatStreamCallbacks {
   onCustomComponent?: (component: string, props: any, callId: string) => void;
   onPlanCreated?: (todos: TodoItem[], todoCount: number, traceId: string, callId: string, timestamp: string) => void;
   onPlanUpdated?: (todos: TodoItem[], todoCount: number, traceId: string, callId: string, timestamp: string) => void;
+  // OpenCode-style todo events
+  onTodoCreated?: (todo: TodoItem, totalTodos: number, sessionId: string, callId: string) => void;
+  onTodoUpdated?: (todo: TodoItem, totalTodos: number, sessionId: string, callId: string) => void;
+  onTodoDeleted?: (todoId: string, remainingTodos: number, sessionId: string, callId: string) => void;
+  onTodoCleared?: (sessionId: string, callId: string) => void;
   onUserMessageInjected?: (message: string) => void;
   onUserCancelled?: (message: string) => void;
   onDone?: (reason: string, message?: string) => void;
@@ -338,6 +345,31 @@ async function processChatStream(
               case 'error':
                 if (callbacks.onError) {
                   callbacks.onError(event.error);
+                }
+                break;
+
+              // OpenCode-style todo events
+              case 'todo.created':
+                if (callbacks.onTodoCreated) {
+                  callbacks.onTodoCreated(event.todo, event.total_todos, event.session_id, event.call_id);
+                }
+                break;
+
+              case 'todo.updated':
+                if (callbacks.onTodoUpdated) {
+                  callbacks.onTodoUpdated(event.todo, event.total_todos, event.session_id, event.call_id);
+                }
+                break;
+
+              case 'todo.deleted':
+                if (callbacks.onTodoDeleted) {
+                  callbacks.onTodoDeleted(event.todo?.id, event.total_todos, event.session_id, event.call_id);
+                }
+                break;
+
+              case 'todo.cleared':
+                if (callbacks.onTodoCleared) {
+                  callbacks.onTodoCleared(event.session_id, event.call_id);
                 }
                 break;
 

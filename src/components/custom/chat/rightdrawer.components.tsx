@@ -433,6 +433,32 @@ const RightDrawer: React.FC = () => {
             eventsRef.current = [...eventsRef.current, event];
             setCurrentEvents([...eventsRef.current]);
           },
+          // OpenCode-style todo event handlers
+          onTodoCreated: (todo, totalTodos, sessionId, callId) => {
+            console.log('Todo created:', todo);
+            setPersistedTodos(prev => {
+              // Add new todo, avoid duplicates
+              const exists = prev.some(t => t.id === todo.id);
+              if (exists) return prev;
+              return [...prev, todo];
+            });
+            setShowTodoProgress(true);
+          },
+          onTodoUpdated: (todo, totalTodos, sessionId, callId) => {
+            console.log('Todo updated:', todo);
+            setPersistedTodos(prev =>
+              prev.map(t => t.id === todo.id ? { ...t, ...todo } : t)
+            );
+          },
+          onTodoDeleted: (todoId, remainingTodos, sessionId, callId) => {
+            console.log('Todo deleted:', todoId);
+            setPersistedTodos(prev => prev.filter(t => t.id !== todoId));
+          },
+          onTodoCleared: (sessionId, callId) => {
+            console.log('Todos cleared');
+            setPersistedTodos([]);
+            setShowTodoProgress(false);
+          },
           onUserMessageInjected: (message) => {
             console.log('User message injected:', message);
           },
@@ -766,6 +792,7 @@ const RightDrawer: React.FC = () => {
                       suggestedQuestions={suggestedQuestions}
                       elapsedTime={elapsedTime}
                       onRetry={handleRetry}
+                      currentTodos={persistedTodos}
                     />
                   ) : (
                     <ChatSetting />

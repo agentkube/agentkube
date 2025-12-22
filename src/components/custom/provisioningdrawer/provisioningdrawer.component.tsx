@@ -39,7 +39,7 @@ const defaultParameters: TaskCalls = {
 
 const drawerVariants = {
   hidden: { x: '100%', opacity: 0 },
-  visible: { x: 0, opacity: 1, transition: { type: 'spring', damping: 25, stiffness: 200 } },
+  visible: { x: 0, opacity: 1, transition: { type: 'spring' as const, damping: 25, stiffness: 200 } },
   exit: { x: '100%', opacity: 0, transition: { duration: 0.3 } }
 };
 
@@ -159,11 +159,11 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
         handleClose();
       }
     };
-  
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
     }
-  
+
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };

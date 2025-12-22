@@ -58,7 +58,7 @@ const Messages: React.FC<MessagesProps> = ({
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
-    
+
     scrollTimeoutRef.current = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -150,14 +150,8 @@ const Messages: React.FC<MessagesProps> = ({
                 onRetry={onRetry}
                 userMessage={findLastUserMessage()}
                 isStreaming={true}
+                todos={currentTodos}
               />
-            </div>
-          )}
-
-          {/* Display todo list if available */}
-          {isLoading && currentTodos.length > 0 && (
-            <div className="px-4 py-2">
-              <TodoList todos={currentTodos} />
             </div>
           )}
 
