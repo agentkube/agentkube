@@ -12,6 +12,8 @@ export interface ChatRequest {
   prompt?: string;
   files?: FileContent[];
   reasoning_effort?: ReasoningEffortLevel;
+  auto_approve?: boolean;  // Auto-approve all tool executions
+  session_id?: string;  // OpenCode-style session ID - if provided, continues existing session
 }
 
 export interface CompletionRequest {
@@ -115,6 +117,7 @@ export interface StreamEvent {
 // Stream callback types
 export interface ChatStreamCallbacks {
   onTraceId?: (traceId: string) => void;
+  onSessionId?: (sessionId: string) => void;  // OpenCode-style session management
   onIterationStart?: (iteration: number) => void;
   onText?: (text: string) => void;
   onReasoningText?: (text: string) => void;
@@ -374,7 +377,11 @@ async function processChatStream(
                 break;
 
               default:
-                // Handle trace_id at root level (no type field)
+                // Handle session_id and trace_id at root level (no type field)
+                // The first event from backend contains both session_id and trace_id
+                if (event.session_id && callbacks.onSessionId) {
+                  callbacks.onSessionId(event.session_id);
+                }
                 if (event.trace_id && callbacks.onTraceId) {
                   callbacks.onTraceId(event.trace_id);
                 }
@@ -624,9 +631,12 @@ export const getPendingHITLRequests = async (): Promise<HITLPendingRequestsRespo
 
 /**
  * Approve, deny, or redirect a tool call
+ * Note: We pass sessionId here because the backend uses session_id as the key 
+ * for APPROVAL_DECISIONS (not trace_id). The backend route still expects 
+ * 'trace_id' as the field name for backward compatibility.
  */
 export const approveToolCall = async (
-  traceId: string,
+  sessionId: string,
   callId: string,
   decision: 'approve' | 'deny' | 'approve_for_session' | 'redirect',
   message?: string
@@ -637,7 +647,7 @@ export const approveToolCall = async (
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      trace_id: traceId,
+      trace_id: sessionId,  // Backend expects 'trace_id' but actually uses session_id as key
       call_id: callId,
       decision,
       message

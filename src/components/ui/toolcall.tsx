@@ -41,55 +41,59 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   const outputText = useMemo(() => {
     if (!toolCall.output) return '';
 
-    // If output is already an object with 'output' field, extract it
-    if (typeof toolCall.output === 'object' && toolCall.output.output) {
-      return toolCall.output.output;
-    }
+    let outputData = toolCall.output;
 
-    // If output is a string, try to parse it
-    if (typeof toolCall.output === 'string') {
-      // Check if it looks like a Python dict string with 'command' and 'output' keys
-      if (toolCall.output.includes("'command':") || toolCall.output.includes('"command":')) {
-        // Simple extraction: find 'output': ' and get everything until the last '}
-        // This works because 'output' is always the last key in the dict
-        const match = toolCall.output.match(/['"]output['"]\s*:\s*['"](.*)['"]}\s*$/s);
-        if (match && match[1]) {
-          // Unescape the string
-          return match[1]
-            .replace(/\\n/g, '\n')
-            .replace(/\\t/g, '\t')
-            .replace(/\\r/g, '\r')
-            .replace(/\\'/g, "'")
-            .replace(/\\"/g, '"')
-            .replace(/\\\\/g, '\\');
-        }
-      }
-
-      // If regex extraction fails, try JSON parsing
+    // If output is a string, try to parse it as JSON first
+    if (typeof outputData === 'string') {
       try {
-        // Try to parse as JSON (handle both single and double quotes)
-        const parsed = JSON.parse(toolCall.output.replace(/'/g, '"'));
-
-        // If parsed object has 'output' field, extract it
-        if (parsed && typeof parsed === 'object' && parsed.output) {
-          return parsed.output;
-        }
-
-        // If parsed object has 'command' and 'output' fields, return only 'output'
-        if (parsed && typeof parsed === 'object' && parsed.command && parsed.output) {
-          return parsed.output;
-        }
-
-        // Otherwise return the original string
-        return toolCall.output;
+        // Try to parse as JSON (handles proper JSON format)
+        outputData = JSON.parse(outputData);
       } catch (e) {
-        // If parsing fails, return as-is
-        return toolCall.output;
+        // Try replacing Python-style single quotes with double quotes
+        try {
+          // Handle Python dict format: {'key': 'value'}
+          const jsonLikeString = outputData
+            .replace(/'/g, '"')
+            .replace(/True/g, 'true')
+            .replace(/False/g, 'false')
+            .replace(/None/g, 'null');
+          outputData = JSON.parse(jsonLikeString);
+        } catch (e2) {
+          // If all parsing fails, return as-is
+          return outputData;
+        }
       }
     }
 
-    // Fallback: stringify the object
-    return JSON.stringify(toolCall.output, null, 2);
+    // Now outputData should be an object - extract the 'output' field if it exists
+    if (typeof outputData === 'object' && outputData !== null) {
+      // For bash_tool and similar - extract 'output' field
+      if ('output' in outputData && typeof outputData.output === 'string') {
+        return outputData.output;
+      }
+
+      // For kubectl_tool - check for 'stdout' field (legacy)
+      if ('stdout' in outputData && typeof outputData.stdout === 'string') {
+        const stderr = outputData.stderr || '';
+        return outputData.stdout + (stderr ? '\n' + stderr : '');
+      }
+
+      // For error responses, show the error message
+      if ('error' in outputData && typeof outputData.error === 'string') {
+        return `Error: ${outputData.error}`;
+      }
+
+      // For helm and other tools with 'output' key
+      if ('output' in outputData) {
+        return String(outputData.output);
+      }
+
+      // Fallback: stringify the object in a readable way
+      return JSON.stringify(outputData, null, 2);
+    }
+
+    // Fallback: return as string
+    return String(outputData);
   }, [toolCall.output]);
 
   // Check if output is large and needs truncation

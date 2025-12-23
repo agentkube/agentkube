@@ -258,9 +258,9 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
 
   return (
     <div className="w-full relative">
-      <div className="bg-muted/30 p-3 text-foreground w-full px-4">
+      <div className=" p-3 text-foreground w-full px-4">
         <div className="flex items-start">
-          <div className="bg-muted/30 w-7 h-7 rounded-md overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
+          <div className="bg-muted/60 w-7 h-7 rounded-md overflow-hidden flex items-center justify-center mr-2 text-green-400 mt-1">
             <AgentkubeBot className="h-5 w-5" />
           </div>
           <div className="flex-1 overflow-auto py-1">
@@ -453,7 +453,8 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
                 );
               } else if (item.type === 'todolist' && item.todos && item.todos.length > 0) {
                 // Render OpenCode-style TodoList component
-                return <TodoList key={`todolist-${index}`} todos={item.todos} />;
+                // return <TodoList key={`todolist-${index}`} todos={item.todos} />;
+                return <></>;
               }
 
               return null;

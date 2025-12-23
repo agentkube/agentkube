@@ -66,14 +66,14 @@ const Messages: React.FC<MessagesProps> = ({
           {messages.map((message, index) => (
             <div key={index} className="flex items-start">
               {message.role === 'user' && (
-                <UserMessage content={message.content} /> 
+                <UserMessage content={message.content} />
               )}
 
               {message.role === 'assistant' && (
-                <AssistantMessage 
-                  content={message.content} 
-                  toolCalls={message.toolCalls} 
-                /> 
+                <AssistantMessage
+                  content={message.content}
+                  toolCalls={message.toolCalls}
+                />
               )}
             </div>
           ))}
@@ -81,13 +81,13 @@ const Messages: React.FC<MessagesProps> = ({
           {/* Display current streaming response if available */}
           {isLoading && currentResponse && (
             <div className="flex items-start">
-              <AssistantMessage 
-                content={currentResponse} 
-                toolCalls={currentToolCalls} 
+              <AssistantMessage
+                content={currentResponse}
+                toolCalls={currentToolCalls}
               />
             </div>
           )}
-          
+
           {/* Assistant isLoading response */}
           {isLoading && !currentResponse && !currentToolCalls.length && (
             <div className="flex justify-center">

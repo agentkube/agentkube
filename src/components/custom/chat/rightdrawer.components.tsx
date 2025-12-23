@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow } from "lucide-react";
+import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow, Plus, ListTodo } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview, ReasoningEffort, ReasoningEffortLevel } from '@/components/custom';
@@ -24,6 +24,8 @@ import { AgentkubeBot } from '@/assets/icons';
 import PromptContentDialog from '@/components/custom/promptcontentdialog/promptcontentdialog.component';
 import { ToolPermissionPrompt } from './toolpermissionprompt.rightdrawer';
 import { TodoProgressIndicator } from './todoprogressindicator.rightdrawer';
+import { ChatHistoryDropdown } from './chathistory.rightdrawer';
+import { getSessionMessages } from '@/api/session';
 import { toast } from '@/hooks/use-toast';
 
 interface SuggestedQuestion {
@@ -129,8 +131,9 @@ const RightDrawer: React.FC = () => {
   }, [isLoading, responseStartTime]);
 
 
-  // Conversation ID state to maintain session with the orchestrator
+  // Session/Conversation ID state to maintain session with the orchestrator
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(undefined);
 
   // Use refs to track current streaming state
   const eventsRef = useRef<StreamEvent[]>([]);
@@ -211,7 +214,127 @@ const RightDrawer: React.FC = () => {
     setCurrentEvents([]);
     setCurrentText('');
     setConversationId(undefined);
+    setCurrentSessionId(undefined);
     setPendingToolApproval(null);
+    setPersistedTodos([]);
+    setShowTodoProgress(false);
+  };
+
+  // Handle session selection from chat history
+  const handleSessionSelect = async (sessionId: string | null): Promise<void> => {
+    if (!sessionId) {
+      handleClearChat();
+      return;
+    }
+
+    try {
+      // Fetch messages for the selected session
+      const response = await getSessionMessages(sessionId);
+
+      // Helper function to parse metadata from message content
+      const parseMessageMetadata = (content: string) => {
+        let cleanContent = content;
+        let toolCalls: any[] = [];
+        let todos: TodoItem[] = [];
+        let events: StreamEvent[] = [];
+
+        // Parse TOOL_CALLS metadata - use greedy match to capture full JSON array
+        const toolCallsMatch = content.match(/<!-- TOOL_CALLS: (\[[\s\S]*?\]) -->/);
+        if (toolCallsMatch) {
+          try {
+            toolCalls = JSON.parse(toolCallsMatch[1]);
+            cleanContent = cleanContent.replace(toolCallsMatch[0], '').trim();
+
+            // Convert tool calls to events for UI rendering
+            toolCalls.forEach((tc: any, index: number) => {
+              events.push({
+                type: 'tool_start',
+                timestamp: Date.now() - (toolCalls.length - index) * 1000,
+                textPosition: 0,
+                data: { tool: tc.tool, args: tc.args, callId: tc.call_id }
+              });
+              events.push({
+                type: 'tool_end',
+                timestamp: Date.now() - (toolCalls.length - index) * 1000 + 500,
+                textPosition: 0,
+                data: { tool: tc.tool, result: tc.result, success: tc.success, callId: tc.call_id }
+              });
+            });
+          } catch (e) {
+            console.error('Failed to parse tool calls:', e);
+          }
+        }
+
+        // Parse TODOS metadata - use greedy match to capture full JSON array
+        const todosMatch = content.match(/<!-- TODOS: (\[[\s\S]*?\]) -->/);
+        if (todosMatch) {
+          try {
+            todos = JSON.parse(todosMatch[1]);
+            cleanContent = cleanContent.replace(todosMatch[0], '').trim();
+          } catch (e) {
+            console.error('Failed to parse todos:', e);
+          }
+        }
+
+        return { cleanContent, toolCalls, todos, events };
+      };
+
+      // Convert session messages to chat messages format, parsing metadata
+      let allTodos: TodoItem[] = [];
+      const chatMessages: ChatMessage[] = response.messages.map(msg => {
+        if (msg.role === 'assistant') {
+          const { cleanContent, todos, events } = parseMessageMetadata(msg.content);
+          // Keep track of all todos from this session
+          if (todos.length > 0) {
+            allTodos = todos; // Use the latest todos state
+          }
+          return {
+            role: msg.role as 'user' | 'assistant',
+            content: cleanContent,
+            events
+          };
+        }
+        return {
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          events: []
+        };
+      });
+
+      // Update state
+      setMessages(chatMessages);
+      setCurrentSessionId(sessionId);
+      setConversationId(sessionId);
+      setCurrentEvents([]);
+      setCurrentText('');
+      setPendingToolApproval(null);
+
+      // Restore todos if any were found
+      if (allTodos.length > 0) {
+        setPersistedTodos(allTodos);
+        setShowTodoProgress(true);
+      } else {
+        setPersistedTodos([]);
+        setShowTodoProgress(false);
+      }
+
+      toast({
+        title: 'Session loaded',
+        description: `Loaded ${response.count} messages from previous session`,
+      });
+    } catch (error) {
+      console.error('Failed to load session:', error);
+      toast({
+        title: 'Failed to load session',
+        description: 'Could not load the selected chat session',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle new chat creation
+  const handleNewChat = (): void => {
+    handleClearChat();
   };
 
   const getRecentChatHistory = (messages: ChatMessage[], maxMessages: number = 5) => {
@@ -302,12 +425,18 @@ const RightDrawer: React.FC = () => {
           kubecontext: currentContext?.name,
           files: allFiles.length > 0 ? allFiles : undefined,
           ...(autoApprove && { auto_approve: true }),
-          reasoning_effort: reasoningEffort, // TODO: Remove this comment when backend implementation is done
+          reasoning_effort: reasoningEffort,
+          ...(currentSessionId && { session_id: currentSessionId }),
         },
         {
           onTraceId: (traceId) => {
             console.log('Trace ID:', traceId);
             setCurrentTraceId(traceId);
+          },
+          onSessionId: (sessionId) => {
+            console.log('Session ID:', sessionId);
+            setCurrentSessionId(sessionId);
+            setConversationId(sessionId);
           },
           onIterationStart: (iteration) => {
             console.log('Iteration:', iteration);
@@ -672,6 +801,330 @@ const RightDrawer: React.FC = () => {
     setInputValue(userMessage);
   };
 
+  const handleResend = async (userMessage: string) => {
+    // Don't resend if already loading
+    if (isLoading) return;
+
+    // For resend, we don't add a new user message since it already exists in chat history
+    // We just re-send the message to the API
+    if (!userMessage.trim()) return;
+
+    // Check if user is authenticated and block the request if not
+    if (!user || !user.isAuthenticated) {
+      setMessages(prev => [...prev,
+      {
+        role: 'assistant',
+        content: '**Sign In Required** \n\nThis feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.',
+        events: []
+      }
+      ]);
+      return;
+    }
+
+    // Check if user has exceeded their usage limit
+    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+      setMessages(prev => [...prev,
+      {
+        role: 'assistant',
+        content: '**Usage Limit Exceeded** \n\nYou have reached your usage limit of ' + user.usage_limit + ' requests. Please upgrade your plan to continue using the AI assistant.',
+        events: []
+      }
+      ]);
+      return;
+    }
+
+    // Don't add user message again - it already exists in the chat history
+    // Just reset the state for the new response
+    setInputValue('');
+    setStructuredContent([]);
+    setIsLoading(true);
+    setCurrentEvents([]);
+    setCurrentText('');
+    eventsRef.current = [];
+    textRef.current = '';
+    setIsInputFocused(false);
+    setResponseStartTime(Date.now());
+    setElapsedTime(0);
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+
+    try {
+      // Transform contextFiles to the format expected by the API
+      const formattedFiles = contextFiles.map(file => ({
+        resource_name: `${file.resourceType}/${file.resourceName}`,
+        resource_content: file.resourceContent || ''
+      }));
+
+      // Add structured content as files
+      const structuredContentFiles = structuredContent.map((item, index) => ({
+        resource_name: `structured_content_${item.title || `item_${index + 1}`}`,
+        resource_content: item.content
+      }));
+
+      const allFiles = [...formattedFiles, ...structuredContentFiles];
+
+      await chatStream(
+        {
+          message: userMessage,
+          chat_history: getRecentChatHistory(messages),
+          model: selectedModel,
+          kubecontext: currentContext?.name,
+          files: allFiles.length > 0 ? allFiles : undefined,
+          ...(autoApprove && { auto_approve: true }),
+          reasoning_effort: reasoningEffort,
+          ...(currentSessionId && { session_id: currentSessionId }),
+        },
+        {
+          onTraceId: (traceId) => {
+            console.log('Trace ID (resend):', traceId);
+            setCurrentTraceId(traceId);
+          },
+          onSessionId: (sessionId) => {
+            console.log('Session ID (resend):', sessionId);
+            setCurrentSessionId(sessionId);
+            setConversationId(sessionId);
+          },
+          onIterationStart: (iteration) => {
+            console.log('Iteration (resend):', iteration);
+          },
+          onText: (text) => {
+            textRef.current += text;
+            setCurrentText(textRef.current);
+          },
+          onReasoningText: (text) => {
+            textRef.current += text;
+            setCurrentText(textRef.current);
+          },
+          onToolCallStart: (tool, args, callId) => {
+            const event: StreamEvent = {
+              type: 'tool_start',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, args, callId }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onToolApprovalRequest: (tool, args, callId, message) => {
+            const event: StreamEvent = {
+              type: 'tool_approval',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, args, callId, message }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+            setPendingToolApproval({ tool, args, callId, message });
+          },
+          onToolApproved: (tool, callId, scope, message) => {
+            const event: StreamEvent = {
+              type: 'tool_approved',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, callId, scope, message }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+            setPendingToolApproval(null);
+          },
+          onToolDenied: (tool, callId, message) => {
+            const event: StreamEvent = {
+              type: 'tool_denied',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, callId, message }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+            setPendingToolApproval(null);
+          },
+          onToolRedirected: (tool, callId, message, newInstruction) => {
+            const event: StreamEvent = {
+              type: 'tool_redirected',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, callId, message, newInstruction }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+            setPendingToolApproval(null);
+          },
+          onToolCallEnd: (tool, result, success, callId) => {
+            const event: StreamEvent = {
+              type: 'tool_end',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { tool, result, success, callId }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onCustomComponent: (component, props, callId) => {
+            const event: StreamEvent = {
+              type: 'custom_component',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { component, props, callId }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onPlanCreated: (todos, todoCount, traceId, callId, timestamp) => {
+            console.log('Plan created (resend):', todos);
+            setCurrentTodos(todos);
+            setPersistedTodos(todos);
+            setShowTodoProgress(true);
+
+            const event: StreamEvent = {
+              type: 'plan_created',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { todos, todoCount, traceId, callId, timestamp }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onPlanUpdated: (todos, todoCount, traceId, callId, timestamp) => {
+            console.log('Plan updated (resend):', todos);
+            setCurrentTodos(todos);
+            setPersistedTodos(todos);
+
+            const event: StreamEvent = {
+              type: 'plan_updated',
+              timestamp: Date.now(),
+              textPosition: textRef.current.length,
+              data: { todos, todoCount, traceId, callId, timestamp }
+            };
+            eventsRef.current = [...eventsRef.current, event];
+            setCurrentEvents([...eventsRef.current]);
+          },
+          onTodoCreated: (todo, totalTodos, sessionId, callId) => {
+            console.log('Todo created (resend):', todo);
+            setPersistedTodos(prev => {
+              const exists = prev.some(t => t.id === todo.id);
+              if (exists) return prev;
+              return [...prev, todo];
+            });
+            setShowTodoProgress(true);
+          },
+          onTodoUpdated: (todo, totalTodos, sessionId, callId) => {
+            console.log('Todo updated (resend):', todo);
+            setPersistedTodos(prev =>
+              prev.map(t => t.id === todo.id ? { ...t, ...todo } : t)
+            );
+          },
+          onTodoDeleted: (todoId, remainingTodos, sessionId, callId) => {
+            console.log('Todo deleted (resend):', todoId);
+            setPersistedTodos(prev => prev.filter(t => t.id !== todoId));
+          },
+          onTodoCleared: (sessionId, callId) => {
+            console.log('Todos cleared (resend)');
+            setPersistedTodos([]);
+            setShowTodoProgress(false);
+          },
+          onUserMessageInjected: (message) => {
+            console.log('User message injected (resend):', message);
+          },
+          onUserCancelled: (message) => {
+            if (textRef.current.trim() || eventsRef.current.length > 0) {
+              setMessages(prev => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: textRef.current + '\n\n*[Response cancelled by user]*',
+                  events: [...eventsRef.current]
+                }
+              ]);
+            }
+            setCurrentText('');
+            setCurrentEvents([]);
+            setContextFiles([]);
+            setIsLoading(false);
+            setResponseStartTime(null);
+            setPendingToolApproval(null);
+            setCurrentTraceId(null);
+            abortControllerRef.current = null;
+          },
+          onDone: (reason, message) => {
+            if (textRef.current.trim() || eventsRef.current.length > 0) {
+              setMessages(prev => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: textRef.current,
+                  events: [...eventsRef.current]
+                }
+              ]);
+            }
+            setCurrentText('');
+            setCurrentEvents([]);
+            setContextFiles([]);
+            setIsLoading(false);
+            setResponseStartTime(null);
+            setPendingToolApproval(null);
+            setCurrentTraceId(null);
+          },
+          onError: (error) => {
+            const errorMessage = typeof error === 'string' ? error : error.message;
+            if (errorMessage === 'Request cancelled') {
+              if (textRef.current.trim() || eventsRef.current.length > 0) {
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    role: 'assistant',
+                    content: textRef.current + '\n\n*[Response cancelled by user]*',
+                    events: [...eventsRef.current]
+                  }
+                ]);
+              }
+              setCurrentText('');
+              setCurrentEvents([]);
+              setContextFiles([]);
+              setIsLoading(false);
+              setResponseStartTime(null);
+              setPendingToolApproval(null);
+              setCurrentTraceId(null);
+              abortControllerRef.current = null;
+              return;
+            }
+
+            console.error('Error in chat stream (resend):', error);
+            setIsLoading(false);
+            setMessages(prev => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: `Something went wrong during the chat.`,
+                events: []
+              }
+            ]);
+            textRef.current = '';
+            eventsRef.current = [];
+            setCurrentText('');
+            setCurrentEvents([]);
+            setContextFiles([]);
+            setResponseStartTime(null);
+            setPendingToolApproval(null);
+            abortControllerRef.current = null;
+          }
+        },
+        abortControllerRef.current.signal
+      );
+    } catch (error) {
+      console.error('Failed to resend message:', error);
+      setIsLoading(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          events: []
+        }
+      ]);
+    }
+  };
+
   // Early return only after mounted check to avoid hydration issues
   if (!drawerMounted || !isOpen) return null;
 
@@ -724,6 +1177,17 @@ const RightDrawer: React.FC = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
+                    {/* Review Plan button - right side, styled like Review Changes */}
+                    {!showChatSettings && !showTodoProgress && persistedTodos.length > 0 && (
+                      <button
+                        onClick={() => setShowTodoProgress(true)}
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-secondary/50 transition-colors ml-auto"
+                      >
+                        <ListTodo className="w-3.5 h-3.5" />
+                        <span>Review Plan</span>
+                      </button>
+                    )}
+
                     {!showChatSettings && (
                       <>
                         <Tooltip>
@@ -731,16 +1195,21 @@ const RightDrawer: React.FC = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={handleClearChat}
+                              onClick={handleNewChat}
                               className="p-1"
                             >
-                              <MessageSquare className="h-4 w-4" />
+                              <Plus className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent className="p-1">
-                            <p>Clear chat</p>
+                            <p>New chat</p>
                           </TooltipContent>
                         </Tooltip>
+                        <ChatHistoryDropdown
+                          currentSessionId={currentSessionId}
+                          onSessionSelect={handleSessionSelect}
+                          onNewChat={handleNewChat}
+                        />
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -759,6 +1228,8 @@ const RightDrawer: React.FC = () => {
                         </Tooltip>
                       </>
                     )}
+
+
                     <Button
                       variant="ghost"
                       size="sm"
@@ -792,6 +1263,7 @@ const RightDrawer: React.FC = () => {
                       suggestedQuestions={suggestedQuestions}
                       elapsedTime={elapsedTime}
                       onRetry={handleRetry}
+                      onResend={handleResend}
                       currentTodos={persistedTodos}
                     />
                   ) : (
@@ -802,16 +1274,15 @@ const RightDrawer: React.FC = () => {
 
                 {!showChatSettings && <SignInContainer />}
                 {!showChatSettings && <UpgradeToProContainer />}
-
                 {!showChatSettings && (
                   <div className="border-t border-border px-3 py-4 mt-auto relative">
                     {/* Stack container for prompts - grows upward from bottom */}
-                    {(showTodoProgress && persistedTodos.length > 0 || pendingToolApproval && currentTraceId) && (
+                    {(showTodoProgress && persistedTodos.length > 0 || pendingToolApproval && currentSessionId) && (
                       <div className="absolute bottom-full left-0 right-0 mb-2 px-3 z-50 flex flex-col-reverse gap-2">
                         {/* Tool Permission Prompt - appears above textarea */}
-                        {pendingToolApproval && currentTraceId && (
+                        {pendingToolApproval && currentSessionId && (
                           <ToolPermissionPrompt
-                            traceId={currentTraceId}
+                            sessionId={currentSessionId}
                             tool={pendingToolApproval.tool}
                             args={pendingToolApproval.args}
                             callId={pendingToolApproval.callId}
@@ -820,15 +1291,16 @@ const RightDrawer: React.FC = () => {
                           />
                         )}
 
-                        {/* Todo Progress Indicator - stacks above Tool Permission Prompt */}
                         {showTodoProgress && persistedTodos.length > 0 && (
                           <TodoProgressIndicator
                             todos={persistedTodos}
                             onClose={() => setShowTodoProgress(false)}
                           />
                         )}
+
                       </div>
                     )}
+
 
                     {structuredContent.length > 0 && (
                       <div className="mb-2 flex flex-wrap gap-1">

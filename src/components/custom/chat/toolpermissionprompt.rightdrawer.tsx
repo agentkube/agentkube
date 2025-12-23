@@ -12,7 +12,7 @@ import { useTheme } from 'next-themes';
 const SyntaxHighlighter = (Prism as any) as React.FC<SyntaxHighlighterProps>;
 
 interface ToolPermissionPromptProps {
-  traceId: string;
+  sessionId: string;
   tool: string;
   args: any;
   callId: string;
@@ -21,7 +21,7 @@ interface ToolPermissionPromptProps {
 }
 
 export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
-  traceId,
+  sessionId,
   tool,
   args,
   callId,
@@ -63,7 +63,7 @@ export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
   const handleApprove = async () => {
     setIsSubmitting(true);
     try {
-      await approveToolCall(traceId, callId, 'approve');
+      await approveToolCall(sessionId, callId, 'approve');
       onClose();
     } catch (error) {
       console.error('Failed to approve tool:', error);
@@ -75,7 +75,7 @@ export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
   const handleApproveForSession = async () => {
     setIsSubmitting(true);
     try {
-      await approveToolCall(traceId, callId, 'approve_for_session');
+      await approveToolCall(sessionId, callId, 'approve_for_session');
       onClose();
     } catch (error) {
       console.error('Failed to approve tool for session:', error);
@@ -87,7 +87,7 @@ export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
   const handleDeny = async () => {
     setIsSubmitting(true);
     try {
-      await approveToolCall(traceId, callId, 'deny');
+      await approveToolCall(sessionId, callId, 'deny');
       onClose();
     } catch (error) {
       console.error('Failed to deny tool:', error);
@@ -103,7 +103,7 @@ export const ToolPermissionPrompt: React.FC<ToolPermissionPromptProps> = ({
 
     setIsSubmitting(true);
     try {
-      await approveToolCall(traceId, callId, 'redirect', redirectMessage);
+      await approveToolCall(sessionId, callId, 'redirect', redirectMessage);
       setRedirectMessage('');
       onClose();
     } catch (error) {

@@ -36,6 +36,7 @@ interface MessagesProps {
   suggestedQuestions: SuggestedQuestion[];
   elapsedTime?: number;
   onRetry?: (userMessage: string) => void;
+  onResend?: (userMessage: string) => void;
   currentTodos?: TodoItem[];
 }
 
@@ -48,6 +49,7 @@ const Messages: React.FC<MessagesProps> = ({
   suggestedQuestions,
   elapsedTime = 0,
   onRetry,
+  onResend,
   currentTodos = []
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,7 +103,7 @@ const Messages: React.FC<MessagesProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="bg-muted/30 flex flex-col h-full">
       {messages.length === 0 ? (
         <div className="text-center px-10 py-8 flex-grow flex flex-col justify-center">
 
@@ -123,11 +125,11 @@ const Messages: React.FC<MessagesProps> = ({
           </div>
         </div>
       ) : (
-        <div className="text-sm flex-grow flex flex-col justify-end">
+        <div className="bg-muted/30 text-sm flex-grow flex flex-col">
           {messages.map((message, index) => (
             <div key={index} className="flex items-start">
               {message.role === 'user' && (
-                <UserMessage content={message.content} />
+                <UserMessage content={message.content} onResend={onResend} />
               )}
 
               {message.role === 'assistant' && (
@@ -158,7 +160,7 @@ const Messages: React.FC<MessagesProps> = ({
           {/* Assistant isLoading response */}
           {isLoading && !currentText && currentEvents.length === 0 && (
             <div className="flex justify-center">
-              <div className="flex items-center justify-between space-x-2 px-6 py-4 bg-gray-300/30 dark:bg-gray-800/20 w-full">
+              <div className="flex items-center justify-between space-x-2 px-6 py-4 bg-card/30 dark:bg-card/20 w-full">
                 <div className='flex items-center space-x-2'>
                   <Sparkles className='h-4 w-4 text-green-500 dark:text-gray-100/50 animate-pulse' />
                   <ShiningText />
