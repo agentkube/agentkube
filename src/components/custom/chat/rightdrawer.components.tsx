@@ -796,6 +796,19 @@ const RightDrawer: React.FC = () => {
     setMentions(prev => [...prev, item.name]);
   };
 
+  // Handle resource removal when mention is deleted from text
+  const handleResourceRemove = (resourceRef: string) => {
+    // resourceRef is like "@deployments/my-deployment"
+    // Extract resourceType and resourceName from it
+    const match = resourceRef.match(/@(\w+)\/(.+)/);
+    if (match) {
+      const [, resourceType, resourceName] = match;
+      setContextFiles(prev => prev.filter(f =>
+        !(f.resourceType === resourceType && f.resourceName === resourceName)
+      ));
+    }
+  };
+
   const handleRetry = (userMessage: string) => {
     // Set the input value to the user message but don't submit it
     setInputValue(userMessage);
@@ -1416,12 +1429,14 @@ const RightDrawer: React.FC = () => {
                         onFocus={handleInputFocus}
                         onBlur={handleInputBlur}
                         onSubmit={isLoading ? undefined : handleSubmit}
-                        placeholder={isLoading ? "Waiting for response..." : "Ask anything (⌘L)"}
+                        placeholder={isLoading ? "Waiting for response..." : "Ask anything or type @pods/ to add context (⌘L)"}
                         disabled={false}
                         className="border-transparent"
                         autoFocus={true}
                         mentionItems={mentionData}
                         onMentionSelect={handleMentionSelect}
+                        onResourceSelect={handleAddContext}
+                        onResourceRemove={handleResourceRemove}
                       />
                     </form>
 
