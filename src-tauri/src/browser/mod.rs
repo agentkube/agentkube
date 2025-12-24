@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::{
-    webview::PageLoadEvent, AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Url,
-    WebviewUrl, WebviewWindowBuilder,
+    webview::{PageLoadEvent, WebviewBuilder},
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Url, Webview, WebviewUrl,
 };
 
 /// Represents a browser session with its metadata
@@ -65,7 +65,8 @@ impl BrowserManager {
 
 pub type BrowserManagerState = Arc<Mutex<BrowserManager>>;
 
-/// Creates a new browser webview window
+/// Creates a new browser webview EMBEDDED in the main window
+/// This uses WebviewBuilder with Window::add_child() for true embedding
 #[tauri::command]
 pub async fn create_browser_webview(
     app: AppHandle,
@@ -78,7 +79,7 @@ pub async fn create_browser_webview(
     height: f64,
 ) -> Result<BrowserSession, String> {
     log::info!(
-        "Creating browser webview: {} at ({}, {}) size {}x{}",
+        "Creating EMBEDDED browser webview: {} at ({}, {}) size {}x{}",
         session_id,
         x,
         y,
@@ -93,34 +94,27 @@ pub async fn create_browser_webview(
     };
     let label = format!("browser-{}", session_id);
 
-    // Parse the URL
-    let webview_url = WebviewUrl::External(url.parse().map_err(|e| format!("Invalid URL: {}", e))?);
+    // Parse the URL for WebviewUrl
+    let parsed_url: Url = url.parse().map_err(|e| format!("Invalid URL: {}", e))?;
+    let webview_url = WebviewUrl::External(parsed_url);
+
+    // Get main window - we will embed the webview inside it
+    let main_window = app
+        .get_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
 
     let session_id_for_nav = session_id.clone();
     let session_id_for_load = session_id.clone();
     let app_for_load = app.clone();
 
-    // Get main window to set as parent
-    let main_window = app
-        .get_webview_window("main")
-        .ok_or_else(|| "Main window not found".to_string())?;
-
-    // Create browser window as child of main window
-    let _webview_window = WebviewWindowBuilder::new(&app, &label, webview_url)
-        .title("Browser")
-        .inner_size(width, height)
-        .position(x, y)
-        .decorations(false)
-        .visible(true)
-        .resizable(false)
-        .skip_taskbar(true)
-        .parent(&main_window)
-        .map_err(|e| format!("Failed to set parent: {}", e))?
+    // Create WebviewBuilder (not WebviewWindowBuilder!)
+    let webview_builder = WebviewBuilder::new(&label, webview_url)
+        .auto_resize()
         .on_navigation(move |nav_url| {
             log::info!("Browser {} navigating to: {}", session_id_for_nav, nav_url);
             true // Allow all navigation
         })
-        .on_page_load(move |_webview, payload| {
+        .on_page_load(move |_webview: Webview, payload| {
             let url = payload.url().to_string();
             let sid = session_id_for_load.clone();
 
@@ -154,9 +148,16 @@ pub async fn create_browser_webview(
                     );
                 }
             }
-        })
-        .build()
-        .map_err(|e| format!("Failed to create browser window: {}", e))?;
+        });
+
+    // Add webview as a CHILD of the main window (truly embedded!)
+    let _webview = main_window
+        .add_child(
+            webview_builder,
+            LogicalPosition::new(x, y),
+            LogicalSize::new(width, height),
+        )
+        .map_err(|e| format!("Failed to create embedded webview: {}", e))?;
 
     // Create session info
     let session = BrowserSession {
@@ -173,7 +174,7 @@ pub async fn create_browser_webview(
         manager.add_session(session.clone());
     }
 
-    log::info!("Browser webview created: {}", label);
+    log::info!("Embedded browser webview created: {}", label);
     Ok(session)
 }
 
@@ -187,12 +188,14 @@ pub async fn browser_navigate(
     log::info!("Browser {} navigating to: {}", session_id, url);
 
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+
+    // Get the embedded webview from the main window
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
     let parsed_url: Url = url.parse().map_err(|e| format!("Invalid URL: {}", e))?;
-    webview_window
+    webview
         .navigate(parsed_url)
         .map_err(|e| format!("Navigation failed: {}", e))?;
 
@@ -205,11 +208,11 @@ pub async fn browser_go_back(app: AppHandle, session_id: String) -> Result<(), S
     log::info!("Browser {} going back", session_id);
 
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    webview_window
+    webview
         .eval("window.history.back()")
         .map_err(|e| format!("Failed to go back: {}", e))?;
 
@@ -222,11 +225,11 @@ pub async fn browser_go_forward(app: AppHandle, session_id: String) -> Result<()
     log::info!("Browser {} going forward", session_id);
 
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    webview_window
+    webview
         .eval("window.history.forward()")
         .map_err(|e| format!("Failed to go forward: {}", e))?;
 
@@ -239,18 +242,18 @@ pub async fn browser_reload(app: AppHandle, session_id: String) -> Result<(), St
     log::info!("Browser {} reloading", session_id);
 
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    webview_window
+    webview
         .eval("window.location.reload()")
         .map_err(|e| format!("Failed to reload: {}", e))?;
 
     Ok(())
 }
 
-/// Update browser window position and size
+/// Update browser webview position and size (for embedded webviews)
 #[tauri::command]
 pub async fn update_browser_bounds(
     app: AppHandle,
@@ -261,52 +264,54 @@ pub async fn update_browser_bounds(
     height: f64,
 ) -> Result<(), String> {
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    webview_window
+    // For embedded webviews, set position and size relative to parent window
+    webview
         .set_position(LogicalPosition::new(x, y))
         .map_err(|e| format!("Failed to set position: {}", e))?;
 
-    webview_window
+    webview
         .set_size(LogicalSize::new(width, height))
         .map_err(|e| format!("Failed to set size: {}", e))?;
 
     Ok(())
 }
 
-/// Show browser window
+/// Show browser webview
 #[tauri::command]
 pub async fn show_browser_webview(app: AppHandle, session_id: String) -> Result<(), String> {
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    webview_window
-        .show()
-        .map_err(|e| format!("Failed to show: {}", e))?;
+    webview
+        .set_focus()
+        .map_err(|e| format!("Failed to focus: {}", e))?;
 
     Ok(())
 }
 
-/// Hide browser window
+/// Hide browser webview (move it off-screen for embedded webviews)
 #[tauri::command]
 pub async fn hide_browser_webview(app: AppHandle, session_id: String) -> Result<(), String> {
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    webview_window
-        .hide()
+    // Move off-screen to hide (embedded webviews don't have show/hide)
+    webview
+        .set_position(LogicalPosition::new(-10000.0, -10000.0))
         .map_err(|e| format!("Failed to hide: {}", e))?;
 
     Ok(())
 }
 
-/// Close browser window
+/// Close browser webview
 #[tauri::command]
 pub async fn close_browser_webview(
     app: AppHandle,
@@ -316,8 +321,8 @@ pub async fn close_browser_webview(
     log::info!("Closing browser: {}", session_id);
 
     let label = format!("browser-{}", session_id);
-    if let Some(webview_window) = app.get_webview_window(&label) {
-        let _ = webview_window.close();
+    if let Some(webview) = app.get_webview(&label) {
+        let _ = webview.close();
     }
 
     {
@@ -332,12 +337,40 @@ pub async fn close_browser_webview(
 #[tauri::command]
 pub async fn get_browser_url(app: AppHandle, session_id: String) -> Result<String, String> {
     let label = format!("browser-{}", session_id);
-    let webview_window = app
-        .get_webview_window(&label)
+    let webview = app
+        .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    let url = webview_window
+    let url = webview
         .url()
         .map_err(|e| format!("Failed to get URL: {}", e))?;
     Ok(url.to_string())
+}
+
+/// Set zoom level for browser webview
+#[tauri::command]
+pub async fn browser_set_zoom(
+    app: AppHandle,
+    session_id: String,
+    zoom_level: f64,
+) -> Result<(), String> {
+    log::info!(
+        "Browser {} setting zoom to: {}%",
+        session_id,
+        zoom_level * 100.0
+    );
+
+    let label = format!("browser-{}", session_id);
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| format!("Browser {} not found", label))?;
+
+    // Set zoom using CSS transform for better compatibility
+    let zoom_script = format!("document.body.style.zoom = '{}';", zoom_level);
+
+    webview
+        .eval(&zoom_script)
+        .map_err(|e| format!("Failed to set zoom: {}", e))?;
+
+    Ok(())
 }

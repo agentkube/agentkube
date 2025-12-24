@@ -9,9 +9,9 @@ mod network_monitor;
 mod terminal;
 
 use browser::{
-    browser_go_back, browser_go_forward, browser_navigate, browser_reload, close_browser_webview,
-    create_browser_webview, get_browser_url, hide_browser_webview, show_browser_webview,
-    update_browser_bounds, BrowserManager, BrowserManagerState,
+    browser_go_back, browser_go_forward, browser_navigate, browser_reload, browser_set_zoom,
+    close_browser_webview, create_browser_webview, get_browser_url, hide_browser_webview,
+    show_browser_webview, update_browser_bounds, BrowserManager, BrowserManagerState,
 };
 use network_commands::{get_network_status, start_network_monitoring, NetworkMonitorState};
 use network_monitor::NetworkMonitor;
@@ -148,6 +148,7 @@ pub fn run() {
             browser_go_back,
             browser_go_forward,
             browser_reload,
+            browser_set_zoom,
             update_browser_bounds,
             show_browser_webview,
             hide_browser_webview,

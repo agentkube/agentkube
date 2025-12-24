@@ -9,6 +9,9 @@ import {
   ExternalLink,
   Copy,
   X,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -18,7 +21,6 @@ import {
 } from '@/components/ui/tooltip';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { openExternalUrl } from '@/api/external';
 
 export interface BrowserTabProps {
@@ -69,6 +71,11 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
   });
   const [history, setHistory] = useState<string[]>(initialUrl ? [initialUrl] : []);
   const [historyIndex, setHistoryIndex] = useState(initialUrl ? 0 : -1);
+  // Zoom level state (1.0 = 100%)
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+  const MIN_ZOOM = 0.25;
+  const MAX_ZOOM = 3.0;
+  const ZOOM_STEP = 0.1;
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -91,20 +98,18 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
     return url;
   };
 
-  // Get container bounds for positioning the webview
+  // Get container bounds for positioning the EMBEDDED webview
+  // For embedded webviews, we need position relative to the main window, not the screen
   const getContainerBounds = useCallback(async () => {
     if (!containerRef.current) return null;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const mainWindow = await getCurrentWindow();
-    const scaleFactor = await mainWindow.scaleFactor();
 
-    // Get the window's outer position to calculate absolute screen position
-    const windowPos = await mainWindow.outerPosition();
-
+    // For embedded webviews, the position is relative to the main window's content area
+    // We just need the rect position within the window (no need for window.outerPosition)
     return {
-      x: windowPos.x / scaleFactor + rect.left,
-      y: windowPos.y / scaleFactor + rect.top + 30, // Account for title bar
+      x: rect.left,
+      y: rect.top,
       width: rect.width,
       height: rect.height,
     };
@@ -144,7 +149,7 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
 
     resizeObserver.observe(containerRef.current);
 
-    // Also update on window move/resize
+    // Also update on window resize
     const handleWindowChange = () => {
       if (isActive) {
         updateBounds();
@@ -152,10 +157,13 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
     };
 
     window.addEventListener('resize', handleWindowChange);
+    // Also listen for scroll events in case the container moves
+    window.addEventListener('scroll', handleWindowChange, true);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleWindowChange);
+      window.removeEventListener('scroll', handleWindowChange, true);
     };
   }, [sessionId, isActive, state.webviewCreated, getContainerBounds]);
 
@@ -166,8 +174,7 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
     const toggleVisibility = async () => {
       try {
         if (isActive) {
-          await invoke('show_browser_webview', { sessionId });
-          // Update bounds when showing
+          // Update bounds when showing (move back to correct position)
           const bounds = await getContainerBounds();
           if (bounds) {
             await invoke('update_browser_bounds', {
@@ -178,6 +185,7 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
               height: bounds.height,
             });
           }
+          await invoke('show_browser_webview', { sessionId });
         } else {
           await invoke('hide_browser_webview', { sessionId });
         }
@@ -410,6 +418,41 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
     openExternalUrl(state.url);
   }, [state.url]);
 
+  // Zoom in
+  const zoomIn = useCallback(async () => {
+    if (!state.webviewCreated) return;
+    const newZoom = Math.min(zoomLevel + ZOOM_STEP, MAX_ZOOM);
+    setZoomLevel(newZoom);
+    try {
+      await invoke('browser_set_zoom', { sessionId, zoomLevel: newZoom });
+    } catch (err) {
+      console.error('Failed to zoom in:', err);
+    }
+  }, [sessionId, state.webviewCreated, zoomLevel]);
+
+  // Zoom out
+  const zoomOut = useCallback(async () => {
+    if (!state.webviewCreated) return;
+    const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
+    setZoomLevel(newZoom);
+    try {
+      await invoke('browser_set_zoom', { sessionId, zoomLevel: newZoom });
+    } catch (err) {
+      console.error('Failed to zoom out:', err);
+    }
+  }, [sessionId, state.webviewCreated, zoomLevel]);
+
+  // Reset zoom to 100%
+  const resetZoom = useCallback(async () => {
+    if (!state.webviewCreated) return;
+    setZoomLevel(1.0);
+    try {
+      await invoke('browser_set_zoom', { sessionId, zoomLevel: 1.0 });
+    } catch (err) {
+      console.error('Failed to reset zoom:', err);
+    }
+  }, [sessionId, state.webviewCreated]);
+
   // Restart browser - close and recreate the webview
   const restartBrowser = useCallback(async () => {
     const urlToRestore = state.url || state.displayUrl;
@@ -485,11 +528,29 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
         e.preventDefault();
         refresh();
       }
+
+      // Zoom in: Cmd/Ctrl + Plus or Cmd/Ctrl + =
+      if ((e.metaKey || e.ctrlKey) && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        zoomIn();
+      }
+
+      // Zoom out: Cmd/Ctrl + Minus
+      if ((e.metaKey || e.ctrlKey) && e.key === '-') {
+        e.preventDefault();
+        zoomOut();
+      }
+
+      // Reset zoom: Cmd/Ctrl + 0
+      if ((e.metaKey || e.ctrlKey) && e.key === '0') {
+        e.preventDefault();
+        resetZoom();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, refresh]);
+  }, [isActive, refresh, zoomIn, zoomOut, resetZoom]);
 
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < history.length - 1;
@@ -603,6 +664,59 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
             </Tooltip>
           </TooltipProvider>
 
+          {/* Zoom controls */}
+          <div className="flex items-center gap-0.5 mx-1 px-1 border-x border-border/50">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={zoomOut}
+                    disabled={zoomLevel <= MIN_ZOOM}
+                    className="p-1.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-card text-foreground">
+                  <p>Zoom out (⌘-)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={resetZoom}
+                    className="px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent rounded transition-colors min-w-[40px] text-center"
+                  >
+                    {Math.round(zoomLevel * 100)}%
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-card text-foreground">
+                  <p>Reset zoom (⌘0)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={zoomIn}
+                    disabled={zoomLevel >= MAX_ZOOM}
+                    className="p-1.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-card text-foreground">
+                  <p>Zoom in (⌘+)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -637,8 +751,8 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
         </div>
       </div>
 
-      {/* Content area - the native webview is positioned over this */}
-      <div ref={containerRef} className="flex-1 relative">
+      {/* Content area - the embedded webview is positioned over this */}
+      <div ref={containerRef} className="flex-1 relative" style={{ zIndex: 0 }}>
         {state.error ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-background">
             <Globe className="h-12 w-12 mb-4 opacity-50" />
@@ -668,7 +782,7 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
             </p>
           </div>
         ) : null}
-        {/* The native WebviewWindow overlays this area */}
+        {/* The embedded native Webview is rendered over this area by Tauri */}
       </div>
     </div>
   );
