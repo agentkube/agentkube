@@ -374,3 +374,18 @@ pub async fn browser_set_zoom(
 
     Ok(())
 }
+
+/// Open DevTools for browser webview
+#[tauri::command]
+pub async fn browser_open_devtools(app: AppHandle, session_id: String) -> Result<(), String> {
+    log::info!("Browser {} opening devtools", session_id);
+
+    let label = format!("browser-{}", session_id);
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| format!("Browser {} not found", label))?;
+
+    webview.open_devtools();
+
+    Ok(())
+}

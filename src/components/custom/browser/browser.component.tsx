@@ -12,6 +12,8 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  SquareTerminal,
+  Check,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -73,6 +75,7 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
   const [historyIndex, setHistoryIndex] = useState(initialUrl ? 0 : -1);
   // Zoom level state (1.0 = 100%)
   const [zoomLevel, setZoomLevel] = useState(1.0);
+  const [copied, setCopied] = useState(false);
   const MIN_ZOOM = 0.25;
   const MAX_ZOOM = 3.0;
   const ZOOM_STEP = 0.1;
@@ -408,15 +411,27 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
     setState(prev => ({ ...prev, isFavorite: !prev.isFavorite }));
   }, []);
 
-  // Copy URL to clipboard
+  // Copy URL to clipboard with animation
   const copyUrl = useCallback(() => {
     navigator.clipboard.writeText(state.url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, [state.url]);
 
   // Open in external browser
   const openExternal = useCallback(() => {
     openExternalUrl(state.url);
   }, [state.url]);
+
+  // Open DevTools for the webview
+  const openDevTools = useCallback(async () => {
+    if (!state.webviewCreated) return;
+    try {
+      await invoke('browser_open_devtools', { sessionId });
+    } catch (err) {
+      console.error('Failed to open devtools:', err);
+    }
+  }, [sessionId, state.webviewCreated]);
 
   // Zoom in
   const zoomIn = useCallback(async () => {
@@ -546,11 +561,17 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
         e.preventDefault();
         resetZoom();
       }
+
+      // Open DevTools: F12
+      if (e.key === 'F12') {
+        e.preventDefault();
+        openDevTools();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, refresh, zoomIn, zoomOut, resetZoom]);
+  }, [isActive, refresh, zoomIn, zoomOut, resetZoom, openDevTools]);
 
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < history.length - 1;
@@ -724,11 +745,15 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
                   onClick={copyUrl}
                   className="p-1.5 rounded hover:bg-accent transition-colors"
                 >
-                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-green-500 transition-all" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground transition-all" />
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-card text-foreground">
-                <p>Copy URL</p>
+                <p>{copied ? 'Copied!' : 'Copy URL'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -745,6 +770,23 @@ const BrowserTab: React.FC<BrowserTabProps> = ({
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-card text-foreground">
                 <p>Open in external browser</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={openDevTools}
+                  disabled={!state.webviewCreated}
+                  className="p-1.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <SquareTerminal className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="bg-card text-foreground">
+                <p>Open DevTools (F12)</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
