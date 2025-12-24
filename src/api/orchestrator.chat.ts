@@ -138,7 +138,8 @@ export interface ChatStreamCallbacks {
   onTodoCleared?: (sessionId: string, callId: string) => void;
   onUserMessageInjected?: (message: string) => void;
   onUserCancelled?: (message: string) => void;
-  onDone?: (reason: string, message?: string) => void;
+  onUsage?: (tokens: { input: number; output: number; total: number }) => void;  // OpenCode-style token tracking
+  onDone?: (reason: string, message?: string, tokens?: { input: number; output: number; total: number }) => void;
   onError?: (error: Error | string) => void;
 }
 
@@ -341,7 +342,7 @@ async function processChatStream(
               case 'done':
                 if (!doneReceived && callbacks.onDone) {
                   doneReceived = true;
-                  callbacks.onDone(event.reason, event.message);
+                  callbacks.onDone(event.reason, event.message, event.tokens);
                 }
                 break;
 
@@ -373,6 +374,12 @@ async function processChatStream(
               case 'todo.cleared':
                 if (callbacks.onTodoCleared) {
                   callbacks.onTodoCleared(event.session_id, event.call_id);
+                }
+                break;
+
+              case 'usage':
+                if (callbacks.onUsage) {
+                  callbacks.onUsage(event.tokens);
                 }
                 break;
 

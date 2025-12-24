@@ -27,6 +27,7 @@ import { TodoProgressIndicator } from './todoprogressindicator.rightdrawer';
 import { ChatHistoryDropdown } from './chathistory.rightdrawer';
 import { getSessionMessages } from '@/api/session';
 import { toast } from '@/hooks/use-toast';
+import TokenUsage from './tokenusage.component';
 
 interface SuggestedQuestion {
   question: string;
@@ -95,6 +96,9 @@ const RightDrawer: React.FC = () => {
   const [showChatSettings, setShowChatSettings] = useState<boolean>(false);
   const [structuredContent, setStructuredContent] = useState<{ content: string, title?: string }[]>([]);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffortLevel>('medium');
+
+  // Token usage tracking (OpenCode-style - accumulates across session)
+  const [sessionTokens, setSessionTokens] = useState<{ input: number; output: number }>({ input: 0, output: 0 });
 
   // Dialog states
   const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
@@ -218,6 +222,7 @@ const RightDrawer: React.FC = () => {
     setPendingToolApproval(null);
     setPersistedTodos([]);
     setShowTodoProgress(false);
+    setSessionTokens({ input: 0, output: 0 });  // Reset token count for new session
   };
 
   // Handle session selection from chat history
@@ -613,6 +618,13 @@ const RightDrawer: React.FC = () => {
             setPendingToolApproval(null);
             setCurrentTraceId(null);
             abortControllerRef.current = null;
+          },
+          onUsage: (tokens) => {
+            // Accumulate tokens for the session (OpenCode-style)
+            setSessionTokens(prev => ({
+              input: prev.input + tokens.input,
+              output: prev.output + tokens.output
+            }));
           },
           onDone: (reason, message) => {
             if (textRef.current.trim() || eventsRef.current.length > 0) {
@@ -1059,6 +1071,13 @@ const RightDrawer: React.FC = () => {
             setCurrentTraceId(null);
             abortControllerRef.current = null;
           },
+          onUsage: (tokens) => {
+            // Accumulate tokens for the session (OpenCode-style)
+            setSessionTokens(prev => ({
+              input: prev.input + tokens.input,
+              output: prev.output + tokens.output
+            }));
+          },
           onDone: (reason, message) => {
             if (textRef.current.trim() || eventsRef.current.length > 0) {
               setMessages(prev => [
@@ -1429,7 +1448,7 @@ const RightDrawer: React.FC = () => {
                         onFocus={handleInputFocus}
                         onBlur={handleInputBlur}
                         onSubmit={isLoading ? undefined : handleSubmit}
-                        placeholder={isLoading ? "Waiting for response..." : "Ask anything or type @pods/ to add context (⌘L)"}
+                        placeholder={isLoading ? "Waiting for response..." : "Ask anything (⌘L) or type @ to add context"}
                         disabled={false}
                         className="border-transparent"
                         autoFocus={true}
@@ -1487,6 +1506,12 @@ const RightDrawer: React.FC = () => {
                         <ReasoningEffort
                           value={reasoningEffort}
                           onChange={setReasoningEffort}
+                        />
+
+                        {/* OpenCode-style token usage display */}
+                        <TokenUsage
+                          inputTokens={sessionTokens.input}
+                          outputTokens={sessionTokens.output}
                         />
                       </div>
 
