@@ -296,7 +296,7 @@ const AgentSetting: React.FC = () => {
     try {
       setIsLoading(true);
       const newEnabledState = !extendedToolsConfig[toolId].enabled;
-      
+
       if (newEnabledState) {
         // If enabling, update cluster config with enabled state and existing config
         await updateClusterConfig(currentContext.name, {
@@ -328,7 +328,7 @@ const AgentSetting: React.FC = () => {
         title: newEnabledState ? "Tool Enabled" : "Tool Disabled",
         description: `${extendedTools.find(t => t.id === toolId)?.name} ${newEnabledState ? 'enabled' : 'disabled'} for cluster ${currentContext.name}`,
       });
-      
+
       // Reload cluster tool configs to ensure consistency
       loadClusterToolConfigs();
     } catch (error) {
@@ -352,7 +352,7 @@ const AgentSetting: React.FC = () => {
 
   const saveToolConfig = async (config: Record<string, any>) => {
     const toolId = configDialog.tool.id;
-    
+
     if (!currentContext?.name) {
       toast({
         title: "Error",
@@ -364,7 +364,7 @@ const AgentSetting: React.FC = () => {
 
     try {
       setIsLoading(true);
-      
+
       // Update the cluster configuration with the tool config and enabled state
       await updateClusterConfig(currentContext.name, {
         [toolId]: {
@@ -372,7 +372,7 @@ const AgentSetting: React.FC = () => {
           enabled: true
         }
       });
-      
+
       // Update local state
       setExtendedToolsConfig(prev => ({
         ...prev,
@@ -382,12 +382,12 @@ const AgentSetting: React.FC = () => {
           enabled: true
         }
       }));
-      
+
       toast({
         title: "Configuration Saved",
         description: `${configDialog.tool.name} configured for cluster ${currentContext.name}`,
       });
-      
+
       // Reload cluster tool configs to ensure consistency
       loadClusterToolConfigs();
     } catch (error) {
@@ -410,7 +410,7 @@ const AgentSetting: React.FC = () => {
             <TooltipTrigger asChild>
               <Info className="w-4 h-4 text-gray-600 dark:text-gray-400 cursor-pointer" />
             </TooltipTrigger>
-            <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-gray-700/50'>
+            <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-accent/50'>
               <p className="max-w-xs text-black dark:text-gray-200 p-1">
                 Extended tools require additional configuration and need to be enabled before usage.
               </p>
@@ -418,11 +418,11 @@ const AgentSetting: React.FC = () => {
           </Tooltip>
         )}
       </div>
-      <div className='border border-gray-500/20 dark:border-gray-700/50 rounded-lg'>
+      <div className='border border-gray-500/20 dark:border-accent/50 rounded-lg'>
         {tools.map((tool) => (
           <div
             key={tool.id}
-            className="bg-gray-200/40 dark:bg-gray-800/30 last:rounded-b-lg first:rounded-t-lg py-2.5 border-b border-gray-500/20 dark:border-gray-700/50 last:border-b-0 hover:bg-gray-300/50 dark:hover:bg-gray-800/10 transition-colors"
+            className="bg-card/60 dark:bg-card/80 last:rounded-b-lg first:rounded-t-lg py-2.5 border-b border-gray-500/20 dark:border-accent/50 last:border-b-0 hover:bg-gray-300/50 dark:hover:bg-card/80 transition-colors"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center w-full space-x-3 px-2">
@@ -442,7 +442,7 @@ const AgentSetting: React.FC = () => {
                     <TooltipTrigger asChild>
                       <p className="text-xs text-gray-600 dark:text-gray-400 w-44 lg:w-96  truncate text-end cursor-pointer">{tool.description}</p>
                     </TooltipTrigger>
-                    <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-gray-700/50'>
+                    <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-accent/50'>
                       <span className='flex items-center space-x-2 py-2 px-1'>
                         <Lightbulb className='h-4 text-yellow-400' />
                         <p className="max-w-xs text-black dark:text-gray-200">{tool.description}</p>
@@ -510,9 +510,9 @@ const AgentSetting: React.FC = () => {
         </div>
       </div>
       <div className="space-y-6">
-        <div className="bg-gray-200/50 dark:bg-gray-800/30 rounded-lg p-4 space-y-2">
+        <div className="bg-card/60 dark:bg-card/80 rounded-lg p-4 space-y-2">
           {/* Auto-Run Section */}
-          <div className='border-b dark:border-gray-700/40 pb-4'>
+          <div className='border-b dark:border-accent/40 pb-4'>
             <div className="flex items-center justify-between">
               <label className="text-sm text-gray-700 dark:text-gray-300">
                 Automatically run commands and MCP tools
@@ -541,7 +541,7 @@ const AgentSetting: React.FC = () => {
                   value={newDenyCommand}
                   onChange={(e) => setNewDenyCommand(e.target.value)}
                   placeholder="Enter command"
-                  className="flex-1 px-3 bg-gray-100 dark:bg-gray-800/10 border border-gray-300 dark:border-gray-600/50 rounded text-xs text-gray-800 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:border-gray-500 dark:focus:border-gray-500"
+                  className="flex-1 px-3 bg-gray-100 dark:bg-card/80 border border-gray-300 dark:border-gray-600/50 rounded text-xs text-gray-800 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:border-gray-500 dark:focus:border-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddDenyCommand()}
                 />
                 <Button
@@ -559,7 +559,7 @@ const AgentSetting: React.FC = () => {
                 {denyList.map((command) => (
                   <div
                     key={command}
-                    className="flex items-center bg-gray-300 dark:bg-gray-800 rounded px-2 py-1"
+                    className="flex items-center bg-foreground/20 dark:bg-foreground/5 rounded px-2 py-1"
                   >
                     <span className="text-xs text-gray-800 dark:text-gray-300">{command}</span>
                     <Button

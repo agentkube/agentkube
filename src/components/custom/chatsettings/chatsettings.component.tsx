@@ -43,11 +43,10 @@ const ChatSetting: React.FC = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-2 py-0.5 text-sm font-medium transition-colors rounded-md ${
-                activeTab === tab
-                  ? 'bg-gray-500/20 dark:bg-gray-800/60 text-gray-800 dark:text-white'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
+              className={`px-2 py-0.5 text-sm font-medium transition-colors rounded-md ${activeTab === tab
+                ? 'bg-accent/20 dark:bg-accent/60 text-accent dark:text-white'
+                : 'border-transparent'
+                }`}
             >
               {tab}
             </button>

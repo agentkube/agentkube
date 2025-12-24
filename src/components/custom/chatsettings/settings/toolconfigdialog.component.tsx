@@ -43,7 +43,7 @@ export const ConfigDialog: React.FC<{
 
     const allowedFields = validFields[toolId] || [];
     const filtered: Record<string, any> = {};
-    
+
     allowedFields.forEach(field => {
       if (config[field] !== undefined) {
         filtered[field] = config[field];
@@ -70,7 +70,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 Registry URL <span className="text-gray-500">(defaults to Docker Hub)</span>
               </Label>
               <Input
@@ -83,7 +83,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endpoint" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="endpoint" className="text-sm font-medium text-accent dark:text-accent">
                 Auth Endpoint <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -96,7 +96,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="user" className="text-sm font-medium text-accent dark:text-accent">
                 Username <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -109,7 +109,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="key" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="key" className="text-sm font-medium text-accent dark:text-accent">
                 Password/PAT <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -127,7 +127,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="service_address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="service_address" className="text-sm font-medium text-accent dark:text-accent">
                 Service Address <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -140,7 +140,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-gray-500">(optional - for external ArgoCD)</span>
               </Label>
               <Input
@@ -153,7 +153,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="token" className="text-sm font-medium text-accent dark:text-accent">
                 Token <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -171,7 +171,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -184,7 +184,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="namespace" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="namespace" className="text-sm font-medium text-accent dark:text-accent">
                 Namespace <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -197,7 +197,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="service_address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="service_address" className="text-sm font-medium text-accent dark:text-accent">
                 Service Address <span className="text-gray-500">(optional - for internal access)</span>
               </Label>
               <Input
@@ -210,7 +210,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="basic_auth" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="basic_auth" className="text-sm font-medium text-accent dark:text-accent">
                 Basic Auth <span className="text-gray-500">(optional - username:password)</span>
               </Label>
               <Input
@@ -226,7 +226,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="token" className="text-sm font-medium text-accent dark:text-accent">
                 Token <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -244,7 +244,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -257,7 +257,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="token" className="text-sm font-medium text-accent dark:text-accent">
                 Token <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -270,7 +270,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="basic_auth" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="basic_auth" className="text-sm font-medium text-accent dark:text-accent">
                 Basic Auth <span className="text-gray-500">(optional - username:password)</span>
               </Label>
               <Input
@@ -291,7 +291,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -304,7 +304,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="api_token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="api_token" className="text-sm font-medium text-accent dark:text-accent">
                 API Token <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -317,7 +317,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="basic_auth" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="basic_auth" className="text-sm font-medium text-accent dark:text-accent">
                 Basic Auth <span className="text-gray-500">(optional - username:password)</span>
               </Label>
               <Input
@@ -338,7 +338,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -351,7 +351,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="api_token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="api_token" className="text-sm font-medium text-accent dark:text-accent">
                 API Token <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -364,7 +364,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="basic_auth" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="basic_auth" className="text-sm font-medium text-accent dark:text-accent">
                 Basic Auth <span className="text-gray-500">(optional - username:password)</span>
               </Label>
               <Input
@@ -385,7 +385,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-gray-500">(defaults to US1)</span>
               </Label>
               <Input
@@ -398,7 +398,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="api_token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="api_token" className="text-sm font-medium text-accent dark:text-accent">
                 API Key <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -411,7 +411,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="key" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="key" className="text-sm font-medium text-accent dark:text-accent">
                 App Key <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -429,7 +429,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="service_address" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="service_address" className="text-sm font-medium text-accent dark:text-accent">
                 Service Address <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -442,7 +442,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="namespace" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="namespace" className="text-sm font-medium text-accent dark:text-accent">
                 Namespace <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -455,7 +455,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-gray-500">(optional - for external OpenCost)</span>
               </Label>
               <Input
@@ -468,7 +468,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="token" className="text-sm font-medium text-accent dark:text-accent">
                 Token <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -486,7 +486,7 @@ export const ConfigDialog: React.FC<{
         return (
           <>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
                 URL <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -499,7 +499,7 @@ export const ConfigDialog: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="token" className="text-sm font-medium text-accent dark:text-accent">
                 Token <span className="text-gray-500">(optional)</span>
               </Label>
               <Input
@@ -523,9 +523,9 @@ export const ConfigDialog: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border dark:border-gray-700/40 rounded-lg w-[500px] max-w-full mx-4">
-        <div className="flex items-center justify-between px-2 py-1 dark:bg-gray-800/40">
+    <div className="fixed inset-0 bg-accent/20 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-card/40 backdrop-blur-md border dark:border-accent/40 rounded-lg w-[500px] max-w-full mx-4">
+        <div className="flex items-center justify-between px-2 py-1 dark:bg-card">
           <div className="flex items-center space-x-3">
             <div className="w-6 h-6 bg-gray-300/80 rounded-sm flex items-center justify-center">
               <span className="text-gray-800">{tool.icon}</span>
@@ -545,7 +545,7 @@ export const ConfigDialog: React.FC<{
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={handleSave}>
             Save Configuration
           </Button>
         </div>

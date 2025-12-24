@@ -84,7 +84,7 @@ const RulesSetting: React.FC = () => {
   const handleSaveNewRule = async (type: RuleType, content: string): Promise<void> => {
     try {
       setIsLoading(true);
-      
+
       if (type === 'user') {
         await updateUserRules(content.trim());
         setUserRules([{
@@ -113,7 +113,7 @@ const RulesSetting: React.FC = () => {
   const handleDeleteRule = async (type: RuleType, id: number): Promise<void> => {
     try {
       setIsLoading(true);
-      
+
       if (type === 'user') {
         await updateUserRules('');
         setUserRules([]);
@@ -137,7 +137,7 @@ const RulesSetting: React.FC = () => {
   const handleSaveEdit = async (type: RuleType, id: number, newContent: string): Promise<void> => {
     try {
       setIsLoading(true);
-      
+
       if (type === 'user') {
         await updateUserRules(newContent.trim());
         setUserRules(userRules.map(rule =>
@@ -174,9 +174,9 @@ const RulesSetting: React.FC = () => {
     };
 
     return (
-      <div className="border-gray-300 dark:border-gray-600 rounded-lg mt-2">
+      <div className="border-accent dark:border-gray-600 rounded-lg mt-2">
         <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-300 mb-2">
             {type === 'user' ? 'User Rule' : 'Cluster Rule'}
           </label>
           <MinimalEditor
@@ -233,7 +233,7 @@ const RulesSetting: React.FC = () => {
     };
 
     return (
-      <div className="border border-gray-300 dark:border-gray-600/30 rounded-lg">
+      <div className="border border-accent dark:border-accent/30 rounded-lg">
         {isEditing ? (
           <div>
             <MinimalEditor
@@ -273,7 +273,7 @@ const RulesSetting: React.FC = () => {
                     <SiKubernetes className="w-4 h-4 text-blue-500" />
                   )}
                 </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-foreground/60 dark:text-foreground/60">
                   {rule.name}
                 </span>
               </div>
@@ -311,11 +311,11 @@ const RulesSetting: React.FC = () => {
       </div>
       {/* User Rules Section */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+        <h3 className="text-sm font-medium text-foreground dark:text-foreground mb-4">
           User Rules
         </h3>
-        <div className="bg-gray-200 dark:bg-gray-700/20 rounded-lg p-2">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <div className="bg-card dark:bg-card rounded-lg p-2">
+          <p className="text-sm text-foreground/60 dark:text-foreground/60 mb-4">
             Define usage preferences here, such as the output language for Agentkube, or whether code generation should include comments by default, etc. Agentkube will follow your personal preference rules during chats, and the rules will remain effective when switching projects.
           </p>
 
@@ -346,7 +346,7 @@ const RulesSetting: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              className="text-gray-600 dark:text-gray-400"
+              className="text-gray-600 dark:text-foreground/60"
               onClick={() => handleAddRule('user')}
             >
               <Plus className="w-4 h-4 mr-1" />
@@ -358,11 +358,11 @@ const RulesSetting: React.FC = () => {
 
       {/* Cluster Rules Section */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+        <h3 className="text-sm font-medium text-foreground dark:text-gray-300 mb-4">
           Cluster Rules
         </h3>
-        <div className="bg-gray-200 dark:bg-gray-700/20 rounded-lg p-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <div className="bg-card dark:bg-card rounded-lg p-4">
+          <p className="text-sm text-gray-600 dark:text-foreground/60 mb-4">
             Create the .agentkube/rules/cluster_rules.md file within a project to define the rules Agentkube should follow when conversing in the current project.
           </p>
 
@@ -393,7 +393,7 @@ const RulesSetting: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              className="text-gray-600 dark:text-gray-400"
+              className="text-gray-600 dark:text-foreground/60"
               onClick={() => handleAddRule('cluster')}
             >
               <Plus className="w-4 h-4 mr-1" />

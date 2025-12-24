@@ -95,7 +95,7 @@ const MCPServer = ({ onAddManually, onAddFromMarketplace }: MCPServerProps) => {
 
   if (mcpServers.length === 0) {
     return (
-      <div className="bg-gray-400/20 dark:bg-gray-800/30 rounded-lg p-12 text-center">
+      <div className="bg-card/20 dark:bg-card/30 rounded-lg p-12 text-center">
         <div className="mb-6">
           <div className="w-16 h-16 text-blue-500 mx-auto flex items-center justify-center">
             <WrenchScrewdriver size={36} />
@@ -104,7 +104,7 @@ const MCPServer = ({ onAddManually, onAddFromMarketplace }: MCPServerProps) => {
           <div className="flex justify-center space-x-3">
             <Button
               onClick={onAddManually}
-              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              className="bg-accent/50 border-accent/50 text-white hover:bg-accent/50"
             >
               Add Manually
             </Button>

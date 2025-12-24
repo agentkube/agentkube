@@ -99,7 +99,7 @@ const AddMCPManualDialog: React.FC<AddMCPManualDialogProps> = ({ onClose, onSave
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 px-16 top-5 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-accent/10 px-16 top-5 flex items-center justify-center z-50">
       <div className="bg-card backdrop-blur-md border border-border rounded-lg w-[600px] max-w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
