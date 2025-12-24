@@ -18,6 +18,23 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
   const [showFullOutput, setShowFullOutput] = useState(false);
   const { theme } = useTheme();
 
+  // Memoize parsed arguments object
+  const parsedArguments = useMemo(() => {
+    if (!toolCall.arguments) return null;
+
+    // If arguments is already an object, return it
+    if (typeof toolCall.arguments === 'object') {
+      return toolCall.arguments as Record<string, unknown>;
+    }
+
+    // If it's a string, try to parse it
+    try {
+      return JSON.parse(toolCall.arguments) as Record<string, unknown>;
+    } catch (error) {
+      return null;
+    }
+  }, [toolCall.arguments]);
+
   // Memoize formatted arguments string
   const formattedArguments = useMemo(() => {
     if (!toolCall.arguments) return '';
@@ -36,6 +53,17 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
       return String(toolCall.arguments);
     }
   }, [toolCall.arguments]);
+
+  // Extract command for bash_tool to display in header
+  const bashCommand = useMemo(() => {
+    if (toolCall.tool !== 'bash_tool' || !parsedArguments) return null;
+    const command = parsedArguments.command;
+    if (typeof command === 'string') {
+      // Truncate if too long for header display
+      return command.length > 60 ? command.substring(0, 60) + '...' : command;
+    }
+    return null;
+  }, [toolCall.tool, parsedArguments]);
 
   // Memoize output text to avoid re-processing
   const outputText = useMemo(() => {
@@ -154,6 +182,11 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
             <span>
               {toolCall.tool}
             </span>
+            {bashCommand && (
+              <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono truncate max-w-[300px]">
+                $ {bashCommand}
+              </code>
+            )}
             {/* {!toolCall.isPending && (
               <span className="text-xs px-1.5 py-0.5 rounded-md bg-green-500/40 dark:bg-green-400/10 text-green-800 dark:text-green-400">
                 Completed
