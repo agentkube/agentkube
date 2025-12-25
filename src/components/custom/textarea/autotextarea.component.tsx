@@ -4,6 +4,30 @@ import { queryResource, listResources } from '@/api/internal/resources';
 import { SearchResult, EnrichedSearchResult } from '@/types/search';
 import { jsonToYaml } from '@/utils/yaml';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
+import { ResourceInfoTooltip } from '../resource-tooltip.component';
+import { AlertCircle } from 'lucide-react';
+
+const isPodFailing = (pod: any): boolean => {
+  const phase = pod.status?.phase?.toLowerCase();
+  return phase === 'failed' || phase === 'error' ||
+    (pod.status?.containerStatuses || []).some((status: any) =>
+      status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+      status.state?.waiting?.reason === 'ImagePullBackOff' ||
+      status.state?.waiting?.reason === 'ErrImagePull'
+    );
+};
+
+const getTimeSince = (timestamp: any) => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+};
 
 // Kubernetes resource types that can be searched
 const KUBERNETES_RESOURCE_TYPES = [
@@ -39,6 +63,12 @@ interface ResourceMentionItem {
   namespace?: string;
   isResourceType?: boolean; // Is this a resource type category (like @pods/)
   searchResult?: SearchResult; // Full search result for actual resources
+  // Optional event details for direct display
+  eventReason?: string;
+  eventMessage?: string;
+  eventInvolvedObject?: string;
+  eventLastSeen?: any;
+  eventType?: string;
 }
 
 interface AutoResizeTextareaProps {
@@ -102,7 +132,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
   const [dropdownMode, setDropdownMode] = useState<DropdownMode>('functions');
   const [selectedResourceType, setSelectedResourceType] = useState<string | null>(null);
   const [resourceSearchResults, setResourceSearchResults] = useState<ResourceMentionItem[]>([]);
+  const [failingPodKeys, setFailingPodKeys] = useState<Set<string>>(new Set());
   const [isLoadingResources, setIsLoadingResources] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [insertedResources, setInsertedResources] = useState<Set<string>>(new Set()); // Track inserted resource refs
 
   const { currentContext } = useCluster();
@@ -213,21 +245,91 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
 
     setIsLoadingResources(true);
     try {
-      const response = await queryResource(
-        currentContext.name,
-        query || resourceType, // Use resource type as default search if no query
-        30, // limit
-        resourceType
-      );
+      let results: ResourceMentionItem[] = [];
 
-      const results: ResourceMentionItem[] = (response.results || []).map((result: SearchResult) => ({
-        id: `${result.resourceType}/${result.namespace || 'cluster'}/${result.resourceName}`,
-        name: result.resourceName,
-        description: result.namespace ? `${result.namespace}` : 'cluster-scoped',
-        resourceType: result.resourceType,
-        namespace: result.namespace,
-        searchResult: result
-      }));
+      if (resourceType === 'events' || resourceType === 'nodes' || resourceType === 'namespaces') {
+        // For cluster-wide or high-detail resources, use listResources directly
+        const items = await listResources(currentContext.name, resourceType as any, {
+          // No special options needed for nodes/namespaces/events
+        });
+
+        results = items
+          .filter(item => {
+            if (!query) return true;
+            const q = query.toLowerCase();
+            const name = item.metadata?.name || '';
+            const labels = Object.values(item.metadata?.labels || {}).join(' ');
+
+            if (resourceType === 'events') {
+              const event = item as any;
+              return (
+                (event.involvedObject?.name || '').toLowerCase().includes(q) ||
+                (event.message || '').toLowerCase().includes(q) ||
+                (event.reason || '').toLowerCase().includes(q)
+              );
+            }
+
+            return name.toLowerCase().includes(q) || labels.toLowerCase().includes(q);
+          })
+          .slice(0, 30) // Limit results
+          .map(item => {
+            if (resourceType === 'events') {
+              const event = item as any;
+              return {
+                id: `events/${event.metadata?.namespace || 'cluster'}/${event.metadata?.name}`,
+                name: event.metadata?.name || '',
+                description: event.metadata?.namespace ? `${event.metadata.namespace}` : 'cluster-scoped',
+                resourceType: 'events',
+                namespace: event.metadata?.namespace,
+                searchResult: {
+                  resourceType: 'events',
+                  resourceName: event.metadata?.name || '',
+                  namespace: event.metadata?.namespace || '',
+                  namespaced: !!event.metadata?.namespace,
+                  group: '',
+                  version: 'v1'
+                },
+                eventReason: event.reason,
+                eventMessage: event.message,
+                eventInvolvedObject: `${event.involvedObject?.kind}/${event.involvedObject?.name}`,
+                eventLastSeen: event.lastTimestamp || event.eventTime || event.metadata?.creationTimestamp,
+                eventType: event.type
+              };
+            }
+
+            return {
+              id: `${resourceType}/${item.metadata?.namespace || 'cluster'}/${item.metadata?.name}`,
+              name: item.metadata?.name || '',
+              description: item.metadata?.namespace ? `${item.metadata.namespace}` : 'cluster-scoped',
+              resourceType: resourceType,
+              namespace: item.metadata?.namespace,
+              searchResult: {
+                resourceType: resourceType,
+                resourceName: item.metadata?.name || '',
+                namespace: item.metadata?.namespace || '',
+                namespaced: !!item.metadata?.namespace,
+                group: '',
+                version: 'v1'
+              }
+            };
+          });
+      } else {
+        const response = await queryResource(
+          currentContext.name,
+          query || resourceType,
+          30,
+          resourceType
+        );
+
+        results = (response.results || []).map((result: SearchResult) => ({
+          id: `${result.resourceType}/${result.namespace || 'cluster'}/${result.resourceName}`,
+          name: result.resourceName,
+          description: result.namespace ? `${result.namespace}` : 'cluster-scoped',
+          resourceType: result.resourceType,
+          namespace: result.namespace,
+          searchResult: result
+        }));
+      }
 
       setResourceSearchResults(results);
     } catch (error) {
@@ -237,6 +339,41 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       setIsLoadingResources(false);
     }
   }, [currentContext]);
+
+  // Check for failing pods when resource search results change
+  useEffect(() => {
+    if (resourceSearchResults.length === 0 || !currentContext) {
+      setFailingPodKeys(new Set());
+      return;
+    }
+
+    const checkHealth = async () => {
+      const pods = resourceSearchResults.filter(r => r.resourceType === 'pods');
+      if (pods.length === 0) return;
+
+      const namespaces = Array.from(new Set(pods.map(p => p.namespace).filter(Boolean) as string[]));
+      const failing = new Set<string>();
+
+      try {
+        const podData = await Promise.all(
+          namespaces.map(ns => listResources(currentContext.name, 'pods', { namespace: ns }))
+        );
+
+        const allPods = podData.flat();
+        allPods.forEach(pod => {
+          if (pod.metadata?.namespace && pod.metadata?.name && isPodFailing(pod)) {
+            failing.add(`pods/${pod.metadata.namespace}/${pod.metadata.name}`);
+          }
+        });
+
+        setFailingPodKeys(failing);
+      } catch (err) {
+        console.error('Error checking health:', err);
+      }
+    };
+
+    checkHealth();
+  }, [resourceSearchResults, currentContext]);
 
   // Handle input change and detect mentions
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -257,7 +394,13 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
         setDropdownMode('resources');
         setSelectedResourceType(mentionPattern.resourceType);
         setSearchTerm(mentionPattern.searchQuery);
-        searchResources(mentionPattern.resourceType, mentionPattern.searchQuery);
+
+        // Debounce search
+        if (searchTimeout) clearTimeout(searchTimeout);
+        const timeout = setTimeout(() => {
+          searchResources(mentionPattern.resourceType, mentionPattern.searchQuery);
+        }, 300);
+        setSearchTimeout(timeout);
       } else if (mentionPattern.type === 'initial') {
         // User typed @something - check if it matches a resource type
         const matchingTypes = KUBERNETES_RESOURCE_TYPES.filter(rt =>
@@ -632,16 +775,16 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
             
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
-            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:bg-accent/30 
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+            [&::-webkit-scrollbar-thumb:hover]:bg-accent/50
           "
         >
           <div
             style={{
               padding: '0.5rem',
             }}
-            className="font-bold dark:bg-card dark:border-accent dark:text-foreground text-foreground sticky -top-1 bg-white dark:bg-card border-b border-gray-100 dark:border-gray-800"
+            className="font-bold bg-card dark:bg-card dark:border-accent dark:text-foreground text-foreground sticky z-10 -top-1 bg-white dark:bg-card border-b border-accent/50 dark:border-accent/50"
           >
             {getDropdownHeader()}
             {dropdownMode === 'resourceTypes' && (
@@ -657,22 +800,29 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
               </svg>
               Searching...
             </div>
-          ) : filteredItems.length > 0 ? (
-            filteredItems.map((item, index) => {
+          ) : filteredItems.length > 0 ? (() => {
+            const failingItems = resourceSearchResults.filter(item =>
+              item.resourceType === 'pods' && failingPodKeys.has(`pods/${item.namespace}/${item.name}`)
+            );
+            const otherItems = filteredItems.filter(item => {
+              if ('resourceType' in item && item.resourceType === 'pods' && failingPodKeys.has(`pods/${item.namespace}/${item.name}`)) {
+                return false;
+              }
+              return true;
+            });
+
+            const renderItem = (item: MentionItem | ResourceMentionItem, idx: number, actualIndex: number) => {
               const isResourceItem = 'resourceType' in item;
               const isResourceType = isResourceItem && (item as ResourceMentionItem).isResourceType;
+              const isFailing = isResourceItem && item.resourceType === 'pods' && failingPodKeys.has(`pods/${item.namespace}/${item.name}`);
+              const isEvent = isResourceItem && item.resourceType === 'events';
+              const eventItem = item as ResourceMentionItem;
 
-              return (
+              const element = (
                 <div
                   key={item.id}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    cursor: 'pointer',
-                  }}
-                  className={`flex items-center gap-2 ${selectedIndex === index
-                    ? 'dark:bg-foreground/10 bg-foreground/50'
-                    : 'hover:bg-foreground dark:hover:bg-foreground/10'}`
-                  }
+                  style={{ padding: '0.4rem 0.75rem', cursor: 'pointer' }}
+                  className={`flex items-center gap-2 ${selectedIndex === actualIndex ? 'dark:bg-foreground/10 bg-foreground/50' : 'hover:bg-foreground dark:hover:bg-foreground/10'} ${isFailing ? 'text-red-500/90 dark:text-red-400/90' : ''}`}
                   onClick={() => {
                     if (isResourceType) {
                       insertResourceType(item as ResourceMentionItem);
@@ -682,29 +832,70 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
                       insertMention(item as MentionItem);
                     }
                   }}
-                  onMouseEnter={() => setSelectedIndex(index)}
+                  onMouseEnter={() => setSelectedIndex(actualIndex)}
                 >
                   {isResourceItem && (
-                    <img src={KUBERNETES_LOGO} alt="K8s" className="w-4 h-4 flex-shrink-0" />
+                    <img src={KUBERNETES_LOGO} alt="K8s" className={`w-4 h-4 flex-shrink-0 ${isFailing ? 'opacity-100' : 'opacity-70'}`} />
                   )}
                   <div className="flex-1 min-w-0">
-                    {/* Resource Name */}
-                    <div style={{ fontWeight: 500 }} className="dark:text-gray-200 truncate">
-                      {item.name}
+                    <div className="flex items-center gap-2 min-w-0">
+                      {isEvent && eventItem.eventReason && (
+                        <span className={`text-[10px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${eventItem.eventType === 'Warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'}`}>
+                          {eventItem.eventReason}
+                        </span>
+                      )}
+                      <div style={{ fontWeight: 500 }} className="truncate">{item.name}</div>
                     </div>
-
-                    {/* Namespace */}
-                    {item.description && (
-                      <div className="text-xs text-foreground/50 dark:text-foreground/50 truncate">{item.description}</div>
+                    {(item.description || (isEvent && eventItem.eventMessage)) && (
+                      <div className="text-[10px] opacity-60 flex justify-between gap-2 min-w-0">
+                        <span className="truncate italic">
+                          {isEvent && eventItem.eventMessage ? eventItem.eventMessage : item.description}
+                        </span>
+                        {isEvent && eventItem.eventLastSeen && (
+                          <span className="shrink-0 opacity-70 font-mono">
+                            {getTimeSince(eventItem.eventLastSeen)}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                   {isResourceType && (
-                    <span className="text-gray-400 text-xs">→</span>
+                    <span className="text-gray-400 text-xs text-right shrink-0">→</span>
                   )}
+                  {isFailing && <AlertCircle size={10} className="flex-shrink-0" />}
                 </div>
               );
-            })
-          ) : (
+
+              if (isResourceItem && (item as ResourceMentionItem).searchResult) {
+                return (
+                  <ResourceInfoTooltip key={item.id} resource={(item as ResourceMentionItem).searchResult!}>
+                    {element}
+                  </ResourceInfoTooltip>
+                );
+              }
+              return element;
+            };
+
+            let currentIdx = 0;
+            return (
+              <div className="flex flex-col">
+                {failingItems.length > 0 && (
+                  <>
+                    <div className="px-3 py-1 bg-red-500/5 text-[10px] text-red-500 font-bold uppercase border-b border-red-500/10 mb-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> Failing Pods
+                    </div>
+                    {failingItems.map((item) => renderItem(item, 0, currentIdx++))}
+                    {otherItems.length > 0 && (
+                      <div className="px-3 py-1 bg-foreground/5 text-[10px] text-muted-foreground font-bold uppercase border-y border-accent mt-1 mb-1">
+                        Resources
+                      </div>
+                    )}
+                  </>
+                )}
+                {otherItems.map((item) => renderItem(item, 0, currentIdx++))}
+              </div>
+            );
+          })() : (
             <div style={{ padding: '0.75rem', color: '#718096' }} className="dark:text-gray-400 text-center">
               {dropdownMode === 'resources'
                 ? currentContext
@@ -730,9 +921,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
             overflow-y-auto
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
-            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:bg-accent/30 
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+            [&::-webkit-scrollbar-thumb:hover]:bg-accent/50
             dark:border-gray-800/50 bg-transparent dark:text-gray-200 
             focus:outline-none focus:ring-0 focus:border-gray-400 dark:focus:border-transparent
             resize-none ${useAnimatedSuggestions && !value ? 'text-transparent' : ''} ${className || ''}`}

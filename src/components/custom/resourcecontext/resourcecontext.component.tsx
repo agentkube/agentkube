@@ -5,15 +5,28 @@ import { useCluster } from '@/contexts/clusterContext';
 import { listResources, queryResource } from '@/api/internal/resources';
 import { SearchResult } from '@/types/search';
 import { jsonToYaml } from '@/utils/yaml';
+import { ResourceInfoTooltip } from '../resource-tooltip.component';
+import { AlertCircle } from 'lucide-react';
 
 interface ContextSelectorProps {
   onResourceSelect: (resource: SearchResult) => void;
 }
 
+const isPodFailing = (pod: any): boolean => {
+  const phase = pod.status?.phase?.toLowerCase();
+  return phase === 'failed' || phase === 'error' ||
+    (pod.status?.containerStatuses || []).some((status: any) =>
+      status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+      status.state?.waiting?.reason === 'ImagePullBackOff' ||
+      status.state?.waiting?.reason === 'ErrImagePull'
+    );
+};
+
 const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [failingPodKeys, setFailingPodKeys] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -101,6 +114,51 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
 
     return () => clearTimeout(timeout);
   }, [searchQuery, isOpen, currentContext]);
+
+  // Check for failing pods when search results change
+  useEffect(() => {
+    if (searchResults.length === 0 || !currentContext) {
+      setFailingPodKeys(new Set());
+      return;
+    }
+
+    const checkHealth = async () => {
+      const pods = searchResults.filter(r => r.resourceType === 'pods');
+      if (pods.length === 0) return;
+
+      const namespaces = Array.from(new Set(pods.map(p => p.namespace).filter(Boolean) as string[]));
+      const failing = new Set<string>();
+
+      try {
+        // Fetch full pod status for all pods in the namespaces found in search results
+        const podData = await Promise.all(
+          namespaces.map(ns => listResources(currentContext.name, 'pods', { namespace: ns }))
+        );
+
+        const allPods = podData.flat();
+        allPods.forEach(pod => {
+          if (pod.metadata?.namespace && pod.metadata?.name && isPodFailing(pod)) {
+            failing.add(`pods/${pod.metadata.namespace}/${pod.metadata.name}`);
+          }
+        });
+
+        setFailingPodKeys(failing);
+      } catch (err) {
+        console.error('Error checking health:', err);
+      }
+    };
+
+    checkHealth();
+  }, [searchResults, currentContext]);
+
+  // Grouped results for rendering
+  const failingPods = searchResults.filter(r =>
+    r.resourceType === 'pods' && failingPodKeys.has(`pods/${r.namespace}/${r.resourceName}`)
+  );
+
+  const otherResources = searchResults.filter(r =>
+    !(r.resourceType === 'pods' && failingPodKeys.has(`pods/${r.namespace}/${r.resourceName}`))
+  );
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -190,21 +248,58 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
               </div>
             )}
 
-            {!isLoading && !error && searchResults.map((result, index) => (
-              <div
-                key={`${result.resourceType}-${result.namespace || 'cluster'}-${result.resourceName}-${index}`}
-                className="px-3 py-1 text-sm cursor-pointer flex items-center justify-between hover:bg-gray-300/80 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
-                onClick={() => handleResourceSelection(result)}
-              >
-                <div className="flex items-center">
-                  <img src={KUBERNETES_LOGO} alt="Kubernetes Logo" className="w-4 h-4" />
-                  <span className="ml-2 text-xs">{result.resourceType}/{result.resourceName}</span>
+            {!isLoading && !error && failingPods.length > 0 && (
+              <>
+                <div className="px-3 pt-2 pb-1 border-t border-gray-400/10 dark:border-gray-800/20 mt-1">
+                  <div className="text-[10px] text-red-500 uppercase font-bold flex items-center gap-1">
+                    <AlertCircle size={10} />
+                    Failing Pods
+                  </div>
                 </div>
-                <div className="text-muted-foreground text-xs">
-                  {result.namespace ? result.namespace : "cluster-scoped"}
-                </div>
-              </div>
-            ))}
+                {failingPods.map((result, index) => (
+                  <ResourceInfoTooltip key={`failing-${result.resourceName}-${index}`} resource={result}>
+                    <div
+                      className="px-3 py-1.5 text-sm cursor-pointer flex items-center justify-between hover:bg-red-500/10 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 group transition-colors"
+                      onClick={() => handleResourceSelection(result)}
+                    >
+                      <div className="flex items-center min-w-0">
+                        <img src={KUBERNETES_LOGO} alt="K8s" className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+                        <span className="ml-2 text-xs truncate">pods/{result.resourceName}</span>
+                      </div>
+                      <div className="text-[10px] opacity-70">
+                        {result.namespace}
+                      </div>
+                    </div>
+                  </ResourceInfoTooltip>
+                ))}
+              </>
+            )}
+
+            {!isLoading && !error && otherResources.length > 0 && (
+              <>
+                {failingPods.length > 0 && (
+                  <div className="px-3 pt-2 pb-1 border-t border-gray-400/10 dark:border-gray-800/20 mt-2">
+                    <div className="text-[10px] text-gray-500 uppercase font-bold">Other Resources</div>
+                  </div>
+                )}
+                {otherResources.map((result, index) => (
+                  <ResourceInfoTooltip key={`other-${result.resourceName}-${index}`} resource={result}>
+                    <div
+                      className="px-3 py-1.5 text-sm cursor-pointer flex items-center justify-between hover:bg-gray-300/80 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 group transition-colors"
+                      onClick={() => handleResourceSelection(result)}
+                    >
+                      <div className="flex items-center min-w-0">
+                        <img src={KUBERNETES_LOGO} alt="K8s" className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+                        <span className="ml-2 text-xs truncate">{result.resourceType}/{result.resourceName}</span>
+                      </div>
+                      <div className="text-muted-foreground text-[10px]">
+                        {result.namespace ? result.namespace : "cluster-scoped"}
+                      </div>
+                    </div>
+                  </ResourceInfoTooltip>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
