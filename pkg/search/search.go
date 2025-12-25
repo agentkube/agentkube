@@ -60,7 +60,7 @@ var standardResources = map[string][]string{
 }
 
 var (
-	resourceCache   []APIResource
+	resourceCache   = make(map[string][]APIResource)
 	resourceCacheMu sync.RWMutex
 )
 
@@ -164,18 +164,12 @@ func (c *Controller) Search(ctx context.Context, options SearchOptions) ([]Searc
 		resources = allResources
 	}
 
-	// Get all namespaces
-	var namespacesToSearch []string
-	if len(options.Namespaces) > 0 {
-		// Use specified namespaces
-		namespacesToSearch = options.Namespaces
-	} else {
-		// Get all namespaces if none specified
-		allNamespaces, err := c.listNamespaces(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list namespaces: %v", err)
-		}
-		namespacesToSearch = allNamespaces
+	// Determine namespaces to search
+	useClusterWide := len(options.Namespaces) == 0
+	namespacesToSearch := options.Namespaces
+	if !useClusterWide && len(namespacesToSearch) == 0 {
+		// This case should be covered by useClusterWide, but for safety
+		useClusterWide = true
 	}
 
 	// Prepare search
@@ -196,16 +190,28 @@ func (c *Controller) Search(ctx context.Context, options SearchOptions) ([]Searc
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			// For namespaced resources, search across all namespaces
-			if resource.Namespaced {
+			// If no namespaces specified, search cluster-wide (optimized)
+			if useClusterWide || !resource.Namespaced {
+				resourceResults, err := c.searchClusterResource(ctx, resource, searchTerms)
+				if err != nil {
+					logger.Log(logger.LevelError, map[string]string{
+						"resource": resource.Resource,
+					}, err, "searching cluster-wide resources")
+					return
+				}
+
+				resultsMu.Lock()
+				results = append(results, resourceResults...)
+				resultsMu.Unlock()
+			} else {
+				// Search only in specific namespaces
 				for _, namespace := range namespacesToSearch {
 					resourceResults, err := c.searchNamespacedResource(ctx, namespace, resource, searchTerms)
 					if err != nil {
-						// Log error but continue
 						logger.Log(logger.LevelError, map[string]string{
 							"resource":  resource.Resource,
 							"namespace": namespace,
-						}, err, "searching resources")
+						}, err, "searching namespaced resources")
 						continue
 					}
 
@@ -223,20 +229,6 @@ func (c *Controller) Search(ctx context.Context, options SearchOptions) ([]Searc
 						}
 					}
 				}
-			} else {
-				// For cluster-scoped resources
-				resourceResults, err := c.searchClusterResource(ctx, resource, searchTerms)
-				if err != nil {
-					// Log error but continue
-					logger.Log(logger.LevelError, map[string]string{
-						"resource": resource.Resource,
-					}, err, "searching cluster resources")
-					return
-				}
-
-				resultsMu.Lock()
-				results = append(results, resourceResults...)
-				resultsMu.Unlock()
 			}
 		}(resource)
 	}
@@ -299,10 +291,12 @@ func (c *Controller) filterResourcesByType(resources []APIResource, term string)
 
 // getStandardResources returns only the standard Kubernetes resources (cached version)
 func (c *Controller) getStandardResources(_ context.Context) ([]APIResource, error) {
+	clusterHost := c.restConfig.Host
+
 	resourceCacheMu.RLock()
-	if resourceCache != nil {
-		defer resourceCacheMu.RUnlock()
-		return resourceCache, nil
+	if resources, ok := resourceCache[clusterHost]; ok {
+		resourceCacheMu.RUnlock()
+		return resources, nil
 	}
 	resourceCacheMu.RUnlock()
 
@@ -310,8 +304,8 @@ func (c *Controller) getStandardResources(_ context.Context) ([]APIResource, err
 	defer resourceCacheMu.Unlock()
 
 	// Double check after acquiring write lock
-	if resourceCache != nil {
-		return resourceCache, nil
+	if resources, ok := resourceCache[clusterHost]; ok {
+		return resources, nil
 	}
 
 	// Get server preferred versions for each group
@@ -383,7 +377,7 @@ func (c *Controller) getStandardResources(_ context.Context) ([]APIResource, err
 		}
 	}
 
-	resourceCache = resources
+	resourceCache[clusterHost] = resources
 	return resources, nil
 }
 
@@ -470,7 +464,7 @@ func (c *Controller) searchClusterResource(ctx context.Context, resource APIReso
 				Version:      resource.Version,
 				ResourceType: resource.Resource,
 				ResourceName: item.GetName(),
-				Namespaced:   false,
+				Namespaced:   resource.Namespaced,
 			})
 		}
 	}
