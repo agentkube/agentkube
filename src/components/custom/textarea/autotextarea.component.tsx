@@ -139,6 +139,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
   const [isLoadingResources, setIsLoadingResources] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [insertedResources, setInsertedResources] = useState<Set<string>>(new Set()); // Track inserted resource refs
+  const lastSearchIdRef = useRef<number>(0);
 
   const { currentContext } = useCluster();
   const { sessions, getTerminalContent } = useTerminal();
@@ -210,12 +211,12 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
   // Parse the mention pattern - supports both @functionName and @resourceType/resourceName
   const parseMentionPattern = useCallback((textBeforeCursor: string) => {
     // Match patterns like:
-    // @pods/ - resource type with trailing slash (show resources)
-    // @pods/nginx - resource type with search term (search resources)
-    // @pods - might be resource type or function name
+    // @terminal:session-name - terminal session mention
+    // @pods/nginx - resource type with search term
+    // @pods - resource type or initial mention
     // @functionName - function mention
 
-    const terminalMatch = textBeforeCursor.match(/@terminal:(\w*)$/);
+    const terminalMatch = textBeforeCursor.match(/@terminal:([a-zA-Z0-9_-]*)$/);
     if (terminalMatch) {
       return {
         type: 'terminal' as const,
@@ -224,7 +225,8 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       };
     }
 
-    const resourceWithSearchMatch = textBeforeCursor.match(/@(\w+)\/(\w*)$/);
+    // More permissive match for the search query part (everything until space or another @)
+    const resourceWithSearchMatch = textBeforeCursor.match(/@([a-zA-Z0-9_-]+)\/([^@\s]*)$/);
     if (resourceWithSearchMatch) {
       const resourceType = resourceWithSearchMatch[1].toLowerCase();
       const searchQuery = resourceWithSearchMatch[2].toLowerCase();
@@ -239,7 +241,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       }
     }
 
-    const simpleMatch = textBeforeCursor.match(/@(\w*)$/);
+    const simpleMatch = textBeforeCursor.match(/@([a-zA-Z0-9_-]*)$/);
     if (simpleMatch) {
       const term = simpleMatch[1].toLowerCase();
       return {
@@ -256,7 +258,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
   const searchResources = useCallback(async (resourceType: string, query: string) => {
     if (!currentContext) return;
 
+    const searchId = ++lastSearchIdRef.current;
     setIsLoadingResources(true);
+
     try {
       let results: ResourceMentionItem[] = [];
 
@@ -265,6 +269,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
         const items = await listResources(currentContext.name, resourceType as any, {
           // No special options needed for nodes/namespaces/events
         });
+
+        // Abort if a newer search has been started
+        if (searchId !== lastSearchIdRef.current) return;
 
         results = items
           .filter(item => {
@@ -334,7 +341,10 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
           resourceType
         );
 
-        results = (response.results || []).map((result: SearchResult) => ({
+        // Abort if a newer search has been started
+        if (searchId !== lastSearchIdRef.current) return;
+
+        results = (response?.results || []).map((result: SearchResult) => ({
           id: `${result.resourceType}/${result.namespace || 'cluster'}/${result.resourceName}`,
           name: result.resourceName,
           description: result.namespace ? `${result.namespace}` : 'cluster-scoped',
@@ -347,9 +357,15 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       setResourceSearchResults(results);
     } catch (error) {
       console.error('Error searching resources:', error);
-      setResourceSearchResults([]);
+      // Only clear if this is still the active search
+      if (searchId === lastSearchIdRef.current) {
+        setResourceSearchResults([]);
+      }
     } finally {
-      setIsLoadingResources(false);
+      // Only stop loading if this is the active search
+      if (searchId === lastSearchIdRef.current) {
+        setIsLoadingResources(false);
+      }
     }
   }, [currentContext]);
 
