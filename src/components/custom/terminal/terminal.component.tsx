@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { SiClaude } from '@icons-pack/react-simple-icons';
 import TerminalTab from './terminaltab.component';
 import BrowserTab from '../browser/browser.component';
+import DefaultProfileDialog from './default-profile-dialog.component';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,29 +83,52 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   const [terminalProfiles, setTerminalProfiles] = useState<TerminalProfile[]>([]);
   const terminalHeaderRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const [isDefaultDialogOpen, setIsDefaultDialogOpen] = useState(false);
+  const [defaultProfileId, setDefaultProfileId] = useState<string | null>(() => {
+    return localStorage.getItem('default_terminal_profile');
+  });
 
   // Fetch available terminal profiles on mount
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
         const profiles = await invoke<TerminalProfile[]>('get_available_profiles');
-        setTerminalProfiles(profiles);
+
+        // Sort so the selected default profile is first
+        const sortedProfiles = [...profiles].sort((a, b) => {
+          const aIsDefault = defaultProfileId ? a.id === defaultProfileId : a.is_default;
+          const bIsDefault = defaultProfileId ? b.id === defaultProfileId : b.is_default;
+          if (aIsDefault && !bIsDefault) return -1;
+          if (!aIsDefault && bIsDefault) return 1;
+          return 0;
+        });
+
+        setTerminalProfiles(sortedProfiles);
       } catch (err) {
         console.error('Failed to fetch terminal profiles:', err);
       }
     };
     fetchProfiles();
-  }, []);
+  }, [defaultProfileId]);
 
   // Create a new local terminal session
   const createNewSession = useCallback(async (name?: string, initialCommand?: string, shellPath?: string) => {
     try {
+      // Use provided shellPath, or cached default, or let backend decide
+      let finalShellPath = shellPath;
+      if (!finalShellPath && defaultProfileId) {
+        const profile = terminalProfiles.find(p => p.id === defaultProfileId);
+        if (profile) {
+          finalShellPath = profile.shell_path;
+        }
+      }
+
       const session = await invoke<TerminalSession>('create_local_shell', {
         name: name || undefined,
         cols: 80,
         rows: 24,
         initialCommand: initialCommand || undefined,
-        shellPath: shellPath || undefined,
+        shellPath: finalShellPath || undefined,
       });
 
       setSessions((prev) => [...prev, { type: 'terminal', data: session }]);
@@ -115,7 +139,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
       console.error('Failed to create terminal session:', err);
       throw err;
     }
-  }, []);
+  }, [defaultProfileId, terminalProfiles, setSessions, setActiveSessionId]);
 
   // Create a new browser session
   const createBrowserSession = useCallback((url?: string, name?: string) => {
@@ -257,6 +281,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     setEditingSessionId(null);
     setEditingName('');
   }, []);
+
+  const handleSaveDefaultProfile = useCallback((profileId: string) => {
+    setDefaultProfileId(profileId);
+    localStorage.setItem('default_terminal_profile', profileId);
+    sooner("Default profile updated", {
+      description: `New default profile set to ${terminalProfiles.find(p => p.id === profileId)?.name}`
+    });
+  }, [terminalProfiles]);
 
   // Launch external terminal
   const launchExternalTerminal = useCallback(async (terminalType: string) => {
@@ -557,7 +589,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                     >
                       <Terminal className="h-3.5 w-3.5 mr-2" />
                       {profile.name}
-                      {profile.is_default && (
+                      {(defaultProfileId ? profile.id === defaultProfileId : profile.is_default) && (
                         <span className="ml-auto text-[10px] text-muted-foreground">(default)</span>
                       )}
                     </DropdownMenuItem>
@@ -657,7 +689,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                       >
                         <Terminal className="h-3 w-3 mr-2" />
                         <span className="flex-1">{profile.name}</span>
-                        {profile.is_default && (
+                        {(defaultProfileId ? profile.id === defaultProfileId : profile.is_default) && (
                           <span className="ml-2 text-[10px] text-muted-foreground">(default)</span>
                         )}
                       </DropdownMenuItem>
@@ -665,6 +697,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               )}
+
+              <DropdownMenuItem
+                onClick={() => setIsDefaultDialogOpen(true)}
+                className="text-xs"
+              >
+                <Terminal className="h-3 w-3 mr-2" />
+                Select default Profile
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -728,6 +768,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
           )
         )}
       </div>
+
+      <DefaultProfileDialog
+        isOpen={isDefaultDialogOpen}
+        onClose={() => setIsDefaultDialogOpen(false)}
+        profiles={terminalProfiles}
+        currentDefaultId={defaultProfileId}
+        onSave={handleSaveDefaultProfile}
+      />
     </div>
   );
 };
