@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
-import { getPortForwards, stopPortForward, PortForward, openPortForwardInBrowser } from '@/api/internal/portforward';
+import { getPortForwards, stopPortForward, PortForward, openPortForwardInBrowser, getPortForwardUrl } from '@/api/internal/portforward';
+import { useTerminal } from '@/contexts/useTerminal';
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,6 +20,7 @@ import {
 const PortForwards: React.FC = () => {
   const { currentContext } = useCluster();
   const { toast } = useToast();
+  const { openBrowserWithUrl } = useTerminal();
   const [portForwards, setPortForwards] = useState<PortForward[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +77,7 @@ const PortForwards: React.FC = () => {
         setPortForwards(prev => prev.filter(pf => pf.id !== portForwardId));
       } else {
         // Update status if stopped
-        setPortForwards(prev => prev.map(pf => 
+        setPortForwards(prev => prev.map(pf =>
           pf.id === portForwardId ? { ...pf, status: 'Stopped' } : pf
         ));
       }
@@ -147,7 +149,7 @@ const PortForwards: React.FC = () => {
               {confirmDialog.action === 'delete' ? 'Delete Port Forward' : 'Stop Port Forward'}
             </DialogTitle>
             <DialogDescription>
-              {confirmDialog.action === 'delete' 
+              {confirmDialog.action === 'delete'
                 ? 'Are you sure you want to delete this port forward? This action cannot be undone.'
                 : 'Are you sure you want to stop this port forward? You can restart it later if needed.'}
             </DialogDescription>
@@ -156,13 +158,13 @@ const PortForwards: React.FC = () => {
             <div className="font-medium">{confirmDialog.name}</div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setConfirmDialog({ open: false, id: '', name: '', action: 'stop' })}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               variant={confirmDialog.action === 'delete' ? 'destructive' : 'default'}
               onClick={() => handleStopOrDelete(confirmDialog.id, confirmDialog.action === 'delete')}
             >
@@ -217,7 +219,10 @@ const PortForwards: React.FC = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => openPortForwardInBrowser(portForward.port)}
+                              onClick={() => {
+                                const url = getPortForwardUrl(portForward.port);
+                                openBrowserWithUrl(url, `${portForward.service || 'Port-forward'} - ${portForward.port}`);
+                              }}
                               title="Open in browser"
                             >
                               <ExternalLink className="h-4 w-4" />
