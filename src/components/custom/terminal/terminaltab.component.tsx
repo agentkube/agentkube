@@ -350,13 +350,15 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
   }, []);
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      className="relative w-full h-full"
+      style={{ display: isActive ? 'block' : 'none' }}
+    >
       <div
         ref={terminalRef}
-        className={`w-full h-full bg-background/95 cursor-text ${!isActive ? 'hidden' : ''}`}
+        className="w-full h-full bg-background/95 cursor-text"
         onClick={handleClick}
         style={{
-          display: isActive ? 'block' : 'none',
           padding: '4px',
         }}
       />
