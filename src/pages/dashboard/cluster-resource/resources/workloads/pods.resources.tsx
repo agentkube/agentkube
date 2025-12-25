@@ -131,7 +131,7 @@ const Pods: React.FC = () => {
   const [backgroundTaskPod, setBackgroundTaskPod] = useState<V1Pod | null>(null);
   const { isOpen: isBackgroundTaskOpen, resourceName, resourceType, onClose: closeBackgroundTask, openWithResource } = useBackgroundTask();
   const { addResourceContext } = useDrawer();
-  
+
   // Telemetry drawer state
   const [isTelemetryDrawerOpen, setIsTelemetryDrawerOpen] = useState(false);
   const [telemetryPod, setTelemetryPod] = useState<V1Pod | null>(null);
@@ -143,10 +143,10 @@ const Pods: React.FC = () => {
     { key: 'status', label: 'Status', visible: true, canToggle: false }, // Required column
     { key: 'ready', label: 'Ready', visible: true, canToggle: true },
     { key: 'restarts', label: 'Restarts', visible: true, canToggle: true },
-    { 
-      key: 'resources', 
-      label: 'Resources', 
-      visible: true, 
+    {
+      key: 'resources',
+      label: 'Resources',
+      visible: true,
       canToggle: true,
       children: [
         { key: 'cpu', label: 'CPU', visible: true, canToggle: true },
@@ -158,8 +158,8 @@ const Pods: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('pods', defaultColumnConfig)
   );
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
@@ -172,23 +172,23 @@ const Pods: React.FC = () => {
         if (col.key === columnKey) {
           return { ...col, visible };
         }
-        
+
         // Check if it's a child column
         if (col.children) {
-          const updatedChildren = col.children.map(child => 
+          const updatedChildren = col.children.map(child =>
             child.key === columnKey ? { ...child, visible } : child
           );
-          
+
           // Check if any child was actually updated by comparing the visible property
-          const hasChanges = updatedChildren.some((child, index) => 
+          const hasChanges = updatedChildren.some((child, index) =>
             child.visible !== col.children![index].visible
           );
-          
+
           if (hasChanges) {
             return { ...col, children: updatedChildren };
           }
         }
-        
+
         return col;
       });
       // Save to localStorage
@@ -275,12 +275,11 @@ const Pods: React.FC = () => {
     return (
       <TableHead
         key={column.key}
-        className={`cursor-pointer hover:text-blue-500 ${isNumericColumn ? 'text-center' : ''} ${
-          column.key === 'namespace' ? 'w-[110px]' :
+        className={`cursor-pointer hover:text-blue-500 ${isNumericColumn ? 'text-center' : ''} ${column.key === 'namespace' ? 'w-[110px]' :
           column.key === 'ready' || column.key === 'restarts' ? 'w-[100px]' :
-          column.key === 'cpu' || column.key === 'memory' ? 'w-[100px]' :
-          column.key === 'age' ? 'w-[80px]' : ''
-        }`}
+            column.key === 'cpu' || column.key === 'memory' ? 'w-[100px]' :
+              column.key === 'age' ? 'w-[80px]' : ''
+          }`}
         onClick={() => sortField && handleSort(sortField)}
       >
         {column.label} {sortField && renderSortIndicator(sortField)}
@@ -479,10 +478,10 @@ const Pods: React.FC = () => {
         '',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -581,7 +580,7 @@ const Pods: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -619,7 +618,7 @@ const Pods: React.FC = () => {
 
   const handleDeletePod = (e: React.MouseEvent, pod: V1Pod) => {
     e.stopPropagation(); // Stop the event from bubbling up
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -628,7 +627,7 @@ const Pods: React.FC = () => {
       });
       return;
     }
-    
+
     setActivePod(pod);
     setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -682,7 +681,7 @@ const Pods: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -726,9 +725,9 @@ const Pods: React.FC = () => {
   // Handle incoming Kubernetes pod events
   const handlePodEvent = useCallback((kubeEvent: any) => {
     const { type, object: pod } = kubeEvent;
-    
+
     if (!pod || !pod.metadata) return;
-    
+
     // Filter: only process pods from selected namespaces
     if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(pod.metadata.namespace)) {
       return; // Skip pods not in selected namespaces
@@ -737,8 +736,8 @@ const Pods: React.FC = () => {
     setPods(prevPods => {
       const newPods = [...prevPods];
       const existingIndex = newPods.findIndex(
-        p => p.metadata?.namespace === pod.metadata.namespace && 
-             p.metadata?.name === pod.metadata.name
+        p => p.metadata?.namespace === pod.metadata.namespace &&
+          p.metadata?.name === pod.metadata.name
       );
 
       switch (type) {
@@ -799,7 +798,7 @@ const Pods: React.FC = () => {
 
     // Create a connection ID based only on context (one connection per cluster)
     const connectionId = currentContext.name;
-    
+
     // Don't create a new connection if we already have one for the same cluster
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
       return;
@@ -845,7 +844,7 @@ const Pods: React.FC = () => {
         try {
           // Direct Kubernetes API watch response (no multiplexer wrapping)
           const kubeEvent = JSON.parse(event.data);
-          
+
           // Handle Kubernetes watch event directly
           if (kubeEvent.type && kubeEvent.object) {
             handlePodEvent(kubeEvent);
@@ -863,7 +862,7 @@ const Pods: React.FC = () => {
           setWsConnected(false);
           wsRef.current = null;
           connectionIdRef.current = null;
-          
+
           // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
           if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
             reconnectTimeoutRef.current = setTimeout(() => {
@@ -1139,7 +1138,7 @@ const Pods: React.FC = () => {
 
     // Clear existing pods when switching contexts/namespaces
     setPods([]);
-    
+
     // If no namespaces selected, don't connect and show empty state
     if (selectedNamespaces.length === 0) {
       setLoading(false);
@@ -1158,7 +1157,7 @@ const Pods: React.FC = () => {
     }
 
     setLoading(true);
-    
+
     // First load existing pods, then start WebSocket for real-time updates
     const initializePods = async () => {
       try {
@@ -1173,7 +1172,7 @@ const Pods: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     initializePods();
 
     // Cleanup function  
@@ -1204,10 +1203,10 @@ const Pods: React.FC = () => {
       setPods([]);
       return;
     }
-    
+
     // Filter existing pods based on new namespace selection
-    setPods(prevPods => 
-      prevPods.filter(pod => 
+    setPods(prevPods =>
+      prevPods.filter(pod =>
         pod.metadata?.namespace && selectedNamespaces.includes(pod.metadata.namespace)
       )
     );
@@ -1481,11 +1480,11 @@ const Pods: React.FC = () => {
   const isPodFailing = (pod: V1Pod): boolean => {
     const phase = pod.status?.phase?.toLowerCase();
     return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' ||
-           (pod.status?.containerStatuses || []).some(status =>
-             status.state?.waiting?.reason === 'CrashLoopBackOff' ||
-             status.state?.waiting?.reason === 'ImagePullBackOff' ||
-             status.state?.waiting?.reason === 'ErrImagePull'
-           );
+      (pod.status?.containerStatuses || []).some(status =>
+        status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+        status.state?.waiting?.reason === 'ImagePullBackOff' ||
+        status.state?.waiting?.reason === 'ErrImagePull'
+      );
   };
 
   // Resource usage tooltip handlers
@@ -1577,7 +1576,7 @@ const Pods: React.FC = () => {
     // Use createPortal to render the tooltip at document level, preventing event issues
     return createPortal(
       <div
-        className="fixed z-50 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
+        className="fixed z-50 bg-white dark:bg-card/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-accent dark:border-accent text-xs"
         style={{
           left: `${tooltipPosition.x + 10}px`,
           top: `${tooltipPosition.y - 80}px`,
@@ -1661,7 +1660,7 @@ const Pods: React.FC = () => {
             <NamespaceSelector />
           </div>
           <Button
-            variant="outline" 
+            variant="outline"
             size="sm"
             onClick={() => {
               if (!wsConnected) {
@@ -1679,7 +1678,7 @@ const Pods: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
           <Button
-            variant="outline" 
+            variant="outline"
             size="sm"
             onClick={() => setIsFilterSidebarOpen(true)}
             className="flex items-center gap-2 h-10 dark:text-gray-300/80"
@@ -1764,74 +1763,74 @@ const Pods: React.FC = () => {
                       {getFlattenedColumns().map(col => renderTableCell(pod, col))}
                       {isColumnVisible('actions') && (
                         <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleAskAI(pod);
-                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Ask AI
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleInvestigatePod(pod);
-                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <TextSearch className="mr-2 h-4 w-4" />
-                              Investigate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleTelemetryPod(pod);
-                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <SearchCode className="mr-2 h-4 w-4" />
-                              Telemetry
-                            </DropdownMenuItem>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleAskAI(pod);
+                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Ask AI
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleInvestigatePod(pod);
+                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                                <TextSearch className="mr-2 h-4 w-4" />
+                                Investigate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleTelemetryPod(pod);
+                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                                <SearchCode className="mr-2 h-4 w-4" />
+                                Telemetry
+                              </DropdownMenuItem>
 
-                            
 
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              if (isReconMode) {
-                                toast({
-                                  title: "Recon Mode",
-                                  description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
-                                  variant: "recon"
-                                });
-                                return;
-                              }
-                              // Set the active pod and trigger restart
-                              setActivePod(pod);
-                              setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
-                              handleRestartPods();
-                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              Restart
-                            </DropdownMenuItem>
 
-                            <DropdownMenuItem onClick={(e) => handleViewPod(e, pod)} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View
-                            </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                if (isReconMode) {
+                                  toast({
+                                    title: "Recon Mode",
+                                    description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+                                    variant: "recon"
+                                  });
+                                  return;
+                                }
+                                // Set the active pod and trigger restart
+                                setActivePod(pod);
+                                setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
+                                handleRestartPods();
+                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Restart
+                              </DropdownMenuItem>
 
-                            <DropdownMenuItem
-                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
-                              onClick={(e) => handleDeletePod(e, pod)}
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem onClick={(e) => handleViewPod(e, pod)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                                onClick={(e) => handleDeletePod(e, pod)}
+                              >
+                                <Trash className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       )}
                     </TableRow>

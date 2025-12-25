@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check, Globe } from 'lucide-react';
+import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check, Globe, AtSign } from 'lucide-react';
+import { toast as sooner } from "sonner";
 import { invoke } from '@tauri-apps/api/core';
 import { SiClaude } from '@icons-pack/react-simple-icons';
 import TerminalTab from './terminaltab.component';
@@ -28,23 +29,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-interface TerminalSession {
-  id: string;
-  name: string;
-  session_type: 'Local' | { K8s: { pod: string; container: string; namespace: string } };
-  created_at: number;
-}
-
-interface BrowserSession {
-  id: string;
-  name: string;
-  url: string;
-  created_at: number;
-}
-
-type Session =
-  | { type: 'terminal'; data: TerminalSession }
-  | { type: 'browser'; data: BrowserSession };
+import { useTerminal, TerminalSession, BrowserSession, Session } from '@/contexts/useTerminal';
+import { useDrawer } from '@/contexts/useDrawer';
 
 interface PendingRequest {
   command?: string;
@@ -81,8 +67,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   pendingBrowserRequest,
   onPendingBrowserRequestHandled
 }) => {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const {
+    sessions,
+    setSessions,
+    activeSessionId,
+    setActiveSessionId,
+    getTerminalContent
+  } = useTerminal();
+  const { addResourceContext } = useDrawer();
   const [terminalHeight, setTerminalHeight] = useState('40vh');
   const [isDragging, setIsDragging] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -220,6 +212,26 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
       })
     );
   }, [sessions]);
+
+  // Add session context to chat
+  const handleAddToChat = useCallback((session: Session) => {
+    if (session.type === 'terminal') {
+      const content = getTerminalContent(session.data.id);
+      addResourceContext({
+        resourceType: 'terminal',
+        resourceName: session.data.name,
+        namespace: '',
+        namespaced: false,
+        group: 'terminal',
+        version: 'v1',
+        resourceContent: content
+      });
+
+      sooner("Added to Chat", {
+        description: `Terminal session "${session.data.name}" added to context.`,
+      });
+    }
+  }, [addResourceContext, getTerminalContent]);
 
   // Start editing a session name
   const startEditing = useCallback((session: Session) => {
@@ -451,9 +463,19 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleAddToChat(session);
+                          }}
+                          className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity text-muted-foreground hover:text-foreground"
+                          title="Add to Chat"
+                        >
+                          <AtSign className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             closeSession(session.data.id);
                           }}
-                          className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity"
+                          className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -469,6 +491,15 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                     <Edit2 className="h-3 w-3 mr-2" />
                     Rename
                   </ContextMenuItem>
+                  {session.type === 'terminal' && (
+                    <ContextMenuItem
+                      onClick={() => handleAddToChat(session)}
+                      className="text-xs"
+                    >
+                      <AtSign className="h-3 w-3 mr-2" />
+                      Add to Chat
+                    </ContextMenuItem>
+                  )}
                   <ContextMenuSeparator />
                   <ContextMenuItem
                     onClick={() => closeSession(session.data.id)}

@@ -213,7 +213,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 			<div className="absolute inset-0 bg-background/20 backdrop-blur-sm" onClick={onClose} />
 			<AnimatePresence>
 				<motion.div
-					className="relative w-full max-w-2xl bg-popover h-fit backdrop-blur-md rounded-xl shadow-2xl border border-border overflow-hidden"
+					className="relative w-full max-w-2xl bg-popover h-fit backdrop-blur-md rounded-xl shadow-2xl border border-border"
 					initial={{ scale: 0.95, opacity: 0 }}
 					animate={{ scale: 1, opacity: 1 }}
 					exit={{ scale: 0.95, opacity: 0 }}
@@ -292,7 +292,11 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 												className="flex items-center cursor-pointer"
 												onClick={() => handleResourcePreview(file)}
 											>
-												<img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+												{file.resourceType === 'terminal' ? (
+													<Terminal className="w-4 h-4 text-muted-foreground" />
+												) : (
+													<img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+												)}
 												<span className="ml-1">{file.resourceName}</span>
 											</div>
 											<X

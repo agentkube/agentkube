@@ -1,11 +1,12 @@
 import React, { useRef, useState, useEffect, ChangeEvent, FocusEvent, KeyboardEvent, useImperativeHandle, useCallback } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
+import { useTerminal, TerminalSession } from '@/contexts/useTerminal';
 import { queryResource, listResources } from '@/api/internal/resources';
 import { SearchResult, EnrichedSearchResult } from '@/types/search';
 import { jsonToYaml } from '@/utils/yaml';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { ResourceInfoTooltip } from '../resource-tooltip.component';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Terminal, Globe } from 'lucide-react';
 
 const isPodFailing = (pod: any): boolean => {
   const phase = pod.status?.phase?.toLowerCase();
@@ -69,6 +70,8 @@ interface ResourceMentionItem {
   eventInvolvedObject?: string;
   eventLastSeen?: any;
   eventType?: string;
+  terminalSessionId?: string;
+  terminalLastCommand?: string;
 }
 
 interface AutoResizeTextareaProps {
@@ -91,7 +94,7 @@ interface AutoResizeTextareaProps {
   [key: string]: any;
 }
 
-type DropdownMode = 'functions' | 'resourceTypes' | 'resources';
+type DropdownMode = 'functions' | 'resourceTypes' | 'resources' | 'terminal';
 
 const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTextareaProps>(({
   value,
@@ -138,6 +141,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
   const [insertedResources, setInsertedResources] = useState<Set<string>>(new Set()); // Track inserted resource refs
 
   const { currentContext } = useCluster();
+  const { sessions, getTerminalContent } = useTerminal();
 
   const useAnimatedSuggestions = animatedSuggestions.length > 0;
 
@@ -210,6 +214,15 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
     // @pods/nginx - resource type with search term (search resources)
     // @pods - might be resource type or function name
     // @functionName - function mention
+
+    const terminalMatch = textBeforeCursor.match(/@terminal:(\w*)$/);
+    if (terminalMatch) {
+      return {
+        type: 'terminal' as const,
+        searchQuery: terminalMatch[1].toLowerCase(),
+        fullMatch: terminalMatch[0]
+      };
+    }
 
     const resourceWithSearchMatch = textBeforeCursor.match(/@(\w+)\/(\w*)$/);
     if (resourceWithSearchMatch) {
@@ -389,7 +402,10 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       setShowMentionDropdown(true);
       setSelectedIndex(0);
 
-      if (mentionPattern.type === 'resources') {
+      if (mentionPattern.type === 'terminal') {
+        setDropdownMode('terminal');
+        setSearchTerm(mentionPattern.searchQuery);
+      } else if (mentionPattern.type === 'resources') {
         // User typed @resourceType/
         setDropdownMode('resources');
         setSelectedResourceType(mentionPattern.resourceType);
@@ -407,12 +423,14 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
           rt.id.startsWith(mentionPattern.term) || rt.label.toLowerCase().startsWith(mentionPattern.term)
         );
 
+        const isTerminalMatch = 'terminal:'.startsWith(mentionPattern.term);
+
         const matchingFunctions = mentionItems.filter((item: MentionItem) =>
           item.name.toLowerCase().includes(mentionPattern.term)
         );
 
-        // If term exactly matches a resource type and ends with nothing, show resource types
-        if (matchingTypes.length > 0 || matchingFunctions.length === 0) {
+        // If term exactly matches a resource type or terminal, or no matching functions, show resource types
+        if (matchingTypes.length > 0 || isTerminalMatch || matchingFunctions.length === 0) {
           setDropdownMode('resourceTypes');
           setSearchTerm(mentionPattern.term);
           setSelectedResourceType(null);
@@ -443,13 +461,44 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       const filtered = KUBERNETES_RESOURCE_TYPES.filter(rt =>
         !searchTerm || rt.id.startsWith(searchTerm) || rt.label.toLowerCase().startsWith(searchTerm)
       );
-      return filtered.map(rt => ({
+
+      const items: ResourceMentionItem[] = filtered.map(rt => ({
         id: rt.id,
         name: `${rt.id}/`,
         description: rt.description,
         resourceType: rt.id,
         isResourceType: true
       }));
+
+      // Add terminal option if it matches
+      if (!searchTerm || 'terminal:'.startsWith(searchTerm)) {
+        items.push({
+          id: 'terminal-type',
+          name: 'terminal:',
+          description: 'Mention a terminal session',
+          resourceType: 'terminal',
+          isResourceType: true
+        });
+      }
+
+      return items;
+    }
+
+    if (dropdownMode === 'terminal') {
+      return sessions
+        .filter(s => s.type === 'terminal')
+        .map(s => {
+          const terminalData = s.data as TerminalSession;
+          return {
+            id: `terminal-${terminalData.id}`,
+            name: terminalData.name,
+            resourceType: 'terminal',
+            terminalSessionId: terminalData.id,
+            terminalLastCommand: terminalData.last_command,
+            description: terminalData.last_command ? `Last: ${terminalData.last_command}` : 'Active session'
+          };
+        })
+        .filter(item => !searchTerm || item.name.toLowerCase().includes(searchTerm) || item.terminalLastCommand?.toLowerCase().includes(searchTerm));
     }
 
     if (dropdownMode === 'resources') {
@@ -535,9 +584,11 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
     const lastAtPos = textBeforeCursor.lastIndexOf('@');
 
     if (lastAtPos !== -1) {
+      const isTerminal = item.resourceType === 'terminal';
+      const insertPart = isTerminal ? `@terminal:` : `@${item.resourceType}/`;
       const newText =
         currentValue.substring(0, lastAtPos) +
-        `@${item.resourceType}/` +
+        insertPart +
         textAfterCursor;
 
       const syntheticEvent = {
@@ -546,20 +597,23 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
 
       onChange(syntheticEvent);
 
-      // Switch to resource search mode
-      setDropdownMode('resources');
-      setSelectedResourceType(item.resourceType);
+      // Switch to search mode
+      if (isTerminal) {
+        setDropdownMode('terminal');
+      } else {
+        setDropdownMode('resources');
+        setSelectedResourceType(item.resourceType);
+        // Trigger initial resource fetch
+        searchResources(item.resourceType, '');
+      }
       setSearchTerm('');
       setSelectedIndex(0);
-
-      // Trigger initial resource fetch
-      searchResources(item.resourceType, '');
 
       // Set focus back to textarea
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
-          const newCursorPos = lastAtPos + item.resourceType.length + 2; // +2 for @ and /
+          const newCursorPos = lastAtPos + insertPart.length;
           textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
         }
       }, 0);
@@ -615,8 +669,11 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
     const lastAtPos = textBeforeCursor.lastIndexOf('@');
 
     if (lastAtPos !== -1) {
+      const isTerminal = item.resourceType === 'terminal';
       // The resource reference we want to insert
-      const resourceRef = `@${item.resourceType}/${item.name}`;
+      const resourceRef = isTerminal
+        ? `@terminal:${item.name}-${item.terminalSessionId?.slice(0, 6)}`
+        : `@${item.resourceType}/${item.name}`;
 
       // Build new text: everything before @, then the full reference, then everything after cursor
       const newText =
@@ -644,19 +701,38 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       }, 0);
 
       // Trigger callback with enriched resource (including content)
-      if (onResourceSelect && item.searchResult) {
-        // Track this resource reference for removal detection
-        setInsertedResources(prev => new Set(prev).add(resourceRef));
+      if (onResourceSelect) {
+        if (isTerminal && item.terminalSessionId) {
+          // Track for removal detection
+          setInsertedResources(prev => new Set(prev).add(resourceRef));
 
-        // Fetch the resource content (YAML)
-        const resourceContent = await fetchResourceContent(item.searchResult);
+          const terminalContent = getTerminalContent(item.terminalSessionId);
 
-        const enrichedResource: EnrichedSearchResult = {
-          ...item.searchResult,
-          resourceContent
-        };
+          const terminalResource: EnrichedSearchResult = {
+            resourceType: 'terminal',
+            resourceName: item.name,
+            namespace: '',
+            namespaced: false,
+            group: 'terminal',
+            version: 'v1',
+            resourceContent: terminalContent
+          };
 
-        onResourceSelect(enrichedResource);
+          onResourceSelect(terminalResource);
+        } else if (item.searchResult) {
+          // Track this resource reference for removal detection
+          setInsertedResources(prev => new Set(prev).add(resourceRef));
+
+          // Fetch the resource content (YAML)
+          const resourceContent = await fetchResourceContent(item.searchResult);
+
+          const enrichedResource: EnrichedSearchResult = {
+            ...item.searchResult,
+            resourceContent
+          };
+
+          onResourceSelect(enrichedResource);
+        }
       }
     }
   };
@@ -709,7 +785,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       case 'resources':
         return `Resources (${selectedResourceType})`;
       case 'resourceTypes':
-        return 'Resource Types';
+        return 'Context & Resources';
+      case 'terminal':
+        return 'Terminal Sessions';
       default:
         return 'Functions';
     }
@@ -763,7 +841,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
               : { top: '30px', marginTop: '5px' }
             ),
             left: 0,
-            width: dropdownMode === 'resources' ? '60%' : '50%',
+            width: (dropdownMode === 'resources' || dropdownMode === 'terminal') ? '60%' : '50%',
             maxHeight: '250px',
             overflow: 'auto',
             zIndex: 100,
@@ -818,6 +896,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
               const isEvent = isResourceItem && item.resourceType === 'events';
               const eventItem = item as ResourceMentionItem;
 
+              const isTerminal = isResourceItem && item.resourceType === 'terminal';
+              const terminalItem = item as ResourceMentionItem;
+
               const element = (
                 <div
                   key={item.id}
@@ -826,7 +907,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
                   onClick={() => {
                     if (isResourceType) {
                       insertResourceType(item as ResourceMentionItem);
-                    } else if (isResourceItem && (item as ResourceMentionItem).searchResult) {
+                    } else if (isTerminal || (isResourceItem && (item as ResourceMentionItem).searchResult)) {
                       insertResource(item as ResourceMentionItem);
                     } else {
                       insertMention(item as MentionItem);
@@ -835,7 +916,11 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
                   onMouseEnter={() => setSelectedIndex(actualIndex)}
                 >
                   {isResourceItem && (
-                    <img src={KUBERNETES_LOGO} alt="K8s" className={`w-4 h-4 flex-shrink-0 ${isFailing ? 'opacity-100' : 'opacity-70'}`} />
+                    isTerminal ? (
+                      <Terminal size={14} className="flex-shrink-0 opacity-70" />
+                    ) : (
+                      <img src={KUBERNETES_LOGO} alt="K8s" className={`w-4 h-4 flex-shrink-0 ${isFailing ? 'opacity-100' : 'opacity-70'}`} />
+                    )
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">

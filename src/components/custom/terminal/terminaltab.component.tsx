@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { invoke } from '@tauri-apps/api/core';
+import { useTerminal } from '@/contexts/useTerminal';
 import '@xterm/xterm/css/xterm.css';
 
 export interface TerminalTabProps {
@@ -66,6 +67,34 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const { registerTerminalInstance, unregisterTerminalInstance, updateSessionLastCommand } = useTerminal();
+  const currentCommandRef = useRef<string>('');
+
+  // Extract terminal content
+  const getTerminalLines = useCallback(() => {
+    if (!terminalInstanceRef.current) return '';
+    const buffer = terminalInstanceRef.current.buffer.active;
+    const lines: string[] = [];
+
+    // Get last 2000 lines or all if less
+    const maxLines = 2000;
+    const startRow = Math.max(0, buffer.baseY + buffer.viewportY + terminalInstanceRef.current.rows - maxLines);
+    const endRow = buffer.baseY + buffer.viewportY + terminalInstanceRef.current.rows;
+
+    for (let i = startRow; i < endRow; i++) {
+      const line = buffer.getLine(i);
+      if (line) {
+        const lineContent = line.translateToString(true);
+        if (line.isWrapped && lines.length > 0) {
+          lines[lines.length - 1] += lineContent;
+        } else {
+          lines.push(lineContent);
+        }
+      }
+    }
+
+    return lines.join('\n');
+  }, []);
 
   // Initialize the terminal instance
   const initTerminal = useCallback(() => {
@@ -115,6 +144,21 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
 
     // Handle user input
     terminal.onData((data) => {
+      // Basic command capture - look for Enter key
+      if (data === '\r' || data === '\n') {
+        if (currentCommandRef.current.trim()) {
+          updateSessionLastCommand(sessionId, currentCommandRef.current.trim());
+        }
+        currentCommandRef.current = '';
+      } else if (data === '\u007f') { // Backspace
+        currentCommandRef.current = currentCommandRef.current.slice(0, -1);
+      } else {
+        // Only append printable characters
+        if (data.length === 1 && data.charCodeAt(0) >= 32) {
+          currentCommandRef.current += data;
+        }
+      }
+
       invoke('write_to_pty', { sessionId, data }).catch((err) => {
         console.error('Error writing to PTY:', err);
       });
@@ -178,15 +222,17 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
   useEffect(() => {
     initTerminal();
     startPolling();
+    registerTerminalInstance(sessionId, getTerminalLines);
 
     return () => {
       stopPolling();
+      unregisterTerminalInstance(sessionId);
       if (terminalInstanceRef.current) {
         terminalInstanceRef.current.dispose();
         terminalInstanceRef.current = null;
       }
     };
-  }, [initTerminal, startPolling, stopPolling]);
+  }, [initTerminal, startPolling, stopPolling, sessionId, registerTerminalInstance, unregisterTerminalInstance, getTerminalLines]);
 
   // Handle visibility changes
   useEffect(() => {

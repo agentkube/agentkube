@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow, Plus, ListTodo } from "lucide-react";
+import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow, Plus, ListTodo, Terminal } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview, ReasoningEffort, ReasoningEffortLevel } from '@/components/custom';
@@ -1418,7 +1418,11 @@ const RightDrawer: React.FC = () => {
                               className="flex items-center cursor-pointer"
                               onClick={() => handleResourcePreview(file)}
                             >
-                              <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+                              {file.resourceType === 'terminal' ? (
+                                <Terminal className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
+                              )}
                               <span className="ml-1">{file.resourceName}</span>
                             </div>
                             <X

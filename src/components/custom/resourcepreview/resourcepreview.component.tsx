@@ -1,6 +1,6 @@
 // components/custom/ResourcePreview.tsx
 import React, { useRef, useEffect, useState } from 'react';
-import { X, Copy, Check, ExternalLink, ArrowUpLeft, ArrowUpRight, ChevronsUpDown } from 'lucide-react';
+import { X, Copy, Check, ExternalLink, ArrowUpLeft, ArrowUpRight, ChevronsUpDown, Terminal } from 'lucide-react';
 import { EnrichedSearchResult } from '@/types/search';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -58,6 +58,7 @@ const ResourcePreview: React.FC<ResourcePreviewProps> = ({ resource, onClose }) 
   }, [onClose]);
 
   const handleNavigate = () => {
+    if (resource.resourceType === 'terminal') return;
     if (resource.namespaced) {
       navigate(`/dashboard/explore/${resource.resourceType}/${resource.namespace}/${resource.resourceName}`)
     } else {
@@ -65,15 +66,25 @@ const ResourcePreview: React.FC<ResourcePreviewProps> = ({ resource, onClose }) 
     }
   }
 
+  const isTerminal = resource.resourceType === 'terminal';
+  const displayLanguage = isTerminal ? 'bash' : 'yaml';
+
   return (
     <div
       ref={previewRef}
-      className="absolute left-0 min-w-[45vw] bottom-full mb-1 w-full rounded-xl shadow-lg bg-card/60 dark:bg-card/40 backdrop-blur-md border border-gray-300 dark:border-gray-800/50 z-50"
+      className={`absolute left-0 ${isExpanded ? 'w-[90vw] lg:w-[70vw]' : 'w-[85vw] lg:w-[45vw]'} max-w-[calc(100vw-32px)] bottom-full mb-1 rounded-xl shadow-lg bg-card/60 dark:bg-card/40 backdrop-blur-md border border-gray-300 dark:border-gray-800/50 z-[100] transition-all duration-300`}
     >
       <div className="flex items-center justify-between p-2 border-b bg-gray-300/30 dark:bg-gray-600/20 border-gray-200 dark:border-gray-500/30">
         <div className="flex items-center flex-wrap text-sm font-medium space-x-2">
-          <SiKubernetes className='h-4 w-4' />
-          <span className='text-xs cursor-pointer dark:text-gray-400  hover:dark:text-gray-300' onClick={handleNavigate}>
+          {resource.resourceType === 'terminal' ? (
+            <Terminal className="h-4 w-4" />
+          ) : (
+            <SiKubernetes className="h-4 w-4" />
+          )}
+          <span
+            className={`text-xs ${resource.resourceType !== 'terminal' ? 'cursor-pointer hover:dark:text-gray-300' : ''} dark:text-gray-400`}
+            onClick={handleNavigate}
+          >
             {resource.resourceType}/{resource.resourceName}
           </span>
         </div>
@@ -82,16 +93,19 @@ const ResourcePreview: React.FC<ResourcePreviewProps> = ({ resource, onClose }) 
             onClick={handleToggleExpand}
             className="h-4 w-4 cursor-pointer dark:text-gray-500 hover:dark:text-gray-300"
           />
-          <ArrowUpRight onClick={handleNavigate} className="h-4 w-4 cursor-pointer dark:text-gray-500 hover:dark:text-gray-300" />
+          {resource.resourceType !== 'terminal' && (
+            <ArrowUpRight onClick={handleNavigate} className="h-4 w-4 cursor-pointer dark:text-gray-500 hover:dark:text-gray-300" />
+          )}
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
             <X className='h-4 w-4' />
           </button>
         </div>
       </div>
 
-      <div className={`bg-card dark:bg-card/40 relative group ${isExpanded ? 'max-h-96' : 'max-h-44'} overflow-auto
+      <div className={`bg-card relative group ${isExpanded ? 'max-h-[85vh]' : 'max-h-80'} overflow-auto
         rounded-b-lg shadow-lg
         [&::-webkit-scrollbar]:w-1.5 
+        [&::-webkit-scrollbar]:h-1.5
         [&::-webkit-scrollbar-track]:bg-transparent 
         [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
         [&::-webkit-scrollbar-thumb]:rounded-full
@@ -109,18 +123,41 @@ const ResourcePreview: React.FC<ResourcePreviewProps> = ({ resource, onClose }) 
           )}
         </button>
 
-        <SyntaxHighlighter
-          language="yaml"
-          style={nord}
-          customStyle={customStyle}
-          wrapLines={true}
-          showLineNumbers={true}
-          lineNumberStyle={{
-            color: '#262625',
-          }}
-        >
-          {resource.resourceContent || '# No content available'}
-        </SyntaxHighlighter>
+        {isTerminal ? (
+          <pre
+            className="p-4 font-mono text-[12px] leading-relaxed text-[#e4e4e4] selection:bg-gray-700/50"
+            style={{
+              whiteSpace: 'pre',
+              wordBreak: 'normal',
+              overflowWrap: 'normal',
+              fontFamily: 'Menlo, Monaco, "Courier New", monospace'
+            }}
+          >
+            {resource.resourceContent || '# No content available'}
+          </pre>
+        ) : (
+          <SyntaxHighlighter
+            language={displayLanguage}
+            style={nord}
+            customStyle={{
+              ...customStyle,
+              fontSize: '0.7rem',
+              whiteSpace: 'pre-wrap'
+            }}
+            wrapLines={true}
+            showLineNumbers={true}
+            lineNumberStyle={{
+              color: '#4a4a49',
+              minWidth: '2.5em',
+              paddingRight: '1em',
+              textAlign: 'right',
+              userSelect: 'none',
+              fontSize: '0.65rem'
+            }}
+          >
+            {resource.resourceContent || '# No content available'}
+          </SyntaxHighlighter>
+        )}
       </div>
     </div>
   );
