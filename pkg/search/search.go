@@ -59,6 +59,11 @@ var standardResources = map[string][]string{
 	},
 }
 
+var (
+	resourceCache   []APIResource
+	resourceCacheMu sync.RWMutex
+)
+
 // Controller handles resource search operations
 type Controller struct {
 	restConfig      *rest.Config
@@ -292,8 +297,23 @@ func (c *Controller) filterResourcesByType(resources []APIResource, term string)
 	return filteredResources
 }
 
-// getStandardResources returns only the standard Kubernetes resources
+// getStandardResources returns only the standard Kubernetes resources (cached version)
 func (c *Controller) getStandardResources(_ context.Context) ([]APIResource, error) {
+	resourceCacheMu.RLock()
+	if resourceCache != nil {
+		defer resourceCacheMu.RUnlock()
+		return resourceCache, nil
+	}
+	resourceCacheMu.RUnlock()
+
+	resourceCacheMu.Lock()
+	defer resourceCacheMu.Unlock()
+
+	// Double check after acquiring write lock
+	if resourceCache != nil {
+		return resourceCache, nil
+	}
+
 	// Get server preferred versions for each group
 	groups, err := c.discoveryClient.ServerGroups()
 	if err != nil {
@@ -318,7 +338,6 @@ func (c *Controller) getStandardResources(_ context.Context) ([]APIResource, err
 	for group, kinds := range standardResources {
 		version := preferredVersions[group]
 		if version == "" {
-			// If we don't have a preferred version, skip this group
 			continue
 		}
 
@@ -331,7 +350,6 @@ func (c *Controller) getStandardResources(_ context.Context) ([]APIResource, err
 
 		resourceList, err := c.discoveryClient.ServerResourcesForGroupVersion(groupVersion)
 		if err != nil {
-			// If this group/version is not available, just skip it
 			logger.Log(logger.LevelInfo, map[string]string{
 				"groupVersion": groupVersion,
 			}, err, "group/version not available")
@@ -365,6 +383,7 @@ func (c *Controller) getStandardResources(_ context.Context) ([]APIResource, err
 		}
 	}
 
+	resourceCache = resources
 	return resources, nil
 }
 

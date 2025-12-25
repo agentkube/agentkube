@@ -44,7 +44,7 @@ func SearchResources(c *gin.Context) {
 		return
 	}
 
-	context, err := clusterManager.GetContext(contextKey)
+	clusterCtx, err := clusterManager.GetContext(contextKey)
 	if err != nil {
 		logger.Log(logger.LevelError, map[string]string{"contextKey": contextKey}, err, "getting context")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Context not found"})
@@ -52,7 +52,7 @@ func SearchResources(c *gin.Context) {
 	}
 
 	// Get REST config for the context
-	restConfig, err := context.RESTConfig()
+	restConfig, err := clusterCtx.RESTConfig()
 	if err != nil {
 		logger.Log(logger.LevelError, map[string]string{"contextKey": contextKey}, err, "getting REST config")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get REST config: %v", err)})
@@ -96,8 +96,11 @@ func SearchResources(c *gin.Context) {
 		return
 	}
 
-	// Perform search
-	results, err := searchController.Search(c.Request.Context(), searchOptions)
+	// Perform search with timeout
+	searchCtx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	results, err := searchController.Search(searchCtx, searchOptions)
 	if err != nil {
 		logger.Log(logger.LevelError, map[string]string{"contextKey": contextKey}, err, "searching resources")
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -141,14 +144,14 @@ func IndexCluster(c *gin.Context) {
 		return
 	}
 
-	context, err := clusterManager.GetContext(contextKey)
+	clusterCtx, err := clusterManager.GetContext(contextKey)
 	if err != nil {
 		logger.Log(logger.LevelError, map[string]string{"contextKey": contextKey}, err, "getting context")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Context not found"})
 		return
 	}
 
-	restConfig, err := context.RESTConfig()
+	restConfig, err := clusterCtx.RESTConfig()
 	if err != nil {
 		logger.Log(logger.LevelError, map[string]string{"contextKey": contextKey}, err, "getting REST config")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get REST config: %v", err)})
