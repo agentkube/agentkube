@@ -38,7 +38,7 @@ export const ReasoningEffort: React.FC<ReasoningEffortProps> = ({ value, onChang
           <TooltipTrigger asChild>
             <DropdownMenuTrigger className='rounded-md' asChild>
               <button
-                className="flex items-center gap-2 px-2 py-1 h-auto text-xs text-gray-700 dark:text-gray-300 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/40"
+                className="flex items-center gap-2 px-2 py-1 h-auto text-xs text-gray-700 dark:text-foreground/70 dark:hover:text-gray-300"
               >
                 <Brain className="h-3.5 w-3.5" />
                 <span>{currentOption?.label || 'Medium'}</span>
@@ -50,9 +50,9 @@ export const ReasoningEffort: React.FC<ReasoningEffortProps> = ({ value, onChang
             <p>Select reasoning effort</p>
           </TooltipContent>
         </Tooltip>
-        <DropdownMenuContent align="start" className="w-40 dark:bg-[#0B0D13] rounded-md">
+        <DropdownMenuContent align="start" className="w-40 rounded-md">
           <div className="p-2">
-            <div className="text-xs text-gray-500 uppercase font-medium">Reasoning Effort</div>
+            <div className="text-xs uppercase font-medium">Reasoning Effort</div>
           </div>
 
           {reasoningOptions.map((option) => (

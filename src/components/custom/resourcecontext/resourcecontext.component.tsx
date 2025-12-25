@@ -30,6 +30,7 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const lastSearchIdRef = useRef(0);
   const { currentContext } = useCluster();
 
   // Handle clicking outside to close dropdown
@@ -85,25 +86,97 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
 
   // Fetch search results when dropdown opens or search query changes
   useEffect(() => {
-    if (!isOpen || !currentContext) return;
+    if (!isOpen || !currentContext) {
+      setSearchResults([]);
+      setIsLoading(false);
+      return;
+    }
 
     const fetchResults = async () => {
+      const searchId = ++lastSearchIdRef.current;
       setIsLoading(true);
       setError(null);
 
       try {
-        const response = await queryResource(
-          currentContext.name,
-          searchQuery || 'deployment',
-          60 // limit
-        );
+        // Prepare query: strip leading @ if present (for copy-pasted mentions)
+        let processedQuery = searchQuery.trim();
+        if (processedQuery.startsWith('@')) {
+          processedQuery = processedQuery.substring(1);
+        }
 
-        setSearchResults(response.results || []);
+        // Parse searchQuery for resource types (e.g., "pods/my-pod")
+        let parsedResourceType: string | undefined;
+        let finalSearchQuery = processedQuery;
+
+        if (processedQuery.includes('/')) {
+          const [type, ...queryParts] = processedQuery.split('/');
+          parsedResourceType = type.trim().toLowerCase();
+          finalSearchQuery = queryParts.join('/').trim();
+        } else if (!processedQuery) {
+          // Default to pods if query is empty or just '@'
+          parsedResourceType = 'pods';
+        }
+
+        let results: SearchResult[] = [];
+
+        if (parsedResourceType === 'events' || parsedResourceType === 'nodes' || parsedResourceType === 'namespaces') {
+          // For cluster-wide or high-detail resources, use listResources directly (consistent with AutoTextarea)
+          const items = await listResources(currentContext.name, parsedResourceType as any);
+
+          if (searchId !== lastSearchIdRef.current) return;
+
+          results = items
+            .filter(item => {
+              if (!finalSearchQuery) return true;
+              const q = finalSearchQuery.toLowerCase();
+              const name = item.metadata?.name || '';
+
+              if (parsedResourceType === 'events') {
+                const event = item as any;
+                return (
+                  (event.involvedObject?.name || '').toLowerCase().includes(q) ||
+                  (event.message || '').toLowerCase().includes(q) ||
+                  (event.reason || '').toLowerCase().includes(q)
+                );
+              }
+              return name.toLowerCase().includes(q);
+            })
+            .slice(0, 60)
+            .map(item => ({
+              resourceType: parsedResourceType!,
+              resourceName: item.metadata?.name || '',
+              namespace: item.metadata?.namespace || '',
+              namespaced: !!item.metadata?.namespace,
+              group: '',
+              version: 'v1'
+            }));
+        } else {
+          // Default to queryResource for other types
+          const response = await queryResource(
+            currentContext.name,
+            finalSearchQuery,
+            60,
+            parsedResourceType
+          );
+
+          if (searchId !== lastSearchIdRef.current) return;
+          results = response.results || [];
+        }
+
+        // Only update if this is still the most recent search
+        if (searchId === lastSearchIdRef.current) {
+          setSearchResults(results);
+        }
       } catch (err) {
         console.error('Search error:', err);
-        setError('Connect to cluster to search resources');
+        if (searchId === lastSearchIdRef.current) {
+          setError('Connect to cluster to search resources');
+          setSearchResults([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (searchId === lastSearchIdRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -112,7 +185,9 @@ const ResourceContext: React.FC<ContextSelectorProps> = ({ onResourceSelect }) =
       fetchResults();
     }, 300);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [searchQuery, isOpen, currentContext]);
 
   // Check for failing pods when search results change
