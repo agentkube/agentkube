@@ -70,7 +70,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   onAddToChat,
   podData
 }) => {
-  const { addStructuredContent } = useDrawer();
+  const { addResourceContext } = useDrawer();
   const [selectedContainer, setSelectedContainer] = useState<string>(containers[0] || '');
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [rawLogs, setRawLogs] = useState<string>('');
@@ -88,7 +88,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1);
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionWidget, setSelectionWidget] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
-  
+
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -101,7 +101,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs, isFollowing]);
-  
+
   // Effect to handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -115,7 +115,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
           }
         }, 100);
       }
-      
+
       // Handle Escape to close search
       if (e.key === 'Escape' && searchVisible) {
         setSearchVisible(false);
@@ -124,7 +124,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
         setCurrentMatchIndex(-1);
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -157,7 +157,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
 
       const range = selection.getRangeAt(0);
       const logContainer = logContainerRef.current;
-      
+
       if (!logContainer) {
         setSelectionWidget({ x: 0, y: 0, visible: false });
         setSelectedText('');
@@ -169,7 +169,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       try {
         const startContainer = range.startContainer;
         const endContainer = range.endContainer;
-        
+
         // Check if selection is within log container
         isWithinLogContainer = logContainer.contains(startContainer) && logContainer.contains(endContainer);
       } catch (error) {
@@ -187,22 +187,22 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       try {
         const rect = range.getBoundingClientRect();
         const containerRect = logContainer.getBoundingClientRect();
-        
+
         // Make sure we have valid dimensions
         if (rect.width === 0 && rect.height === 0) {
           setSelectionWidget({ x: 0, y: 0, visible: false });
           setSelectedText('');
           return;
         }
-        
+
         // Calculate position relative to the log container's scroll position
         const scrollTop = logContainer.scrollTop;
         const scrollLeft = logContainer.scrollLeft;
-        
+
         // Position relative to container, accounting for scroll
         const x = rect.left - containerRect.left + scrollLeft + (rect.width / 2);
         const y = rect.top - containerRect.top + scrollTop - 45; // 45px above selection
-        
+
         setSelectedText(text);
         setSelectionWidget({
           x: Math.max(50, Math.min(x, logContainer.clientWidth - 100)), // Keep within bounds
@@ -229,7 +229,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       const logContainer = logContainerRef.current;
       const isClickInWidget = selectionWidgetRef.current?.contains(e.target as Node);
       const isClickInLogs = logContainer?.contains(e.target as Node);
-      
+
       if (!isClickInWidget && !isClickInLogs) {
         setSelectionWidget({ x: 0, y: 0, visible: false });
         setSelectedText('');
@@ -241,13 +241,13 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
     // Use mouseup for more reliable detection
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('click', handleClickOutside);
-    
+
     return () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('click', handleClickOutside);
     };
   }, [logs.length]);
-  
+
   // Effect to handle search
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -255,7 +255,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       setCurrentMatchIndex(-1);
       return;
     }
-    
+
     const matches: number[] = [];
     logs.forEach((log, index) => {
       const content = (log.timestamp ? formatTimestamp(log.timestamp) : '') + log.content;
@@ -263,10 +263,10 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
         matches.push(index);
       }
     });
-    
+
     setSearchMatches(matches);
     setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
-    
+
     // Scroll to first match
     if (matches.length > 0 && logContainerRef.current) {
       const logElements = logContainerRef.current.querySelectorAll('pre');
@@ -473,7 +473,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   const handleTimeFilterChange = (value: string) => {
     setTimeFilter(value);
   };
-  
+
   // Close search
   const handleCloseSearch = () => {
     setSearchVisible(false);
@@ -481,14 +481,14 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
     setSearchMatches([]);
     setCurrentMatchIndex(-1);
   };
-  
+
   // Navigate to next search match
   const handleNextMatch = () => {
     if (searchMatches.length === 0) return;
-    
+
     const nextIndex = (currentMatchIndex + 1) % searchMatches.length;
     setCurrentMatchIndex(nextIndex);
-    
+
     if (logContainerRef.current) {
       const logElements = logContainerRef.current.querySelectorAll('pre');
       if (logElements[searchMatches[nextIndex]]) {
@@ -496,14 +496,14 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
       }
     }
   };
-  
+
   // Navigate to previous search match
   const handlePrevMatch = () => {
     if (searchMatches.length === 0) return;
-    
+
     const prevIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
     setCurrentMatchIndex(prevIndex);
-    
+
     if (logContainerRef.current) {
       const logElements = logContainerRef.current.querySelectorAll('pre');
       if (logElements[searchMatches[prevIndex]]) {
@@ -515,17 +515,16 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
   // Handle adding selected text to chat
   const handleAddToChat = () => {
     if (selectedText) {
-      const structuredContent = `**Container Logs** ${podName}/${selectedContainer}
+      addResourceContext({
+        resourceType: 'pod',
+        resourceName: podName,
+        namespace: namespace,
+        namespaced: true,
+        group: '',
+        version: 'v1',
+        resourceContent: `**Container Logs** ${podName}/${selectedContainer}\n\n${selectedText}`
+      });
 
-\`\`\`
-${selectedText}
-\`\`\`
-
-**Pod:** ${podName}
-**Namespace:** ${namespace}
-**Container:** ${selectedContainer}`;
-
-      addStructuredContent(structuredContent, `Logs: ${podName}/${selectedContainer}`);
       toast({
         title: "Added to Chat",
         description: "Selected log content added to chat context"
@@ -536,28 +535,28 @@ ${selectedText}
         const wrappedText = `\`\`\`\n${selectedText}\n\`\`\``;
         onAddToChat(wrappedText);
       }
-      
+
       // Clear selection
       window.getSelection()?.removeAllRanges();
       setSelectionWidget({ x: 0, y: 0, visible: false });
       setSelectedText('');
     }
   };
-  
+
   // Function to highlight search matches in text
   const renderHighlightedContent = (text: string) => {
     if (!searchQuery || searchQuery.trim() === '') {
       return text;
     }
-    
+
     try {
       // Create a regular expression with the search query for splitting
       // Use case-insensitive matching with 'i' flag
       const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      
+
       // Split the text by the regex matches
       const parts = text.split(regex);
-      
+
       // Map through the parts and wrap matches in mark tags
       return (
         <>
@@ -565,8 +564,8 @@ ${selectedText}
             // Check if this part matches the search query (case-insensitive)
             if (part.toLowerCase() === searchQuery.toLowerCase()) {
               return (
-                <mark 
-                  key={i} 
+                <mark
+                  key={i}
                   className="bg-yellow-200 dark:bg-yellow-800 text-black dark:text-white px-0.5 rounded-sm"
                 >
                   {part}
@@ -736,10 +735,10 @@ ${selectedText}
                 <ArrowDown className="h-4 w-4" />
               </Button>
               <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {searchMatches.length > 0 
-                  ? `${currentMatchIndex + 1}/${searchMatches.length}` 
-                  : searchQuery 
-                    ? "No matches" 
+                {searchMatches.length > 0
+                  ? `${currentMatchIndex + 1}/${searchMatches.length}`
+                  : searchQuery
+                    ? "No matches"
                     : ""}
               </span>
               <Button
@@ -753,7 +752,7 @@ ${selectedText}
             </div>
           </div>
         )}
-        
+
         {/* Options bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 text-sm border-b border-gray-200 dark:border-gray-800 pb-3">
           <div className="flex items-center gap-4">
@@ -789,7 +788,7 @@ ${selectedText}
           </div>
 
           <div className="flex items-center gap-2">
-            
+
 
             <span className="text-sm text-gray-500 dark:text-gray-400">
               Tail:
@@ -879,8 +878,8 @@ ${selectedText}
             </div>
           ) : (
             logs.map((log, idx) => (
-              <pre 
-                key={idx} 
+              <pre
+                key={idx}
                 className={`m-0 font-mono flex items-start break-all select-text ${searchMatches.includes(idx) && currentMatchIndex === searchMatches.indexOf(idx) ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
               >
                 {showTimestamps && log.timestamp && (

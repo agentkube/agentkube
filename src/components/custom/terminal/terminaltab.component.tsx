@@ -4,6 +4,10 @@ import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { invoke } from '@tauri-apps/api/core';
 import { useTerminal } from '@/contexts/useTerminal';
+import { useDrawer } from '@/contexts/useDrawer';
+import { MessageSquare, MoreHorizontal, AtSign } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import '@xterm/xterm/css/xterm.css';
 
 export interface TerminalTabProps {
@@ -67,8 +71,15 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { registerTerminalInstance, unregisterTerminalInstance, updateSessionLastCommand } = useTerminal();
+  const { registerTerminalInstance, unregisterTerminalInstance, updateSessionLastCommand, sessions } = useTerminal();
+  const { addResourceContext } = useDrawer();
   const currentCommandRef = useRef<string>('');
+  const [selectedText, setSelectedText] = useState<string>('');
+  const [selectionWidget, setSelectionWidget] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
+  const selectionWidgetRef = useRef<HTMLDivElement>(null);
+
+  const currentSession = sessions.find(s => s.data.id === sessionId);
+  const sessionName = currentSession?.data.name || 'Terminal';
 
   // Extract terminal content
   const getTerminalLines = useCallback(() => {
@@ -165,13 +176,23 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
     });
 
     // Handle resize
-    terminal.onResize(({ cols, rows }) => {
+    terminal.onResize(({ cols, rows }: { cols: number; rows: number }) => {
       invoke('resize_pty', { sessionId, cols, rows }).catch(console.error);
+    });
+
+    terminal.onSelectionChange(() => {
+      const selection = terminal.getSelection();
+      if (!selection) {
+        setSelectionWidget(prev => ({ ...prev, visible: false }));
+        setSelectedText('');
+        return;
+      }
+      setSelectedText(selection);
     });
 
     setIsInitialized(true);
     terminal.focus();
-  }, [sessionId]);
+  }, [sessionId, updateSessionLastCommand]);
 
   // Start polling for terminal output
   const startPolling = useCallback(() => {
@@ -263,6 +284,64 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
     };
   }, [isActive, handleResize]);
 
+  // Handle addition to chat from selection
+  const handleAddToChat = useCallback(() => {
+    if (selectedText) {
+      addResourceContext({
+        resourceType: 'terminal',
+        resourceName: sessionName,
+        namespace: '',
+        namespaced: false,
+        group: 'terminal',
+        version: 'v1',
+        resourceContent: selectedText
+      });
+
+      toast.success("Added to Chat", {
+        description: "Selected terminal content added to chat context"
+      });
+
+      if (terminalInstanceRef.current) {
+        terminalInstanceRef.current.clearSelection();
+      }
+      setSelectionWidget({ x: 0, y: 0, visible: false });
+      setSelectedText('');
+    }
+  }, [selectedText, sessionName, addResourceContext]);
+
+  // Handle mouse up to position the widget
+  useEffect(() => {
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!terminalRef.current || !terminalRef.current.contains(e.target as Node)) {
+        // If clicking outside widget and terminal, hide widget
+        if (selectionWidgetRef.current && !selectionWidgetRef.current.contains(e.target as Node)) {
+          setSelectionWidget(prev => ({ ...prev, visible: false }));
+        }
+        return;
+      }
+
+      // Small timeout to let xterm update selection
+      setTimeout(() => {
+        if (terminalInstanceRef.current && terminalInstanceRef.current.hasSelection()) {
+          const terminalRect = terminalRef.current!.getBoundingClientRect();
+
+          // Position relative to the terminal container
+          const x = e.clientX - terminalRect.left;
+          const y = e.clientY - terminalRect.top - 45; // 45px above mouse
+
+          setSelectionWidget({
+            x: Math.max(50, Math.min(x, terminalRect.width - 100)),
+            y: Math.max(10, y),
+            visible: true
+          });
+        }
+      }, 50);
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => document.removeEventListener('mouseup', handleMouseUp);
+  }, []);
+
   // Handle terminal click to focus
   const handleClick = useCallback(() => {
     if (terminalInstanceRef.current) {
@@ -271,15 +350,47 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
   }, []);
 
   return (
-    <div
-      ref={terminalRef}
-      className={`w-full h-full bg-background/95 cursor-text ${!isActive ? 'hidden' : ''}`}
-      onClick={handleClick}
-      style={{
-        display: isActive ? 'block' : 'none',
-        padding: '4px',
-      }}
-    />
+    <div className="relative w-full h-full">
+      <div
+        ref={terminalRef}
+        className={`w-full h-full bg-background/95 cursor-text ${!isActive ? 'hidden' : ''}`}
+        onClick={handleClick}
+        style={{
+          display: isActive ? 'block' : 'none',
+          padding: '4px',
+        }}
+      />
+
+      {selectionWidget.visible && (
+        <div
+          ref={selectionWidgetRef}
+          className="absolute z-50 flex items-center gap-1 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg p-1 shadow-2xl animate-in fade-in zoom-in duration-200"
+          style={{
+            left: `${selectionWidget.x}px`,
+            top: `${selectionWidget.y}px`,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs text-white hover:bg-white/10 flex items-center gap-1.5"
+            onClick={handleAddToChat}
+          >
+            <AtSign className="h-3.5 w-3.5" />
+            Chat
+          </Button>
+          <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-7 p-0 text-white hover:bg-white/10"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 
