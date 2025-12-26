@@ -87,7 +87,7 @@ const Deployments: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   // Default column configuration
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
@@ -99,8 +99,8 @@ const Deployments: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('deployments', defaultColumnConfig)
   );
 
@@ -188,7 +188,7 @@ const Deployments: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -383,7 +383,7 @@ const Deployments: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     // Determine which deployments to scale
@@ -436,7 +436,7 @@ const Deployments: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -498,7 +498,7 @@ const Deployments: React.FC = () => {
 
   const handleDeleteDeployment = (e: React.MouseEvent, deployment: V1Deployment) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -507,7 +507,7 @@ const Deployments: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveDeployment(deployment);
     setSelectedDeployments(new Set([`${deployment.metadata?.namespace}/${deployment.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -580,7 +580,7 @@ const Deployments: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -648,7 +648,7 @@ const Deployments: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-card dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -656,7 +656,7 @@ const Deployments: React.FC = () => {
             : `${contextMenuPosition.y}px`,
         }}
       >
-        <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-800/60">
+        <div className="px-3 py-2 text-xs  font-medium border-b border-gray-200 dark:border-gray-800/60">
           {selectedDeployments.size > 1
             ? `${selectedDeployments.size} deployments selected`
             : activeDeployment?.metadata?.name || 'Deployment actions'}
@@ -752,9 +752,9 @@ const Deployments: React.FC = () => {
   // Handle incoming Kubernetes deployment events
   const handleDeploymentEvent = useCallback((kubeEvent: any) => {
     const { type, object: deployment } = kubeEvent;
-    
+
     if (!deployment || !deployment.metadata) return;
-    
+
     // Filter: only process deployments from selected namespaces
     if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(deployment.metadata.namespace)) {
       return; // Skip deployments not in selected namespaces
@@ -763,8 +763,8 @@ const Deployments: React.FC = () => {
     setDeployments(prevDeployments => {
       const newDeployments = [...prevDeployments];
       const existingIndex = newDeployments.findIndex(
-        d => d.metadata?.namespace === deployment.metadata.namespace && 
-             d.metadata?.name === deployment.metadata.name
+        d => d.metadata?.namespace === deployment.metadata.namespace &&
+          d.metadata?.name === deployment.metadata.name
       );
 
       switch (type) {
@@ -825,7 +825,7 @@ const Deployments: React.FC = () => {
 
     // Create a connection ID based only on context (one connection per cluster)
     const connectionId = currentContext.name;
-    
+
     // Don't create a new connection if we already have one for the same cluster
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
       return;
@@ -871,7 +871,7 @@ const Deployments: React.FC = () => {
         try {
           // Direct Kubernetes API watch response (no multiplexer wrapping)
           const kubeEvent = JSON.parse(event.data);
-          
+
           // Handle Kubernetes watch event directly
           if (kubeEvent.type && kubeEvent.object) {
             handleDeploymentEvent(kubeEvent);
@@ -889,7 +889,7 @@ const Deployments: React.FC = () => {
           setWsConnected(false);
           wsRef.current = null;
           connectionIdRef.current = null;
-          
+
           // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
           if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
             reconnectTimeoutRef.current = setTimeout(() => {
@@ -973,7 +973,7 @@ const Deployments: React.FC = () => {
 
     // Clear existing deployments when switching contexts/namespaces
     setDeployments([]);
-    
+
     // If no namespaces selected, don't connect and show empty state
     if (selectedNamespaces.length === 0) {
       setLoading(false);
@@ -992,7 +992,7 @@ const Deployments: React.FC = () => {
     }
 
     setLoading(true);
-    
+
     // First load existing deployments, then start WebSocket for real-time updates
     const initializeDeployments = async () => {
       try {
@@ -1007,7 +1007,7 @@ const Deployments: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     initializeDeployments();
 
     // Cleanup function  
@@ -1038,10 +1038,10 @@ const Deployments: React.FC = () => {
       setDeployments([]);
       return;
     }
-    
+
     // Filter existing deployments based on new namespace selection
-    setDeployments(prevDeployments => 
-      prevDeployments.filter(deployment => 
+    setDeployments(prevDeployments =>
+      prevDeployments.filter(deployment =>
         deployment.metadata?.namespace && selectedNamespaces.includes(deployment.metadata.namespace)
       )
     );
@@ -1209,7 +1209,7 @@ const Deployments: React.FC = () => {
           <h1 className='text-5xl font-[Anton] uppercase font-bold text-gray-800/30 dark:text-gray-700/50'>Deployments</h1>
           <div className="w-full md:w-96 mt-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 " />
               <Input
                 type="text"
                 placeholder="Search by name, namespace, or label..."
@@ -1226,9 +1226,9 @@ const Deployments: React.FC = () => {
             {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
             <NamespaceSelector />
           </div>
-          
+
           <Button
-            variant="outline" 
+            variant="outline"
             size="sm"
             onClick={() => {
               if (!wsConnected) {

@@ -150,7 +150,7 @@ const ScaleDialog: React.FC<ScaleDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-100 dark:bg-[#0B0D13]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Scale {getDisplayName(resourceType)}</DialogTitle>
           <DialogDescription>
@@ -214,7 +214,6 @@ const ScaleDialog: React.FC<ScaleDialogProps> = ({
           <Button
             onClick={handleScaleResources}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {loading ? "Scaling..." : "Scale"}
           </Button>
