@@ -661,7 +661,7 @@ const HomePage: React.FC = () => {
 
     return (
       <div
-        className="absolute bg-white dark:bg-[#0B0D13]/30 backdrop-blur-md shadow-lg rounded-lg z-50 border border-gray-200 dark:border-gray-800"
+        className="absolute bg-card dark:bg-card/80 text-xs backdrop-blur-md shadow-lg rounded-lg z-50 border border-accent dark:border-accent"
         style={{
           top: `${contextMenu.y}px`,
           left: `${contextMenu.x}px`,
@@ -670,7 +670,7 @@ const HomePage: React.FC = () => {
       >
         {contextMenu.isPinned ? (
           <div
-            className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer rounded-sm"
+            className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-foreground/5 cursor-pointer rounded-sm"
             onClick={handleUnpin}
           >
             <Pin size={16} className='rotate-45' />
@@ -678,7 +678,7 @@ const HomePage: React.FC = () => {
           </div>
         ) : (
           <div
-            className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer rounded-sm"
+            className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-foreground/5 cursor-pointer rounded-sm"
             onClick={handlePin}
           >
             <Pin size={16} className='-rotate-45' />
@@ -687,7 +687,7 @@ const HomePage: React.FC = () => {
         )}
 
         <div
-          className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer rounded-sm"
+          className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-foreground/5 cursor-pointer rounded-sm"
           onClick={handleContextMenuConnect}
         >
           <Link size={16} />
@@ -695,7 +695,7 @@ const HomePage: React.FC = () => {
         </div>
 
         <div
-          className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer rounded-sm"
+          className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-foreground/5 cursor-pointer rounded-sm"
           onClick={handleRenameContext}
         >
           <Edit3 size={16} />
@@ -703,7 +703,7 @@ const HomePage: React.FC = () => {
         </div>
 
         <div
-          className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 cursor-pointer rounded-sm text-red-500"
+          className="px-4 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-foreground/5 cursor-pointer rounded-sm text-red-500"
           onClick={handleDeleteContext}
         >
           <Trash2 size={16} />
