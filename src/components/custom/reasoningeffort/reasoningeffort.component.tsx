@@ -38,7 +38,7 @@ export const ReasoningEffort: React.FC<ReasoningEffortProps> = ({ value, onChang
           <TooltipTrigger asChild>
             <DropdownMenuTrigger className='rounded-md' asChild>
               <button
-                className="flex items-center gap-2 px-2 py-1 h-auto text-xs text-gray-700 dark:text-foreground/70 dark:hover:text-gray-300"
+                className="flex items-center gap-2 px-2 py-1 h-auto text-xs text-muted-foreground hover:text-foreground"
               >
                 <Brain className="h-3.5 w-3.5" />
                 <span>{currentOption?.label || 'Medium'}</span>

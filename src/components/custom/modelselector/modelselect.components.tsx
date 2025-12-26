@@ -686,7 +686,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
   return (
     <div ref={dropdownRef} className="relative inline-block text-left">
       <div
-        className="inline-flex items-center cursor-pointer text-gray-400 text-xs hover:text-gray-300"
+        className="inline-flex items-center cursor-pointer text-xs text-muted-foreground hover:text-foreground"
         onClick={toggleDropdown}
       >
         <span>{currentModel}</span>
