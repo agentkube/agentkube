@@ -32,6 +32,7 @@ import {
 
 import { useTerminal, TerminalSession, BrowserSession, Session } from '@/contexts/useTerminal';
 import { useDrawer } from '@/contexts/useDrawer';
+import { useCluster } from '@/contexts/clusterContext';
 
 interface PendingRequest {
   command?: string;
@@ -75,6 +76,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     setActiveSessionId,
     getTerminalContent
   } = useTerminal();
+  const { currentContext } = useCluster();
   const { addResourceContext } = useDrawer();
   const [terminalHeight, setTerminalHeight] = useState('40vh');
   const [isDragging, setIsDragging] = useState(false);
@@ -123,11 +125,35 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         }
       }
 
+      // Automatically set current context if available
+      let finalCommand = initialCommand;
+      if (currentContext) {
+        const kubeconfig = currentContext.meta_data?.origin?.kubeconfig;
+        const originalName = currentContext.meta_data?.originalName || currentContext.name;
+
+        if (kubeconfig && originalName) {
+          const isPowerShell = finalShellPath?.toLowerCase().includes('powershell') || finalShellPath?.toLowerCase().includes('pwsh');
+          const isCmd = finalShellPath?.toLowerCase().includes('cmd.exe');
+
+          let contextCmd = '';
+          if (isPowerShell) {
+            contextCmd = `$env:KUBECONFIG="${kubeconfig}"; kubectl config use-context "${originalName}"; clear`;
+          } else if (isCmd) {
+            contextCmd = `set KUBECONFIG=${kubeconfig} && kubectl config use-context ${originalName} && cls`;
+          } else {
+            // Default to Unix-style (Zsh/Bash)
+            contextCmd = `export KUBECONFIG="${kubeconfig}" && kubectl config use-context "${originalName}" && clear`;
+          }
+
+          finalCommand = initialCommand ? `${contextCmd} && ${initialCommand}` : contextCmd;
+        }
+      }
+
       const session = await invoke<TerminalSession>('create_local_shell', {
         name: name || undefined,
         cols: 80,
         rows: 24,
-        initialCommand: initialCommand || undefined,
+        initialCommand: finalCommand || undefined,
         shellPath: finalShellPath || undefined,
       });
 
@@ -139,7 +165,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
       console.error('Failed to create terminal session:', err);
       throw err;
     }
-  }, [defaultProfileId, terminalProfiles, setSessions, setActiveSessionId]);
+  }, [defaultProfileId, terminalProfiles, currentContext, setSessions, setActiveSessionId]);
 
   // Create a new browser session
   const createBrowserSession = useCallback((url?: string, name?: string) => {
