@@ -188,7 +188,7 @@ const TaskReport: React.FC = () => {
       case 'warning': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300';
       case 'info': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
       case 'success': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-400';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -253,8 +253,8 @@ ${taskDetails.remediation || 'No specific remediation provided'}
   if (loading) {
     return (
       <div className="px-6 py-6 flex items-center justify-center h-[92vh]">
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-2"></div>
+        <div className="text-center text-muted-foreground">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-muted-foreground mx-auto mb-2"></div>
           Loading task details...
         </div>
       </div>
@@ -276,17 +276,17 @@ ${taskDetails.remediation || 'No specific remediation provided'}
     <div className="px-6 py-6 space-y-2 max-h-[92vh] overflow-y-auto
       [&::-webkit-scrollbar]:w-1.5 
       [&::-webkit-scrollbar-track]:bg-transparent 
-      [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+      [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 
       [&::-webkit-scrollbar-thumb]:rounded-full
-      [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+      [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
 
       {/* Header Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Task Report</h1>
-              <h1 className="text-xs text-gray-500 dark:text-gray-400">{taskDetails.task_id}</h1>
+              <h1 className="text-5xl text-foreground/40 font-[Anton] uppercase font-bold">Task Report</h1>
+              <h1 className="text-xs text-muted-foreground">{taskDetails.task_id}</h1>
             </div>
           </div>
 
@@ -311,20 +311,20 @@ ${taskDetails.remediation || 'No specific remediation provided'}
           </div>
         </div>
 
-        <Card className="bg-transparent dark:bg-transparent border-gray-200/70 dark:border-gray-700/30">
+        <Card className="bg-transparent border-none">
           <CardContent className="py-6 px-0">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <h2 className="text-lg font-medium text-foreground mb-2">
                   {taskDetails.title}
                 </h2>
-                <p className="text-xs text-gray-600 dark:text-gray-300 mb-4 truncate max-w-96">
+                <p className="text-xs text-muted-foreground mb-4 truncate max-w-96">
                   {taskDetails.summary}
                 </p>
                 <div className="flex items-center gap-1 text-xs">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-600 dark:text-gray-400">{formatDate(taskDetails.created_at)}</span>
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{formatDate(taskDetails.created_at)}</span>
                   </div>
                   <Badge className={getSeverityColor('error')}>
                     {taskDetails.status.toUpperCase()}
@@ -341,7 +341,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                     {tag}
                   </div>
                 )) || (
-                    <span className="text-xs text-gray-500">No tags</span>
+                    <span className="text-xs text-muted-foreground">No tags</span>
                   )}
               </div>
             </div>
@@ -351,12 +351,12 @@ ${taskDetails.remediation || 'No specific remediation provided'}
 
       {/* Impact Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
           <CardContent className="p-4 h-full flex items-end">
             <div className="flex justify-between items-end w-full">
               <div className=''>
-                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.impact?.impacted_since ?? 0}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Impacted Since</p>
+                <p className="text-4xl font-light text-foreground">{taskDetails.impact?.impacted_since ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Impacted Since</p>
               </div>
               <div className="p-2 rounded-lg w-fit bg-red-100 dark:bg-red-900/20">
                 <TrendingUp className="w-5 h-5 text-red-600" />
@@ -364,12 +364,12 @@ ${taskDetails.remediation || 'No specific remediation provided'}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
           <CardContent className="p-4 h-full flex items-end">
             <div className="flex justify-between items-end w-full">
               <div className=''>
-                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{formatDuration(taskDetails.duration)}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Task Duration</p>
+                <p className="text-4xl font-light text-foreground">{formatDuration(taskDetails.duration)}</p>
+                <p className="text-xs text-muted-foreground">Task Duration</p>
               </div>
               <div className="p-2 rounded-lg w-fit bg-blue-100 dark:bg-blue-900/20">
                 <Clock className="w-5 h-5 text-blue-600" />
@@ -379,13 +379,13 @@ ${taskDetails.remediation || 'No specific remediation provided'}
         </Card>
 
 
-        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
           <CardContent className="p-4 h-full flex items-end">
             <div className="flex justify-between items-end w-full">
 
               <div className=''>
-                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.impact?.service_affected ?? 0}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Services Affected</p>
+                <p className="text-4xl font-light text-foreground">{taskDetails.impact?.service_affected ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Services Affected</p>
               </div>
               <div className="p-2 rounded-lg w-fit bg-purple-100 dark:bg-purple-900/20">
                 <Server className="w-5 h-5 text-purple-600" />
@@ -394,12 +394,12 @@ ${taskDetails.remediation || 'No specific remediation provided'}
           </CardContent>
         </Card>
 
-        <Card className="bg-transparent dark:bg-gray-800/20 h-36 border-gray-200/70 dark:border-gray-700/30 rounded-md">
+        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
           <CardContent className="p-4 h-full flex items-end">
             <div className="flex justify-between items-end w-full">
               <div className=''>
-                <p className="text-4xl font-light text-gray-900 dark:text-gray-100">{taskDetails.pattern_confidence ? `${taskDetails.pattern_confidence}%` : '0%'}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Pattern Confidence</p>
+                <p className="text-4xl font-light text-foreground">{taskDetails.pattern_confidence ? `${taskDetails.pattern_confidence}%` : '0%'}</p>
+                <p className="text-xs text-muted-foreground">Pattern Confidence</p>
               </div>
               <div className="p-2 rounded-lg w-fit bg-orange-100 dark:bg-orange-900/20">
                 <CheckCircle className="w-5 h-5 text-orange-600" />
@@ -412,7 +412,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
 
       {/* Fault Propagation Graph */}
       {taskDetails.fault_propagation_graph && taskDetails.fault_propagation_graph.nodes.length > 0 && (
-        <Card className="bg-transparent dark:bg-gray-800/20 rounded-md border-gray-200/70 dark:border-gray-700/30">
+        <Card className="bg-card/30 rounded-md border-border/50">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 uppercase text-sm">
               <TrendingUp className="w-5 h-5" />
@@ -431,7 +431,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
 
         {/* Root Cause Analysis */}
-        <Card className="bg-transparent dark:bg-gray-800/20 rounded-md border-gray-200/70 dark:border-gray-700/30 py-2">
+        <Card className="bg-card/30 rounded-md border-border/50 py-2">
           <CardContent className="space-y-4">
             <Accordion type="single" collapsible defaultValue="root-cause" className="w-full">
               <AccordionItem value="root-cause" className="border-0">
@@ -442,8 +442,8 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-0 pb-2">
-                  <div className="bg-gray-100 dark:bg-gray-800/20 border border-purple-200 dark:border-blue-800/60 rounded-lg p-4">
-                    <p className="text-xs text-gray-700 dark:text-yellow-500">
+                  <div className="bg-muted/50 border border-primary/20 rounded-lg p-4">
+                    <p className="text-xs text-foreground">
                       <MarkdownContent content={taskDetails.summary || ''} />
                     </p>
                   </div>
@@ -484,7 +484,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-0 pb-2">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 px-2">
+                    <div className="text-xs text-muted-foreground px-2">
                       <MarkdownContent content={taskDetails.remediation || ''} />
                     </div>
                   </AccordionContent>
@@ -495,7 +495,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
         </Card>
 
         {/* System Checks */}
-        <Card className="bg-transparent dark:bg-gray-800/20 rounded-md border-gray-200/70 dark:border-gray-700/30">
+        <Card className="bg-card/30 rounded-md border-border/50">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 uppercase text-sm">
               <ClipboardCheck className="w-5 h-5" />
@@ -510,7 +510,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
               return (
                 <div
                   key={index}
-                  className=" gap-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-500/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500/10 transition-colors"
+                  className=" gap-3 p-2 rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => setSelectedSubTask(subTask)}
                 >
                   <div className="flex justify-between items-center gap-2 min-w-0 flex-1">
@@ -522,11 +522,11 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                         {status}
                       </Badge>
                     </div>
-                    <ArrowUpRight className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+                    <ArrowUpRight className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
                   </div>
                   <div className="min-w-0 flex-1 mt-2">
                     <div className="flex items-center gap-1">
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 tracking-wide">
+                      <span className="text-xs font-medium text-muted-foreground tracking-wide">
                         {subTask.subject || 'Unknown'}
                       </span>
 
@@ -538,9 +538,9 @@ ${taskDetails.remediation || 'No specific remediation provided'}
               );
             }) : (
               <div className="text-center py-8">
-                <ClipboardCheck className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">No system checks available</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Checks will appear here when the task runs</p>
+                <ClipboardCheck className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No system checks available</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Checks will appear here when the task runs</p>
               </div>
             )}
           </CardContent>
@@ -562,7 +562,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                     {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
                   </div>
                   <div className='flex items-center gap-0.5'>
-                    <h3 className="font-medium text-md text-gray-800 dark:text-gray-200 leading-tight">
+                    <h3 className="font-medium text-md text-foreground leading-tight">
                       {selectedSubTask.reason}
                     </h3>
 
@@ -574,30 +574,30 @@ ${taskDetails.remediation || 'No specific remediation provided'}
             <DrawerContent>
               <div className="p-6 space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Goal</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <h4 className="font-medium text-xs uppercase text-muted-foreground">Goal</h4>
+                  <p className="text-sm text-foreground/80">
                     {selectedSubTask.goal}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="font-medium text-xs uppercase text-xs text-gray-900 dark:text-gray-500">Status</h4>
+                  <h4 className="font-medium text-xs uppercase text-muted-foreground">Status</h4>
                   <div className="flex items-center gap-2">
                     {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
                     <span className="text-xs">{getSubTaskStatus(selectedSubTask.status)}</span>
-                    <span className="text-xs text-gray-500">({selectedSubTask.status} issues found)</span>
+                    <span className="text-xs text-muted-foreground">({selectedSubTask.status} issues found)</span>
                   </div>
                 </div>
 
                 {selectedSubTask.plan && selectedSubTask.plan.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-xs uppercase font-medium text-gray-900 dark:text-gray-500">Tool Calls Evidence</h4>
+                    <h4 className="text-xs uppercase font-medium text-muted-foreground">Tool Calls Evidence</h4>
                     <div className="">
                       {selectedSubTask.plan.map((planItem, index) => (
-                        <div key={index} className="border-x border-t last:border-b border-gray-400/20 dark:border-gray-800/50 rounded-none overflow-hidden">
+                        <div key={index} className="border-x border-t last:border-b border-border/50 rounded-none overflow-hidden">
                           <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value={`plan-${index}`} className="border-0">
-                              <AccordionTrigger className="px-2 py-2 hover:no-underline bg-gray-200 dark:bg-transparent">
+                              <AccordionTrigger className="px-2 py-2 hover:no-underline bg-muted/30">
                                 <div className="flex items-center gap-2">
                                   <Wrench className="h-4 w-4" />
                                   <span className="text-sm space-x-1 flex items-center">
@@ -605,14 +605,14 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                                   </span>
                                 </div>
                               </AccordionTrigger>
-                              <AccordionContent className="bg-gray-100 dark:bg-transparent">
+                              <AccordionContent className="bg-muted/20">
                                 {/* Parameters section */}
                                 {planItem.arguments && (
                                   <div className="p-2 space-y-1">
-                                    <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                                    <h4 className="text-xs uppercase text-muted-foreground">
                                       Parameters
                                     </h4>
-                                    <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
+                                    <div className="bg-muted/50 rounded-md overflow-x-auto">
                                       <SyntaxHighlighter
                                         language="json"
                                         style={nord}
@@ -630,22 +630,22 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                                 {planItem.output && (
                                   <div className="p-2 pt-0 space-y-1">
                                     <div className="flex items-center justify-between">
-                                      <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                                      <h4 className="text-xs uppercase text-muted-foreground">
                                         Output
                                       </h4>
                                       <button
                                         onClick={() => handleCopy(planItem.output)}
-                                        className="p-1 rounded hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-colors"
+                                        className="p-1 rounded hover:bg-muted/50 transition-colors"
                                         title="Copy output"
                                       >
                                         {copied ? (
                                           <Check className="h-3 w-3 text-green-500" />
                                         ) : (
-                                          <Copy className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                          <Copy className="h-3 w-3 text-muted-foreground" />
                                         )}
                                       </button>
                                     </div>
-                                    <div className="bg-gray-300/50 dark:bg-gray-800/50 rounded-md overflow-x-auto">
+                                    <div className="bg-muted/50 rounded-md overflow-x-auto">
                                       <SyntaxHighlighter
                                         language="bash"
                                         style={nord}
@@ -667,8 +667,8 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                   </div>
                 )}
                 <div className="space-y-2">
-                  <h4 className="font-medium text-xs uppercase text-gray-900 dark:text-gray-500">Discovery</h4>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <h4 className="font-medium text-xs uppercase text-muted-foreground">Discovery</h4>
+                  <div className="text-sm text-foreground/80">
                     <MarkdownContent content={selectedSubTask.discovery || ''} />
                   </div>
                 </div>
@@ -687,24 +687,24 @@ ${taskDetails.remediation || 'No specific remediation provided'}
       />
 
       {/* Events Timeline Section */}
-      <Card className="bg-transparent border-gray-200/70 dark:border-gray-700/30">
+      <Card className="bg-card/30 border-border/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-xs flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-2">
             <Calendar className="w-4 h-4" />
             Events
           </CardTitle>
-          <Separator className='dark:bg-gray-400/10 h-[2px] rounded-full' />
+          <Separator className='bg-border/50 h-[2px] rounded-full' />
         </CardHeader>
         <CardContent>
           {taskDetails.events && taskDetails.events.length > 0 ? (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-muted-foreground">
               Events will be displayed here when available.
             </div>
           ) : (
             <div className="text-center py-8">
-              <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">No events recorded yet</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Events will appear here as they occur</p>
+              <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No events recorded yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Events will appear here as they occur</p>
             </div>
           )}
         </CardContent>
