@@ -442,7 +442,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-0 pb-2">
-                  <div className="bg-muted/50 border border-primary/20 rounded-lg p-4">
+                  <div className="bg-muted/50 rounded-lg p-4">
                     <p className="text-xs text-foreground">
                       <MarkdownContent content={taskDetails.summary || ''} />
                     </p>

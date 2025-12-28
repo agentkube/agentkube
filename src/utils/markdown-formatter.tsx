@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Copy, CheckCheck, Sparkles } from 'lucide-react';
-import { 
+import {
   ChartLineDotsColors,
   ChartBarStacked,
   ChartBarLabelCustom,
@@ -42,36 +42,36 @@ const ChartComponents = {
 // Custom component to handle chart rendering
 const ChartRenderer = ({ type, title, description, explanation, ...props }: any) => {
   const ChartComponent = ChartComponents[type as keyof typeof ChartComponents];
-  
+
   if (!ChartComponent) {
     return (
-      <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 my-4">
-        <p className="text-gray-500 dark:text-gray-400">Chart type "{type}" not found</p>
+      <div className="border-2 border-dashed border-border rounded-lg p-4 my-4">
+        <p className="text-muted-foreground">Chart type "{type}" not found</p>
       </div>
     );
   }
-  
+
   return (
     <div className="my-6 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
       {/* Chart on the left */}
       <div className="w-full">
-        <ChartComponent 
+        <ChartComponent
           title={title}
           description={description}
           {...props}
         />
       </div>
-      
+
       {/* Explanation on the right */}
       {explanation && (
-        <div className="space-y-3 p-4 bg-transparent dark:bg-gray-800/20 rounded-lg border border-gray-200 dark:border-gray-700/30">
-          <div className='font-semibold text-sm flex items-center gap-2 text-blue-700 dark:text-emerald-500'>
-          <Sparkles className='h-4 w-4'/>
-          <h4>
-            Explanation
-          </h4>
+        <div className="space-y-3 p-4 bg-card/30 rounded-lg border border-border/50">
+          <div className='font-semibold text-sm flex items-center gap-2 text-primary'>
+            <Sparkles className='h-4 w-4' />
+            <h4>
+              Explanation
+            </h4>
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div className="text-xs text-muted-foreground">
             <MarkdownContent content={explanation} />
           </div>
         </div>
@@ -82,9 +82,9 @@ const ChartRenderer = ({ type, title, description, explanation, ...props }: any)
 
 const MarkdownContent = ({ content }: MarkdownContentProps) => {
   if (!content || typeof content !== 'string') {
-    return <span className="text-gray-500 dark:text-gray-400 text-sm">No content available</span>;
+    return <span className="text-muted-foreground text-sm">No content available</span>;
   }
-  
+
   const processedContent = content
     .replace(/\\n/g, '\n')
     // Convert single-quoted text to backticks for inline code
@@ -103,21 +103,21 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
     ),
     p: ({ children }: any) => {
       const childString = String(children);
-      
+
       if (childString.includes('<chart>') && childString.includes('</chart>')) {
         const chartContent = childString.match(/<chart>(.*?)<\/chart>/);
-        
+
         if (chartContent) {
           const content = chartContent[1];
           const typeMatch = content.match(/type:\s*([^\s]+)/);
           const titleMatch = content.match(/title:\s*([^:]*?)(?:\s+description:|$)/);
           const descMatch = content.match(/description:\s*([^:]*?)(?:\s+explanation:|$)/);
           const explanationMatch = content.match(/explanation:\s*(.+)$/);
-          
+
           if (typeMatch) {
             return (
               <div className="my-4">
-                <ChartRenderer 
+                <ChartRenderer
                   type={typeMatch[1].trim()}
                   title={titleMatch ? titleMatch[1].trim() : 'Chart'}
                   description={descMatch ? descMatch[1].trim() : 'Chart description'}
@@ -128,8 +128,8 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
           }
         }
       }
-      
-      return <p className="text-gray-700 dark:text-gray-300 mb-4">{children}</p>;
+
+      return <p className="text-foreground/80 mb-4">{children}</p>;
     },
     ul: ({ children }: any) => (
       <ul className="list-disc list-outside space-y-2 mb-4 ml-4">{children}</ul>
@@ -138,11 +138,11 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
       <ol className="list-decimal list-outside space-y-2 mb-4 ml-4 pl-6">{children}</ol>
     ),
     li: ({ children }: any) => (
-      <li className="text-gray-700 dark:text-gray-300">{children}</li>
+      <li className="text-foreground/80">{children}</li>
     ),
     table: ({ children }: TableProps) => (
       <div className="overflow-x-auto my-4 rounded-md">
-        <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-800/60 rounded-xl border border-gray-300 dark:border-gray-900">
+        <table className="min-w-full divide-y divide-border rounded-xl border border-border">
           {children}
         </table>
       </div>
@@ -150,7 +150,7 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
     Chart: ({ type, title, description, ...props }: any) => {
       return (
         <div className="my-4">
-          <ChartRenderer 
+          <ChartRenderer
             type={type}
             title={title || 'Chart'}
             description={description || 'Chart description'}
@@ -160,35 +160,35 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
       );
     },
     thead: ({ children }: any) => (
-      <thead className="bg-gray-200 dark:bg-gray-800/30">{children}</thead>
+      <thead className="bg-muted/50">{children}</thead>
     ),
     tbody: ({ children }: any) => (
-      <tbody className="divide-y divide-gray-300 dark:divide-gray-800 rounded-xl">{children}</tbody>
+      <tbody className="divide-y divide-border rounded-xl">{children}</tbody>
     ),
     tr: ({ children }: any) => (
-      <tr className='hover:bg-gray-200 dark:hover:bg-gray-800/50 cursor-pointer'>{children}</tr>
+      <tr className='hover:bg-muted/50 cursor-pointer'>{children}</tr>
     ),
     th: ({ children }: any) => (
-      <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border border-gray-300 dark:border-gray-800">{children}</th>
+      <th className="px-4 py-2 text-left text-xs font-bold text-foreground/80 uppercase tracking-wider border border-border">{children}</th>
     ),
     td: ({ children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { style?: React.CSSProperties & { '--rmd-table-cell-index'?: number } }) => {
       const [showCopy, setShowCopy] = useState(false);
       const [copied, setCopied] = useState(false);
-      
-      const isFirstColumn = props.style?.['--rmd-table-cell-index'] === 0 || 
-                           (!props.style && React.Children.toArray(children).length > 0);
-      
+
+      const isFirstColumn = props.style?.['--rmd-table-cell-index'] === 0 ||
+        (!props.style && React.Children.toArray(children).length > 0);
+
       const handleCopy = async () => {
-        const text = typeof children === 'string' ? children : 
-                    React.Children.toArray(children).join('');
+        const text = typeof children === 'string' ? children :
+          React.Children.toArray(children).join('');
         await navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       };
-    
+
       return (
-        <td 
-          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-800 relative group"
+        <td
+          className="px-4 py-2 text-sm text-foreground/80 border border-border relative group"
           onMouseEnter={() => isFirstColumn && setShowCopy(true)}
           onMouseLeave={() => setShowCopy(false)}
         >
@@ -196,11 +196,10 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
           {isFirstColumn && (showCopy || copied) && (
             <button
               onClick={handleCopy}
-              className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 ${
-                copied 
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' 
-                  : 'bg-gray-100 dark:bg-transparent hover:bg-gray-200 dark:hover:bg-transparent'
-              }`}
+              className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 ${copied
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                  : 'bg-muted/50 hover:bg-muted'
+                }`}
             >
               {copied ? (
                 <CheckCheck className="h-4 w-4" />
@@ -224,20 +223,20 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
     ),
     div: ({ children }: any) => {
       const childString = String(children);
-      
+
       if (childString.includes('<chart>') && childString.includes('</chart>')) {
         const chartContent = childString.match(/<chart>([\s\S]*?)<\/chart>/);
-        
+
         if (chartContent) {
           const content = chartContent[1];
           const typeMatch = content.match(/type:\s*([^\n]+)/);
           const titleMatch = content.match(/title:\s*([^\n]+)/);
           const descMatch = content.match(/description:\s*([^\n]+)/);
-          
+
           if (typeMatch) {
             return (
               <div className="my-4">
-                <ChartRenderer 
+                <ChartRenderer
                   type={typeMatch[1].trim()}
                   title={titleMatch ? titleMatch[1].trim() : 'Chart'}
                   description={descMatch ? descMatch[1].trim() : 'Chart description'}
@@ -247,40 +246,40 @@ const MarkdownContent = ({ content }: MarkdownContentProps) => {
           }
         }
       }
-      
+
       return <div>{children}</div>;
     },
-    
+
     code: ({ inline, children, className }: CodeProps) => {
       if (inline) {
-        return <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-xs font-mono">{children}</code>;
+        return <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>;
       }
-    
+
       const content = String(children);
       if (!content.includes('\n')) {
-        return <code className="bg-gray-200 dark:bg-gray-800/80 text-gray-900 dark:text-green-400 px-1 py-0.5 rounded text-xs font-mono">{content}</code>;
+        return <code className="bg-muted text-foreground px-1 py-0.5 rounded text-xs font-mono">{content}</code>;
       }
-    
+
       const language = className?.replace('language-', '') || 'plaintext';
-      
+
       return <CodeBlock language={language} content={content.trim()} />;
     },
     pre: ({ children }: any) => (
       <div className="my-4">{children}</div>
     ),
     blockquote: ({ children }: any) => (
-      <blockquote className="border-l-4 border-gray-400 dark:border-gray-600 pl-4 py-2 my-4 text-gray-700 dark:text-gray-300 italic">
+      <blockquote className="border-l-4 border-border pl-4 py-2 my-4 text-foreground/80 italic">
         {children}
       </blockquote>
     ),
     hr: () => (
-      <hr className="my-6 border-t border-gray-300 dark:border-gray-700" />
+      <hr className="my-6 border-t border-border" />
     ),
 
   };
 
   return (
-    <div className="text-gray-800 dark:text-gray-300">
+    <div className="text-foreground">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         // rehypePlugins={[rehypeRaw]}

@@ -12,9 +12,9 @@ interface CodeBlockProps {
   content: string;
 }
 
-export const CodeBlock: React.FC<CodeBlockProps> = ({ 
-  language = 'plaintext', 
-  content 
+export const CodeBlock: React.FC<CodeBlockProps> = ({
+  language = 'plaintext',
+  content
 }) => {
   const [copied, setCopied] = useState(false);
   const { theme } = useTheme();
@@ -35,17 +35,17 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   };
 
   return (
-    <div className="relative my-4 rounded-xl bg-gray-300/50 dark:bg-gray-800/10 text-gray-100 border border-gray-700/20 dark:border-gray-800">
-      <div className="flex justify-between px-2 py-1 dark:border-gray-800">
-        <div className="px-4 py-1 text-xs text-gray-400 flex items-center">
-          <span className="text-xs text-gray-700 dark:text-gray-300">
+    <div className="relative my-4 rounded-xl bg-muted/50 border border-border">
+      <div className="flex justify-between px-2 py-1 border-border">
+        <div className="px-4 py-1 text-xs text-muted-foreground flex items-center">
+          <span className="text-xs text-foreground/70">
             {language}
           </span>
         </div>
         <div className="flex">
           <button
             onClick={handleCopy}
-            className="px-2 py-1 transition-all rounded-[0.3rem] ml-2 bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+            className="px-2 py-1 transition-all rounded-[0.3rem] ml-2 bg-transparent hover:bg-muted text-foreground/70"
           >
             {copied ? <CheckCheck size={14} /> : <Copy size={14} />}
           </button>
