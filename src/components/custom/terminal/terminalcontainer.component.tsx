@@ -45,7 +45,7 @@ const TerminalContainer: React.FC = () => {
       <button
         className={`py-1 backdrop-blur-md flex items-center px-4 dark:text-gray-200 hover:bg-accent-hover space-x-1 transition-colors ${isTerminalOpen
           ? 'bg-accent text-foreground'
-          : 'bg-gray-200 dark:bg-gray-600/20'
+          : 'bg-gray-200 dark:bg-accent/50'
           }`}
         onClick={toggleTerminal}
         title="Toggle Terminal (⌃`)"
