@@ -26,11 +26,50 @@ export interface SessionInfo {
   message_count: number;
 }
 
+// ============================================================================
+// Message Parts - OpenCode style part types for sequential content
+// ============================================================================
+
+export interface TextPart {
+  type: 'text';
+  id: string;
+  content: string;
+}
+
+export interface ReasoningPart {
+  type: 'reasoning';
+  id: string;
+  content: string;
+}
+
+export interface ToolPart {
+  type: 'tool';
+  id: string;
+  call_id: string;
+  tool_name: string;
+  arguments: Record<string, unknown>;
+  state: 'pending' | 'running' | 'completed' | 'error' | 'denied' | 'redirected';
+  result?: string;
+  success?: boolean;
+}
+
+export interface TodoPart {
+  type: 'todo';
+  id: string;
+  todo_id: string;
+  content: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high';
+}
+
+export type MessagePart = TextPart | ToolPart | ReasoningPart | TodoPart;
+
 export interface MessageInfo {
   id: string;
   session_id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content: string;  // Full text content (for backward compatibility)
+  parts?: MessagePart[];  // Parts array for proper ordering
   time: number;  // Unix timestamp
 }
 
@@ -164,6 +203,34 @@ export async function getSessionMessages(sessionId: string, limit: number = 100)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch session messages: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+
+export interface SessionTodosResponse {
+  session_id: string;
+  todos: any[];
+  count: number;
+}
+
+/**
+ * Get todos for a session
+ * @param sessionId Session ID
+ */
+export async function getSessionTodos(sessionId: string): Promise<SessionTodosResponse> {
+  const url = `${getBaseUrl()}/orchestrator/api/session/${encodeURIComponent(sessionId)}/todos`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch session todos: ${response.statusText}`);
   }
 
   return response.json();

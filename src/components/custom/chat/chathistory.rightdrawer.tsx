@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { History, Trash2, MessageSquare, Loader2, ChevronDown } from 'lucide-react';
+import { History, Trash2, MessageSquare, Loader2, ChevronDown, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -31,6 +31,18 @@ export const ChatHistoryDropdown: React.FC<ChatHistoryDropdownProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyId = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy id:', err);
+    }
+  };
 
   // Fetch sessions when dropdown opens
   useEffect(() => {
@@ -185,7 +197,20 @@ export const ChatHistoryDropdown: React.FC<ChatHistoryDropdownProps> = ({
                       : 'hover:bg-secondary/30'
                       }`}
                   >
-                    <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    <div
+                      onClick={(e) => handleCopyId(e, session.id)}
+                      className="h-4 w-4 flex-shrink-0 flex items-center justify-center rounded cursor-pointer hover:bg-muted group/icon transition-colors"
+                      title="Copy Session ID"
+                    >
+                      {copiedId === session.id ? (
+                        <Check className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <>
+                          <MessageSquare className="h-4 w-4 text-muted-foreground group-hover/icon:hidden" />
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground hidden group-hover/icon:block" />
+                        </>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className={`text-xs font-medium truncate ${session.id === currentSessionId ? 'text-primary' : 'text-foreground'

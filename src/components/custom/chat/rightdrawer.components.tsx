@@ -25,7 +25,7 @@ import PromptContentDialog from '@/components/custom/promptcontentdialog/promptc
 import { ToolPermissionPrompt } from './toolpermissionprompt.rightdrawer';
 import { TodoProgressIndicator } from './todoprogressindicator.rightdrawer';
 import { ChatHistoryDropdown } from './chathistory.rightdrawer';
-import { getSessionMessages } from '@/api/session';
+import { getSessionMessages, getSessionTodos } from '@/api/session';
 import { toast } from '@/hooks/use-toast';
 import TokenUsage from './tokenusage.component';
 
@@ -236,7 +236,75 @@ const RightDrawer: React.FC = () => {
       // Fetch messages for the selected session
       const response = await getSessionMessages(sessionId);
 
-      // Helper function to parse metadata from message content
+      // Fetch persisted todos for the session
+      let sessionTodos: TodoItem[] = [];
+      try {
+        const todoResponse = await getSessionTodos(sessionId);
+        if (todoResponse.todos) {
+          if (Array.isArray(todoResponse.todos)) {
+            sessionTodos = todoResponse.todos;
+          } else if (typeof todoResponse.todos === 'object' && Array.isArray((todoResponse.todos as any).todos)) {
+            // Handle nested structure from backend
+            sessionTodos = (todoResponse.todos as any).todos;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch session todos:', e);
+      }
+
+      // Helper function to convert parts to events and clean content
+      const convertPartsToEventsAndContent = (parts?: import('@/api/session').MessagePart[]) => {
+        let content = '';
+        const events: StreamEvent[] = [];
+        let textPosition = 0;
+
+        if (!parts || parts.length === 0) {
+          return { content, events };
+        }
+
+        parts.forEach((part, index) => {
+          const timestamp = Date.now() - (parts.length - index) * 1000;
+
+          if (part.type === 'text') {
+            content += part.content;
+            textPosition = content.length;
+          } else if (part.type === 'reasoning') {
+            events.push({
+              type: 'reasoning',
+              timestamp,
+              textPosition,
+              data: { content: part.content }
+            });
+          } else if (part.type === 'tool') {
+            // Tool call - add start and end events
+            events.push({
+              type: 'tool_start',
+              timestamp,
+              textPosition,
+              data: {
+                tool: part.tool_name,
+                args: part.arguments,
+                callId: part.call_id
+              }
+            });
+            events.push({
+              type: 'tool_end',
+              timestamp: timestamp + 100,
+              textPosition,
+              data: {
+                tool: part.tool_name,
+                result: part.result,
+                success: part.success ?? (part.state === 'completed'),
+                callId: part.call_id
+              }
+            });
+          }
+        });
+
+        return { content, events };
+      };
+
+      // Legacy helper function to parse metadata from message content (for old messages)
       const parseMessageMetadata = (content: string) => {
         let cleanContent = content;
         let toolCalls: any[] = [];
@@ -284,20 +352,31 @@ const RightDrawer: React.FC = () => {
         return { cleanContent, toolCalls, todos, events };
       };
 
-      // Convert session messages to chat messages format, parsing metadata
-      let allTodos: TodoItem[] = [];
+      // Convert session messages to chat messages format
+      let allTodos: TodoItem[] = sessionTodos.length > 0 ? sessionTodos : [];
       const chatMessages: ChatMessage[] = response.messages.map(msg => {
         if (msg.role === 'assistant') {
-          const { cleanContent, todos, events } = parseMessageMetadata(msg.content);
-          // Keep track of all todos from this session
-          if (todos.length > 0) {
-            allTodos = todos; // Use the latest todos state
+          // Use parts if available (new format), otherwise fall back to metadata parsing
+          if (msg.parts && msg.parts.length > 0) {
+            const { content, events } = convertPartsToEventsAndContent(msg.parts);
+            return {
+              role: msg.role as 'user' | 'assistant',
+              content: content || msg.content, // Use parts content or fall back
+              events
+            };
+          } else {
+            // Legacy: parse from metadata comments
+            const { cleanContent, todos, events } = parseMessageMetadata(msg.content);
+            // Only use legacy parsing if we haven't found persisted todos
+            if (todos.length > 0 && allTodos.length === 0) {
+              allTodos = todos;
+            }
+            return {
+              role: msg.role as 'user' | 'assistant',
+              content: cleanContent,
+              events
+            };
           }
-          return {
-            role: msg.role as 'user' | 'assistant',
-            content: cleanContent,
-            events
-          };
         }
         return {
           role: msg.role as 'user' | 'assistant',

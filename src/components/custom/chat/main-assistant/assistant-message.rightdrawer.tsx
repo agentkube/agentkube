@@ -128,28 +128,36 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
     return -1; // No todo tools
   }, [events]);
 
-  // Create sequential content by interleaving text and tool events based on textPosition
+  // Create sequential content by interleaving text and tool events in chronological order
   const sequentialContent = useMemo(() => {
     if (!events || events.length === 0) {
       // No events, just render content as is
       return [{ type: 'text' as const, content }];
     }
 
-    // Group tool events by call_id and find their text position
-    const toolGroups = new Map<string, { position: number; events: StreamEvent[]; isTodoTool: boolean; toolName?: string }>();
-    const customComponents = new Map<string, { position: number; event: StreamEvent }>();
+    // Sort all events by timestamp to get chronological order
+    const sortedEvents = [...events].sort((a, b) => a.timestamp - b.timestamp);
 
-    events.forEach(event => {
+    // Group tool events by call_id
+    const toolGroups = new Map<string, {
+      events: StreamEvent[];
+      isTodoTool: boolean;
+      toolName?: string;
+      startIndex: number; // Index in sorted events when this tool started
+    }>();
+    const customComponents = new Map<string, StreamEvent>();
+
+    sortedEvents.forEach((event, index) => {
       if (event.type.startsWith('tool_')) {
         const callId = event.data.callId;
         const toolName = event.data.tool;
 
         if (!toolGroups.has(callId)) {
           toolGroups.set(callId, {
-            position: event.textPosition ?? 0,
             events: [],
             isTodoTool: toolName ? TODO_TOOLS.includes(toolName) : false,
-            toolName
+            toolName,
+            startIndex: index
           });
         } else if (toolName && !toolGroups.get(callId)!.toolName) {
           // Update toolName and isTodoTool if we found the name from a later event
@@ -160,29 +168,37 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
         toolGroups.get(callId)!.events.push(event);
       } else if (event.type === 'custom_component') {
         const callId = event.data.call_id || event.data.callId;
-        customComponents.set(callId, {
-          position: event.textPosition ?? 0,
-          event
-        });
+        customComponents.set(callId, event);
       }
     });
 
-    // Create insertion points for tool calls (excluding todo tools)
-    const insertionPoints: Array<{ position: number; callId: string; events: StreamEvent[]; showRedirect?: { newInstruction: string }; isTodoTool: boolean }> = [];
-    toolGroups.forEach((group, callId) => {
-      const redirectEvent = group.events.find(e => e.type === 'tool_redirected');
+    // Create a list of all tool calls with their chronological order
+    const toolCallsInOrder: Array<{
+      callId: string;
+      events: StreamEvent[];
+      isTodoTool: boolean;
+      textPositionAtStart: number; // Text position when this tool started
+    }> = [];
 
-      insertionPoints.push({
-        position: group.position,
-        callId,
-        events: group.events,
-        showRedirect: redirectEvent ? { newInstruction: redirectEvent.data.newInstruction } : undefined,
-        isTodoTool: group.isTodoTool
-      });
+    // Get unique tool call IDs in order they first appeared
+    const seenCallIds = new Set<string>();
+    sortedEvents.forEach(event => {
+      if (event.type === 'tool_start') {
+        const callId = event.data.callId;
+        if (!seenCallIds.has(callId)) {
+          seenCallIds.add(callId);
+          const group = toolGroups.get(callId);
+          if (group) {
+            toolCallsInOrder.push({
+              callId,
+              events: group.events,
+              isTodoTool: group.isTodoTool,
+              textPositionAtStart: event.textPosition ?? 0
+            });
+          }
+        }
+      }
     });
-
-    // Sort by position
-    insertionPoints.sort((a, b) => a.position - b.position);
 
     // Track if we've inserted the TodoList already
     let todoListInserted = false;
@@ -198,27 +214,32 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
       componentProps?: any;
       todos?: TodoItem[];
     }> = [];
-    let lastPosition = 0;
 
-    insertionPoints.forEach(({ position, callId, events, showRedirect, isTodoTool }) => {
-      // Add text before this tool call
-      if (position > lastPosition) {
-        const textChunk = content.substring(lastPosition, position);
-        if (textChunk) {
+    let lastTextPosition = 0;
+
+    // Process each tool call in chronological order
+    toolCallsInOrder.forEach(({ callId, events: toolEvents, isTodoTool, textPositionAtStart }) => {
+      // Add any text that was generated before this tool call started
+      if (textPositionAtStart > lastTextPosition) {
+        const textChunk = content.substring(lastTextPosition, textPositionAtStart);
+        if (textChunk.trim()) {
           items.push({ type: 'text', content: textChunk });
         }
+        lastTextPosition = textPositionAtStart;
       }
 
-      // If this is a todo tool, insert TodoList once (at first todo tool position)
+      // Find redirect event if any
+      const redirectEvent = toolEvents.find(e => e.type === 'tool_redirected');
+
+      // If this is a todo tool, insert TodoList once
       if (isTodoTool) {
         if (!todoListInserted && aggregatedTodos.length > 0) {
           items.push({ type: 'todolist', todos: aggregatedTodos });
           todoListInserted = true;
         }
-        // Skip adding the todo tool call accordion - it will be shown as TodoList
       } else {
         // Add regular tool call
-        items.push({ type: 'tool', callId, events });
+        items.push({ type: 'tool', callId, events: toolEvents });
 
         // Check if there's a custom component for this tool call
         const customComp = customComponents.get(callId);
@@ -226,29 +247,38 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
           items.push({
             type: 'custom_component',
             callId,
-            componentName: customComp.event.data.component,
-            componentProps: customComp.event.data.props
+            componentName: customComp.data.component,
+            componentProps: customComp.data.props
           });
         }
 
-        // Add redirect instruction immediately after redirected tool (only once)
-        if (showRedirect) {
-          items.push({ type: 'redirect', newInstruction: showRedirect.newInstruction });
+        // Add redirect instruction immediately after redirected tool
+        if (redirectEvent) {
+          items.push({ type: 'redirect', newInstruction: redirectEvent.data.newInstruction });
         }
       }
 
-      lastPosition = position;
+      // Update lastTextPosition to the end position of the tool (if we have it from tool_end)
+      const endEvent = toolEvents.find(e => e.type === 'tool_end');
+      if (endEvent && endEvent.textPosition !== undefined) {
+        lastTextPosition = Math.max(lastTextPosition, endEvent.textPosition);
+      }
     });
 
     // Add remaining text after all tool calls
-    if (lastPosition < content.length) {
-      const remainingText = content.substring(lastPosition);
-      if (remainingText) {
+    if (lastTextPosition < content.length) {
+      const remainingText = content.substring(lastTextPosition);
+      if (remainingText.trim()) {
         items.push({ type: 'text', content: remainingText });
       }
     }
 
-    // If there are todos but we haven't inserted the list yet (no tool events with positions), add at end
+    // If there are no items yet (e.g., only tool calls with no text), add the full content
+    if (items.length === 0 && content.trim()) {
+      items.push({ type: 'text', content });
+    }
+
+    // If there are todos but we haven't inserted the list yet, add at end
     if (!todoListInserted && aggregatedTodos.length > 0) {
       items.push({ type: 'todolist', todos: aggregatedTodos });
     }
