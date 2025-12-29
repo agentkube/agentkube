@@ -123,6 +123,12 @@ const Messages: React.FC<MessagesProps> = ({
               </button>
             ))}
           </div>
+
+          <div className='py-4 px-4 selection:bg-none'>
+            <p className="text-[10px] text-muted-foreground/50 dark:text-muted-foreground/50 font-medium leading-tight">
+              AI may make mistakes. Double-check all generated code.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="bg-muted/30 text-sm flex-grow flex flex-col">
@@ -175,11 +181,7 @@ const Messages: React.FC<MessagesProps> = ({
           <div ref={messagesEndRef} />
         </div>
       )}
-      <div className='p-2 px-4 selection:bg-none'>
-        <p className="text-[10px] text-muted-foreground/50 dark:text-muted-foreground/50 font-medium leading-tight">
-          AI may make mistakes. Double-check all generated code.
-        </p>
-      </div>
+
     </div>
   );
 };

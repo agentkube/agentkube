@@ -65,30 +65,117 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
     return null;
   }, [toolCall.tool, parsedArguments]);
 
+  // Helper function to extract 'output' field from Python dict string using regex
+  const extractOutputFromPythonDict = (str: string): string | null => {
+    // Match 'output': '...' pattern, handling escaped quotes and multiline content
+    // This regex looks for 'output': ' and captures everything until the closing quote
+    // that's followed by a comma and another key, or the end of the dict
+
+    // First, try to find the output field start position
+    const outputKeyMatch = str.match(/'output':\s*'/);
+    if (!outputKeyMatch || outputKeyMatch.index === undefined) {
+      return null;
+    }
+
+    const startIndex = outputKeyMatch.index + outputKeyMatch[0].length;
+
+    // Now we need to find the matching closing quote
+    // The closing quote should be followed by , ' (next key) or } (end of dict)
+    let depth = 0;
+    let endIndex = startIndex;
+    let foundEnd = false;
+
+    for (let i = startIndex; i < str.length; i++) {
+      const char = str[i];
+      const prevChar = i > 0 ? str[i - 1] : '';
+
+      // Skip escaped characters
+      if (prevChar === '\\') {
+        continue;
+      }
+
+      // Check if this is the closing quote
+      if (char === "'") {
+        // Check what comes after (skip whitespace)
+        let nextNonWhitespace = '';
+        for (let j = i + 1; j < str.length; j++) {
+          if (str[j] !== ' ' && str[j] !== '\n' && str[j] !== '\r' && str[j] !== '\t') {
+            nextNonWhitespace = str[j];
+            break;
+          }
+        }
+
+        // Valid end: followed by , or }
+        if (nextNonWhitespace === ',' || nextNonWhitespace === '}') {
+          endIndex = i;
+          foundEnd = true;
+          break;
+        }
+      }
+    }
+
+    if (foundEnd) {
+      return str.substring(startIndex, endIndex);
+    }
+
+    return null;
+  };
+
   // Memoize output text to avoid re-processing
   const outputText = useMemo(() => {
     if (!toolCall.output) return '';
+
+    // Helper to process string output and fix newlines
+    const processStringOutput = (str: string): string => {
+      // Handle literal \n characters if they exist
+      if (str.includes('\\n')) {
+        try {
+          return str.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+        } catch (e) {
+          return str;
+        }
+      }
+      return str;
+    };
 
     let outputData = toolCall.output;
 
     // If output is a string, try to parse it as JSON first
     if (typeof outputData === 'string') {
+      const originalString = outputData;
+
       try {
         // Try to parse as JSON (handles proper JSON format)
         outputData = JSON.parse(outputData);
       } catch (e) {
-        // Try replacing Python-style single quotes with double quotes
+        // JSON parsing failed, try alternative approaches
+
+        // Approach 1: Try to extract 'output' field directly using regex
+        // This works for Python dict format like: {'success': True, 'output': '...'}
+        const extractedOutput = extractOutputFromPythonDict(originalString);
+        if (extractedOutput !== null) {
+          // Successfully extracted the output field
+          return processStringOutput(extractedOutput);
+        }
+
+        // Approach 2: Try simple quote replacement for simpler cases
         try {
           // Handle Python dict format: {'key': 'value'}
-          const jsonLikeString = outputData
-            .replace(/'/g, '"')
-            .replace(/True/g, 'true')
-            .replace(/False/g, 'false')
-            .replace(/None/g, 'null');
-          outputData = JSON.parse(jsonLikeString);
+          // Only do this if the string looks like a Python dict
+          if (originalString.trim().startsWith('{') && originalString.trim().endsWith('}')) {
+            const jsonLikeString = originalString
+              .replace(/'/g, '"')
+              .replace(/True/g, 'true')
+              .replace(/False/g, 'false')
+              .replace(/None/g, 'null');
+            outputData = JSON.parse(jsonLikeString);
+          } else {
+            // Not a dict-like structure, return as-is
+            return processStringOutput(originalString);
+          }
         } catch (e2) {
-          // If all parsing fails, return as-is
-          return outputData;
+          // All parsing failed, return as-is
+          return processStringOutput(originalString);
         }
       }
     }
@@ -97,23 +184,23 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
     if (typeof outputData === 'object' && outputData !== null) {
       // For bash_tool and similar - extract 'output' field
       if ('output' in outputData && typeof outputData.output === 'string') {
-        return outputData.output;
+        return processStringOutput(outputData.output);
       }
 
       // For kubectl_tool - check for 'stdout' field (legacy)
       if ('stdout' in outputData && typeof outputData.stdout === 'string') {
         const stderr = outputData.stderr || '';
-        return outputData.stdout + (stderr ? '\n' + stderr : '');
+        return processStringOutput(outputData.stdout + (stderr ? '\n' + stderr : ''));
       }
 
       // For error responses, show the error message
       if ('error' in outputData && typeof outputData.error === 'string') {
-        return `Error: ${outputData.error}`;
+        return `Error: ${processStringOutput(outputData.error)}`;
       }
 
       // For helm and other tools with 'output' key
       if ('output' in outputData) {
-        return String(outputData.output);
+        return processStringOutput(String(outputData.output));
       }
 
       // Fallback: stringify the object in a readable way
@@ -121,7 +208,7 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
     }
 
     // Fallback: return as string
-    return String(outputData);
+    return processStringOutput(String(outputData));
   }, [toolCall.output]);
 
   // Check if output is large and needs truncation
