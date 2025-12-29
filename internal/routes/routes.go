@@ -143,6 +143,10 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			// Canvas endpoint
 			v1.POST("/cluster/:clusterName/canvas", handlers.GetCanvasNodes)
 
+			// Deep Dependency Graph endpoint - provides extreme deep dependency analysis
+			// Supports: pods, deployments, statefulsets, daemonsets, replicasets, replicationcontrollers, jobs, cronjobs
+			v1.POST("/cluster/:clusterName/dependency", handlers.GetDependencyGraph)
+
 			v1.GET("/proxy/helm-values", helmHandler.HelmValuesProxyHandler)
 			v1.GET("/proxy/helm-versions", helmHandler.HelmVersionsProxyHandler)
 			helmGroup := v1.Group("/cluster/:clusterName/helm")
@@ -261,7 +265,7 @@ func SetupRouter(cfg config.Config, kubeConfigStore kubeconfig.ContextStore, cac
 			v1.GET("/cluster/:clusterName/images", vulHandler.GetClusterImages)
 			v1.POST("/cluster/:clusterName/vulnerability/scan", vulHandler.TriggerClusterImageScan)
 			v1.POST("/cluster/:clusterName/vulnerability/workloads", vulHandler.GetWorkloadsByImage)
-			
+
 			// Operation status endpoints
 			v1.GET("/operations/:operationId", metricsServerHandler.GetOperationStatus)
 
