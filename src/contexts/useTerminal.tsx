@@ -36,6 +36,7 @@ export interface EditorSession {
   name: string;
   filePath: string;
   content?: string;
+  hasUnsavedChanges?: boolean;
   created_at: number;
 }
 

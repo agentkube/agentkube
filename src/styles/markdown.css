@@ -108,12 +108,11 @@
 }
 
 .markdown-preview pre {
-  background-color: hsl(var(--muted) / 0.5);
-  padding: 1em;
-  border-radius: 0.5rem;
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
   overflow-x: auto;
-  margin-top: 1.6em;
-  margin-bottom: 1.6em;
+  margin: 0;
   line-height: 1.7142857;
 }
 

@@ -505,6 +505,9 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                     className={`group flex items-center gap-1 px-3 py-1.5 border-r border-border cursor-pointer transition-colors ${activeSessionId === session.data.id
                       ? 'bg-accent/50 text-foreground'
                       : 'text-muted-foreground hover:bg-background/50 hover:text-foreground'
+                      } ${session.type === 'editor' && (session.data as EditorSession).hasUnsavedChanges
+                        ? 'border-b border-b-foreground/50'
+                        : ''
                       }`}
                     onClick={() => setActiveSessionId(session.data.id)}
                   >
@@ -842,6 +845,15 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 filePath={(session.data as EditorSession).filePath}
                 initialContent={(session.data as EditorSession).content}
                 onClose={() => closeSession(session.data.id)}
+                onUnsavedChange={(hasUnsaved) => {
+                  setSessions((prev) =>
+                    prev.map((s) =>
+                      s.data.id === session.data.id && s.type === 'editor'
+                        ? { ...s, data: { ...s.data, hasUnsavedChanges: hasUnsaved } as EditorSession }
+                        : s
+                    )
+                  );
+                }}
               />
             ) : (
               <TerminalTab

@@ -7,14 +7,14 @@ import {
   Save,
   FileText,
   PanelRight,
-  Loader2,
-  X
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { homeDir, join } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
 import '@/styles/markdown.css';
+import { CodeBlock } from '@/components/custom/codeblock/codeblock.component';
 
 export interface EditorTabProps {
   sessionId: string;
@@ -23,6 +23,7 @@ export interface EditorTabProps {
   initialContent?: string;
   onClose?: () => void;
   onSave?: (content: string) => Promise<void>;
+  onUnsavedChange?: (hasUnsaved: boolean) => void;
 }
 
 const EditorTab: React.FC<EditorTabProps> = ({
@@ -31,15 +32,25 @@ const EditorTab: React.FC<EditorTabProps> = ({
   filePath = 'Untitled.md',
   initialContent = '',
   onClose,
-  onSave
+  onSave,
+  onUnsavedChange
 }) => {
   const [content, setContent] = useState<string>(initialContent);
+  const [savedContent, setSavedContent] = useState<string>(initialContent); // Track last saved content
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [editorTheme] = useState<string>('vitesse-dark'); // Set default theme to 'vitesse-dark' for Shiki compatibility
   const [resolvedFilePath, setResolvedFilePath] = useState<string | null>(null); // Track the resolved absolute path
 
-  // Determine if file is markdown based on extension
+  // Check if content has unsaved changes
+  const hasUnsavedChanges = content !== savedContent;
+
+  // Notify parent of unsaved changes
+  useEffect(() => {
+    onUnsavedChange?.(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onUnsavedChange]);
+
+  // Determine if marked is markdown based on extension
   const isMarkdown = filePath?.toLowerCase().endsWith('.md') ?? false;
 
   // Handle content change
@@ -67,6 +78,7 @@ const EditorTab: React.FC<EditorTabProps> = ({
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
+      setSavedContent(content); // Update saved content tracker
       toast.success('File saved successfully');
     } catch (error) {
       console.error('Failed to save:', error);
@@ -210,17 +222,7 @@ const EditorTab: React.FC<EditorTabProps> = ({
             </Button>
           )}
 
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0 ml-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-              title="Close Tab"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+
         </div>
       </div>
 
@@ -244,14 +246,37 @@ const EditorTab: React.FC<EditorTabProps> = ({
         {isMarkdown && isPreviewOpen && (
           <div className="w-1/2 h-full border-l border-border bg-background overflow-y-auto p-6">
             <article className="markdown-preview text-foreground max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code(props) {
+                    const { children, className, node, ...rest } = props as any;
+                    const match = /language-(\w+)/.exec(className || '');
+                    const language = match ? match[1] : '';
+                    const inline = !className;
+
+                    // Handle undefined/null children
+                    const code = children ? String(children).replace(/\n$/, '') : '';
+
+                    return !inline ? (
+                      <CodeBlock language={language}>
+                        {code}
+                      </CodeBlock>
+                    ) : (
+                      <code className={className} {...rest}>
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
                 {content}
               </ReactMarkdown>
             </article>
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
