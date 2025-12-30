@@ -10,6 +10,12 @@ interface BrowserRequest {
   name?: string;
 }
 
+interface EditorRequest {
+  filePath: string;
+  name?: string;
+  content?: string;
+}
+
 export interface TerminalSession {
   id: string;
   name: string;
@@ -25,9 +31,18 @@ export interface BrowserSession {
   created_at: number;
 }
 
+export interface EditorSession {
+  id: string;
+  name: string;
+  filePath: string;
+  content?: string;
+  created_at: number;
+}
+
 export type Session =
   | { type: 'terminal'; data: TerminalSession }
-  | { type: 'browser'; data: BrowserSession };
+  | { type: 'browser'; data: BrowserSession }
+  | { type: 'editor'; data: EditorSession };
 
 interface TerminalContextType {
   isTerminalOpen: boolean;
@@ -50,6 +65,10 @@ interface TerminalContextType {
   openBrowserWithUrl: (url: string, name?: string) => void;
   pendingBrowserRequest: BrowserRequest | null;
   clearPendingBrowserRequest: () => void;
+  // Editor functionality
+  openEditorWithFile: (filePath: string, name?: string, content?: string) => void;
+  pendingEditorRequest: EditorRequest | null;
+  clearPendingEditorRequest: () => void;
 }
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
@@ -62,6 +81,7 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<TerminalRequest | null>(null);
   const [pendingBrowserRequest, setPendingBrowserRequest] = useState<BrowserRequest | null>(null);
+  const [pendingEditorRequest, setPendingEditorRequest] = useState<EditorRequest | null>(null);
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -119,6 +139,15 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
     setPendingBrowserRequest(null);
   }, []);
 
+  const openEditorWithFile = useCallback((filePath: string, name?: string, content?: string) => {
+    setPendingEditorRequest({ filePath, name, content });
+    setIsTerminalOpen(true);
+  }, []);
+
+  const clearPendingEditorRequest = useCallback(() => {
+    setPendingEditorRequest(null);
+  }, []);
+
   return (
     <TerminalContext.Provider
       value={{
@@ -140,6 +169,9 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
         openBrowserWithUrl,
         pendingBrowserRequest,
         clearPendingBrowserRequest,
+        openEditorWithFile,
+        pendingEditorRequest,
+        clearPendingEditorRequest,
       }}
     >
       {children}

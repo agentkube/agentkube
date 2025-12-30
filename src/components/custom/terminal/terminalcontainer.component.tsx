@@ -11,7 +11,9 @@ const TerminalContainer: React.FC = () => {
     pendingRequest,
     clearPendingRequest,
     pendingBrowserRequest,
-    clearPendingBrowserRequest
+    clearPendingBrowserRequest,
+    pendingEditorRequest,
+    clearPendingEditorRequest
   } = useTerminal();
 
   useEffect(() => {
@@ -64,6 +66,8 @@ const TerminalContainer: React.FC = () => {
         onPendingRequestHandled={clearPendingRequest}
         pendingBrowserRequest={pendingBrowserRequest}
         onPendingBrowserRequestHandled={clearPendingBrowserRequest}
+        pendingEditorRequest={pendingEditorRequest}
+        onPendingEditorRequestHandled={clearPendingEditorRequest}
       />
     </>
   );

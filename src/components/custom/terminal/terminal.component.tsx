@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check, Globe, AtSign } from 'lucide-react';
+import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check, Globe, AtSign, FileText } from 'lucide-react';
 import { toast as sooner } from "sonner";
 import { invoke } from '@tauri-apps/api/core';
 import { SiClaude } from '@icons-pack/react-simple-icons';
 import TerminalTab from './terminaltab.component';
 import BrowserTab from '../browser/browser.component';
+import EditorTab from '@/components/editortab/editortab.component';
 import DefaultProfileDialog from './default-profile-dialog.component';
 import {
   DropdownMenu,
@@ -30,7 +31,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-import { useTerminal, TerminalSession, BrowserSession, Session } from '@/contexts/useTerminal';
+import { useTerminal, TerminalSession, BrowserSession, EditorSession, Session } from '@/contexts/useTerminal';
 import { useDrawer } from '@/contexts/useDrawer';
 import { useCluster } from '@/contexts/clusterContext';
 
@@ -42,6 +43,12 @@ interface PendingRequest {
 interface PendingBrowserRequest {
   url: string;
   name?: string;
+}
+
+interface PendingEditorRequest {
+  filePath: string;
+  name?: string;
+  content?: string;
 }
 
 interface TerminalProfile {
@@ -59,6 +66,8 @@ interface TerminalManagerProps {
   onPendingRequestHandled?: () => void;
   pendingBrowserRequest?: PendingBrowserRequest | null;
   onPendingBrowserRequestHandled?: () => void;
+  pendingEditorRequest?: PendingEditorRequest | null;
+  onPendingEditorRequestHandled?: () => void;
 }
 
 const TerminalManager: React.FC<TerminalManagerProps> = ({
@@ -67,7 +76,9 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   pendingRequest,
   onPendingRequestHandled,
   pendingBrowserRequest,
-  onPendingBrowserRequestHandled
+  onPendingBrowserRequestHandled,
+  pendingEditorRequest,
+  onPendingEditorRequestHandled
 }) => {
   const {
     sessions,
@@ -181,6 +192,23 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     setActiveSessionId(id);
 
     return browserSession;
+  }, []);
+
+  // Create a new editor session
+  const createEditorSession = useCallback((filePath: string, name?: string, content?: string) => {
+    const id = `editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const editorSession: EditorSession = {
+      id,
+      name: name || filePath.split('/').pop() || 'Untitled',
+      filePath,
+      content,
+      created_at: Date.now(),
+    };
+
+    setSessions((prev) => [...prev, { type: 'editor', data: editorSession }]);
+    setActiveSessionId(id);
+
+    return editorSession;
   }, []);
 
   // Close a session (terminal or browser)
@@ -348,6 +376,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     }
   }, [isOpen, pendingBrowserRequest, createBrowserSession, onPendingBrowserRequestHandled]);
 
+  // Handle pending editor requests from context
+  useEffect(() => {
+    if (isOpen && pendingEditorRequest) {
+      createEditorSession(pendingEditorRequest.filePath, pendingEditorRequest.name, pendingEditorRequest.content);
+      onPendingEditorRequestHandled?.();
+    }
+  }, [isOpen, pendingEditorRequest, createEditorSession, onPendingEditorRequestHandled]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -505,6 +541,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                               {session.data.name}
                             </span>
                           </>
+                        ) : session.type === 'editor' ? (
+                          <>
+                            <FileText className="h-3 w-3 text-yellow-400" />
+                            <span className="text-xs whitespace-nowrap">
+                              {session.data.name}
+                            </span>
+                          </>
                         ) : (
                           <>
                             <span className="text-xs whitespace-nowrap">
@@ -630,6 +673,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
               >
                 <Globe className="h-3.5 w-3.5 mr-2" />
                 New Browser
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => createEditorSession('Untitled.md', 'Untitled.md')}
+                className="text-xs"
+              >
+                <FileText className="h-3.5 w-3.5 mr-2" />
+                New Editor
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -784,6 +834,15 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 isActive={activeSessionId === session.data.id}
                 initialUrl={(session.data as BrowserSession).url}
               />
+            ) : session.type === 'editor' ? (
+              <EditorTab
+                key={session.data.id}
+                sessionId={session.data.id}
+                isActive={activeSessionId === session.data.id}
+                filePath={(session.data as EditorSession).filePath}
+                initialContent={(session.data as EditorSession).content}
+                onClose={() => closeSession(session.data.id)}
+              />
             ) : (
               <TerminalTab
                 key={session.data.id}
@@ -802,7 +861,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         currentDefaultId={defaultProfileId}
         onSave={handleSaveDefaultProfile}
       />
-    </div>
+    </div >
   );
 };
 

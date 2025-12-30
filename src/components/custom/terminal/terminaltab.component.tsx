@@ -70,13 +70,16 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
   const fitAddonRef = useRef<FitAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const keyDownHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+  const keyUpHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { registerTerminalInstance, unregisterTerminalInstance, updateSessionLastCommand, sessions } = useTerminal();
+  const { registerTerminalInstance, unregisterTerminalInstance, updateSessionLastCommand, sessions, openEditorWithFile, openBrowserWithUrl } = useTerminal();
   const { addResourceContext } = useDrawer();
   const currentCommandRef = useRef<string>('');
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionWidget, setSelectionWidget] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
   const selectionWidgetRef = useRef<HTMLDivElement>(null);
+
 
   const currentSession = sessions.find(s => s.data.id === sessionId);
   const sessionName = currentSession?.data.name || 'Terminal';
@@ -130,6 +133,106 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(searchAddon);
 
+    // Track modifier key state
+    let isModifierPressed = false;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      isModifierPressed = e.metaKey || e.ctrlKey;
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      isModifierPressed = e.metaKey || e.ctrlKey;
+    };
+
+    keyDownHandlerRef.current = handleKeyDown;
+    keyUpHandlerRef.current = handleKeyUp;
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Register Link Provider for URLs (always show underline, open in browser)
+    terminal.registerLinkProvider({
+      provideLinks(bufferLineNumber, callback) {
+        const line = terminal.buffer.active.getLine(bufferLineNumber - 1);
+        if (!line) return;
+
+        const text = line.translateToString(true);
+        const links: any[] = [];
+
+        // URL regex: matches http://, https://, and www. URLs
+        const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+
+        let match;
+        while ((match = urlRegex.exec(text)) !== null) {
+          const url = match[1];
+          const textIndex = match.index;
+
+          links.push({
+            range: {
+              start: { x: textIndex + 1, y: bufferLineNumber },
+              end: { x: textIndex + url.length + 1, y: bufferLineNumber }
+            },
+            text: url,
+            activate: (event: MouseEvent, text: string) => {
+              try {
+                // Ensure URL has protocol
+                const fullUrl = text.startsWith('http') ? text : `https://${text}`;
+                // Open in internal browser component
+                openBrowserWithUrl(fullUrl, text);
+                toast.success(`Opening ${text} in browser`);
+              } catch (err) {
+                console.error('Failed to open URL:', err);
+              }
+            }
+          });
+        }
+
+        callback(links);
+      }
+    });
+
+    // Register Link Provider for file paths (only show underline with Ctrl/Cmd)
+    terminal.registerLinkProvider({
+      provideLinks(bufferLineNumber, callback) {
+        const line = terminal.buffer.active.getLine(bufferLineNumber - 1);
+        if (!line) return;
+
+        const text = line.translateToString(true);
+        const links: any[] = [];
+
+        const fileRegex = /(?:^|\s)((?:(?:\.{0,2}\/|~\/|[\w\-\.]+\/)[\w\-\.\/]+)|(?:[\w\-\.]+\.(?:ts|tsx|js|jsx|json|md|py|go|rs|yml|yaml|html|css|scss)))(?=$|[\s"'])/g;
+
+        let match;
+        while ((match = fileRegex.exec(text)) !== null) {
+          const filePath = match[1];
+          const textIndex = match.index + match[0].indexOf(filePath);
+
+          links.push({
+            range: {
+              start: { x: textIndex + 1, y: bufferLineNumber },
+              end: { x: textIndex + filePath.length + 1, y: bufferLineNumber }
+            },
+            text: filePath,
+            // Only show underline if modifier key is pressed
+            hover: (event: MouseEvent, text: string) => {
+              return isModifierPressed;
+            },
+            activate: (event: MouseEvent, text: string) => {
+              try {
+                const name = text.split('/').pop() || text;
+                openEditorWithFile(text, name);
+                toast.success(`Opening ${name}`);
+              } catch (err) {
+                console.error('Failed to open link:', err);
+              }
+            }
+          });
+        }
+
+        callback(links);
+      }
+    });
+
     terminalInstanceRef.current = terminal;
     fitAddonRef.current = fitAddon;
     searchAddonRef.current = searchAddon;
@@ -139,14 +242,17 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
     // Initial fit
     setTimeout(() => {
       try {
-        fitAddon.fit();
-        const dimensions = fitAddon.proposeDimensions();
-        if (dimensions) {
-          invoke('resize_pty', {
-            sessionId,
-            cols: dimensions.cols,
-            rows: dimensions.rows,
-          }).catch(console.error);
+        // Ensure terminal element is visible and has dimensions before fitting
+        if (terminalRef.current && terminalRef.current.offsetParent !== null) {
+          fitAddon.fit();
+          const dimensions = fitAddon.proposeDimensions();
+          if (dimensions) {
+            invoke('resize_pty', {
+              sessionId,
+              cols: dimensions.cols,
+              rows: dimensions.rows,
+            }).catch(console.error);
+          }
         }
       } catch (e) {
         console.error('Error fitting terminal:', e);
@@ -251,6 +357,13 @@ const TerminalTab: React.FC<TerminalTabProps> = ({ sessionId, isActive, onClose 
       if (terminalInstanceRef.current) {
         terminalInstanceRef.current.dispose();
         terminalInstanceRef.current = null;
+      }
+      // Cleanup keyboard event listeners
+      if (keyDownHandlerRef.current) {
+        window.removeEventListener('keydown', keyDownHandlerRef.current);
+      }
+      if (keyUpHandlerRef.current) {
+        window.removeEventListener('keyup', keyUpHandlerRef.current);
       }
     };
   }, [initTerminal, startPolling, stopPolling, sessionId, registerTerminalInstance, unregisterTerminalInstance, getTerminalLines]);

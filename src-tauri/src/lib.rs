@@ -125,6 +125,13 @@ async fn complete_initialization(
     Ok(())
 }
 
+#[tauri::command]
+fn get_cwd() -> Result<String, String> {
+    std::env::current_dir()
+        .map(|path| path.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -132,6 +139,7 @@ pub fn run() {
             get_network_status,
             start_network_monitoring,
             complete_initialization,
+            get_cwd,
             // Terminal commands
             create_local_shell,
             write_to_pty,
