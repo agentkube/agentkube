@@ -177,7 +177,7 @@ const ArgoApplicationDrawer: React.FC<ArgoApplicationDrawerProps> = ({
           <div className="flex items-start gap-2">
             <div className="py-0.5">{getSyncStatusIcon(syncStatus)}</div>
             <div>
-              <h3 className="font-medium text-md text-card 4ark:text-gray-200 leading-tight">
+              <h3 className="font-medium text-md text-card dark:text-gray-200 leading-tight">
                 {application.metadata.name}
               </h3>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
