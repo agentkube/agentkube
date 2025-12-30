@@ -278,6 +278,7 @@ const EditorTab: React.FC<EditorTabProps> = ({
               onChange={handleEditorChange}
               theme={editorTheme}
               height="100%"
+              language={getLanguageFromPath(resolvedFilePath || filePath)}
             />
           </div>
         </div>
@@ -318,6 +319,46 @@ const EditorTab: React.FC<EditorTabProps> = ({
       </div>
     </div >
   );
+};
+
+const getLanguageFromPath = (path: string): string => {
+  const ext = path.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'ts':
+    case 'tsx':
+      return 'typescript';
+    case 'js':
+    case 'jsx':
+      return 'javascript';
+    case 'json':
+      return 'json';
+    case 'md':
+    case 'markdown':
+      return 'markdown';
+    case 'css':
+      return 'css';
+    case 'html':
+      return 'html';
+    case 'yml':
+    case 'yaml':
+      return 'yaml';
+    case 'py':
+      return 'python';
+    case 'go':
+      return 'go';
+    case 'rs':
+      return 'rust';
+    case 'java':
+      return 'java';
+    case 'sh':
+    case 'bash':
+    case 'zsh':
+      return 'shell';
+    case 'sql':
+      return 'sql';
+    default:
+      return 'plaintext';
+  }
 };
 
 export default EditorTab;

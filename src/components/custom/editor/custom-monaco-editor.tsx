@@ -12,6 +12,7 @@ interface CustomMonacoEditorProps {
   theme: string;
   onCodeSelection?: () => void; // Optional callback for when code is selected
   height?: string; // Optional height prop
+  language?: string;
 }
 
 let highlighterInstance: Highlighter | null = null;
@@ -21,14 +22,14 @@ const getHighlighter = async (): Promise<Highlighter> => {
   if (highlighterInstance) {
     return highlighterInstance;
   }
-  
+
   if (!highlighterPromise) {
     highlighterPromise = createHighlighter({
       themes: themeSlugs,
       langs: ['yaml', 'typescript', 'javascript', 'json', 'go', 'rust', 'nginx', 'python', 'java'],
     });
   }
-  
+
   highlighterInstance = await highlighterPromise;
   return highlighterInstance;
 };
@@ -39,12 +40,13 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   theme,
   onCodeSelection,
   height = "81vh",
+  language = "yaml"
 }) => {
   const { addStructuredContent, setIsOpen } = useDrawer();
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const widgetRef = useRef<HTMLDivElement | null>(null);
   const copilotWidgetRef = useRef<HTMLDivElement | null>(null);
-  
+
   const createWidget = () => {
     if (!widgetRef.current) {
       const widget = document.createElement('div');
@@ -74,19 +76,18 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
           <span class="text-xs opacity-70">Esc to close</span>
         </div>
         <input type="text" 
-          class="w-full px-3 py-2 text-sm outline-none border-none rounded-b-[0.5rem] ${
-            isDarkTheme
-              ? 'bg-[#0B0D13]/50 backdrop-blur-md text-[#cccccc] placeholder-[#6c6c6c]'
-              : 'bg-white text-gray-900 placeholder-gray-500'
-          }"
+          class="w-full px-3 py-2 text-sm outline-none border-none rounded-b-[0.5rem] ${isDarkTheme
+          ? 'bg-[#0B0D13]/50 backdrop-blur-md text-[#cccccc] placeholder-[#6c6c6c]'
+          : 'bg-white text-gray-900 placeholder-gray-500'
+        }"
           placeholder="Ask a question about the code..." 
         />
       `;
-      
+
       widget.style.display = 'none';
       copilotWidgetRef.current = widget;
       document.body.appendChild(widget);
-  
+
       // Add event listener to input
       const input = widget.querySelector('input');
       if (input) {
@@ -176,7 +177,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
     if (!selectionPos) return;
 
     const editorRect = editorDomNode.getBoundingClientRect();
-    
+
     const isDarkTheme = theme !== 'vs-dark';
     widget.innerHTML = `
       <button class="flex items-center gap-1 px-2 py-1 rounded hover:bg-opacity-80 transition-colors bg-[#1e1e1e] text-md
@@ -212,12 +213,12 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
     buttons[0]?.addEventListener('click', () => {
       const wrappedText = wrapWithCodeBlock(selectedText);
       addStructuredContent(wrappedText, 'Code Selection');
-      
+
       // Call the optional callback for adding resource context (for existing resources)
       if (onCodeSelection) {
         onCodeSelection();
       }
-      
+
       setIsOpen(true);
     });
 
@@ -231,7 +232,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
     editorRef.current = editor;
 
     const highlighter = await getHighlighter();
-    
+
     // 2. Register Shiki themes with Monaco
     shikiToMonaco(highlighter, monaco);
 
@@ -263,7 +264,7 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
           hideCopilotWidget();
         }
       }
-  };
+    };
     document.addEventListener('click', clickHandler);
 
     // Add Cmd+K handler
@@ -276,12 +277,12 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
           if (selectedText) {
             const wrappedText = wrapWithCodeBlock(selectedText);
             addStructuredContent(wrappedText, 'Code Selection');
-            
+
             // Call the optional callback for adding resource context (for existing resources)
             if (onCodeSelection) {
               onCodeSelection();
             }
-            
+
             setIsOpen(true);
           }
         }
@@ -316,7 +317,8 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
   return (
     <MonacoEditor
       height={height}
-      defaultLanguage="yaml"
+      defaultLanguage={language}
+      language={language}
       value={value}
       onChange={onChange}
       theme={theme}
