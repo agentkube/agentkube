@@ -854,6 +854,23 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                     )
                   );
                 }}
+                onPathUpdate={(newPath) => {
+                  setSessions((prev) =>
+                    prev.map((s) =>
+                      s.data.id === session.data.id && s.type === 'editor'
+                        ? {
+                          ...s,
+                          data: {
+                            ...s.data,
+                            filePath: newPath,
+                            name: newPath.split('/').pop() || newPath,
+                            hasUnsavedChanges: false // Reset unsaved changes on successful save
+                          } as EditorSession
+                        }
+                        : s
+                    )
+                  );
+                }}
               />
             ) : (
               <TerminalTab

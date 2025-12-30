@@ -61,6 +61,8 @@
     "os:default",
     "shell:default",
     "log:default",
+    "dialog:default",
+    "dialog:allow-save",
     "fs:default",
     "fs:allow-read-text-file",
     "fs:allow-write-text-file",

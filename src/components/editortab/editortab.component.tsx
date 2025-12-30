@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { homeDir, join } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
+import { save } from '@tauri-apps/plugin-dialog';
 import '@/styles/markdown.css';
 import { CodeBlock } from '@/components/custom/codeblock/codeblock.component';
 
@@ -24,6 +25,7 @@ export interface EditorTabProps {
   onClose?: () => void;
   onSave?: (content: string) => Promise<void>;
   onUnsavedChange?: (hasUnsaved: boolean) => void;
+  onPathUpdate?: (newPath: string) => void;
 }
 
 const EditorTab: React.FC<EditorTabProps> = ({
@@ -33,7 +35,8 @@ const EditorTab: React.FC<EditorTabProps> = ({
   initialContent = '',
   onClose,
   onSave,
-  onUnsavedChange
+  onUnsavedChange,
+  onPathUpdate
 }) => {
   const [content, setContent] = useState<string>(initialContent);
   const [savedContent, setSavedContent] = useState<string>(initialContent); // Track last saved content
@@ -73,13 +76,50 @@ const EditorTab: React.FC<EditorTabProps> = ({
           const pathToWrite = resolvedFilePath || filePath;
           await writeTextFile(pathToWrite, content);
         } else {
-          // Mock save for Untitled
-          console.log('Saving Untitled content:', content);
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Show Save As dialog for untitled files
+          const selectedPath = await save({
+            defaultPath: 'Untitled.md',
+            filters: [
+              {
+                name: 'All Files',
+                extensions: ['*']
+              },
+              {
+                name: 'Markdown',
+                extensions: ['md']
+              },
+              {
+                name: 'TypeScript',
+                extensions: ['ts', 'tsx']
+              },
+              {
+                name: 'JavaScript',
+                extensions: ['js', 'jsx']
+              },
+              {
+                name: 'Text',
+                extensions: ['txt']
+              }
+            ]
+          });
+
+          if (selectedPath) {
+            // Save to the selected path
+            await writeTextFile(selectedPath, content);
+            setResolvedFilePath(selectedPath);
+            onPathUpdate?.(selectedPath);
+            toast.success(`File saved to ${selectedPath}`);
+          } else {
+            // User cancelled the dialog
+            setIsSaving(false);
+            return;
+          }
         }
       }
       setSavedContent(content); // Update saved content tracker
-      toast.success('File saved successfully');
+      if (filePath && filePath !== 'Untitled.md') {
+        toast.success('File saved successfully');
+      }
     } catch (error) {
       console.error('Failed to save:', error);
       toast.error(`Failed to save: ${error}`);
