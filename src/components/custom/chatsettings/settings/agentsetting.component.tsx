@@ -110,20 +110,20 @@ const AgentSetting: React.FC = () => {
       type: 'builtin',
       icon: <Terminal className='h-4 w-4' />
     },
-    {
-      id: 'kubectl',
-      name: 'Kubectl',
-      description: 'Manage Kubernetes clusters, deployments, and resources.',
-      type: 'builtin',
-      icon: <SiKubernetes className='h-4 w-4' />
-    },
-    {
-      id: 'helm',
-      name: 'Helm',
-      description: 'Package manager for Kubernetes applications and charts.',
-      type: 'builtin',
-      icon: <SiHelm className='h-4 w-4' />
-    }
+    // {
+    //   id: 'kubectl',
+    //   name: 'Kubectl',
+    //   description: 'Manage Kubernetes clusters, deployments, and resources.',
+    //   type: 'builtin',
+    //   icon: <SiKubernetes className='h-4 w-4' />
+    // },
+    // {
+    //   id: 'helm',
+    //   name: 'Helm',
+    //   description: 'Package manager for Kubernetes applications and charts.',
+    //   type: 'builtin',
+    //   icon: <SiHelm className='h-4 w-4' />
+    // }
   ];
 
   const extendedTools: Agent[] = [

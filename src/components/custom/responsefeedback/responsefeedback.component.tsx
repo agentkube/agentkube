@@ -9,8 +9,8 @@ interface ResponseFeedbackProps {
   userMessage?: string;
 }
 
-const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({ 
-  content, 
+const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({
+  content,
   onFeedbackSubmit,
   onRetry,
   userMessage
@@ -81,27 +81,27 @@ const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({
       {showFeedback && (
         <div
           ref={feedbackRef}
-          className="absolute bottom-10 right-5 w-72 bg-gray-100 dark:bg-[#0F121B] rounded-lg shadow-lg border dark:border-gray-800 text-sm z-10"
+          className="absolute bottom-10 right-5 w-72 bg-card dark:bg-card rounded-lg shadow-lg border dark:border-foreground/10 text-sm z-10"
         >
           <textarea
             value={feedbackText}
             onChange={(e) => setFeedbackText(e.target.value)}
-            className="w-full p-2 bg-gray-300/70 dark:bg-gray-800/40 backdrop-blur-md rounded-t-lg text-gray-800 dark:text-gray-300 text-sm resize-none"
+            className="w-full p-2 bg-muted-foreground/10 dark:bg-muted-foreground/10 backdrop-blur-md rounded-t-lg text-gray-800 dark:text-accent text-sm resize-none"
             placeholder="Tell us what you liked about the response or how it could be improved."
             rows={3}
           />
           <div className="flex justify-between items-end px-3 pb-2">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-foreground/60">
               This will share your feedback and all content from the current chat, which Agentkube may use to help improve.{' '}
-              <a 
-                onClick={() => openExternalUrl("https://agentkube.com")} 
+              <a
+                onClick={() => openExternalUrl("https://agentkube.com")}
                 className="text-blue-400 hover:underline cursor-pointer"
               >
                 Learn more
               </a>.
             </p>
             <button
-              className="ml-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs font-medium"
+              className="ml-2 px-3 py-1 bg-foreground/10 hover:bg-foreground/20 text-gray-300 rounded text-xs font-medium"
               onClick={handleSendFeedback}
             >
               Send
@@ -112,31 +112,30 @@ const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({
 
       <button
         onClick={copyToClipboard}
-        className="p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+        className="p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-foreground/10 transition-colors"
         title="Copy message"
       >
         {copied ? (
           <Check className="h-4 w-4 text-green-500" />
         ) : (
-          <Copy className="h-4 w-4 text-gray-500 dark:text-gray-600" />
+          <Copy className="h-4 w-4 text-gray-500 dark:text-muted-foreground/50" />
         )}
       </button>
 
       {onRetry && userMessage && (
         <button
           onClick={handleRetry}
-          className="p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+          className="p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-foreground/10 transition-colors"
           title="Retry this message"
         >
-          <RotateCcw className="h-4 w-4 text-gray-500 dark:text-gray-600" />
+          <RotateCcw className="h-4 w-4 text-gray-500 dark:text-muted-foreground/50" />
         </button>
       )}
 
       <button
         onClick={handleLike}
-        className={`p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors ${
-          liked ? 'text-green-500' : 'text-gray-500 dark:text-gray-600'
-        }`}
+        className={`p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-foreground/10 transition-colors ${liked ? 'text-green-500' : 'text-gray-500 dark:text-muted-foreground/50'
+          }`}
         title="Like"
       >
         <ThumbsUp className="h-4 w-4" />
@@ -145,9 +144,8 @@ const ResponseFeedback: React.FC<ResponseFeedbackProps> = ({
       <button
         ref={dislikeButtonRef}
         onClick={handleDislike}
-        className={`p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors ${
-          disliked ? 'text-red-500' : 'text-gray-500 dark:text-gray-600'
-        }`}
+        className={`p-1.5 rounded-[0.3rem] hover:bg-gray-200 dark:hover:bg-foreground/10 transition-colors ${disliked ? 'text-red-500' : 'text-gray-500 dark:text-muted-foreground/50'
+          }`}
         title="Dislike"
       >
         <ThumbsDown className="h-4 w-4" />

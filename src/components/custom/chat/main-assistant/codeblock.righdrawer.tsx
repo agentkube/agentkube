@@ -141,10 +141,11 @@ export const CodeBlock = ({
     margin: 0,
     padding: '0.5rem 0',
     fontSize: '0.875rem',
-    color: theme === "dark" ? "#f2f2f2CC" : "#000000"
+    color: theme === "dark" ? "#f2f2f2CC" : "#000000",
+    overflow: 'visible',
     // color: '#000000',
   };
-  
+
   // Line props function to handle highlighted lines
   const lineProps = (lineNumber: number) => {
     const style = {
@@ -165,7 +166,7 @@ export const CodeBlock = ({
       onKeyDown={handleKeyDown}
     >
       <div className="flex justify-between p-2 border-border">
-        <div className="px-4 py-1 text-xs text-muted-foreground flex items-center">
+        <div className="px-2 py-1 text-xs text-muted-foreground flex items-center">
           <span className="text-xs text-foreground">
             {language}
           </span>
@@ -206,7 +207,7 @@ export const CodeBlock = ({
         </div>
       </div>
 
-      <div className="p-4 overflow-x-auto">
+      <div className="py-2 overflow-x-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 [&_pre::-webkit-scrollbar]:w-1.5 [&_pre::-webkit-scrollbar]:h-1.5 [&_pre::-webkit-scrollbar-track]:bg-transparent [&_pre::-webkit-scrollbar-thumb]:bg-gray-700/30 [&_pre::-webkit-scrollbar-thumb]:rounded-full [&_pre::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
         {isEditing ? (
           <textarea
             ref={textareaRef}
@@ -222,7 +223,7 @@ export const CodeBlock = ({
             language={language || 'text'}
             style={oneDark}
             customStyle={customStyle}
-            showLineNumbers={language !== 'bash' ? true : false}
+            // showLineNumbers={language !== 'bash' ? true : false}
             wrapLines={true}
             lineProps={lineProps}
             lineNumberStyle={{
@@ -236,7 +237,7 @@ export const CodeBlock = ({
             }}
             codeTagProps={{
               style: {
-                fontSize: '0.875rem',
+                fontSize: '0.7rem',
                 fontFamily: 'Monaco, Menlo, monospace',
               }
             }}
@@ -283,62 +284,59 @@ export const CodeBlock = ({
               </div>
             </div>
           ) : (
-            <div className="p-4 bg-muted rounded-b-xl w-full overflow-x-auto">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-sm text-muted-foreground">Command output</div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowOutput(false)}
-                  className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                >
-                  Hide
-                </button>
-                <button
-                  onClick={handleCopyOutput}
-                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                >
-                  {copiedOutput ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-                <button
-                  onClick={() => setIsDialogOpen(true)}
-                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                >
-                  <Maximize2 size={14} />
-                </button>
+            <div className="p-4 bg-muted rounded-b-xl w-full overflow-x-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 [&_pre::-webkit-scrollbar]:w-1.5 [&_pre::-webkit-scrollbar]:h-1.5 [&_pre::-webkit-scrollbar-track]:bg-transparent [&_pre::-webkit-scrollbar-thumb]:bg-gray-700/30 [&_pre::-webkit-scrollbar-thumb]:rounded-full [&_pre::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-sm text-muted-foreground">Command output</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowOutput(false)}
+                    className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                  >
+                    Hide
+                  </button>
+                  <button
+                    onClick={handleCopyOutput}
+                    className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                  >
+                    {copiedOutput ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                  <button
+                    onClick={() => setIsDialogOpen(true)}
+                    className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                </div>
               </div>
+
+              <SyntaxHighlighter
+                language="shell"
+                style={oneDark}
+                customStyle={{
+                  ...customStyle,
+                }}
+                // showLineNumbers={true}
+                wrapLines={true}
+                lineProps={lineProps}
+                lineNumberStyle={{
+                  minWidth: '2em',
+                  paddingRight: '1em',
+                  color: '#606366',
+                  textAlign: 'right',
+                  userSelect: 'none',
+                  marginRight: '0.5rem',
+                  borderRight: '1px solid #404040',
+                }}
+                codeTagProps={{
+                  style: {
+                    fontSize: '0.875rem',
+                    fontFamily: 'Monaco, Menlo, monospace',
+                  }
+                }}
+              >
+                {result.output}
+              </SyntaxHighlighter>
             </div>
-          
-            <SyntaxHighlighter
-              language="shell"
-              style={oneDark}
-              customStyle={{
-                ...customStyle,
-                overflowX: 'auto',
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(120, 125, 132, 0.3) transparent',
-              }}
-              // showLineNumbers={true}
-              wrapLines={true}
-              lineProps={lineProps}
-              lineNumberStyle={{
-                minWidth: '2em',
-                paddingRight: '1em',
-                color: '#606366',
-                textAlign: 'right',
-                userSelect: 'none',
-                marginRight: '0.5rem',
-                borderRight: '1px solid #404040',
-              }}
-              codeTagProps={{
-                style: {
-                  fontSize: '0.875rem',
-                  fontFamily: 'Monaco, Menlo, monospace',
-                }
-              }}
-            >
-              {result.output}
-            </SyntaxHighlighter>
-          </div>
           )}
         </>
       )}
@@ -348,14 +346,19 @@ export const CodeBlock = ({
           <DialogHeader>
             <DialogTitle>Command Output</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[50vh]
-            overflow-y-auto py-1
-
+          <div className="overflow-y-auto max-h-[50vh] py-1
             [&::-webkit-scrollbar]:w-1.5
+            [&::-webkit-scrollbar]:h-1.5
             [&::-webkit-scrollbar-track]:bg-transparent
-            [&::-webkit-scrollbar-thumb]:bg-border
+            [&::-webkit-scrollbar-thumb]:bg-gray-700/30
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-border/70
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
+            [&_pre::-webkit-scrollbar]:w-1.5
+            [&_pre::-webkit-scrollbar]:h-1.5
+            [&_pre::-webkit-scrollbar-track]:bg-transparent
+            [&_pre::-webkit-scrollbar-thumb]:bg-gray-700/30
+            [&_pre::-webkit-scrollbar-thumb]:rounded-full
+            [&_pre::-webkit-scrollbar-thumb:hover]:bg-gray-700/50
           ">
             <div className="px-4 py-2 text-xs text-foreground bg-muted rounded-t-[0.5rem] w-full overflow-x-auto">
               {language}
@@ -368,9 +371,6 @@ export const CodeBlock = ({
                 backgroundColor: '#282C34',
                 padding: '1rem',
                 // borderRadius: '0.5rem',
-                overflowX: 'auto',
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(120, 125, 132, 0.3) transparent',
               }}
               wrapLines={true}
               wrapLongLines={true}

@@ -38,7 +38,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
       setTimeout(() => setCopied(false), 2000);
     });
   };
-  
+
 
   // Handle feedback
   const handleLike = () => {
@@ -50,7 +50,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, toolCalls 
   const handleDislike = () => {
     setDisliked(!disliked);
     if (liked) setLiked(false);
-    setShowFeedback(!disliked); 
+    setShowFeedback(!disliked);
     //TODO Here you could add API call to save feedback
   };
 

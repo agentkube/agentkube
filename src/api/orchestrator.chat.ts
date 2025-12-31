@@ -9,6 +9,7 @@ export interface ChatRequest {
   chat_history?: ChatMessage[];
   model?: string;
   kubecontext?: string;
+  kubeconfig?: string;
   prompt?: string;
   files?: FileContent[];
   reasoning_effort?: ReasoningEffortLevel;

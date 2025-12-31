@@ -507,6 +507,7 @@ const RightDrawer: React.FC = () => {
           chat_history: getRecentChatHistory(messages),
           model: selectedModel,
           kubecontext: currentContext?.name,
+          kubeconfig: currentContext?.meta_data?.origin?.kubeconfig,
           files: allFiles.length > 0 ? allFiles : undefined,
           ...(autoApprove && { auto_approve: true }),
           reasoning_effort: reasoningEffort,
