@@ -70,6 +70,17 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
     }
   }, [currentContext, clusterImages.length, loading, error, fetchClusterImages]);
 
+  // Auto-rescan effect: If scan returns clean (likely initializing), retry in 50s
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (scannedImages > 0 && !hasVulns && !scanning && !loading) {
+      timer = setTimeout(() => {
+        reScan();
+      }, 50000);
+    }
+    return () => clearTimeout(timer);
+  }, [scannedImages, hasVulns, scanning, loading, reScan]);
+
   return (
     <DropdownMenu>
       <TooltipProvider>
@@ -147,12 +158,18 @@ const VulnScanFooterTool: React.FC<VulnScanFooterToolProps> = ({ className }) =>
                     </>
                   ) : (
                     <>
-                      <ShieldCheck className="h-3 w-3 text-green-400" />
-                      <span className="text-sm text-green-400">Clean</span>
+                      <ShieldCheck className="h-3 w-3 text-blue-400" />
+                      <span className="text-sm text-blue-400">Scan Initialized</span>
                     </>
                   )}
                 </div>
               </div>
+            )}
+
+            {scannedImages > 0 && !hasVulns && (
+              <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border border-border">
+                Scanning initialized. Auto-rescanning in 50s to check for results.
+              </p>
             )}
           </div>
 

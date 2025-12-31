@@ -54,9 +54,9 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
     }
   }, [toolCall.arguments]);
 
-  // Extract command for bash_tool to display in header
+  // Extract command for shell to display in header
   const bashCommand = useMemo(() => {
-    if (toolCall.tool !== 'bash_tool' || !parsedArguments) return null;
+    if (toolCall.tool !== 'shell' || !parsedArguments) return null;
     const command = parsedArguments.command;
     if (typeof command === 'string') {
       // Truncate if too long for header display
@@ -182,7 +182,7 @@ const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ toolCall }) => {
 
     // Now outputData should be an object - extract the 'output' field if it exists
     if (typeof outputData === 'object' && outputData !== null) {
-      // For bash_tool and similar - extract 'output' field
+      // For shell and similar - extract 'output' field
       if ('output' in outputData && typeof outputData.output === 'string') {
         return processStringOutput(outputData.output);
       }
