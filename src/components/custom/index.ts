@@ -46,6 +46,8 @@ export { default as AutoResizeTextarea } from './textarea/autotextarea.component
 export { default as ResourceContext } from './resourcecontext/resourcecontext.component';
 export { default as ResourceContextSuggestion } from './resourcecontext/resourcecontextsuggestion.component';
 export { default as ResourcePreview } from './resourcepreview/resourcepreview.component';
+export { default as AlertSelector } from './alertselector/alertselector.components';
+
 export { default as ResourceLogPreview } from './resourcepreview/resourcelogpreview.component';
 export { default as TrivySetupDialog } from './security-setup/security-setup-dialog.component';
 export { default as TrivyNotInstalledAuditReport } from './security-setup/trivynotinstalled-audit-report.component';

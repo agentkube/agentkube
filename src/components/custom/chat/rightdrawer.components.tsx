@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow, Plus, ListTodo, Terminal, Code } from "lucide-react";
+import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow, Plus, ListTodo, Terminal, Code, AlertTriangle } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
-import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview, ReasoningEffort, ReasoningEffortLevel } from '@/components/custom';
+import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, AlertSelector, ResourceContextSuggestion, ResourcePreview, ReasoningEffort, ReasoningEffortLevel } from '@/components/custom';
 import Messages from './main-assistant/message';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { EnrichedSearchResult, SearchResult } from '@/types/search';
@@ -1482,7 +1482,9 @@ const RightDrawer: React.FC = () => {
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-1">
                         <ResourceContext onResourceSelect={handleAddContext} />
-                        <ResourceContextSuggestion onResourceSelect={handleAddContext} />
+                        <div className="mx-1"></div>
+                        <AlertSelector onResourceSelect={handleAddContext} />
+
                       </div>
                       <div className="flex items-center gap-2">
                         <TooltipProvider>
@@ -1537,6 +1539,8 @@ const RightDrawer: React.FC = () => {
                                 <Terminal className="w-4 h-4 text-muted-foreground" />
                               ) : file.resourceType === 'codeblock' ? (
                                 <Code className="w-4 h-4 text-muted-foreground" />
+                              ) : file.resourceType === 'alert' ? (
+                                <AlertTriangle className="w-4 h-4 text-muted-foreground" />
                               ) : (
                                 <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
                               )}
@@ -1634,6 +1638,9 @@ const RightDrawer: React.FC = () => {
                           inputTokens={sessionTokens.input}
                           outputTokens={sessionTokens.output}
                         />
+
+
+                        <ResourceContextSuggestion onResourceSelect={handleAddContext} />
                       </div>
 
                       <div className="flex items-center">

@@ -7,7 +7,10 @@ import { SearchResult, EnrichedSearchResult } from '@/types/search';
 import { jsonToYaml } from '@/utils/yaml';
 import KUBERNETES_LOGO from '@/assets/kubernetes.svg';
 import { ResourceInfoTooltip } from '../resource-tooltip.component';
-import { AlertCircle, Terminal, Globe } from 'lucide-react';
+import { AlertCircle, Terminal, Globe, Bell, AlertTriangle, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { kubeProxyRequest } from '@/api/cluster';
 
 const isPodFailing = (pod: any): boolean => {
   const phase = pod.status?.phase?.toLowerCase();
@@ -28,7 +31,26 @@ const getTimeSince = (timestamp: any) => {
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   return `${Math.floor(diff / 86400)}d`;
+};
+
+const getSeverityColor = (severity?: string) => {
+  switch (severity?.toLowerCase()) {
+    case 'critical': return 'text-red-500';
+    case 'warning': return 'text-yellow-500';
+    case 'info': return 'text-blue-500';
+    default: return 'text-gray-500';
+  }
+};
+
+const getSeverityIcon = (severity?: string) => {
+  switch (severity?.toLowerCase()) {
+    case 'critical': return <AlertTriangle size={12} className="text-red-500" />;
+    case 'warning': return <AlertTriangle size={12} className="text-yellow-500" />;
+    case 'info': return <Info size={12} className="text-blue-500" />;
+    default: return <Bell size={12} className="text-gray-500" />;
+  }
 };
 
 // Kubernetes resource types that can be searched
@@ -76,6 +98,8 @@ interface ResourceMentionItem {
   codeBlockId?: string;
   codeBlockLanguage?: string;
   codeBlockContent?: string;
+  alertSeverity?: string;
+  alertData?: any; // Store full alert object to avoid parsing JSON repeatedly
 }
 
 interface AutoResizeTextareaProps {
@@ -98,7 +122,8 @@ interface AutoResizeTextareaProps {
   [key: string]: any;
 }
 
-type DropdownMode = 'functions' | 'resourceTypes' | 'resources' | 'terminal' | 'codeblock';
+
+type DropdownMode = 'functions' | 'resourceTypes' | 'resources' | 'terminal' | 'codeblock' | 'alerts';
 
 const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTextareaProps>(({
   value,
@@ -139,6 +164,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
   const [dropdownMode, setDropdownMode] = useState<DropdownMode>('functions');
   const [selectedResourceType, setSelectedResourceType] = useState<string | null>(null);
   const [resourceSearchResults, setResourceSearchResults] = useState<ResourceMentionItem[]>([]);
+  const [alertSearchResults, setAlertSearchResults] = useState<ResourceMentionItem[]>([]);
   const [failingPodKeys, setFailingPodKeys] = useState<Set<string>>(new Set());
   const [isLoadingResources, setIsLoadingResources] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -230,12 +256,21 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       };
     }
 
-    const codeblockMatch = textBeforeCursor.match(/@codeblock:([a-zA-Z0-9_-]*)$/);
+    const codeblockMatch = textBeforeCursor.match(/@:([a-zA-Z0-9_-]*)$/);
     if (codeblockMatch) {
       return {
         type: 'codeblock' as const,
         searchQuery: codeblockMatch[1].toLowerCase(),
         fullMatch: codeblockMatch[0]
+      };
+    }
+
+    const alertsMatch = textBeforeCursor.match(/@alerts:([a-zA-Z0-9_-]*)$/);
+    if (alertsMatch) {
+      return {
+        type: 'alerts' as const,
+        searchQuery: alertsMatch[1].toLowerCase(),
+        fullMatch: alertsMatch[0]
       };
     }
 
@@ -267,6 +302,77 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
 
     return null;
   }, []);
+
+  // Search for Alerts
+  const searchAlerts = useCallback(async (query: string) => {
+    if (!currentContext) return;
+
+    // Default config as requested
+    const namespace = 'monitoring';
+    const service = 'kube-prometheus-stack-alertmanager:http-web';
+
+    try {
+      const servicePath = `api/v1/namespaces/${namespace}/services/${service}/proxy/api/v2/alerts`;
+      const params = new URLSearchParams({
+        active: 'true',
+        silenced: 'false',
+        inhibited: 'false',
+        muted: 'false'
+      });
+
+      const response = await kubeProxyRequest(currentContext.name, `${servicePath}?${params}`, 'GET');
+
+      let alerts: any[] = [];
+      if (response && Array.isArray(response)) {
+        alerts = response;
+      } else if (response && Array.isArray(response.data)) {
+        alerts = response.data;
+      }
+
+      const results: ResourceMentionItem[] = alerts
+        .filter((alert: any) => {
+          if (!query) return true;
+          const q = query.toLowerCase();
+          const name = alert.labels?.alertname?.toLowerCase() || '';
+          return name.includes(q);
+        })
+        .map((alert: any) => ({
+          id: `alert/${alert.labels?.alertname || 'unknown'}`,
+          name: alert.labels?.alertname || 'Unknown Alert',
+          description: alert.annotations?.summary || alert.annotations?.description || 'No description',
+          resourceType: 'alert',
+          namespace: namespace, // source namespace
+          alertSeverity: alert.labels?.severity,
+          alertData: alert,
+          searchResult: {
+            resourceType: 'alert',
+            resourceName: alert.labels?.alertname || 'unknown',
+            namespace: namespace,
+            namespaced: true,
+            group: 'monitoring.coreos.com',
+            version: 'v1',
+            resourceContent: JSON.stringify(alert, null, 2)
+          },
+        }));
+
+      setAlertSearchResults(results);
+    } catch (err) {
+      console.error('Error searching alerts:', err);
+      // Fallback or empty
+      setAlertSearchResults([]);
+    }
+  }, [currentContext]);
+
+  // Debounce effect for alert search
+  useEffect(() => {
+    if (dropdownMode === 'alerts') {
+      const timeout = setTimeout(() => {
+        searchAlerts(searchTerm);
+      }, 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [dropdownMode, searchTerm, searchAlerts]);
+
 
   // Search for Kubernetes resources
   const searchResources = useCallback(async (resourceType: string, query: string) => {
@@ -438,6 +544,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       } else if (mentionPattern.type === 'codeblock') {
         setDropdownMode('codeblock');
         setSearchTerm(mentionPattern.searchQuery);
+      } else if (mentionPattern.type === 'alerts') {
+        setDropdownMode('alerts');
+        setSearchTerm(mentionPattern.searchQuery);
       } else if (mentionPattern.type === 'resources') {
         // User typed @resourceType/
         setDropdownMode('resources');
@@ -457,14 +566,15 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
         );
 
         const isTerminalMatch = 'terminal:'.startsWith(mentionPattern.term);
-        const isCodeBlockMatch = 'codeblock:'.startsWith(mentionPattern.term);
+        const isCodeBlockMatch = ':'.startsWith(mentionPattern.term); // Matches @:
+        const isAlertsMatch = 'alerts:'.startsWith(mentionPattern.term);
 
         const matchingFunctions = mentionItems.filter((item: MentionItem) =>
           item.name.toLowerCase().includes(mentionPattern.term)
         );
 
         // If term exactly matches a resource type or terminal, or no matching functions, show resource types
-        if (matchingTypes.length > 0 || isTerminalMatch || isCodeBlockMatch || matchingFunctions.length === 0) {
+        if (matchingTypes.length > 0 || isTerminalMatch || isCodeBlockMatch || isAlertsMatch || matchingFunctions.length === 0) {
           setDropdownMode('resourceTypes');
           setSearchTerm(mentionPattern.term);
           setSelectedResourceType(null);
@@ -516,12 +626,23 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       }
 
       // Add codeblock option if it matches
-      if (!searchTerm || 'codeblock:'.startsWith(searchTerm)) {
+      if (!searchTerm || ':'.startsWith(searchTerm)) { // Matches @:
         items.push({
           id: 'codeblock-type',
           name: 'codeblock:',
           description: 'Mention a code block',
           resourceType: 'codeblock',
+          isResourceType: true
+        });
+      }
+
+      // Add alerts option if it matches
+      if (!searchTerm || 'alerts:'.startsWith(searchTerm)) {
+        items.push({
+          id: 'alerts-type',
+          name: 'alerts:',
+          description: 'Mention active alerts',
+          resourceType: 'alerts',
           isResourceType: true
         });
       }
@@ -541,6 +662,10 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
           description: `${cb.language} snippet`
         }))
         .filter(item => !searchTerm || item.name.toLowerCase().includes(searchTerm));
+    }
+
+    if (dropdownMode === 'alerts') {
+      return alertSearchResults;
     }
 
     if (dropdownMode === 'terminal') {
@@ -645,9 +770,11 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
     if (lastAtPos !== -1) {
       const isTerminal = item.resourceType === 'terminal';
       const isCodeBlock = item.resourceType === 'codeblock';
+      const isAlerts = item.resourceType === 'alerts';
       let insertPart = `@${item.resourceType}/`;
       if (isTerminal) insertPart = `@terminal:`;
-      if (isCodeBlock) insertPart = `@codeblock:`;
+      if (isCodeBlock) insertPart = `@:`;
+      if (isAlerts) insertPart = `@alerts:`;
 
       const newText =
         currentValue.substring(0, lastAtPos) +
@@ -665,6 +792,10 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
         setDropdownMode('terminal');
       } else if (isCodeBlock) {
         setDropdownMode('codeblock');
+      } else if (isAlerts) {
+        setDropdownMode('alerts');
+        // Trigger initial alert search
+        searchAlerts('');
       } else {
         setDropdownMode('resources');
         setSelectedResourceType(item.resourceType);
@@ -736,13 +867,16 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
     if (lastAtPos !== -1) {
       const isTerminal = item.resourceType === 'terminal';
       const isCodeBlock = item.resourceType === 'codeblock';
+      const isAlert = item.resourceType === 'alert';
       // The resource reference we want to insert
       let resourceRef = `@${item.resourceType}/${item.name}`;
 
       if (isTerminal) {
         resourceRef = `@terminal:${item.name}-${item.terminalSessionId?.slice(0, 6)}`;
       } else if (isCodeBlock) {
-        resourceRef = `@codeblock:${item.name}`;
+        resourceRef = `@:${item.name}`;
+      } else if (isAlert) {
+        resourceRef = `@alert:${item.name}`;
       }
 
       // Build new text: everything before @, then the full reference, then everything after cursor
@@ -804,6 +938,16 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
           };
 
           onResourceSelect(codeBlockResource);
+        } else if (isAlert && item.searchResult) {
+          setInsertedResources(prev => new Set(prev).add(resourceRef));
+
+          // Item should already have the content in searchResult
+          const searchRes = item.searchResult as any;
+          onResourceSelect({
+            ...searchRes,
+            // Ensure content is there
+            resourceContent: searchRes.resourceContent
+          } as any);
         } else if (item.searchResult) {
           // Track this resource reference for removal detection
           setInsertedResources(prev => new Set(prev).add(resourceRef));
@@ -982,7 +1126,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
               const eventItem = item as ResourceMentionItem;
 
               const isTerminal = isResourceItem && item.resourceType === 'terminal';
-              const terminalItem = item as ResourceMentionItem;
+
+              const isAlert = isResourceItem && item.resourceType === 'alert';
+              const alertItem = item as ResourceMentionItem;
 
               const element = (
                 <div
@@ -1003,27 +1149,59 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
                   {isResourceItem && (
                     isTerminal ? (
                       <Terminal size={14} className="flex-shrink-0 opacity-70" />
+                    ) : isAlert ? (
+                      <div className="flex-shrink-0">
+                        {getSeverityIcon(alertItem.alertSeverity)}
+                      </div>
                     ) : (
                       <img src={KUBERNETES_LOGO} alt="K8s" className={`w-4 h-4 flex-shrink-0 ${isFailing ? 'opacity-100' : 'opacity-70'}`} />
                     )
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
+                      {/* Alert severity label */}
+                      {isAlert && (
+                        <span className={cn("text-[10px] font-bold uppercase", getSeverityColor(alertItem.alertSeverity))}>
+                          {alertItem.alertSeverity || 'UNK'}
+                        </span>
+                      )}
+
                       {isEvent && eventItem.eventReason && (
                         <span className={`text-[10px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${eventItem.eventType === 'Warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'}`}>
                           {eventItem.eventReason}
                         </span>
                       )}
+
                       <div style={{ fontWeight: 500 }} className="truncate">{item.name}</div>
                     </div>
                     {(item.description || (isEvent && eventItem.eventMessage)) && (
-                      <div className="text-[10px] opacity-60 flex justify-between gap-2 min-w-0">
-                        <span className="truncate italic">
-                          {isEvent && eventItem.eventMessage ? eventItem.eventMessage : item.description}
-                        </span>
+                      <div className="text-[10px] opacity-60 flex justify-between gap-2 min-w-0 mt-0.5">
+                        <div className="flex items-center min-w-0 truncate">
+                          {/* Alert resource context pill */}
+                          {isAlert && alertItem.alertData?.labels?.pod ? (
+                            <span className="font-mono bg-muted/50 px-1 rounded mr-1 shrink-0">
+                              {alertItem.alertData.labels.pod}
+                            </span>
+                          ) : isAlert && alertItem.alertData?.labels?.instance ? (
+                            <span className="font-mono bg-muted/50 px-1 rounded mr-1 shrink-0">
+                              {alertItem.alertData.labels.instance}
+                            </span>
+                          ) : null}
+
+                          <span className="truncate italic">
+                            {isEvent && eventItem.eventMessage ? eventItem.eventMessage : item.description}
+                          </span>
+                        </div>
+
                         {isEvent && eventItem.eventLastSeen && (
                           <span className="shrink-0 opacity-70 font-mono">
                             {getTimeSince(eventItem.eventLastSeen)}
+                          </span>
+                        )}
+                        {/* Alert Timestamp if available */}
+                        {isAlert && alertItem.alertData?.activeAt && (
+                          <span className="shrink-0 opacity-70 font-mono">
+                            {getTimeSince(alertItem.alertData.activeAt)}
                           </span>
                         )}
                       </div>
@@ -1035,6 +1213,51 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
                   {isFailing && <AlertCircle size={10} className="flex-shrink-0" />}
                 </div>
               );
+
+              // Specific Tooltip for Alerts
+              if (isAlert && alertItem.alertData) {
+                return (
+                  <TooltipProvider key={item.id}>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        {element}
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="w-80 p-0 border border-border bg-card text-popover-foreground">
+                        <div className="p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            {getSeverityIcon(alertItem.alertSeverity)}
+                            <span className="font-semibold text-sm">{alertItem.name}</span>
+                          </div>
+
+                          <div className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                            {alertItem.description}
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="text-[10px] uppercase font-bold text-muted-foreground">Affected Resource</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {Object.entries(alertItem.alertData.labels || {})
+                                .filter(([key]) => ['pod', 'namespace', 'service', 'instance', 'job', 'container', 'node'].includes(key))
+                                .map(([key, value]) => (
+                                  <div key={key} className="bg-muted/50 p-1.5 rounded">
+                                    <div className="text-[9px] text-muted-foreground uppercase">{key}</div>
+                                    <div className="text-xs font-mono truncate" title={value as string}>{value as string}</div>
+                                  </div>
+                                ))
+                              }
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-2 border-t border-border flex justify-between items-center text-[10px] text-muted-foreground">
+                            <span>State: {alertItem.alertData.state}</span>
+                            <span>{new Date(alertItem.alertData.activeAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              }
 
               if (isResourceItem && (item as ResourceMentionItem).searchResult) {
                 return (

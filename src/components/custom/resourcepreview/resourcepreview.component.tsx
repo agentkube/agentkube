@@ -1,6 +1,6 @@
 // components/custom/ResourcePreview.tsx
 import React, { useRef, useEffect, useState } from 'react';
-import { X, Copy, Check, ExternalLink, ArrowUpLeft, ArrowUpRight, ChevronsUpDown, Terminal } from 'lucide-react';
+import { X, Copy, Check, ExternalLink, ArrowUpLeft, ArrowUpRight, ChevronsUpDown, Terminal, AlertTriangle } from 'lucide-react';
 import { EnrichedSearchResult } from '@/types/search';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -78,6 +78,8 @@ const ResourcePreview: React.FC<ResourcePreviewProps> = ({ resource, onClose }) 
         <div className="flex items-center flex-wrap text-sm font-medium space-x-2">
           {resource.resourceType === 'terminal' ? (
             <Terminal className="h-4 w-4" />
+          ) : resource.resourceType === 'alert' ? (
+            <AlertTriangle className="h-4 w-4" />
           ) : (
             <SiKubernetes className="h-4 w-4" />
           )}
