@@ -321,7 +321,7 @@ const MetricsServerInstallationDialog: React.FC<MetricsServerInstallationDialogP
                   )}
 
                   {installationComplete && (
-                    <Alert className="border-green-200 bg-green-50">
+                    <Alert className="border-green-200 dark:border-green-400/20 bg-green-50 dark:bg-green-500/10">
                       <AlertDescription className="flex items-center gap-2 text-green-600">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         Metrics server installation completed successfully!
