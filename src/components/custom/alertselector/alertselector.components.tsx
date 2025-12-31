@@ -16,7 +16,9 @@ interface Alert {
   labels: Record<string, string>;
   annotations: Record<string, string>;
   state: string;
-  activeAt: string;
+  activeAt?: string;
+  startsAt?: string;
+  updatedAt?: string;
   value: string;
 }
 
@@ -385,7 +387,7 @@ const AlertSelector: React.FC<AlertSelectorProps> = ({ onResourceSelect }) => {
                           </div>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="left" className="w-80 p-0 border border-border bg-card text-card">
+                      <TooltipContent side="left" className="w-80 p-0 border border-border bg-card">
                         <div className="p-3">
                           <div className="flex items-center gap-2 mb-2">
                             {getSeverityIcon(alert.labels.severity)}
@@ -413,7 +415,7 @@ const AlertSelector: React.FC<AlertSelectorProps> = ({ onResourceSelect }) => {
 
                           <div className="mt-3 pt-2 border-t border-border flex justify-between items-center text-[10px] text-muted-foreground">
                             <span>State: {alert.state}</span>
-                            <span>{new Date(alert.activeAt).toLocaleString()}</span>
+                            <span>{new Date(alert.activeAt || alert.startsAt || alert.updatedAt || '').toLocaleString()}</span>
                           </div>
                         </div>
                       </TooltipContent>

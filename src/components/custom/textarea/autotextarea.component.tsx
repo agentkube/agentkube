@@ -1199,9 +1199,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
                           </span>
                         )}
                         {/* Alert Timestamp if available */}
-                        {isAlert && alertItem.alertData?.activeAt && (
+                        {isAlert && (alertItem.alertData?.activeAt || alertItem.alertData?.startsAt) && (
                           <span className="shrink-0 opacity-70 font-mono">
-                            {getTimeSince(alertItem.alertData.activeAt)}
+                            {getTimeSince(alertItem.alertData.activeAt || alertItem.alertData.startsAt)}
                           </span>
                         )}
                       </div>
@@ -1250,7 +1250,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
 
                           <div className="mt-3 pt-2 border-t border-border flex justify-between items-center text-[10px] text-muted-foreground">
                             <span>State: {alertItem.alertData.state}</span>
-                            <span>{new Date(alertItem.alertData.activeAt).toLocaleString()}</span>
+                            <span>{new Date(alertItem.alertData.activeAt || alertItem.alertData.startsAt || alertItem.alertData.updatedAt || '').toLocaleString()}</span>
                           </div>
                         </div>
                       </TooltipContent>
