@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, ChangeEvent, FocusEvent, KeyboardEvent, useImperativeHandle, useCallback } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
 import { useTerminal, TerminalSession } from '@/contexts/useTerminal';
+import { useCodeBlock, CodeBlockSession } from '@/contexts/useCodeBlock';
 import { queryResource, listResources } from '@/api/internal/resources';
 import { SearchResult, EnrichedSearchResult } from '@/types/search';
 import { jsonToYaml } from '@/utils/yaml';
@@ -72,6 +73,9 @@ interface ResourceMentionItem {
   eventType?: string;
   terminalSessionId?: string;
   terminalLastCommand?: string;
+  codeBlockId?: string;
+  codeBlockLanguage?: string;
+  codeBlockContent?: string;
 }
 
 interface AutoResizeTextareaProps {
@@ -94,7 +98,7 @@ interface AutoResizeTextareaProps {
   [key: string]: any;
 }
 
-type DropdownMode = 'functions' | 'resourceTypes' | 'resources' | 'terminal';
+type DropdownMode = 'functions' | 'resourceTypes' | 'resources' | 'terminal' | 'codeblock';
 
 const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTextareaProps>(({
   value,
@@ -143,6 +147,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
 
   const { currentContext } = useCluster();
   const { sessions, getTerminalContent } = useTerminal();
+  const { codeBlocks } = useCodeBlock();
 
   const useAnimatedSuggestions = animatedSuggestions.length > 0;
 
@@ -222,6 +227,15 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
         type: 'terminal' as const,
         searchQuery: terminalMatch[1].toLowerCase(),
         fullMatch: terminalMatch[0]
+      };
+    }
+
+    const codeblockMatch = textBeforeCursor.match(/@codeblock:([a-zA-Z0-9_-]*)$/);
+    if (codeblockMatch) {
+      return {
+        type: 'codeblock' as const,
+        searchQuery: codeblockMatch[1].toLowerCase(),
+        fullMatch: codeblockMatch[0]
       };
     }
 
@@ -421,6 +435,9 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       if (mentionPattern.type === 'terminal') {
         setDropdownMode('terminal');
         setSearchTerm(mentionPattern.searchQuery);
+      } else if (mentionPattern.type === 'codeblock') {
+        setDropdownMode('codeblock');
+        setSearchTerm(mentionPattern.searchQuery);
       } else if (mentionPattern.type === 'resources') {
         // User typed @resourceType/
         setDropdownMode('resources');
@@ -440,13 +457,14 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
         );
 
         const isTerminalMatch = 'terminal:'.startsWith(mentionPattern.term);
+        const isCodeBlockMatch = 'codeblock:'.startsWith(mentionPattern.term);
 
         const matchingFunctions = mentionItems.filter((item: MentionItem) =>
           item.name.toLowerCase().includes(mentionPattern.term)
         );
 
         // If term exactly matches a resource type or terminal, or no matching functions, show resource types
-        if (matchingTypes.length > 0 || isTerminalMatch || matchingFunctions.length === 0) {
+        if (matchingTypes.length > 0 || isTerminalMatch || isCodeBlockMatch || matchingFunctions.length === 0) {
           setDropdownMode('resourceTypes');
           setSearchTerm(mentionPattern.term);
           setSelectedResourceType(null);
@@ -497,7 +515,32 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
         });
       }
 
+      // Add codeblock option if it matches
+      if (!searchTerm || 'codeblock:'.startsWith(searchTerm)) {
+        items.push({
+          id: 'codeblock-type',
+          name: 'codeblock:',
+          description: 'Mention a code block',
+          resourceType: 'codeblock',
+          isResourceType: true
+        });
+      }
+
       return items;
+    }
+
+    if (dropdownMode === 'codeblock') {
+      return codeBlocks
+        .map(cb => ({
+          id: `codeblock-${cb.id}`,
+          name: cb.id,
+          resourceType: 'codeblock',
+          codeBlockId: cb.id,
+          codeBlockLanguage: cb.language,
+          codeBlockContent: cb.content,
+          description: `${cb.language} snippet`
+        }))
+        .filter(item => !searchTerm || item.name.toLowerCase().includes(searchTerm));
     }
 
     if (dropdownMode === 'terminal') {
@@ -601,7 +644,11 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
 
     if (lastAtPos !== -1) {
       const isTerminal = item.resourceType === 'terminal';
-      const insertPart = isTerminal ? `@terminal:` : `@${item.resourceType}/`;
+      const isCodeBlock = item.resourceType === 'codeblock';
+      let insertPart = `@${item.resourceType}/`;
+      if (isTerminal) insertPart = `@terminal:`;
+      if (isCodeBlock) insertPart = `@codeblock:`;
+
       const newText =
         currentValue.substring(0, lastAtPos) +
         insertPart +
@@ -616,6 +663,8 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       // Switch to search mode
       if (isTerminal) {
         setDropdownMode('terminal');
+      } else if (isCodeBlock) {
+        setDropdownMode('codeblock');
       } else {
         setDropdownMode('resources');
         setSelectedResourceType(item.resourceType);
@@ -686,10 +735,15 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
 
     if (lastAtPos !== -1) {
       const isTerminal = item.resourceType === 'terminal';
+      const isCodeBlock = item.resourceType === 'codeblock';
       // The resource reference we want to insert
-      const resourceRef = isTerminal
-        ? `@terminal:${item.name}-${item.terminalSessionId?.slice(0, 6)}`
-        : `@${item.resourceType}/${item.name}`;
+      let resourceRef = `@${item.resourceType}/${item.name}`;
+
+      if (isTerminal) {
+        resourceRef = `@terminal:${item.name}-${item.terminalSessionId?.slice(0, 6)}`;
+      } else if (isCodeBlock) {
+        resourceRef = `@codeblock:${item.name}`;
+      }
 
       // Build new text: everything before @, then the full reference, then everything after cursor
       const newText =
@@ -735,6 +789,21 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
           };
 
           onResourceSelect(terminalResource);
+        } else if (isCodeBlock && item.codeBlockId) {
+          // Track for removal detection
+          setInsertedResources(prev => new Set(prev).add(resourceRef));
+
+          const codeBlockResource: EnrichedSearchResult = {
+            resourceType: 'codeblock',
+            resourceName: item.name,
+            namespace: '',
+            namespaced: false,
+            group: 'codeblock',
+            version: 'v1',
+            resourceContent: item.codeBlockContent || item.codeBlockId // fallback to ID if content missing
+          };
+
+          onResourceSelect(codeBlockResource);
         } else if (item.searchResult) {
           // Track this resource reference for removal detection
           setInsertedResources(prev => new Set(prev).add(resourceRef));

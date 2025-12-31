@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow, Plus, ListTodo, Terminal } from "lucide-react";
+import { X, Search, BotMessageSquare, ArrowUp, ChevronLeft, Settings, MessageSquare, FileText, ShieldCheck, ShieldAlert, Square, Pause, Image, AppWindow, Plus, ListTodo, Terminal, Code } from "lucide-react";
 import { useDrawer } from '@/contexts/useDrawer';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { AutoResizeTextarea, ChatSetting, ModelSelector, ResourceContext, ResourceContextSuggestion, ResourcePreview, ReasoningEffort, ReasoningEffortLevel } from '@/components/custom';
@@ -28,6 +28,7 @@ import { ChatHistoryDropdown } from './chathistory.rightdrawer';
 import { getSessionMessages, getSessionTodos } from '@/api/session';
 import { toast } from '@/hooks/use-toast';
 import TokenUsage from './tokenusage.component';
+import { useCodeBlock } from '@/contexts/useCodeBlock';
 
 interface SuggestedQuestion {
   question: string;
@@ -74,7 +75,8 @@ const mentionData = [
 
 
 const RightDrawer: React.FC = () => {
-  const { isOpen, setIsOpen, resourceContextToAdd, clearResourceContextToAdd, structuredContentToAdd, clearStructuredContentToAdd } = useDrawer();
+  const { isOpen, setIsOpen, resourceContextToAdd, clearResourceContextToAdd, structuredContentToAdd, clearStructuredContentToAdd, mentionToAdd, clearMentionToAdd } = useDrawer();
+  const { getCodeBlockContent } = useCodeBlock();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
   const [mentions, setMentions] = useState<string[]>([]);
@@ -170,6 +172,39 @@ const RightDrawer: React.FC = () => {
       clearStructuredContentToAdd();
     }
   }, [structuredContentToAdd, clearStructuredContentToAdd]);
+
+  // Handle incoming mention to add
+  useEffect(() => {
+    if (mentionToAdd) {
+      setInputValue(prev => {
+        // Add space if input is not empty and doesn't end with space
+        const prefix = prev && !prev.endsWith(' ') ? ' ' : '';
+        return prev + prefix + mentionToAdd + ' ';
+      });
+
+      // Handle codeblock mentions specifically to add to context
+      const codeblockMatch = mentionToAdd.match(/@codeblock:([a-zA-Z0-9_-]+)/);
+      if (codeblockMatch) {
+        const blockId = codeblockMatch[1];
+        const content = getCodeBlockContent(blockId);
+
+        if (content) {
+          const codeBlockResource: EnrichedSearchResult = {
+            resourceType: 'codeblock',
+            resourceName: blockId,
+            namespace: '',
+            namespaced: false,
+            group: 'codeblock',
+            version: 'v1',
+            resourceContent: content
+          };
+          handleAddContext(codeBlockResource);
+        }
+      }
+
+      clearMentionToAdd();
+    }
+  }, [mentionToAdd, clearMentionToAdd, getCodeBlockContent]);
 
   useEffect(() => {
     const handleKeyboard = (e: KeyboardEvent) => {
@@ -1500,6 +1535,8 @@ const RightDrawer: React.FC = () => {
                             >
                               {file.resourceType === 'terminal' ? (
                                 <Terminal className="w-4 h-4 text-muted-foreground" />
+                              ) : file.resourceType === 'codeblock' ? (
+                                <Code className="w-4 h-4 text-muted-foreground" />
                               ) : (
                                 <img src={KUBERNETES_LOGO} className="w-4 h-4" alt="Kubernetes logo" />
                               )}

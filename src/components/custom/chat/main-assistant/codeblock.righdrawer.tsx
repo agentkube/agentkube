@@ -8,7 +8,10 @@ import { useCluster } from '@/contexts/clusterContext';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { executeCommand } from '@/api/orchestrator.chat';
+
 import { useTheme } from 'next-themes';
+import { useCodeBlock } from '@/contexts/useCodeBlock';
+import { useDrawer } from '@/contexts/useDrawer';
 // Cast Prism to the appropriate React component type
 const SyntaxHighlighter = (Prism as any) as React.FC<SyntaxHighlighterProps>;
 
@@ -40,6 +43,17 @@ export const CodeBlock = ({
   const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Generate a unique ID for this code block
+  const [blockId] = useState(() => Math.random().toString(36).substring(2, 8));
+  const { registerCodeBlock, unregisterCodeBlock } = useCodeBlock();
+  const { addMention } = useDrawer();
+
+  // Register code block with context
+  useEffect(() => {
+    registerCodeBlock(blockId, content, language);
+    return () => unregisterCodeBlock(blockId);
+  }, [blockId, content, language, registerCodeBlock, unregisterCodeBlock]);
 
   // Update local content when prop changes
   useEffect(() => {
@@ -180,7 +194,17 @@ export const CodeBlock = ({
             </span>
           )}
         </div>
-        <div className="flex">
+
+        <div className="flex items-center gap-1">
+          <button className="text-lg transition-all rounded-[0.3rem] ml-2 bg-transparent text-foreground"
+            title="Click to add mention to chat"
+            onClick={() => {
+              addMention(`@codeblock:${blockId}`);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}>
+            @
+          </button>
           {showExecuteButton && (
             <button
               onClick={handleExecute}
@@ -247,99 +271,103 @@ export const CodeBlock = ({
         )}
       </div>
 
-      {error && (
-        <div className="p-4 border-t border-gray-700 bg-red-900/20 text-red-200 rounded-b-xl">
-          {error}
-        </div>
-      )}
+      {
+        error && (
+          <div className="p-4 border-t border-gray-700 bg-red-900/20 text-red-200 rounded-b-xl">
+            {error}
+          </div>
+        )
+      }
 
-      {result && (
-        <>
-          {!showOutput ? (
-            <div className="px-4 py-2 border-t border-border bg-muted rounded-b-xl">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <span className="text-xs text-muted-foreground mr-2">Command {result.success ? 'succeeded' : 'failed'}</span>
-                  {result.success ? (
-                    <Check size={14} className="text-green-500" />
-                  ) : (
-                    <AlertCircle size={14} className="text-red-500" />
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowOutput(true)}
-                    className="flex items-center transition-all px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                  >
-                    Show Output
-                  </button>
-                  <button
-                    onClick={() => setIsDialogOpen(true)}
-                    className="flex items-center transition-all px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                  >
-                    <Maximize2 size={14} className="mr-1" />
-                    Expand
-                  </button>
+      {
+        result && (
+          <>
+            {!showOutput ? (
+              <div className="px-4 py-2 border-t border-border bg-muted rounded-b-xl">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <span className="text-xs text-muted-foreground mr-2">Command {result.success ? 'succeeded' : 'failed'}</span>
+                    {result.success ? (
+                      <Check size={14} className="text-green-500" />
+                    ) : (
+                      <AlertCircle size={14} className="text-red-500" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowOutput(true)}
+                      className="flex items-center transition-all px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                    >
+                      Show Output
+                    </button>
+                    <button
+                      onClick={() => setIsDialogOpen(true)}
+                      className="flex items-center transition-all px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                    >
+                      <Maximize2 size={14} className="mr-1" />
+                      Expand
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="p-4 bg-muted rounded-b-xl w-full overflow-x-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 [&_pre::-webkit-scrollbar]:w-1.5 [&_pre::-webkit-scrollbar]:h-1.5 [&_pre::-webkit-scrollbar-track]:bg-transparent [&_pre::-webkit-scrollbar-thumb]:bg-gray-700/30 [&_pre::-webkit-scrollbar-thumb]:rounded-full [&_pre::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
-              <div className="flex justify-between items-center mb-2">
-                <div className="text-sm text-muted-foreground">Command output</div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowOutput(false)}
-                    className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                  >
-                    Hide
-                  </button>
-                  <button
-                    onClick={handleCopyOutput}
-                    className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                  >
-                    {copiedOutput ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                  <button
-                    onClick={() => setIsDialogOpen(true)}
-                    className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
-                  >
-                    <Maximize2 size={14} />
-                  </button>
+            ) : (
+              <div className="p-4 bg-muted rounded-b-xl w-full overflow-x-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 [&_pre::-webkit-scrollbar]:w-1.5 [&_pre::-webkit-scrollbar]:h-1.5 [&_pre::-webkit-scrollbar-track]:bg-transparent [&_pre::-webkit-scrollbar-thumb]:bg-gray-700/30 [&_pre::-webkit-scrollbar-thumb]:rounded-full [&_pre::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-sm text-muted-foreground">Command output</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowOutput(false)}
+                      className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                    >
+                      Hide
+                    </button>
+                    <button
+                      onClick={handleCopyOutput}
+                      className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                    >
+                      {copiedOutput ? <Check size={14} /> : <Copy size={14} />}
+                    </button>
+                    <button
+                      onClick={() => setIsDialogOpen(true)}
+                      className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent hover:bg-accent-hover text-foreground"
+                    >
+                      <Maximize2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <SyntaxHighlighter
-                language="shell"
-                style={oneDark}
-                customStyle={{
-                  ...customStyle,
-                }}
-                // showLineNumbers={true}
-                wrapLines={true}
-                lineProps={lineProps}
-                lineNumberStyle={{
-                  minWidth: '2em',
-                  paddingRight: '1em',
-                  color: '#606366',
-                  textAlign: 'right',
-                  userSelect: 'none',
-                  marginRight: '0.5rem',
-                  borderRight: '1px solid #404040',
-                }}
-                codeTagProps={{
-                  style: {
-                    fontSize: '0.875rem',
-                    fontFamily: 'Monaco, Menlo, monospace',
-                  }
-                }}
-              >
-                {result.output}
-              </SyntaxHighlighter>
-            </div>
-          )}
-        </>
-      )}
+                <SyntaxHighlighter
+                  language="shell"
+                  style={oneDark}
+                  customStyle={{
+                    ...customStyle,
+                  }}
+                  // showLineNumbers={true}
+                  wrapLines={true}
+                  lineProps={lineProps}
+                  lineNumberStyle={{
+                    minWidth: '2em',
+                    paddingRight: '1em',
+                    color: '#606366',
+                    textAlign: 'right',
+                    userSelect: 'none',
+                    marginRight: '0.5rem',
+                    borderRight: '1px solid #404040',
+                  }}
+                  codeTagProps={{
+                    style: {
+                      fontSize: '0.875rem',
+                      fontFamily: 'Monaco, Menlo, monospace',
+                    }
+                  }}
+                >
+                  {result.output}
+                </SyntaxHighlighter>
+              </div>
+            )}
+          </>
+        )
+      }
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] bg-background">
@@ -380,7 +408,7 @@ export const CodeBlock = ({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 };
 
