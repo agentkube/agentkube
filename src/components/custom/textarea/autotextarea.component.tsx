@@ -1310,7 +1310,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
           onKeyDown={handleKeyDown}
           placeholder={useAnimatedSuggestions ? "" : placeholderStr} // Use static placeholder if no animated suggestions
           rows={1}
-          className={`flex-grow border text-sm border-gray-400 min-h-9 p-2 rounded-[0.4rem] 
+          className={`flex-grow border text-sm border-gray-400 min-h-9 p-2 rounded-[0.4rem] placeholder:text-muted-foreground/50
             overflow-y-auto
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
