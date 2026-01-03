@@ -100,7 +100,7 @@ const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
   return (
     <TimelineItem step={index + 1} className="pb-6 last:pb-0">
       <TimelineSeparator />
-      <TimelineIndicator className="bg-muted-foreground/10 border-muted-foreground p-0.5 mt-2">
+      <TimelineIndicator className="bg-muted-foreground/10 border-muted-foreground/80 p-0.5 mt-2">
         <div className="w-full h-full bg-muted-foreground rounded-full shadow-[0_0_8px_0_rgba(var(--muted-foreground),0.5)]" />
       </TimelineIndicator>
 
