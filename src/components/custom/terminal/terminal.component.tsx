@@ -38,6 +38,7 @@ import { useCluster } from '@/contexts/clusterContext';
 interface PendingRequest {
   command?: string;
   name?: string;
+  autoExecute?: boolean;
 }
 
 interface PendingBrowserRequest {
@@ -363,7 +364,18 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   // Handle pending command requests from context
   useEffect(() => {
     if (isOpen && pendingRequest) {
-      createNewSession(pendingRequest.name, pendingRequest.command);
+      if (pendingRequest.autoExecute === false && pendingRequest.command) {
+        // Create session without initial command, then write the command text to PTY
+        createNewSession(pendingRequest.name).then(session => {
+          // We need a small delay or retry mechanism to ensure PTY is ready, 
+          // but normally writing immediately after creation queues it in the buffer.
+          setTimeout(() => {
+            invoke('write_to_pty', { sessionId: session.id, data: pendingRequest.command });
+          }, 500);
+        });
+      } else {
+        createNewSession(pendingRequest.name, pendingRequest.command);
+      }
       onPendingRequestHandled?.();
     }
   }, [isOpen, pendingRequest, createNewSession, onPendingRequestHandled]);

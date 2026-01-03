@@ -1,5 +1,6 @@
 import React, { useRef, KeyboardEvent, useCallback } from 'react';
-import { Check, ClipboardCopy, CirclePlay, Pencil, Maximize2, AlertCircle, Copy } from 'lucide-react';
+import { Check, ClipboardCopy, CirclePlay, Pencil, Maximize2, AlertCircle, Copy, Terminal, SquareTerminal } from 'lucide-react';
+import { useTerminal } from '@/contexts/useTerminal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect } from 'react';
 import { ExecutionResult } from '@/types/cluster';
@@ -48,6 +49,7 @@ export const CodeBlock = ({
   const [blockId] = useState(() => Math.random().toString(36).substring(2, 8));
   const { registerCodeBlock, unregisterCodeBlock } = useCodeBlock();
   const { addMention } = useDrawer();
+  const { openTerminalWithCommand } = useTerminal();
 
   // Register code block with context
   useEffect(() => {
@@ -148,6 +150,7 @@ export const CodeBlock = ({
   }, [content, currentContext]);
 
   const showExecuteButton = language === 'bash' && content.includes('kubectl');
+  const showTerminalButton = language === 'bash' || content.trim().startsWith('kubectl');
 
   // Custom styles for syntax highlighter
   const customStyle = {
@@ -205,6 +208,15 @@ export const CodeBlock = ({
             }}>
             @
           </button>
+          {showTerminalButton && (
+            <button className="text-lg transition-all rounded-[0.3rem] ml-2 bg-transparent text-foreground"
+              title="Send to Terminal"
+              onClick={() => {
+                openTerminalWithCommand(content, undefined, false);
+              }}>
+              <SquareTerminal size={14} />
+            </button>
+          )}
           {showExecuteButton && (
             <button
               onClick={handleExecute}

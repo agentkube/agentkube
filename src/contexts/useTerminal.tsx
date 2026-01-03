@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 interface TerminalRequest {
   command?: string;
   name?: string;
+  autoExecute?: boolean;
 }
 
 interface BrowserRequest {
@@ -50,7 +51,7 @@ interface TerminalContextType {
   openTerminal: () => void;
   closeTerminal: () => void;
   toggleTerminal: () => void;
-  openTerminalWithCommand: (command: string, name?: string) => void;
+  openTerminalWithCommand: (command: string, name?: string, autoExecute?: boolean) => void;
   pendingRequest: TerminalRequest | null;
   clearPendingRequest: () => void;
   // Session management
@@ -100,8 +101,8 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
     setIsTerminalOpen((prev) => !prev);
   }, []);
 
-  const openTerminalWithCommand = useCallback((command: string, name?: string) => {
-    setPendingRequest({ command, name });
+  const openTerminalWithCommand = useCallback((command: string, name?: string, autoExecute: boolean = true) => {
+    setPendingRequest({ command, name, autoExecute });
     setIsTerminalOpen(true);
   }, []);
 
