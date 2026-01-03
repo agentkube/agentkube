@@ -36,6 +36,16 @@ import {
 import MarkdownContent from '@/utils/markdown-formatter';
 import { SideDrawer, DrawerHeader, DrawerContent } from "@/components/ui/sidedrawer.custom";
 import { Separator } from '@/components/ui/separator';
+import {
+  Timeline,
+  TimelineContent,
+  TimelineDate,
+  TimelineHeader,
+  TimelineIndicator,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineTitle,
+} from "@/components/ui/timeline";
 import { getTaskDetails, getInvestigationTaskDetails } from '@/api/task';
 import { TaskDetails, SubTask, InvestigationTaskDetails } from '@/types/task';
 import { useDrawer } from '@/contexts/useDrawer';
@@ -47,6 +57,118 @@ import TaskPromptDrawer from '@/components/custom/taskpromptdrawer/taskpromptdra
 import { FPGCanvas } from '@/components/custom/fpgcanvas/fpgcanvas.component';
 
 const SyntaxHighlighter = (Prism as any) as React.FC<SyntaxHighlighterProps>;
+
+interface ToolCallItemProps {
+  planItem: any;
+  index: number;
+}
+
+const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent, content: string) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy content:', err);
+    }
+  };
+
+  const customStyle: CSSProperties = {
+    padding: '0.75rem',
+    borderRadius: '0.5rem',
+    background: 'transparent',
+    fontSize: '0.75rem',
+    margin: 0
+  };
+
+  // Parse arguments to show a nice string representation
+  const getArgString = (args: string) => {
+    try {
+      const parsed = JSON.parse(args);
+      // If it's a simple object, return somewhat readable string
+      return JSON.stringify(parsed);
+    } catch {
+      return args;
+    }
+  };
+
+  return (
+    <TimelineItem step={index + 1} className="pb-6 last:pb-0">
+      <TimelineSeparator />
+      <TimelineIndicator className="bg-muted-foreground/10 border-muted-foreground p-0.5 mt-2">
+        <div className="w-full h-full bg-muted-foreground rounded-full shadow-[0_0_8px_0_rgba(var(--muted-foreground),0.5)]" />
+      </TimelineIndicator>
+
+      <TimelineHeader className="mb-2">
+        <TimelineTitle className="text-sm font-medium text-foreground/70">
+          {planItem.tool_name}
+        </TimelineTitle>
+      </TimelineHeader>
+
+      <TimelineContent>
+        {/* Main interactive box */}
+        <div
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="group relative rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer overflow-hidden"
+        >
+          <div className="flex items-start justify-between p-3  gap-3">
+            <div className={`font-mono text-xs text-muted-foreground w-full ${!isExpanded ? 'truncate' : ''}`}>
+              {isExpanded ? (
+                <div className="space-y-4 overflow-x-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 [&_pre::-webkit-scrollbar]:w-1.5 [&_pre::-webkit-scrollbar]:h-1.5 [&_pre::-webkit-scrollbar-track]:bg-transparent [&_pre::-webkit-scrollbar-thumb]:bg-gray-700/30 [&_pre::-webkit-scrollbar-thumb]:rounded-full [&_pre::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 mb-1 block">Arguments</span>
+                    <SyntaxHighlighter
+                      language="json"
+                      style={nord}
+                      customStyle={{ ...customStyle, background: 'rgba(0,0,0,0.2)' }}
+                      wrapLines={true}
+                      showLineNumbers={false}
+                    >
+                      {JSON.stringify(JSON.parse(planItem.arguments), null, 2)}
+                    </SyntaxHighlighter>
+                  </div>
+
+                  {planItem.output && (
+                    <div>
+                      <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 mb-1 block ">Output</span>
+                      <SyntaxHighlighter
+                        language="bash"
+                        style={nord}
+                        customStyle={{ ...customStyle, background: 'rgba(0,0,0,0.2)' }}
+                        wrapLines={true}
+                        showLineNumbers={false}
+                      >
+                        {planItem.output}
+                      </SyntaxHighlighter>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className="opacity-80">
+                  {getArgString(planItem.arguments)}
+                </span>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={(e) => handleCopy(e, isExpanded ? (planItem.output || planItem.arguments) : planItem.arguments)}
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+        </div>
+      </TimelineContent>
+    </TimelineItem>
+  );
+};
 
 
 
@@ -591,78 +713,13 @@ ${taskDetails.remediation || 'No specific remediation provided'}
 
                 {selectedSubTask.plan && selectedSubTask.plan.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-xs uppercase font-medium text-muted-foreground">Tool Calls Evidence</h4>
-                    <div className="">
-                      {selectedSubTask.plan.map((planItem, index) => (
-                        <div key={index} className="border-x border-t last:border-b border-border/50 rounded-none overflow-hidden">
-                          <Accordion type="single" collapsible className="w-full">
-                            <AccordionItem value={`plan-${index}`} className="border-0">
-                              <AccordionTrigger className="px-2 py-2 hover:no-underline bg-muted/30">
-                                <div className="flex items-center gap-2">
-                                  <Wrench className="h-4 w-4" />
-                                  <span className="text-sm space-x-1 flex items-center">
-                                    <span>{planItem.tool_name}</span>
-                                  </span>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="bg-muted/20">
-                                {/* Parameters section */}
-                                {planItem.arguments && (
-                                  <div className="p-2 space-y-1">
-                                    <h4 className="text-xs uppercase text-muted-foreground">
-                                      Parameters
-                                    </h4>
-                                    <div className="bg-muted/50 rounded-md overflow-x-auto">
-                                      <SyntaxHighlighter
-                                        language="json"
-                                        style={nord}
-                                        customStyle={customStyle}
-                                        wrapLines={true}
-                                        showLineNumbers={false}
-                                      >
-                                        {JSON.stringify(JSON.parse(planItem.arguments), null, 2)}
-                                      </SyntaxHighlighter>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Output section */}
-                                {planItem.output && (
-                                  <div className="p-2 pt-0 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <h4 className="text-xs uppercase text-muted-foreground">
-                                        Output
-                                      </h4>
-                                      <button
-                                        onClick={() => handleCopy(planItem.output)}
-                                        className="p-1 rounded hover:bg-muted/50 transition-colors"
-                                        title="Copy output"
-                                      >
-                                        {copied ? (
-                                          <Check className="h-3 w-3 text-green-500" />
-                                        ) : (
-                                          <Copy className="h-3 w-3 text-muted-foreground" />
-                                        )}
-                                      </button>
-                                    </div>
-                                    <div className="bg-muted/50 rounded-md overflow-x-auto">
-                                      <SyntaxHighlighter
-                                        language="bash"
-                                        style={nord}
-                                        customStyle={customStyle}
-                                        wrapLines={true}
-                                        showLineNumbers={false}
-                                      >
-                                        {planItem.output}
-                                      </SyntaxHighlighter>
-                                    </div>
-                                  </div>
-                                )}
-                              </AccordionContent>
-                            </AccordionItem>
-                          </Accordion>
-                        </div>
-                      ))}
+                    <h4 className="text-xs uppercase font-medium text-muted-foreground">Evidence</h4>
+                    <div className="pl-2">
+                      <Timeline defaultValue={selectedSubTask.plan.length}>
+                        {selectedSubTask.plan.map((planItem, index) => (
+                          <ToolCallItem key={index} planItem={planItem} index={index} />
+                        ))}
+                      </Timeline>
                     </div>
                   </div>
                 )}
