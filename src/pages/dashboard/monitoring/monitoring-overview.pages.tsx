@@ -67,7 +67,7 @@ const MonitoringOverview = () => {
     service: string;
   }>({
     namespace: 'monitoring',
-    service: 'prometheus:9090'
+    service: 'kube-prometheus-stack-prometheus:9090'
   });
   const [selectedTimeRange, setSelectedTimeRange] = useState<string>('1H');
   const [selectedDataSource, setSelectedDataSource] = useState<DataSource>({
@@ -81,11 +81,11 @@ const MonitoringOverview = () => {
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isMemoryDrilldownOpen, setIsMemoryDrilldownOpen] = useState<boolean>(false);
   const [isCpuDrilldownOpen, setIsCpuDrilldownOpen] = useState<boolean>(false);
-  
+
   // For demo dialog and animation
   const [isDemoOpen, setIsDemoOpen] = useState<boolean>(false);
   const [isWatchDemoExpanded, setIsWatchDemoExpanded] = useState<boolean>(false);
-  
+
   // For monitoring dashboard dialog
   const [isDashboardDialogOpen, setIsDashboardDialogOpen] = useState<boolean>(false);
   const [selectedDashboardTool, setSelectedDashboardTool] = useState<string>('');
@@ -101,10 +101,10 @@ const MonitoringOverview = () => {
           const prometheusConfig = clusterConfig.config.prometheus;
           const monitoringConfig = {
             namespace: prometheusConfig.namespace || 'monitoring',
-            service: prometheusConfig.service_address || prometheusConfig.service || 'prometheus:9090'
+            service: prometheusConfig.service_address || prometheusConfig.service || 'kube-prometheus-stack-prometheus:9090'
           };
           setMonitoringConfig(monitoringConfig);
-          
+
           // Also update localStorage to keep it in sync
           const configToSave = {
             externalConfig: {
@@ -642,7 +642,7 @@ const MonitoringOverview = () => {
 
   const handleRefreshIntervalChange = useCallback((interval: string) => {
     setRefreshInterval(interval);
-    
+
     // Clear existing timer
     if (refreshTimerRef.current) {
       clearInterval(refreshTimerRef.current);
@@ -688,11 +688,11 @@ const MonitoringOverview = () => {
     const expandTimer = setTimeout(() => {
       setIsWatchDemoExpanded(true);
     }, 500);
-    
+
     const collapseTimer = setTimeout(() => {
       setIsWatchDemoExpanded(false);
     }, 3000); // 500ms + 2500ms = 3000ms total
-    
+
     return () => {
       clearTimeout(expandTimer);
       clearTimeout(collapseTimer);
@@ -722,17 +722,17 @@ const MonitoringOverview = () => {
           <h1 className="text-5xl dark:text-gray-500/40 font-[Anton] uppercase font-bold">Monitoring</h1>
 
           <div className="flex items-center gap-2">
-                {/* Watch Demo Button */}
-                <Button
+            {/* Watch Demo Button */}
+            <Button
               onClick={() => setIsDemoOpen(true)}
               className="flex items-center justify-between gap-2 relative overflow-hidden"
             >
               <motion.div
                 initial={{ width: 40 }}
-                animate={{ 
-                  width: isWatchDemoExpanded ? 144 : 14 
+                animate={{
+                  width: isWatchDemoExpanded ? 144 : 14
                 }}
-                transition={{ 
+                transition={{
                   duration: 0.4,
                   ease: "easeInOut"
                 }}
@@ -741,11 +741,11 @@ const MonitoringOverview = () => {
                 <Play className="w-4 h-4 flex-shrink-0" />
                 <motion.span
                   initial={{ opacity: 0, width: 0 }}
-                  animate={{ 
+                  animate={{
                     opacity: isWatchDemoExpanded ? 1 : 0,
                     width: isWatchDemoExpanded ? 'auto' : 0
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 0.3,
                     delay: isWatchDemoExpanded ? 0.2 : 0,
                     ease: "easeOut"
@@ -847,12 +847,12 @@ const MonitoringOverview = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-        
+
 
             {/* Settings Button */}
             <Button
               variant="outline"
-              
+
               onClick={() => setIsConfigDialogOpen(true)}
               className="flex items-center gap-2"
             >
@@ -869,7 +869,7 @@ const MonitoringOverview = () => {
           serviceName="Prometheus"
           serviceDescription="Configure the Prometheus monitoring service connection details for metrics collection. This affects where pod metrics are queried from."
           defaultNamespace="monitoring"
-          defaultService="prometheus:9090"
+          defaultService="kube-prometheus-stack-prometheus:9090"
         />
 
         {/* Main container */}
@@ -1048,7 +1048,7 @@ const MonitoringOverview = () => {
             </div>
 
 
-            <Button 
+            <Button
               className='flex justify-between'
               onClick={() => setIsMemoryDrilldownOpen(true)}
             >
@@ -1092,7 +1092,7 @@ const MonitoringOverview = () => {
             </div>
 
 
-            <Button 
+            <Button
               className='flex justify-between'
               onClick={() => setIsCpuDrilldownOpen(true)}
             >

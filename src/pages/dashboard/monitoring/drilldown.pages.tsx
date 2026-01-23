@@ -84,7 +84,7 @@ const Drilldown = () => {
     service: string;
   }>({
     namespace: 'monitoring',
-    service: 'prometheus:9090'
+    service: 'kube-prometheus-stack-prometheus:9090'
   });
   const [selectedTimeRange, setSelectedTimeRange] = useState<string>('1H');
   const [selectedDataSource, setSelectedDataSource] = useState<DataSource>({
@@ -558,8 +558,8 @@ const Drilldown = () => {
                   key={tab}
                   onClick={() => handleTabChange(tab.toLowerCase())}
                   className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${activeTab === tab.toLowerCase()
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                 >
                   {tab}
@@ -786,7 +786,7 @@ const Drilldown = () => {
             </DropdownMenu>
             <Button
               variant="outline"
-              
+
               className="flex justify-between w-56  "
             >
               Open {selectedDataSource.name} Dashboard
@@ -796,7 +796,7 @@ const Drilldown = () => {
             {/* Settings Button */}
             <Button
               variant="outline"
-              
+
               onClick={() => setIsConfigDialogOpen(true)}
               className="flex items-center gap-2"
             >
@@ -813,7 +813,7 @@ const Drilldown = () => {
           serviceName="Prometheus"
           serviceDescription="Configure the Prometheus monitoring service connection details for metrics collection. This affects where pod metrics are queried from."
           defaultNamespace="monitoring"
-          defaultService="prometheus:9090"
+          defaultService="kube-prometheus-stack-prometheus:9090"
         />
 
         {/* Main container */}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, CSSProperties } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,6 @@ import {
   TrendingUp,
   Server,
   Eye,
-  MessageSquare,
   Calendar,
   Sparkles,
   ClipboardCheck,
@@ -31,35 +30,60 @@ import {
   ArrowUpRight,
   Copy,
   Check,
-  Wrench
+  Loader2,
+  Radio,
+  Activity,
+  Zap,
+  Target,
+  Trash2,
+  StopCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import MarkdownContent from '@/utils/markdown-formatter';
+import { formatTimeAgo } from '@/lib/utils';
 import { SideDrawer, DrawerHeader, DrawerContent } from "@/components/ui/sidedrawer.custom";
-import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Timeline,
   TimelineContent,
-  TimelineDate,
   TimelineHeader,
   TimelineIndicator,
   TimelineItem,
   TimelineSeparator,
   TimelineTitle,
 } from "@/components/ui/timeline";
-import { getTaskDetails, getInvestigationTaskDetails } from '@/api/task';
-import { TaskDetails, SubTask, InvestigationTaskDetails } from '@/types/task';
+import InvestigationTodos from '@/components/investigationtodos/investigationtodos.component';
+import TaskFeedback from '@/components/custom/taskfeedback/taskfeedback.component';
+import { getInvestigationTaskDetails, cancelInvestigation, deleteInvestigation, patchTask } from '@/api/task';
+import { InvestigationTaskDetails } from '@/types/task';
 import { useDrawer } from '@/contexts/useDrawer';
 import { toast } from '@/hooks/use-toast';
 import { Prism, SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import { nord } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { CSSProperties } from 'react';
 import TaskPromptDrawer from '@/components/custom/taskpromptdrawer/taskpromptdrawer.component';
 import { FPGCanvas } from '@/components/custom/fpgcanvas/fpgcanvas.component';
+import { useInvestigationStream, AnalysisStep, SubTaskState } from '@/hooks/useInvestigationStream';
 
 const SyntaxHighlighter = (Prism as any) as React.FC<SyntaxHighlighterProps>;
 
+// =============================================================================
+// Sub Components
+// =============================================================================
+
 interface ToolCallItemProps {
-  planItem: any;
+  planItem: {
+    tool_name: string;
+    arguments: string;
+    output?: string;
+    call_id?: string;
+  };
   index: number;
 }
 
@@ -86,14 +110,62 @@ const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
     margin: 0
   };
 
-  // Parse arguments to show a nice string representation
   const getArgString = (args: string) => {
     try {
       const parsed = JSON.parse(args);
-      // If it's a simple object, return somewhat readable string
       return JSON.stringify(parsed);
     } catch {
       return args;
+    }
+  };
+
+  /**
+   * Parse tool output - if it contains 'command' and 'output' keys,
+   * return just the output. Handles both JSON and Python-style dict strings.
+   */
+  const parseToolOutput = (output: string): string => {
+    if (!output) return '';
+
+    try {
+      // First try standard JSON parse
+      const parsed = JSON.parse(output);
+      if (parsed && typeof parsed === 'object' && 'command' in parsed && 'output' in parsed) {
+        return parsed.output || '';
+      }
+      // If parsed but doesn't have command/output structure, return formatted JSON
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      // Try to handle Python-style dict string: {'key': 'value'}
+      try {
+        // Replace single quotes with double quotes for JSON compatibility
+        // But be careful with quotes inside strings
+        const pythonStyleMatch = output.match(/\{'command':\s*'([^']*)',\s*'output':\s*'(.*)'\}/s);
+        if (pythonStyleMatch) {
+          return pythonStyleMatch[2] || '';
+        }
+
+        // Alternative pattern with double quotes inside
+        const altMatch = output.match(/\{'command':\s*"([^"]*)",\s*'output':\s*"(.*)"\}/s);
+        if (altMatch) {
+          return altMatch[2] || '';
+        }
+
+        // Try converting Python dict to JSON (basic conversion)
+        const jsonified = output
+          .replace(/'/g, '"')
+          .replace(/True/g, 'true')
+          .replace(/False/g, 'false')
+          .replace(/None/g, 'null');
+
+        const parsed = JSON.parse(jsonified);
+        if (parsed && typeof parsed === 'object' && 'command' in parsed && 'output' in parsed) {
+          return parsed.output || '';
+        }
+      } catch {
+        // If all parsing fails, return original output
+      }
+
+      return output;
     }
   };
 
@@ -111,15 +183,14 @@ const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
       </TimelineHeader>
 
       <TimelineContent>
-        {/* Main interactive box */}
         <div
           onClick={() => setIsExpanded(!isExpanded)}
           className="group relative rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer overflow-hidden"
         >
-          <div className="flex items-start justify-between p-3  gap-3">
+          <div className="flex items-start justify-between p-3 gap-3">
             <div className={`font-mono text-xs text-muted-foreground w-full ${!isExpanded ? 'truncate' : ''}`}>
               {isExpanded ? (
-                <div className="space-y-4 overflow-x-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 [&_pre::-webkit-scrollbar]:w-1.5 [&_pre::-webkit-scrollbar]:h-1.5 [&_pre::-webkit-scrollbar-track]:bg-transparent [&_pre::-webkit-scrollbar-thumb]:bg-gray-700/30 [&_pre::-webkit-scrollbar-thumb]:rounded-full [&_pre::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+                <div className="space-y-4 overflow-x-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700/30 [&::-webkit-scrollbar-thumb]:rounded-full">
                   <div>
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 mb-1 block">Arguments</span>
                     <SyntaxHighlighter
@@ -135,7 +206,7 @@ const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
 
                   {planItem.output && (
                     <div>
-                      <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 mb-1 block ">Output</span>
+                      <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 mb-1 block">Output</span>
                       <SyntaxHighlighter
                         language="bash"
                         style={nord}
@@ -143,7 +214,7 @@ const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
                         wrapLines={true}
                         showLineNumbers={false}
                       >
-                        {planItem.output}
+                        {parseToolOutput(planItem.output)}
                       </SyntaxHighlighter>
                     </div>
                   )}
@@ -159,7 +230,7 @@ const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
               variant="ghost"
               size="icon"
               className="h-4 w-4 shrink-0 text-muted-foreground hover:text-foreground"
-              onClick={(e) => handleCopy(e, isExpanded ? (planItem.output || planItem.arguments) : planItem.arguments)}
+              onClick={(e) => handleCopy(e, isExpanded ? (planItem.output ? parseToolOutput(planItem.output) : planItem.arguments) : planItem.arguments)}
             >
               {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
             </Button>
@@ -170,88 +241,318 @@ const ToolCallItem: React.FC<ToolCallItemProps> = ({ planItem, index }) => {
   );
 };
 
+/**
+ * Streaming step item for the analysis timeline
+ */
+const StreamingStepItem: React.FC<{
+  step: AnalysisStep;
+  index: number;
+  isLatest: boolean;
+}> = ({ step, index, isLatest }) => {
+  const getStatusColor = () => {
+    switch (step.status) {
+      case 'completed': return 'bg-green-500';
+      case 'in_progress': return 'bg-blue-500 animate-pulse';
+      case 'error': return 'bg-red-500';
+      default: return 'bg-muted-foreground/50';
+    }
+  };
 
-
-const getTagColor = (tag: string): string => {
-  const tagLower = tag.toLowerCase();
-
-  const greenTags = ['active'];
-  const redTags = ['impacting', 'danger', 'bug', 'failure', 'critical'];
-
-  if (greenTags.some(term => tagLower.includes(term))) {
-    return 'bg-emerald-400/60 text-green-800 dark:bg-green-900/20 dark:text-emerald-400';
-  }
-
-  if (redTags.some(term => tagLower.includes(term))) {
-    return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-  }
-
-  // Default cyan for all other tags
-  return 'bg-cyan-300 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300';
+  return (
+    <TimelineItem
+      step={index + 1}
+      className="pb-4 last:pb-0"
+      animate={isLatest}
+      isActive={isLatest}
+    >
+      <TimelineSeparator
+        className={isLatest ? 'bg-blue-500/50' : 'bg-muted-foreground/20'}
+        animate={isLatest}
+      />
+      <TimelineIndicator
+        className={`${isLatest ? 'border-blue-500' : 'border-muted-foreground/50'} p-0.5 mt-1`}
+        pulse={isLatest}
+      >
+        <div className={`w-full h-full ${getStatusColor()} rounded-full transition-all duration-300`} />
+      </TimelineIndicator>
+      <div className="flex flex-col gap-0.5">
+        <TimelineTitle className={`text-xs font-medium ${isLatest ? 'text-foreground' : 'text-muted-foreground'} leading-none transition-colors duration-300`}>
+          {step.title}
+        </TimelineTitle>
+        {step.detail && (
+          <p className="text-[10px] text-muted-foreground/70 mt-0.5 transition-opacity duration-300">
+            {step.detail}
+          </p>
+        )}
+      </div>
+    </TimelineItem>
+  );
 };
 
+/**
+ * Streaming SubTask card
+ */
+const StreamingSubTaskCard: React.FC<{
+  subTask: SubTaskState;
+  onClick: () => void;
+}> = ({ subTask, onClick }) => {
+  const status = subTask.status === 0 ? 'ALL GOOD' : 'ISSUES FOUND';
+  const statusColor = subTask.status === 0
+    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+
+  return (
+    <div
+      className="gap-3 p-2 rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={onClick}
+    >
+      <div className="flex justify-between items-center gap-2 min-w-0 flex-1">
+        <div className='flex items-center gap-1'>
+          {subTask.status === 0
+            ? <CheckCircle className="w-4 h-4 text-green-600" />
+            : <XCircle className="w-4 h-4 text-rose-500" />
+          }
+          <Badge className={statusColor}>
+            {status}
+          </Badge>
+        </div>
+        <ArrowUpRight className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
+      </div>
+      <div className="min-w-0 flex-1 mt-2">
+        <span className="text-xs font-medium text-muted-foreground tracking-wide">
+          {subTask.subject || 'Unknown'}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Streaming metrics cards that update in real-time
+ */
+const StreamingMetricsGrid: React.FC<{
+  duration: number | null;
+  patternConfidence: number | null;
+  impact: { duration: number; services_affected: number; impacted_since: number } | null;
+  isStreaming: boolean;
+}> = ({ duration, patternConfidence, impact, isStreaming }) => {
+  const formatDuration = (totalSeconds: number | null): string => {
+    if (totalSeconds === null) return isStreaming ? '...' : '0s';
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes === 0) return `${seconds}s`;
+    return `${minutes}m ${seconds}s`;
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+      <Card className="bg-card/30 h-36 border-border/50 rounded-md">
+        <CardContent className="p-4 h-full flex items-end">
+          <div className="flex justify-between items-end w-full">
+            <div>
+              <p className="text-4xl font-light text-foreground">
+                {impact?.impacted_since ? formatTimeAgo(impact.impacted_since) : (isStreaming ? '...' : 'N/A')}
+              </p>
+              <p className="text-xs text-muted-foreground">Impacted Since</p>
+            </div>
+            <div className="p-2 rounded-lg w-fit bg-red-100 dark:bg-red-900/20">
+              <TrendingUp className="w-5 h-5 text-red-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/30 h-36 border-border/50 rounded-md">
+        <CardContent className="p-4 h-full flex items-end">
+          <div className="flex justify-between items-end w-full">
+            <div>
+              <p className="text-4xl font-light text-foreground">
+                {formatDuration(duration)}
+              </p>
+              <p className="text-xs text-muted-foreground">Task Duration</p>
+            </div>
+            <div className="p-2 rounded-lg w-fit bg-blue-100 dark:bg-blue-900/20">
+              <Clock className="w-5 h-5 text-blue-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/30 h-36 border-border/50 rounded-md">
+        <CardContent className="p-4 h-full flex items-end">
+          <div className="flex justify-between items-end w-full">
+            <div>
+              <p className="text-4xl font-light text-foreground">
+                {impact?.services_affected ?? (isStreaming ? '...' : 0)}
+              </p>
+              <p className="text-xs text-muted-foreground">Services Affected</p>
+            </div>
+            <div className="p-2 rounded-lg w-fit bg-purple-100 dark:bg-purple-900/20">
+              <Server className="w-5 h-5 text-purple-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/30 h-36 border-border/50 rounded-md">
+        <CardContent className="p-4 h-full flex items-end">
+          <div className="flex justify-between items-end w-full">
+            <div>
+              <p className="text-4xl font-light text-foreground">
+                {patternConfidence !== null ? `${patternConfidence}%` : (isStreaming ? '...' : '0%')}
+              </p>
+              <p className="text-xs text-muted-foreground">Pattern Confidence</p>
+            </div>
+            <div className="p-2 rounded-lg w-fit bg-orange-100 dark:bg-orange-900/20">
+              <Target className="w-5 h-5 text-orange-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+/**
+ * Streaming status indicator
+ */
+const StreamingStatus: React.FC<{
+  status: 'idle' | 'loading' | 'connecting' | 'streaming' | 'completed' | 'error';
+  eventsCount: number;
+}> = ({ status, eventsCount }) => {
+  const getStatusConfig = () => {
+    switch (status) {
+      case 'loading':
+        return {
+          icon: <Loader2 className="w-4 h-4 animate-spin" />,
+          text: 'Loading...',
+          color: 'text-blue-500'
+        };
+      case 'connecting':
+        return {
+          icon: <Loader2 className="w-4 h-4 animate-spin" />,
+          text: 'Connecting...',
+          color: 'text-yellow-500'
+        };
+      case 'streaming':
+        return {
+          icon: <Loader2 className="w-4 h-4 animate-spin" />,
+          text: 'Progressing',
+          color: 'text-foreground'
+        };
+      case 'completed':
+        return {
+          icon: <CheckCircle className="w-4 h-4" />,
+          text: 'Completed',
+          color: 'text-blue-500'
+        };
+      case 'error':
+        return {
+          icon: <XCircle className="w-4 h-4" />,
+          text: 'Error',
+          color: 'text-red-500'
+        };
+      default:
+        return {
+          icon: <Activity className="w-4 h-4" />,
+          text: 'Ready',
+          color: 'text-muted-foreground'
+        };
+    }
+  };
+
+  const config = getStatusConfig();
+
+  return (
+    <div className={`flex items-center gap-2 ${config.color}`}>
+      {config.icon}
+      <span className="text-xs font-medium">{config.text}</span>
+    </div>
+  );
+};
+
+// =============================================================================
+// Main Task Report Component (SSE Streaming)
+// =============================================================================
 
 const TaskReport: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
+  const navigate = useNavigate();
   const { addStructuredContent } = useDrawer();
-  const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSubTask, setSelectedSubTask] = useState<SubTask | null>(null);
+  const [selectedSubTask, setSelectedSubTask] = useState<SubTaskState | null>(null);
+  const [isGraphExpanded, setIsGraphExpanded] = useState(false);
   const [showPromptDrawer, setShowPromptDrawer] = useState(false);
   const [promptDetails, setPromptDetails] = useState<InvestigationTaskDetails | null>(null);
   const [promptLoading, setPromptLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
 
-  // Fetch task details from API
-  const fetchTaskDetails = useCallback(async (isPolling = false) => {
-    if (!taskId) {
-      setError('No task ID provided');
-      setLoading(false);
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+
+  // Resolved state
+  const [isResolved, setIsResolved] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+
+  // SSE Streaming hook
+  const {
+    state,
+    subscribeToTask,
+    cancel,
+    generateTitle,
+    isStreaming,
+    isCompleted,
+    isError,
+    isTitleStreaming,
+  } = useInvestigationStream();
+
+  // Subscribe to task events when component mounts or taskId changes
+  useEffect(() => {
+    if (taskId && state.taskId !== taskId) {
+      subscribeToTask(taskId);
+    }
+
+    return () => {
+      cancel();
+    };
+  }, [taskId, state.taskId, subscribeToTask, cancel]);
+
+  // Track if we've already attempted title generation for this task
+  const titleGenerationAttemptedRef = React.useRef<string | null>(null);
+
+  // Trigger title generation when investigation completes with summary
+  useEffect(() => {
+    // Skip if:
+    // - Investigation not complete
+    // - No summary available (root cause needed for title generation)
+    // - Title is currently being generated
+    // - We already attempted for this task
+    if (
+      !isCompleted ||
+      !state.summary ||
+      isTitleStreaming ||
+      titleGenerationAttemptedRef.current === taskId
+    ) {
       return;
     }
 
-    try {
-      if (!isPolling) setLoading(true);
-      const details = await getTaskDetails(taskId);
-      setTaskDetails(details);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching task details:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch task details');
-    } finally {
-      if (!isPolling) setLoading(false);
+    // Check if title needs generation:
+    // - No title at all
+    // - Title is same as user prompt (not properly generated)
+    // - Title is a default/placeholder
+    const userPrompt = promptDetails?.prompt || '';
+    const needsTitleGeneration =
+      !state.title ||
+      state.title === userPrompt ||
+      state.title === 'New Investigation' ||
+      state.title.length < 10; // Too short to be descriptive
+
+    if (needsTitleGeneration) {
+      console.log('[TitleGen] Triggering title generation for task:', taskId);
+      titleGenerationAttemptedRef.current = taskId || null;
+      generateTitle(promptDetails?.prompt || 'Kubernetes investigation');
     }
-  }, [taskId]);
-
-  // Polling effect
-  useEffect(() => {
-    fetchTaskDetails();
-
-    let intervalId: NodeJS.Timeout;
-
-    const startPolling = () => {
-      intervalId = setInterval(() => {
-        if (taskDetails?.status !== 'completed' && taskDetails?.status !== 'cancelled') {
-          fetchTaskDetails(true);
-        } else {
-          clearInterval(intervalId);
-        }
-      }, 10000);
-    };
-
-    // Start polling after initial load
-    const timeoutId = setTimeout(() => {
-      if (taskDetails?.status !== 'completed' && taskDetails?.status !== 'cancelled') {
-        startPolling();
-      }
-    }, 1000);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [fetchTaskDetails, taskDetails?.status]);
+  }, [isCompleted, state.summary, state.title, isTitleStreaming, promptDetails, generateTitle, taskId]);
 
   // Fetch prompt details from API
   const fetchPromptDetails = useCallback(async () => {
@@ -268,6 +569,20 @@ const TaskReport: React.FC = () => {
     }
   }, [taskId]);
 
+  // Eagerly fetch prompt details when streaming starts (for title generation)
+  useEffect(() => {
+    if (isStreaming && taskId && !promptDetails && !promptLoading) {
+      fetchPromptDetails();
+    }
+  }, [isStreaming, taskId, promptDetails, promptLoading, fetchPromptDetails]);
+
+  // Sync resolved status from stream state
+  useEffect(() => {
+    if (state.resolved !== undefined) {
+      setIsResolved(state.resolved === "yes");
+    }
+  }, [state.resolved]);
+
   const handleViewPrompt = () => {
     setShowPromptDrawer(true);
     if (!promptDetails) {
@@ -275,61 +590,79 @@ const TaskReport: React.FC = () => {
     }
   };
 
-  const customStyle: CSSProperties = {
-    padding: '0.5rem',
-    borderRadius: '0.5rem',
-    background: 'transparent',
-    fontSize: '0.75rem'
-  };
+  const handleStopInvestigation = async () => {
+    if (!taskId) return;
 
-
-  const handleCopy = async (content: string) => {
+    setIsStopping(true);
     try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy content:', err);
+      await cancelInvestigation(taskId);
+      toast({
+        title: "Investigation Stopped",
+        description: "The investigation has been stopped successfully."
+      });
+      // Cancel local stream
+      cancel();
+    } catch (error) {
+      console.error('Error stopping investigation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to stop investigation. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsStopping(false);
     }
   };
 
+  const handleDeleteInvestigation = async () => {
+    if (!taskId) return;
 
-  // Helper functions
-  const getSubTaskStatus = (status: number): 'ISSUES FOUND' | 'ALL GOOD' => {
-    return status === 0 ? 'ALL GOOD' : 'ISSUES FOUND';
-  };
-
-  const getSubTaskSeverity = (status: number): 'success' | 'error' => {
-    return status === 0 ? 'success' : 'error';
-  };
-
-  const getSeverityColor = (severity: 'critical' | 'error' | 'warning' | 'info' | 'success' | string): string => {
-    switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      case 'error': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'warning': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300';
-      case 'info': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
-      case 'success': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      default: return 'bg-muted text-muted-foreground';
+    setIsDeleting(true);
+    try {
+      await deleteInvestigation(taskId);
+      toast({
+        title: "Investigation Deleted",
+        description: "The investigation has been deleted successfully."
+      });
+      // Navigate back to investigations page
+      navigate('/dashboard/investigations');
+    } catch (error) {
+      console.error('Error deleting investigation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete investigation. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
-  const getStatusIcon = (status: 'ISSUES FOUND' | 'ALL GOOD' | string): JSX.Element => {
-    switch (status) {
-      case 'ISSUES FOUND': return <XCircle className="w-4 h-4 text-rose-500" />;
-      case 'ALL GOOD': return <CheckCircle className="w-4 h-4 text-green-600" />;
-      default: return <AlertTriangle className="w-4 h-4 text-orange-600" />;
-    }
-  };
+  const handleToggleResolved = async () => {
+    if (!taskId) return;
 
-  const formatDuration = (totalSeconds: number): string => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-
-    if (minutes === 0) {
-      return `${seconds}s`;
+    setIsResolving(true);
+    try {
+      const newResolvedStatus = isResolved ? "no" : "yes"; // Toggle
+      await patchTask(taskId, newResolvedStatus);
+      setIsResolved(newResolvedStatus === "yes");
+      toast({
+        title: newResolvedStatus === "yes" ? "Marked as Resolved" : "Marked as Unresolved",
+        description: newResolvedStatus === "yes"
+          ? "This investigation has been marked as resolved."
+          : "This investigation has been marked as unresolved."
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResolving(false);
     }
-    return `${minutes}m ${seconds}s`;
   };
 
   const formatDate = (dateString: string): string => {
@@ -344,55 +677,82 @@ const TaskReport: React.FC = () => {
     });
   };
 
+  const formatDuration = (totalSeconds: number): string => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes === 0) return `${seconds}s`;
+    return `${minutes}m ${seconds}s`;
+  };
 
   const handleResolveClick = () => {
-    if (!taskDetails) return;
+    if (!state.summary) return;
 
-    const structuredContent = `**${taskDetails.title}**\n
+    const structuredContent = `**${state.title || 'Investigation Report'}**
 
-Severity: ${taskDetails.severity}
-Status: ${taskDetails.status}
+Severity: ${state.patternConfidence ? 'High' : 'Unknown'}
+Status: ${state.status}
 
 **Summary:**
-${taskDetails.summary}
+${state.summary}
 
 **Remediation:**
-${taskDetails.remediation || 'No specific remediation provided'}
+${state.remediation || 'No specific remediation provided'}
 
-**Task ID:** ${taskDetails.task_id}
-**Duration:** ${formatDuration(taskDetails.duration)}
-**Services Affected:** ${taskDetails.impact?.service_affected ?? 0}
-**Impacted Since:** ${taskDetails.impact?.impacted_since ?? 0}`;
+**Task ID:** ${taskId}
+**Duration:** ${formatDuration(state.duration || 0)}
+**Services Affected:** ${state.impact?.services_affected ?? 0}
+**Impacted Since:** ${state.impact?.impacted_since ? formatTimeAgo(state.impact.impacted_since) : 'Unknown'}`;
 
-    addStructuredContent(structuredContent, `Task: ${taskDetails.title.substring(0, 15)}...`);
+    addStructuredContent(structuredContent, `Task: ${(state.title || 'Investigation').substring(0, 15)}...`);
     toast({
       title: "Added to Chat",
       description: 'Task details added to chat'
     });
   };
 
-
-  if (loading) {
+  // Loading state (fetching task data via REST)
+  if (state.status === 'loading') {
     return (
       <div className="px-6 py-6 flex items-center justify-center h-[92vh]">
         <div className="text-center text-muted-foreground">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-muted-foreground mx-auto mb-2"></div>
-          Loading task details...
+          <Loader2 className="animate-spin h-8 w-8 mx-auto mb-2" />
+          Loading investigation...
         </div>
       </div>
     );
   }
 
-  if (error || !taskDetails) {
+  // Connecting state (connecting to SSE for live updates)
+  // Only show full-screen loading if we have no data yet
+  // If we have data from REST API, continue to show the main UI with a "connecting" status indicator
+  if (state.status === 'connecting' && !state.title && state.events.length === 0) {
     return (
       <div className="px-6 py-6 flex items-center justify-center h-[92vh]">
-        <div className="text-center text-red-500">
-          <div className="mb-2">Error loading task details</div>
-          <div className="text-sm">{error || 'No task details available'}</div>
+        <div className="text-center text-muted-foreground">
+          <Loader2 className="animate-spin h-8 w-8 mx-auto mb-2" />
+          Connecting to live stream...
         </div>
       </div>
     );
   }
+
+  // Error state with no data
+  if (isError && state.events.length === 0 && !state.summary && !state.title) {
+    return (
+      <div className="px-6 py-6 flex items-center justify-center h-[92vh]">
+        <div className="text-center text-red-500">
+          <XCircle className="h-8 w-8 mx-auto mb-2" />
+          <div className="mb-2">Error loading investigation</div>
+          <div className="text-sm">{state.error || 'Unknown error'}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show last 6 steps by default, or all if expanded
+  const visibleSteps = isGraphExpanded
+    ? state.analysisSteps
+    : state.analysisSteps.slice(-6);
 
   return (
     <div className="px-6 py-6 space-y-2 max-h-[92vh] overflow-y-auto
@@ -407,180 +767,296 @@ ${taskDetails.remediation || 'No specific remediation provided'}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-5xl text-foreground/40 font-[Anton] uppercase font-bold">Task Report</h1>
-              <h1 className="text-xs text-muted-foreground">{taskDetails.task_id}</h1>
+              <h1 className="text-5xl text-foreground/40 font-[Anton] uppercase font-bold">
+                Task Report
+              </h1>
+              <h1 className="text-xs text-muted-foreground">{taskId}</h1>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleResolveClick();
-              }}
-              className="flex items-center gap-2 w-36 flex justify-between">
-              Open Chat
-              <ArrowUpRight className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={handleViewPrompt}
-            >
-              <Eye className="w-4 h-4" />
-              View Prompt
-            </Button>
+          <div className="flex items-center gap-4">
+            <StreamingStatus status={state.status} eventsCount={state.events.length} />
+            <div className="flex gap-2">
+              {(state.summary || state.remediation) && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResolveClick();
+                  }}
+                  className="flex items-center gap-2 w-36 justify-between"
+                >
+                  Open Chat
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={handleViewPrompt}
+              >
+                <Eye className="w-4 h-4" />
+                View Prompt
+              </Button>
+              {/* Stop button - only show when streaming */}
+              {isStreaming && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                        onClick={handleStopInvestigation}
+                        disabled={isStopping}
+                      >
+                        <StopCircle className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isStopping ? 'Stopping...' : 'Stop Investigation'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {/* Delete button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                      onClick={() => setDeleteDialogOpen(true)}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete Investigation</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {/* Mark as Resolved button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`hover:bg-green-100 dark:hover:bg-green-900/20 ${isResolved
+                        ? 'text-green-600 hover:text-green-700'
+                        : 'text-gray-400 hover:text-green-600'
+                        }`}
+                      onClick={handleToggleResolved}
+                      disabled={isResolving}
+                    >
+                      <CheckCircle2 className={`w-4 h-4 ${isResolved ? 'fill-current' : ''}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isResolved ? 'Mark as Unresolved' : 'Mark as Resolved'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
         </div>
 
         <Card className="bg-transparent border-none">
           <CardContent className="py-6 px-0">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h2 className="text-lg font-medium text-foreground mb-2">
-                  {taskDetails.title}
-                </h2>
-                <p className="text-xs text-muted-foreground mb-4 truncate max-w-96">
-                  {taskDetails.summary}
-                </p>
+            <div className="mb-4">
+              <h2 className="text-lg font-medium text-foreground mb-2 flex items-center gap-0">
+                {/* Show streaming title with cursor effect, or final title, or default */}
+                {isTitleStreaming ? (
+                  <>
+                    <span
+                      className="inline-block"
+                      style={{
+                        background: 'linear-gradient(90deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 50%, hsl(var(--foreground)) 100%)',
+                        backgroundSize: '200% 100%',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        animation: 'shimmer 2s ease-in-out infinite',
+                      }}
+                    >
+                      {state.streamingTitle}
+                    </span>
+                    <span
+                      className="inline-block w-[2px] h-5 ml-0.5 rounded-full"
+                      style={{
+                        background: 'hsl(var(--primary))',
+                        animation: 'cursorBlink 0.8s ease-in-out infinite',
+                        boxShadow: '0 0 8px hsl(var(--primary) / 0.5)',
+                      }}
+                    />
+                    <style>{`
+                      @keyframes shimmer {
+                        0%, 100% { background-position: 200% 0; }
+                        50% { background-position: 0% 0; }
+                      }
+                      @keyframes cursorBlink {
+                        0%, 100% { opacity: 1; transform: scaleY(1); }
+                        50% { opacity: 0.3; transform: scaleY(0.8); }
+                      }
+                    `}</style>
+                  </>
+                ) : (
+                  state.title || (isCompleted ? 'New Investigation' : 'Investigation in Progress...')
+                )}
+              </h2>
+              <p className="text-xs text-muted-foreground mb-4 truncate max-w-96">
+                {state.summary || (isStreaming ? 'Analyzing...' : 'Waiting for results...')}
+              </p>
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{formatDate(taskDetails.created_at)}</span>
-                  </div>
-                  <Badge className={getSeverityColor('error')}>
-                    {taskDetails.status.toUpperCase()}
+                  <Badge className={
+                    isStreaming
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                      : isCompleted
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+                        : isError
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                          : 'bg-muted text-muted-foreground'
+                  }>
+                    {state.status.toUpperCase()}
                   </Badge>
-                  <Badge className={getSeverityColor('warning')}>
-                    {taskDetails.severity.toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1">
-                {taskDetails.tags?.map((tag: string, index: number) => (
-                  <div key={index} className={`${getTagColor(tag)} font-medium px-1.5 py-0.5 rounded-md text-xs`}>
-                    {tag}
-                  </div>
-                )) || (
-                    <span className="text-xs text-muted-foreground">No tags</span>
+                  {state.matchedPattern && (
+                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
+                      {state.matchedPattern}
+                    </Badge>
                   )}
+                </div>
+                <TaskFeedback
+                  taskId={taskId || ''}
+                  summary={state.summary}
+                  remediation={state.remediation}
+                />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Impact Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
-          <CardContent className="p-4 h-full flex items-end">
-            <div className="flex justify-between items-end w-full">
-              <div className=''>
-                <p className="text-4xl font-light text-foreground">{taskDetails.impact?.impacted_since ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Impacted Since</p>
-              </div>
-              <div className="p-2 rounded-lg w-fit bg-red-100 dark:bg-red-900/20">
-                <TrendingUp className="w-5 h-5 text-red-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
-          <CardContent className="p-4 h-full flex items-end">
-            <div className="flex justify-between items-end w-full">
-              <div className=''>
-                <p className="text-4xl font-light text-foreground">{formatDuration(taskDetails.duration)}</p>
-                <p className="text-xs text-muted-foreground">Task Duration</p>
-              </div>
-              <div className="p-2 rounded-lg w-fit bg-blue-100 dark:bg-blue-900/20">
-                <Clock className="w-5 h-5 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-
-        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
-          <CardContent className="p-4 h-full flex items-end">
-            <div className="flex justify-between items-end w-full">
-
-              <div className=''>
-                <p className="text-4xl font-light text-foreground">{taskDetails.impact?.service_affected ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Services Affected</p>
-              </div>
-              <div className="p-2 rounded-lg w-fit bg-purple-100 dark:bg-purple-900/20">
-                <Server className="w-5 h-5 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/30 h-36 border-border/50 rounded-md">
-          <CardContent className="p-4 h-full flex items-end">
-            <div className="flex justify-between items-end w-full">
-              <div className=''>
-                <p className="text-4xl font-light text-foreground">{taskDetails.pattern_confidence ? `${taskDetails.pattern_confidence}%` : '0%'}</p>
-                <p className="text-xs text-muted-foreground">Pattern Confidence</p>
-              </div>
-              <div className="p-2 rounded-lg w-fit bg-orange-100 dark:bg-orange-900/20">
-                <CheckCircle className="w-5 h-5 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-
-      {/* Fault Propagation Graph */}
-      {taskDetails.fault_propagation_graph && taskDetails.fault_propagation_graph.nodes.length > 0 && (
-        <Card className="bg-card/30 rounded-md border-border/50">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 uppercase text-sm">
-              <TrendingUp className="w-5 h-5" />
-              Causal Dependency Graph
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-[400px]">
-            <FPGCanvas
-              faultPropagationGraph={taskDetails.fault_propagation_graph}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* Streaming Metrics */}
+      <StreamingMetricsGrid
+        duration={state.duration}
+        patternConfidence={state.patternConfidence}
+        impact={state.impact}
+        isStreaming={isStreaming}
+      />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
 
-        {/* Root Cause Analysis */}
         <Card className="bg-card/30 rounded-md border-border/50 py-2">
           <CardContent className="space-y-4">
-            <Accordion type="single" collapsible defaultValue="root-cause" className="w-full">
-              <AccordionItem value="root-cause" className="border-0">
-                <AccordionTrigger className="px-0 py-2 hover:no-underline">
-                  <div className='flex items-center gap-2 text-purple-600 dark:text-blue-400'>
-                    <SearchCode className="w-5 h-5" />
-                    <h4 className="font-medium uppercase ">Root Cause Details</h4>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-0 pb-2">
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <p className="text-xs text-foreground">
-                      <MarkdownContent content={taskDetails.summary || ''} />
-                    </p>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            <div className="py-2 mb-2">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <h4 className="font-bold text-sm">
+                  Tasks
+                </h4>
+              </div>
 
-            <div className="space-y-2">
-              <Accordion type="single" collapsible className="w-full">
+              {state.analysisSteps.length > 6 && (
+                <div
+                  className="text-xs text-muted-foreground underline decoration-dotted underline-offset-2 cursor-pointer mb-3 hover:text-foreground transition-colors px-1"
+                  onClick={() => setIsGraphExpanded(!isGraphExpanded)}
+                >
+                  {isGraphExpanded ? "Collapse" : `${state.analysisSteps.length - 6} previous tasks`}
+                </div>
+              )}
+
+              {state.analysisSteps.length > 0 ? (
+                <Timeline>
+                  {visibleSteps.map((step, index) => (
+                    <StreamingStepItem
+                      key={`${step.timestamp}-${index}`}
+                      step={step}
+                      index={isGraphExpanded ? index : Math.max(0, state.analysisSteps.length - 6) + index}
+                      isLatest={index === visibleSteps.length - 1 && isStreaming}
+                    />
+                  ))}
+                </Timeline>
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    {isStreaming ? 'Waiting for events...' : 'No analysis steps yet'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-2">
+          {/* Investigation Todos */}
+          <InvestigationTodos todos={state.todos} isStreaming={isStreaming} />
+
+          {/* System Checks / SubTasks */}
+          <Card className="bg-card/30 rounded-md border-border/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 uppercase text-sm">
+                <ClipboardCheck className="w-5 h-5" />
+                What We've Checked
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {state.subTasks.length > 0 ? (
+                state.subTasks.map((subTask, index) => (
+                  <StreamingSubTaskCard
+                    key={`${subTask.subject}-${index}`}
+                    subTask={subTask}
+                    onClick={() => setSelectedSubTask(subTask)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <ClipboardCheck className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    {isStreaming ? 'Checks will appear as agents complete...' : 'No system checks available'}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Summary & Remediation (shown when available) */}
+      {(state.summary || state.remediation) && (
+        <Card className="bg-card/30 rounded-md border-border/50 py-2 mt-2">
+          <CardContent className="space-y-4">
+            {state.summary && (
+              <Accordion type="single" collapsible defaultValue="root-cause" className="w-full">
+                <AccordionItem value="root-cause" className="border-0">
+                  <AccordionTrigger className="px-0 py-2 hover:no-underline">
+                    <div className='flex items-center gap-2 text-purple-600 dark:text-blue-400'>
+                      <SearchCode className="w-5 h-5" />
+                      <h4 className="font-medium uppercase">Root Cause Details</h4>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-0 pb-2">
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <div className="text-xs text-foreground">
+                        <MarkdownContent content={state.summary} />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
+
+            {state.remediation && (
+              <Accordion type="single" collapsible defaultValue="remediation" className="w-full">
                 <AccordionItem value="remediation" className="border-0">
                   <AccordionTrigger className="px-0 py-2 hover:no-underline">
                     <div className='flex items-center justify-between w-full'>
                       <div className='flex items-center gap-2 text-green-600 dark:text-green-400'>
                         <Sparkles className="w-5 h-5" />
-                        <h4 className="font-medium uppercase ">Suggested Remediation</h4>
+                        <h4 className="font-medium uppercase">Suggested Remediation</h4>
                       </div>
                       <TooltipProvider>
                         <Tooltip>
@@ -607,67 +1083,15 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                   </AccordionTrigger>
                   <AccordionContent className="px-0 pb-2">
                     <div className="text-xs text-muted-foreground px-2">
-                      <MarkdownContent content={taskDetails.remediation || ''} />
+                      <MarkdownContent content={state.remediation} />
                     </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* System Checks */}
-        <Card className="bg-card/30 rounded-md border-border/50">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 uppercase text-sm">
-              <ClipboardCheck className="w-5 h-5" />
-              What We've Checked
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {taskDetails.sub_tasks && taskDetails.sub_tasks.length > 0 ? taskDetails.sub_tasks.map((subTask: SubTask, index: number) => {
-              const status = getSubTaskStatus(subTask.status);
-              const severity = getSubTaskSeverity(subTask.status);
-
-              return (
-                <div
-                  key={index}
-                  className=" gap-3 p-2 rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => setSelectedSubTask(subTask)}
-                >
-                  <div className="flex justify-between items-center gap-2 min-w-0 flex-1">
-                    <div className='flex items-center gap-1'>
-
-                      {getStatusIcon(status)}
-
-                      <Badge className={getSeverityColor(severity)} >
-                        {status}
-                      </Badge>
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
-                  </div>
-                  <div className="min-w-0 flex-1 mt-2">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-medium text-muted-foreground tracking-wide">
-                        {subTask.subject || 'Unknown'}
-                      </span>
-
-
-                    </div>
-                  </div>
-
-                </div>
-              );
-            }) : (
-              <div className="text-center py-8">
-                <ClipboardCheck className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No system checks available</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Checks will appear here when the task runs</p>
-              </div>
             )}
           </CardContent>
         </Card>
-      </div>
+      )}
 
       {/* SubTask Details Drawer */}
       <SideDrawer
@@ -681,13 +1105,15 @@ ${taskDetails.remediation || 'No specific remediation provided'}
               <div className="py-1">
                 <div className='flex items-start space-x-2'>
                   <div className="py-0.5">
-                    {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
+                    {selectedSubTask.status === 0
+                      ? <CheckCircle className="w-4 h-4 text-green-600" />
+                      : <XCircle className="w-4 h-4 text-rose-500" />
+                    }
                   </div>
                   <div className='flex items-center gap-0.5'>
                     <h3 className="font-medium text-md text-foreground leading-tight">
                       {selectedSubTask.reason}
                     </h3>
-
                   </div>
                 </div>
               </div>
@@ -705,8 +1131,13 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                 <div className="space-y-2">
                   <h4 className="font-medium text-xs uppercase text-muted-foreground">Status</h4>
                   <div className="flex items-center gap-2">
-                    {getStatusIcon(getSubTaskStatus(selectedSubTask.status))}
-                    <span className="text-xs">{getSubTaskStatus(selectedSubTask.status)}</span>
+                    {selectedSubTask.status === 0
+                      ? <CheckCircle className="w-4 h-4 text-green-600" />
+                      : <XCircle className="w-4 h-4 text-rose-500" />
+                    }
+                    <span className="text-xs">
+                      {selectedSubTask.status === 0 ? 'ALL GOOD' : 'ISSUES FOUND'}
+                    </span>
                     <span className="text-xs text-muted-foreground">({selectedSubTask.status} issues found)</span>
                   </div>
                 </div>
@@ -723,6 +1154,7 @@ ${taskDetails.remediation || 'No specific remediation provided'}
                     </div>
                   </div>
                 )}
+
                 <div className="space-y-2">
                   <h4 className="font-medium text-xs uppercase text-muted-foreground">Discovery</h4>
                   <div className="text-sm text-foreground/80">
@@ -743,38 +1175,39 @@ ${taskDetails.remediation || 'No specific remediation provided'}
         promptLoading={promptLoading}
       />
 
-      {/* Events Timeline Section */}
-      <Card className="bg-card/30 border-border/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xs flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-2">
-            <Calendar className="w-4 h-4" />
-            Events
-          </CardTitle>
-          <Separator className='bg-border/50 h-[2px] rounded-full' />
-        </CardHeader>
-        <CardContent>
-          {taskDetails.events && taskDetails.events.length > 0 ? (
-            <div className="text-sm text-muted-foreground">
-              Events will be displayed here when available.
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No events recorded yet</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">Events will appear here as they occur</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md dark:bg-[#0B0D13]/40 backdrop-blur-md">
+          <DialogHeader>
+            <DialogTitle>Delete Investigation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this investigation?
+              <br /><br />
+              This action cannot be undone and will remove the task and all its associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteInvestigation}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Investigation'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Action Buttons */}
       <div className="flex justify-between items-center pt-4">
         <div className="flex gap-3">
-
         </div>
 
         <div className="flex gap-3">
-          <Button >
+          <Button>
             Export Report
           </Button>
         </div>

@@ -90,6 +90,7 @@ const BackgroundTaskDialog: React.FC<BackgroundTaskDialogProps> = ({
 					resource_name: resourceName,
 					resource_type: resourceType,
 					kubecontext: currentContext?.name,
+					kubeconfig: currentContext?.meta_data?.origin?.kubeconfig,
 				},
 				resource_context: resourceContext.length > 0 ? resourceContext : undefined,
 				log_context: logContext.length > 0 ? logContext : undefined,

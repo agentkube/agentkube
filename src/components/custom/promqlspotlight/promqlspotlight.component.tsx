@@ -81,7 +81,7 @@ const PromQLSpotlight: React.FC = () => {
     service: string;
   }>({
     namespace: 'monitoring',
-    service: 'prometheus:9090'
+    service: 'kube-prometheus-stack-prometheus:9090'
   });
 
   // Load monitoring configuration from localStorage

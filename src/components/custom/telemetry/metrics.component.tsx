@@ -123,7 +123,7 @@ const Metrics: React.FC<MetricsProps> = ({ resourceName, namespace, kind }) => {
 
 	// Get monitoring config from localStorage
 	const getMonitoringConfig = useCallback((): PrometheusConfig => {
-		if (!currentContext) return { namespace: 'monitoring', service: 'prometheus:9090' };
+		if (!currentContext) return { namespace: 'monitoring', service: 'kube-prometheus-stack-prometheus:9090' };
 
 		try {
 			const savedConfig = localStorage.getItem(`${currentContext.name}.monitoringConfig`);
@@ -137,7 +137,7 @@ const Metrics: React.FC<MetricsProps> = ({ resourceName, namespace, kind }) => {
 			console.error('Error loading monitoring config:', err);
 		}
 
-		return { namespace: 'monitoring', service: 'prometheus:9090' };
+		return { namespace: 'monitoring', service: 'kube-prometheus-stack-prometheus:9090' };
 	}, [currentContext]);
 
 	// Fetch available namespaces
@@ -723,8 +723,8 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 									<button
 										onClick={() => setShowDiskRead(!showDiskRead)}
 										className={`px-2 py-1 text-xs rounded transition-colors ${showDiskRead
-												? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
-												: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
+											? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
+											: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
 											}`}
 									>
 										Read
@@ -732,8 +732,8 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 									<button
 										onClick={() => setShowDiskWrite(!showDiskWrite)}
 										className={`px-2 py-1 text-xs rounded transition-colors ${showDiskWrite
-												? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
-												: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
+											? 'bg-gray-500/10 text-gray-400 border border-gray-500/10'
+											: 'bg-transparent text-gray-500 border border-transparent hover:bg-gray-600/40'
 											}`}
 									>
 										Write

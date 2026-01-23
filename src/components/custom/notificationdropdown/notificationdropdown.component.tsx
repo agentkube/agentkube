@@ -1,11 +1,10 @@
-import React from 'react';
-import { Bell, BellDot, Check, X, ExternalLink, Package, AlertCircle, Info, BellMinus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bell, BellDot, X, Package, AlertCircle, Info, BellMinus, CheckCircle, Search, AlertTriangle, XCircle } from 'lucide-react';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -15,58 +14,77 @@ import {
 	TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-
-// Mock notification data - replace with your actual data source
-const mockNotifications = [
-	{
-		id: 1,
-		type: 'update',
-		title: 'Welcome to Agentkube',
-		message: 'current version v0.0.12',
-		timestamp: '2 minutes ago',
-		read: false,
-		icon: Package,
-	},
-];
+import {
+	Notification,
+	NotificationType,
+	getNotifications,
+	markAsRead,
+	markAllAsRead,
+	removeNotification,
+	clearAllNotifications,
+	formatRelativeTime,
+} from '@/services/notification.service';
 
 interface NotificationDropdownProps {
 	className?: string;
 }
 
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }) => {
-	const [notifications, setNotifications] = React.useState(mockNotifications);
+	const [notifications, setNotifications] = useState<Notification[]>([]);
+
+	// Load notifications on mount and listen for updates
+	useEffect(() => {
+		// Initial load
+		setNotifications(getNotifications());
+
+		// Listen for notification updates
+		const handleUpdate = () => {
+			setNotifications(getNotifications());
+		};
+
+		window.addEventListener('notification-added', handleUpdate);
+		window.addEventListener('notifications-updated', handleUpdate);
+
+		return () => {
+			window.removeEventListener('notification-added', handleUpdate);
+			window.removeEventListener('notifications-updated', handleUpdate);
+		};
+	}, []);
 
 	const unreadCount = notifications.filter(n => !n.read).length;
 
-	const markAsRead = (id: number) => {
-		setNotifications(prev =>
-			prev.map(n => n.id === id ? { ...n, read: true } : n)
-		);
+	const handleMarkAsRead = (id: string) => {
+		markAsRead(id);
 	};
 
-	const markAllAsRead = () => {
-		setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+	const handleMarkAllAsRead = () => {
+		markAllAsRead();
 	};
 
-	const clearAllNotifications = () => {
-		setNotifications([]);
+	const handleClearAll = () => {
+		clearAllNotifications();
 	};
 
-	const removeNotification = (id: number) => {
-		setNotifications(prev => prev.filter(n => n.id !== id));
+	const handleRemove = (id: string, e: React.MouseEvent) => {
+		e.stopPropagation();
+		removeNotification(id);
 	};
 
-	const getNotificationIcon = (type: string) => {
+	const getNotificationIcon = (type: NotificationType) => {
 		switch (type) {
+			case 'investigation':
+				return { icon: Search, color: 'text-purple-400' };
 			case 'update':
-				return 'text-blue-400';
+				return { icon: Package, color: 'text-blue-400' };
 			case 'warning':
-				return 'text-yellow-400';
+				return { icon: AlertTriangle, color: 'text-yellow-400' };
 			case 'success':
-				return 'text-green-400';
+				return { icon: CheckCircle, color: 'text-green-400' };
+			case 'error':
+				return { icon: XCircle, color: 'text-red-400' };
 			case 'info':
 			default:
-				return 'text-gray-400';
+				return { icon: Info, color: 'text-gray-400' };
 		}
 	};
 
@@ -82,12 +100,6 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 								{unreadCount > 0 ? (
 									<>
 										<BellDot className='h-[0.8rem]' />
-										{/* <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-secondary backdrop-blur-md hover:bg-destructive"
-                    >
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </Badge> */}
 									</>
 								) : (
 									<Bell className='h-[0.8rem]' />
@@ -115,7 +127,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 							<Button
 								variant="ghost"
 								size="sm"
-								onClick={markAllAsRead}
+								onClick={handleMarkAllAsRead}
 								className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
 							>
 								Mark all read
@@ -126,7 +138,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 								<Tooltip>
 									<TooltipTrigger asChild>
 										<button
-											onClick={clearAllNotifications}
+											onClick={handleClearAll}
 											className="h-6 w-6 flex items-center justify-center hover:bg-accent rounded p-1 transition-colors"
 										>
 											<BellMinus className="h-[0.8rem] text-muted-foreground" />
@@ -154,18 +166,17 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
             [&::-webkit-scrollbar-thumb]:rounded-full
             [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
 						{notifications.map((notification) => {
-							const IconComponent = notification.icon;
+							const { icon: IconComponent, color } = getNotificationIcon(notification.type);
 							return (
 								<DropdownMenuItem
 									key={notification.id}
 									className={`p-3 cursor-pointer focus:bg-accent ${!notification.read ? 'bg-secondary' : ''
 										}`}
-									onClick={() => markAsRead(notification.id)}
+									onClick={() => handleMarkAsRead(notification.id)}
 								>
 									<div className="flex items-start space-x-3 w-full">
-										<div className={`mt-0.5 ${getNotificationIcon(notification.type)}`}>
+										<div className={`mt-0.5 ${color}`}>
 											<IconComponent className="h-4 w-4" />
-
 										</div>
 										<div className="flex-1 space-y-1">
 											<div className="flex items-start justify-between">
@@ -173,12 +184,8 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 													{notification.title}
 												</p>
 												<div className="flex items-center space-x-1 ml-2">
-
 													<button
-														onClick={(e) => {
-															e.stopPropagation();
-															removeNotification(notification.id);
-														}}
+														onClick={(e) => handleRemove(notification.id, e)}
 														className="hover:bg-accent rounded p-0.5 transition-opacity"
 													>
 														<X className="h-3 w-3 text-gray-500" />
@@ -189,7 +196,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 												{notification.message}
 											</p>
 											<p className="text-xs text-muted-foreground">
-												{notification.timestamp}
+												{formatRelativeTime(notification.timestamp)}
 											</p>
 										</div>
 									</div>
@@ -198,9 +205,6 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }
 						})}
 					</div>
 				)}
-
-
-
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

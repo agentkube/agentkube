@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { calculateAge } from '@/utils/age';
 import { NamespaceSelector, ErrorComponent } from '@/components/custom';
+import { NodeDetailTooltip } from '@/components/custom/nodedetail/nodedetail.component';
 import { createPortal } from 'react-dom';
 import {
   DropdownMenu,
@@ -411,12 +412,21 @@ const Pods: React.FC = () => {
       case 'node':
         return (
           <TableCell key={column.key} className="text-center">
-            <div className="hover:text-blue-500 hover:underline" onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/dashboard/explore/nodes/${pod.spec?.nodeName}`);
-            }}>
-              {pod.spec?.nodeName || '-'}
-            </div>
+            {pod.spec?.nodeName ? (
+              <NodeDetailTooltip nodeName={pod.spec.nodeName}>
+                <div
+                  className="hover:text-blue-500 hover:underline cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/dashboard/explore/nodes/${pod.spec?.nodeName}`);
+                  }}
+                >
+                  {pod.spec.nodeName}
+                </div>
+              </NodeDetailTooltip>
+            ) : (
+              <span>-</span>
+            )}
           </TableCell>
         );
 

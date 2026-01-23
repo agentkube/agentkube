@@ -4,6 +4,7 @@ export interface InvestigationRequest {
   prompt: string;
   context?: {
     kubecontext?: string;
+    kubeconfig?: string;
     namespace?: string;
     resource_name?: string;
     resource_type?: string;
@@ -27,7 +28,7 @@ export interface InvestigationResponse {
   task_id: string;
   status: string;
   message: string;
-  poll_url: string;
+  poll_url?: string; // Optional - not used with inline SSE streaming
 }
 
 export interface InvestigationStatus {
@@ -106,6 +107,7 @@ export interface TaskDetails {
   matched_pattern?: string;
   pattern_confidence?: number;
   propagation_chain?: string[];
+  resolved?: string; // "yes" or "no"
   created_at: string;
   updated_at: string;
 }
@@ -116,6 +118,7 @@ export interface InvestigationTaskDetails {
   prompt: string;
   context?: {
     kubecontext?: string;
+    kubeconfig?: string;
     namespace?: string;
   };
   model?: string;

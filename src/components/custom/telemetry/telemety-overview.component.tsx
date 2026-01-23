@@ -33,7 +33,7 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
   const [networkUsagePercent, setNetworkUsagePercent] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pod info state
   const [controlledBy, setControlledBy] = useState<string>('');
   const [nodeName, setNodeName] = useState<string>('');
@@ -42,7 +42,7 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
 
   // Get monitoring config from localStorage
   const getMonitoringConfig = useCallback((): PrometheusConfig => {
-    if (!currentContext) return { namespace: 'monitoring', service: 'prometheus:9090' };
+    if (!currentContext) return { namespace: 'monitoring', service: 'kube-prometheus-stack-prometheus:9090' };
 
     try {
       const savedConfig = localStorage.getItem(`${currentContext.name}.monitoringConfig`);
@@ -55,8 +55,8 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
     } catch (err) {
       console.error('Error loading monitoring config:', err);
     }
-    
-    return { namespace: 'monitoring', service: 'prometheus:9090' };
+
+    return { namespace: 'monitoring', service: 'kube-prometheus-stack-prometheus:9090' };
   }, [currentContext]);
 
   // Fetch pod info metrics from Prometheus
@@ -66,10 +66,10 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
     try {
       const config = getMonitoringConfig();
       const basePath = `api/v1/namespaces/${config.namespace}/services/${config.service}/proxy/api/v1/query`;
-      
+
       // Query kube_pod_info for controlled by and node info
       const podInfoQuery = `kube_pod_info{pod="${resourceName}", namespace="${namespace}"}`;
-      
+
       // Query kube_pod_container_info for runtime info
       const containerInfoQuery = `kube_pod_container_info{pod="${resourceName}", namespace="${namespace}"}`;
 
@@ -106,17 +106,17 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const config = getMonitoringConfig();
       const basePath = `api/v1/namespaces/${config.namespace}/services/${config.service}/proxy/api/v1/query`;
-      
+
       // CPU Usage % - relative to requests
       const cpuQuery = `100 * rate(container_cpu_usage_seconds_total{pod="${resourceName}", namespace="${namespace}", container!=""}[5m]) / on (namespace,pod,container) kube_pod_container_resource_requests{resource="cpu"}`;
-      
+
       // Memory Usage % - relative to requests  
       const memoryQuery = `100 * container_memory_working_set_bytes{pod="${resourceName}", namespace="${namespace}", container!=""} / on (namespace,pod,container) kube_pod_container_resource_requests{resource="memory"}`;
-      
+
       // Network Usage % - relative to peak usage over 1h
       const networkQuery = `100 * rate(container_network_receive_bytes_total{pod="${resourceName}", namespace="${namespace}"}[5m]) / max_over_time(rate(container_network_receive_bytes_total{pod="${resourceName}", namespace="${namespace}"}[5m])[1h:])`;
 

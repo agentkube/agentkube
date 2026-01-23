@@ -177,7 +177,7 @@ const TaskPromptDrawer: React.FC<TaskPromptDrawerProps> = ({
                   </div>
                 ) : (
                   <div className="relative">
-                    <div className="bg-gray-800 rounded-lg overflow-hidden border">
+                    <div className="bg-card rounded-lg overflow-hidden border">
                       <button
                         onClick={() => handleCopy(promptDetails.prompt || '')}
                         className="absolute top-2 right-2 p-2 rounded-lg bg-neutral-700/20 dark:bg-gray-500/10 hover:bg-gray-600 text-gray-200/60 hover:text-white z-10"

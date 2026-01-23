@@ -141,9 +141,9 @@ export async function getContainerRecommendation(
     const memoryBuffer = oomMemory ? cfg.oomBufferPercentage : cfg.memoryBufferPercentage;
     const memRecommended = memMax !== null
       ? Math.max(
-          Math.ceil(memMax * (1 + memoryBuffer / 100)),
-          cfg.memoryMinValue * 1024 * 1024
-        )
+        Math.ceil(memMax * (1 + memoryBuffer / 100)),
+        cfg.memoryMinValue * 1024 * 1024
+      )
       : null;
 
     const recommended = {
@@ -393,5 +393,5 @@ export function getMonitoringConfig(clusterName: string): { namespace: string; s
     console.error('Error loading monitoring config:', err);
   }
 
-  return { namespace: 'monitoring', service: 'prometheus:9090' };
+  return { namespace: 'monitoring', service: 'kube-prometheus-stack-prometheus:9090' };
 }
