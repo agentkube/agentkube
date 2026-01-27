@@ -322,7 +322,7 @@ const LoggingTab: React.FC<LoggingTabProps> = ({
   const { currentContext } = useCluster();
 
   // State
-  const [query, setQuery] = useState<string>(initialQuery || '{container="kube-apiserver"}');
+  const [query, setQuery] = useState<string>(initialQuery || '');
   const [limit, setLimit] = useState<number>(50);
   const [timeRange, setTimeRange] = useState<TimeRange>(getDefaultTimeRange());
   const [logs, setLogs] = useState<LogEntry[]>([]);
