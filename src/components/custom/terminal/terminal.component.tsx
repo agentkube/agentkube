@@ -6,6 +6,7 @@ import { SiClaude } from '@icons-pack/react-simple-icons';
 import TerminalTab from './terminaltab.component';
 import BrowserTab from '../browser/browser.component';
 import EditorTab from '@/components/editortab/editortab.component';
+import LoggingTab from '../logging/logging.component';
 import DefaultProfileDialog from './default-profile-dialog.component';
 import {
   DropdownMenu,
@@ -31,7 +32,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-import { useTerminal, TerminalSession, BrowserSession, EditorSession, Session } from '@/contexts/useTerminal';
+import { useTerminal, TerminalSession, BrowserSession, EditorSession, LoggingSession, Session } from '@/contexts/useTerminal';
 import { useDrawer } from '@/contexts/useDrawer';
 import { useCluster } from '@/contexts/clusterContext';
 
@@ -52,6 +53,11 @@ interface PendingEditorRequest {
   content?: string;
 }
 
+interface PendingLoggingRequest {
+  query?: string;
+  name?: string;
+}
+
 interface TerminalProfile {
   id: string;
   name: string;
@@ -69,6 +75,8 @@ interface TerminalManagerProps {
   onPendingBrowserRequestHandled?: () => void;
   pendingEditorRequest?: PendingEditorRequest | null;
   onPendingEditorRequestHandled?: () => void;
+  pendingLoggingRequest?: PendingLoggingRequest | null;
+  onPendingLoggingRequestHandled?: () => void;
 }
 
 const TerminalManager: React.FC<TerminalManagerProps> = ({
@@ -79,7 +87,9 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   pendingBrowserRequest,
   onPendingBrowserRequestHandled,
   pendingEditorRequest,
-  onPendingEditorRequestHandled
+  onPendingEditorRequestHandled,
+  pendingLoggingRequest,
+  onPendingLoggingRequestHandled
 }) => {
   const {
     sessions,
@@ -210,6 +220,22 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     setActiveSessionId(id);
 
     return editorSession;
+  }, []);
+
+  // Create a new logging session
+  const createLoggingSession = useCallback((query?: string, name?: string) => {
+    const id = `logging-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const loggingSession: LoggingSession = {
+      id,
+      name: name || 'Logs',
+      query,
+      created_at: Date.now(),
+    };
+
+    setSessions((prev) => [...prev, { type: 'logging', data: loggingSession }]);
+    setActiveSessionId(id);
+
+    return loggingSession;
   }, []);
 
   // Close a session (terminal or browser)
@@ -396,6 +422,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     }
   }, [isOpen, pendingEditorRequest, createEditorSession, onPendingEditorRequestHandled]);
 
+  // Handle pending logging requests from context
+  useEffect(() => {
+    if (isOpen && pendingLoggingRequest) {
+      createLoggingSession(pendingLoggingRequest.query, pendingLoggingRequest.name);
+      onPendingLoggingRequestHandled?.();
+    }
+  }, [isOpen, pendingLoggingRequest, createLoggingSession, onPendingLoggingRequestHandled]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -563,6 +597,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                               {session.data.name}
                             </span>
                           </>
+                        ) : session.type === 'logging' ? (
+                          <>
+                            <FileText className="h-3 w-3 text-emerald-400" />
+                            <span className="text-xs whitespace-nowrap">
+                              {session.data.name}
+                            </span>
+                          </>
                         ) : (
                           <>
                             <span className="text-xs whitespace-nowrap">
@@ -695,6 +736,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
               >
                 <FileText className="h-3.5 w-3.5 mr-2" />
                 New Editor
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => createLoggingSession()}
+                className="text-xs"
+              >
+                <FileText className="h-3.5 w-3.5 mr-2" />
+                LogQL
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -883,6 +931,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                     )
                   );
                 }}
+              />
+            ) : session.type === 'logging' ? (
+              <LoggingTab
+                key={session.data.id}
+                sessionId={session.data.id}
+                isActive={activeSessionId === session.data.id}
+                initialQuery={(session.data as LoggingSession).query}
               />
             ) : (
               <TerminalTab

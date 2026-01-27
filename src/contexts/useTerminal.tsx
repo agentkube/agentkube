@@ -17,6 +17,11 @@ interface EditorRequest {
   content?: string;
 }
 
+interface LoggingRequest {
+  query?: string;
+  name?: string;
+}
+
 export interface TerminalSession {
   id: string;
   name: string;
@@ -41,10 +46,18 @@ export interface EditorSession {
   created_at: number;
 }
 
+export interface LoggingSession {
+  id: string;
+  name: string;
+  query?: string;
+  created_at: number;
+}
+
 export type Session =
   | { type: 'terminal'; data: TerminalSession }
   | { type: 'browser'; data: BrowserSession }
-  | { type: 'editor'; data: EditorSession };
+  | { type: 'editor'; data: EditorSession }
+  | { type: 'logging'; data: LoggingSession };
 
 interface TerminalContextType {
   isTerminalOpen: boolean;
@@ -71,6 +84,10 @@ interface TerminalContextType {
   openEditorWithFile: (filePath: string, name?: string, content?: string) => void;
   pendingEditorRequest: EditorRequest | null;
   clearPendingEditorRequest: () => void;
+  // Logging functionality
+  openLoggingWithQuery: (query?: string, name?: string) => void;
+  pendingLoggingRequest: LoggingRequest | null;
+  clearPendingLoggingRequest: () => void;
 }
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
@@ -84,6 +101,7 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
   const [pendingRequest, setPendingRequest] = useState<TerminalRequest | null>(null);
   const [pendingBrowserRequest, setPendingBrowserRequest] = useState<BrowserRequest | null>(null);
   const [pendingEditorRequest, setPendingEditorRequest] = useState<EditorRequest | null>(null);
+  const [pendingLoggingRequest, setPendingLoggingRequest] = useState<LoggingRequest | null>(null);
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -150,6 +168,15 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
     setPendingEditorRequest(null);
   }, []);
 
+  const openLoggingWithQuery = useCallback((query?: string, name?: string) => {
+    setPendingLoggingRequest({ query, name });
+    setIsTerminalOpen(true);
+  }, []);
+
+  const clearPendingLoggingRequest = useCallback(() => {
+    setPendingLoggingRequest(null);
+  }, []);
+
   return (
     <TerminalContext.Provider
       value={{
@@ -174,6 +201,9 @@ export const TerminalProvider: React.FC<TerminalProviderProps> = ({ children }) 
         openEditorWithFile,
         pendingEditorRequest,
         clearPendingEditorRequest,
+        openLoggingWithQuery,
+        pendingLoggingRequest,
+        clearPendingLoggingRequest,
       }}
     >
       {children}
