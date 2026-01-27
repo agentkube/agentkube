@@ -31,6 +31,7 @@ export const ConfigDialog: React.FC<{
     const validFields: Record<string, string[]> = {
       argocd: ['service_address', 'url', 'token'],
       prometheus: ['url', 'namespace', 'service_address', 'basic_auth', 'token'],
+      loki: ['url', 'namespace', 'service_address', 'basic_auth', 'token', 'tenant_id'],
       opencost: ['service_address', 'namespace', 'url', 'token'],
       grafana: ['url', 'api_token', 'basic_auth'],
       alertmanager: ['url', 'token', 'basic_auth'],
@@ -235,6 +236,92 @@ export const ConfigDialog: React.FC<{
                 placeholder="Bearer token for authentication"
                 value={config.token || ''}
                 onChange={(e) => updateConfig('token', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </>
+        );
+      case 'loki':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="url" className="text-sm font-medium text-accent dark:text-accent">
+                URL <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="url"
+                type="url"
+                placeholder="https://loki.example.com"
+                value={config.url || ''}
+                onChange={(e) => updateConfig('url', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="namespace" className="text-sm font-medium text-accent dark:text-accent">
+                Namespace <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="namespace"
+                type="text"
+                placeholder="monitoring"
+                value={config.namespace || ''}
+                onChange={(e) => updateConfig('namespace', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service_address" className="text-sm font-medium text-accent dark:text-accent">
+                Service Address <span className="text-gray-500">(optional - for internal access)</span>
+              </Label>
+              <Input
+                id="service_address"
+                type="text"
+                placeholder="loki:3100"
+                value={config.service_address || ''}
+                onChange={(e) => updateConfig('service_address', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="basic_auth" className="text-sm font-medium text-accent dark:text-accent">
+                Basic Auth <span className="text-gray-500">(optional - username:password)</span>
+              </Label>
+              <Input
+                id="basic_auth"
+                type="text"
+                placeholder="username:password"
+                value={config.basic_auth ? `${config.basic_auth.username}:${config.basic_auth.password}` : ''}
+                onChange={(e) => {
+                  const [username, password] = e.target.value.split(':');
+                  updateConfig('basic_auth', username && password ? { username, password } : '');
+                }}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="token" className="text-sm font-medium text-accent dark:text-accent">
+                Token <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="token"
+                type="password"
+                placeholder="Bearer token for authentication"
+                value={config.token || ''}
+                onChange={(e) => updateConfig('token', e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenant_id" className="text-sm font-medium text-accent dark:text-accent">
+                Tenant ID <span className="text-gray-500">(optional)</span>
+              </Label>
+              <Input
+                id="tenant_id"
+                type="text"
+                placeholder="Tenant ID (X-Scope-OrgID)"
+                value={config.tenant_id || ''}
+                onChange={(e) => updateConfig('tenant_id', e.target.value)}
                 className="w-full"
               />
             </div>

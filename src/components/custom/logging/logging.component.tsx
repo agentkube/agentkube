@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCluster } from '@/contexts/clusterContext';
 import { kubeProxyRequest } from '@/api/cluster';
+import { getClusterConfig, updateClusterConfig } from '@/api/settings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, RotateCw, Copy, Check, ChevronDown, ChevronRight, ZoomIn, ZoomOut, ScrollText, Play, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -320,6 +322,7 @@ const LoggingTab: React.FC<LoggingTabProps> = ({
   initialQuery,
 }) => {
   const { currentContext } = useCluster();
+  const { toast: toastHook } = useToast();
 
   // State
   const [query, setQuery] = useState<string>(initialQuery || '');
@@ -350,34 +353,81 @@ const LoggingTab: React.FC<LoggingTabProps> = ({
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [tempConfig, setTempConfig] = useState<LoggingConfig>(DEFAULT_LOKI_CONFIG);
 
-  // Load Loki config from localStorage
+  // Load Loki config
   useEffect(() => {
-    if (!currentContext) return;
-    try {
-      const savedConfig = localStorage.getItem(`${currentContext.name}.lokiConfig`);
-      if (savedConfig) {
-        const parsedConfig = JSON.parse(savedConfig);
-        setConfig(parsedConfig);
-        setTempConfig(parsedConfig);
-      } else {
-        setConfig(DEFAULT_LOKI_CONFIG);
-        setTempConfig(DEFAULT_LOKI_CONFIG);
+    const loadConfig = async () => {
+      if (!currentContext) return;
+
+      try {
+        // Try to get from cluster config first
+        try {
+          const clusterConfig = await getClusterConfig(currentContext.name);
+          if (clusterConfig.config?.loki) {
+            const lokiConfig = clusterConfig.config.loki;
+            const newConfig = {
+              namespace: lokiConfig.namespace || 'monitoring',
+              service: lokiConfig.service_address || 'loki:3100'
+            };
+            setConfig(newConfig);
+            setTempConfig(newConfig);
+
+            // Sync to local storage
+            localStorage.setItem(`${currentContext.name}.lokiConfig`, JSON.stringify(newConfig));
+            return;
+          }
+        } catch (e) {
+          console.log("Cluster config load failed, falling back to local storage", e);
+        }
+
+        // Fallback to local storage
+        const savedConfig = localStorage.getItem(`${currentContext.name}.lokiConfig`);
+        if (savedConfig) {
+          const parsedConfig = JSON.parse(savedConfig);
+          setConfig(parsedConfig);
+          setTempConfig(parsedConfig);
+        } else {
+          setConfig(DEFAULT_LOKI_CONFIG);
+          setTempConfig(DEFAULT_LOKI_CONFIG);
+        }
+      } catch (err) {
+        console.error('Error loading Loki config:', err);
       }
-    } catch (err) {
-      console.error('Error loading Loki config:', err);
-    }
+    };
+
+    loadConfig();
   }, [currentContext]);
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     if (!currentContext) return;
+
     try {
+      // 1. Save to cluster config
+      const lokiConfig = {
+        namespace: tempConfig.namespace,
+        service_address: tempConfig.service,
+        enabled: true
+      };
+
+      await updateClusterConfig(currentContext.name, {
+        loki: lokiConfig
+      });
+
+      // 2. Save to localStorage
       localStorage.setItem(`${currentContext.name}.lokiConfig`, JSON.stringify(tempConfig));
       setConfig(tempConfig);
       setIsConfigOpen(false);
-      toast.success('Loki configuration saved');
+
+      toastHook({
+        title: "Configuration Saved",
+        description: `Loki configuration saved for cluster ${currentContext.name}`,
+      });
     } catch (err) {
       console.error('Error saving Loki config:', err);
-      toast.error('Failed to save configuration');
+      toastHook({
+        title: "Error",
+        description: "Failed to save Loki configuration",
+        variant: "destructive",
+      });
     }
   };
 

@@ -238,18 +238,20 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ content, events = [
           todoListInserted = true;
         }
       } else {
-        // Add regular tool call
-        items.push({ type: 'tool', callId, events: toolEvents });
-
         // Check if there's a custom component for this tool call
         const customComp = customComponents.get(callId);
+
         if (customComp) {
+          // If there's a custom component, show it directly (skip ToolCallAccordion)
           items.push({
             type: 'custom_component',
             callId,
             componentName: customComp.data.component,
             componentProps: customComp.data.props
           });
+        } else {
+          // Otherwise show the standard tool call accordion
+          items.push({ type: 'tool', callId, events: toolEvents });
         }
 
         // Add redirect instruction immediately after redirected tool
