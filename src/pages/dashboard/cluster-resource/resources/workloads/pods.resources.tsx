@@ -15,12 +15,19 @@ import { NamespaceSelector, ErrorComponent } from '@/components/custom';
 import { NodeDetailTooltip } from '@/components/custom/nodedetail/nodedetail.component';
 import { createPortal } from 'react-dom';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Eye, Trash } from "lucide-react";
+import { TableVirtuoso } from 'react-virtuoso';
 import { AlertDialog, AlertDialogHeader, AlertDialogCancel, AlertDialogFooter, AlertDialogDescription, AlertDialogTitle, AlertDialogContent, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { OPERATOR_URL, OPERATOR_WS_URL } from '@/config';
 import { toast } from '@/hooks/use-toast';
@@ -117,9 +124,6 @@ const Pods: React.FC = () => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionIdRef = useRef<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [tooltipDelay, setTooltipDelay] = useState<NodeJS.Timeout | null>(null);
 
   const [selectedPods, setSelectedPods] = useState<Set<string>>(new Set());
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
@@ -357,55 +361,135 @@ const Pods: React.FC = () => {
 
       case 'cpu':
         return (
-          <TableCell
-            key={column.key}
-            onMouseEnter={(e) => handleResourceMouseEnter(e, podKey, 'cpu')}
-            onMouseLeave={handleResourceMouseLeave}
-          >
-            <div className="relative">
-              {podMetrics?.cpu ? (
-                <div>
-                  <div className="flex items-center">
-                    <span className="text-xs">{podMetrics.cpu.value}</span>
-                    {podMetrics.cpu.percentage && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                        ({podMetrics.cpu.percentage.toFixed(0)}%)
-                      </span>
-                    )}
-                  </div>
-                  {renderResourceUsageBar(podMetrics.cpu, 'cpu')}
-                </div>
-              ) : (
-                <span className="text-xs text-gray-500 dark:text-gray-400"></span>
-              )}
-            </div>
+          <TableCell key={column.key}>
+            {podMetrics?.cpu ? (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative">
+                      <div className="flex items-center">
+                        <span className="text-xs">{podMetrics.cpu.value}</span>
+                        {podMetrics.cpu.percentage && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                            ({podMetrics.cpu.percentage.toFixed(0)}%)
+                          </span>
+                        )}
+                      </div>
+                      {renderResourceUsageBar(podMetrics.cpu, 'cpu')}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    sideOffset={10}
+                    className="w-48 p-3 bg-card dark:bg-card/90 backdrop-blur-md border border-accent/30 dark:border-accent/50 shadow-2xl z-[100]"
+                  >
+                    <div className="space-y-2">
+                      <div className="font-[Anton] uppercase font-medium text-xs">CPU Usage</div>
+                      <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                        <div className="flex justify-between">
+                          <span>Current:</span>
+                          <span className="font-semibold">{podMetrics.cpu.value}</span>
+                        </div>
+                        {podMetrics.cpu.requested && (
+                          <div className="flex justify-between">
+                            <span>Requested:</span>
+                            <span className="font-semibold">{podMetrics.cpu.requested}</span>
+                          </div>
+                        )}
+                        {podMetrics.cpu.limits && (
+                          <div className="flex justify-between">
+                            <span>Limits:</span>
+                            <span className="font-semibold">{podMetrics.cpu.limits}</span>
+                          </div>
+                        )}
+                        {podMetrics.cpu.percentage && (
+                          <div className="flex justify-between">
+                            <span>Usage:</span>
+                            <span className={`font-semibold ${podMetrics.cpu.percentage > 90
+                              ? 'text-red-500'
+                              : podMetrics.cpu.percentage > 70
+                                ? 'text-yellow-500'
+                                : ''
+                              }`}>
+                              {podMetrics.cpu.percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <span className="text-xs text-gray-500 dark:text-gray-400"></span>
+            )}
           </TableCell>
         );
 
       case 'memory':
         return (
-          <TableCell
-            key={column.key}
-            onMouseEnter={(e) => handleResourceMouseEnter(e, podKey, 'memory')}
-            onMouseLeave={handleResourceMouseLeave}
-          >
-            <div className="relative">
-              {podMetrics?.memory ? (
-                <div>
-                  <div className="flex items-center">
-                    <span className="text-xs">{podMetrics.memory.value}</span>
-                    {podMetrics.memory.percentage && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                        ({podMetrics.memory.percentage.toFixed(0)}%)
-                      </span>
-                    )}
-                  </div>
-                  {renderResourceUsageBar(podMetrics.memory, 'memory')}
-                </div>
-              ) : (
-                <span className="text-xs text-gray-500 dark:text-gray-400"></span>
-              )}
-            </div>
+          <TableCell key={column.key}>
+            {podMetrics?.memory ? (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative">
+                      <div className="flex items-center">
+                        <span className="text-xs">{podMetrics.memory.value}</span>
+                        {podMetrics.memory.percentage && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                            ({podMetrics.memory.percentage.toFixed(0)}%)
+                          </span>
+                        )}
+                      </div>
+                      {renderResourceUsageBar(podMetrics.memory, 'memory')}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    sideOffset={10}
+                    className="w-48 p-3 bg-card dark:bg-card/90 backdrop-blur-md border border-accent/30 dark:border-accent/50 shadow-2xl z-[100]"
+                  >
+                    <div className="space-y-2">
+                      <div className="font-[Anton] uppercase font-medium text-xs">Memory Usage</div>
+                      <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                        <div className="flex justify-between">
+                          <span>Current:</span>
+                          <span className="font-semibold">{podMetrics.memory.value}</span>
+                        </div>
+                        {podMetrics.memory.requested && (
+                          <div className="flex justify-between">
+                            <span>Requested:</span>
+                            <span className="font-semibold">{podMetrics.memory.requested}</span>
+                          </div>
+                        )}
+                        {podMetrics.memory.limits && (
+                          <div className="flex justify-between">
+                            <span>Limits:</span>
+                            <span className="font-semibold">{podMetrics.memory.limits}</span>
+                          </div>
+                        )}
+                        {podMetrics.memory.percentage && (
+                          <div className="flex justify-between">
+                            <span>Usage:</span>
+                            <span className={`font-semibold ${podMetrics.memory.percentage > 90
+                              ? 'text-red-500'
+                              : podMetrics.memory.percentage > 70
+                                ? 'text-yellow-500'
+                                : ''
+                              }`}>
+                              {podMetrics.memory.percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <span className="text-xs text-gray-500 dark:text-gray-400"></span>
+            )}
           </TableCell>
         );
 
@@ -1497,45 +1581,6 @@ const Pods: React.FC = () => {
       );
   };
 
-  // Resource usage tooltip handlers
-  const handleResourceMouseEnter = (
-    e: React.MouseEvent<HTMLTableCellElement>,
-    podKey: string,
-    resourceType: 'cpu' | 'memory'
-  ) => {
-    if (podsMetrics[podKey]) {
-      // Clear any existing timeout
-      if (tooltipDelay) {
-        clearTimeout(tooltipDelay);
-      }
-
-      const rect = e.currentTarget.getBoundingClientRect();
-
-      // Set a small delay before showing the tooltip
-      const delay = setTimeout(() => {
-        setTooltipVisible(`${podKey}-${resourceType}`);
-        setTooltipPosition({
-          x: rect.left,
-          y: rect.top
-        });
-      }, 100); // 100ms delay
-
-      setTooltipDelay(delay);
-    }
-  };
-
-  const handleResourceMouseLeave = () => {
-    // Clear any pending tooltip display
-    if (tooltipDelay) {
-      clearTimeout(tooltipDelay);
-      setTooltipDelay(null);
-    }
-
-    // Small delay before hiding to allow mouse to enter tooltip
-    setTimeout(() => {
-      setTooltipVisible(null);
-    }, 100);
-  };
 
   // Resource usage bar
   const renderResourceUsageBar = (
@@ -1571,59 +1616,6 @@ const Pods: React.FC = () => {
     );
   };
 
-  // Render resource usage tooltip
-  const renderResourceTooltip = (
-    podKey: string | null,
-    resourceType: 'cpu' | 'memory' | null
-  ) => {
-    if (!podKey || !resourceType || !tooltipVisible) return null;
-
-    const metrics = podsMetrics[podKey];
-    if (!metrics) return null;
-
-    const usage = resourceType === 'cpu' ? metrics.cpu : metrics.memory;
-
-    // Use createPortal to render the tooltip at document level, preventing event issues
-    return createPortal(
-      <div
-        className="fixed z-50 bg-white dark:bg-card/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-accent dark:border-accent text-xs"
-        style={{
-          left: `${tooltipPosition.x + 10}px`,
-          top: `${tooltipPosition.y - 80}px`,
-          pointerEvents: 'none', // Make tooltip non-interactive to prevent event issues
-        }}
-      >
-        <div className="font-[Anton] uppercase font-medium mb-1">{resourceType === 'cpu' ? 'CPU' : 'Memory'} Usage</div>
-        <div className="text-gray-700 dark:text-gray-300">
-          <div className="flex justify-between mb-1">
-            <span>Current: </span>
-            <span className="font-semibold">{usage.value}</span>
-          </div>
-          {usage.requested && (
-            <div className="flex justify-between mb-1">
-              <span>Requested: </span>
-              <span className="font-semibold">{usage.requested}</span>
-            </div>
-          )}
-          {usage.limits && (
-            <div className="flex justify-between mb-1">
-              <span>Limits:</span>{" "}
-              <span className="font-semibold">{usage.limits}</span>
-            </div>
-          )}
-          {usage.percentage && (
-            <div className="flex justify-between mb-1">
-              <span>Usage:</span>
-              <span className={`${usage.percentage > 90 ? 'text-red-500' : usage.percentage > 70 ? 'text-yellow-500' : ''}`}>
-                {usage.percentage.toFixed(1)}%
-              </span>
-            </div>
-          )}
-        </div>
-      </div>,
-      document.body
-    );
-  };
 
   if (loading) {
     return (
@@ -1713,16 +1705,6 @@ const Pods: React.FC = () => {
         </Alert>
       )}
 
-      {/* Tooltip */}
-      {tooltipVisible && (() => {
-        const lastDashIndex = tooltipVisible.lastIndexOf('-');
-        if (lastDashIndex === -1) return null;
-
-        const resourceType = tooltipVisible.substring(lastDashIndex + 1) as 'cpu' | 'memory';
-        const podKey = tooltipVisible.substring(0, lastDashIndex);
-
-        return renderResourceTooltip(podKey, resourceType);
-      })()}
 
       <BackgroundTaskDialog
         isOpen={isBackgroundTaskOpen}
@@ -1743,111 +1725,143 @@ const Pods: React.FC = () => {
         )}
       </SideDrawer>
 
-      {/* Pods table */}
+      {/* Pods table - Virtualized for performance with large lists */}
       {sortedPods.length > 0 && (
         <Card className="text-gray-800 dark:text-gray-300 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
           <div className="rounded-md border">
             {renderContextMenu()}
             {renderDeleteDialog()}
-            <Table className="bg-gray-50 dark:bg-transparent rounded-2xl">
-              <TableHeader>
-                <TableRow className="border-b border-gray-400 dark:border-gray-800/80">
+            <TableVirtuoso
+              style={{
+                height: 'calc(100vh - 225px)',
+                backgroundColor: 'transparent'
+              }}
+              className="overflow-y-auto
+                [&::-webkit-scrollbar]:w-1.5 
+                [&::-webkit-scrollbar-track]:bg-transparent 
+                [&::-webkit-scrollbar-thumb]:bg-accent/30 
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                [&::-webkit-scrollbar-thumb:hover]:bg-accent/50"
+              data={sortedPods}
+              overscan={20}
+              defaultItemHeight={60}
+              components={{
+                Table: ({ style, ...props }) => (
+                  <Table
+                    {...props}
+                    className="bg-gray-50 dark:bg-transparent rounded-2xl"
+                    style={{
+                      ...style,
+                      borderCollapse: 'collapse',
+                    }}
+                  />
+                ),
+                TableHead: TableHeader,
+                TableRow: ({ item: _item, ...props }) => {
+                  const pod = _item as V1Pod;
+                  const podKey = `${pod.metadata?.namespace}/${pod.metadata?.name}`;
+
+                  return (
+                    <TableRow
+                      {...props}
+                      className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-muted/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedPods.has(podKey) ? 'bg-blue-50 dark:bg-gray-800/30' : ''}`}
+                      onClick={(e) => handlePodClick(e, pod)}
+                      onContextMenu={(e) => handleContextMenu(e, pod)}
+                    />
+                  );
+                },
+                TableBody: React.forwardRef<HTMLTableSectionElement>((props, ref) => (
+                  <TableBody {...props} ref={ref} />
+                )),
+              }}
+              fixedHeaderContent={() => (
+                <TableRow className="border-b border-gray-400 dark:border-muted/80">
                   {getFlattenedColumns().map(col => renderTableHeader(col))}
                   {isColumnVisible('actions') && (
                     <TableHead className="w-[50px]"></TableHead>
                   )}
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedPods.map((pod) => {
-                  const podKey = `${pod.metadata?.namespace}/${pod.metadata?.name}`;
+              )}
+              itemContent={(index, pod) => {
+                const podKey = `${pod.metadata?.namespace}/${pod.metadata?.name}`;
 
-                  return (
-                    <TableRow
-                      key={podKey}
-                      className={`bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30 ${selectedPods.has(podKey) ? 'bg-blue-50 dark:bg-gray-800/30' : ''
-                        }`}
-                      onClick={(e) => handlePodClick(e, pod)}
-                      onContextMenu={(e) => handleContextMenu(e, pod)}
-                    >
-                      {getFlattenedColumns().map(col => renderTableCell(pod, col))}
-                      {isColumnVisible('actions') && (
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
-                              <DropdownMenuItem onClick={(e) => {
-                                e.stopPropagation();
-                                handleAskAI(pod);
-                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                                <Sparkles className="mr-2 h-4 w-4" />
-                                Ask AI
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => {
-                                e.stopPropagation();
-                                handleInvestigatePod(pod);
-                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                                <TextSearch className="mr-2 h-4 w-4" />
-                                Investigate
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => {
-                                e.stopPropagation();
-                                handleTelemetryPod(pod);
-                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                                <SearchCode className="mr-2 h-4 w-4" />
-                                Telemetry
-                              </DropdownMenuItem>
+                return (
+                  <>
+                    {getFlattenedColumns().map(col => renderTableCell(pod, col))}
+                    {isColumnVisible('actions') && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-accent/30 backdrop-blur-md border-gray-800/50'>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleAskAI(pod);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Ask AI
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleInvestigatePod(pod);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <TextSearch className="mr-2 h-4 w-4" />
+                              Investigate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleTelemetryPod(pod);
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <SearchCode className="mr-2 h-4 w-4" />
+                              Telemetry
+                            </DropdownMenuItem>
 
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              if (isReconMode) {
+                                toast({
+                                  title: "Recon Mode",
+                                  description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
+                                  variant: "recon"
+                                });
+                                return;
+                              }
+                              // Set the active pod and trigger restart
+                              setActivePod(pod);
+                              setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
+                              handleRestartPods();
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Restart
+                            </DropdownMenuItem>
 
+                            <DropdownMenuItem onClick={(e) => handleViewPod(e, pod)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
 
-                              <DropdownMenuItem onClick={(e) => {
-                                e.stopPropagation();
-                                if (isReconMode) {
-                                  toast({
-                                    title: "Recon Mode",
-                                    description: "This action can't be performed while recon mode is on. Disable recon mode to proceed.",
-                                    variant: "recon"
-                                  });
-                                  return;
-                                }
-                                // Set the active pod and trigger restart
-                                setActivePod(pod);
-                                setSelectedPods(new Set([`${pod.metadata?.namespace}/${pod.metadata?.name}`]));
-                                handleRestartPods();
-                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Restart
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem onClick={(e) => handleViewPod(e, pod)} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
-                                onClick={(e) => handleDeletePod(e, pod)}
-                              >
-                                <Trash className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeletePod(e, pod)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </>
+                );
+              }}
+            />
           </div>
         </Card>
       )}

@@ -60,7 +60,7 @@ const DaemonSets: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   // Default column configuration
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
@@ -73,8 +73,8 @@ const DaemonSets: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('daemonsets', defaultColumnConfig)
   );
   useEffect(() => {
@@ -186,7 +186,7 @@ const DaemonSets: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -255,7 +255,7 @@ const DaemonSets: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -315,7 +315,7 @@ const DaemonSets: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
@@ -574,7 +574,7 @@ const DaemonSets: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveDaemonSet(daemonSet);
     setSelectedDaemonSets(new Set([`${daemonSet.metadata?.namespace}/${daemonSet.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -643,9 +643,9 @@ const DaemonSets: React.FC = () => {
   // Handle incoming Kubernetes daemonset events
   const handleDaemonSetEvent = useCallback((kubeEvent: any) => {
     const { type, object: daemonSet } = kubeEvent;
-    
+
     if (!daemonSet || !daemonSet.metadata) return;
-    
+
     // Filter: only process daemonsets from selected namespaces
     if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(daemonSet.metadata.namespace)) {
       return; // Skip daemonsets not in selected namespaces
@@ -654,8 +654,8 @@ const DaemonSets: React.FC = () => {
     setDaemonSets(prevDaemonSets => {
       const newDaemonSets = [...prevDaemonSets];
       const existingIndex = newDaemonSets.findIndex(
-        ds => ds.metadata?.namespace === daemonSet.metadata.namespace && 
-              ds.metadata?.name === daemonSet.metadata.name
+        ds => ds.metadata?.namespace === daemonSet.metadata.namespace &&
+          ds.metadata?.name === daemonSet.metadata.name
       );
 
       switch (type) {
@@ -716,7 +716,7 @@ const DaemonSets: React.FC = () => {
 
     // Create a connection ID based only on context (one connection per cluster)
     const connectionId = currentContext.name;
-    
+
     // Don't create a new connection if we already have one for the same cluster
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
       return;
@@ -762,7 +762,7 @@ const DaemonSets: React.FC = () => {
         try {
           // Direct Kubernetes API watch response (no multiplexer wrapping)
           const kubeEvent = JSON.parse(event.data);
-          
+
           // Handle Kubernetes watch event directly
           if (kubeEvent.type && kubeEvent.object) {
             handleDaemonSetEvent(kubeEvent);
@@ -780,7 +780,7 @@ const DaemonSets: React.FC = () => {
           setWsConnected(false);
           wsRef.current = null;
           connectionIdRef.current = null;
-          
+
           // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
           if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
             reconnectTimeoutRef.current = setTimeout(() => {
@@ -863,7 +863,7 @@ const DaemonSets: React.FC = () => {
 
     // Clear existing daemonsets when switching contexts/namespaces
     setDaemonSets([]);
-    
+
     // If no namespaces selected, don't connect and show empty state
     if (selectedNamespaces.length === 0) {
       setLoading(false);
@@ -882,7 +882,7 @@ const DaemonSets: React.FC = () => {
     }
 
     setLoading(true);
-    
+
     // First load existing daemonsets, then start WebSocket for real-time updates
     const initializeDaemonSets = async () => {
       try {
@@ -897,7 +897,7 @@ const DaemonSets: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     initializeDaemonSets();
 
     // Cleanup function  
@@ -928,10 +928,10 @@ const DaemonSets: React.FC = () => {
       setDaemonSets([]);
       return;
     }
-    
+
     // Filter existing daemonsets based on new namespace selection
-    setDaemonSets(prevDaemonSets => 
-      prevDaemonSets.filter(daemonSet => 
+    setDaemonSets(prevDaemonSets =>
+      prevDaemonSets.filter(daemonSet =>
         daemonSet.metadata?.namespace && selectedNamespaces.includes(daemonSet.metadata.namespace)
       )
     );
@@ -1116,9 +1116,9 @@ const DaemonSets: React.FC = () => {
             {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
             <NamespaceSelector />
           </div>
-          
+
           <Button
-            variant="outline" 
+            variant="outline"
             size="sm"
             onClick={() => {
               if (!wsConnected) {
@@ -1198,6 +1198,15 @@ const DaemonSets: React.FC = () => {
                           }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Sparkles className="mr-2 h-4 w-4" />
                             Ask AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDaemonSet(daemonSet);
+                            setSelectedDaemonSets(new Set([`${daemonSet.metadata?.namespace}/${daemonSet.metadata?.name}`]));
+                            handleRestartDaemonSets();
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Restart
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();

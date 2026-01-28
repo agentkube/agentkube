@@ -56,7 +56,7 @@ const CronJobs: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   // Default column configuration
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
@@ -69,8 +69,8 @@ const CronJobs: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('cronjobs', defaultColumnConfig)
   );
   useEffect(() => {
@@ -135,7 +135,7 @@ const CronJobs: React.FC = () => {
 
   const handleDeleteCronJob = (e: React.MouseEvent, cronJob: any) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -144,7 +144,7 @@ const CronJobs: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveCronJob(cronJob);
     setSelectedCronJobs(new Set([`${cronJob.metadata?.namespace}/${cronJob.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -160,10 +160,10 @@ const CronJobs: React.FC = () => {
         'batch',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -236,7 +236,7 @@ const CronJobs: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -296,7 +296,7 @@ const CronJobs: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -383,7 +383,7 @@ const CronJobs: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -555,7 +555,7 @@ const CronJobs: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
@@ -723,7 +723,7 @@ const CronJobs: React.FC = () => {
       const newCronJobs = [...prevCronJobs];
       const existingIndex = newCronJobs.findIndex(
         cj => cj.metadata?.namespace === cronJob.metadata.namespace &&
-             cj.metadata?.name === cronJob.metadata.name
+          cj.metadata?.name === cronJob.metadata.name
       );
 
       switch (type) {
@@ -1355,6 +1355,33 @@ const CronJobs: React.FC = () => {
                             }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask AI
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCronJob(cronJob);
+                              setSelectedCronJobs(new Set([`${cronJob.metadata?.namespace}/${cronJob.metadata?.name}`]));
+                              handleTriggerJob();
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Clock className="mr-2 h-4 w-4" />
+                              Trigger Job Now
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCronJob(cronJob);
+                              setSelectedCronJobs(new Set([`${cronJob.metadata?.namespace}/${cronJob.metadata?.name}`]));
+                              handleToggleSuspend();
+                            }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              {isCronJobSuspended(cronJob) ? (
+                                <>
+                                  <Play className="mr-2 h-4 w-4" />
+                                  Resume
+                                </>
+                              ) : (
+                                <>
+                                  <Pause className="mr-2 h-4 w-4" />
+                                  Suspend
+                                </>
+                              )}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => handleViewCronJob(e, cronJob)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Eye className="mr-2 h-4 w-4" />

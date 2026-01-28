@@ -524,8 +524,8 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 				{/* Charts Grid */}
 				<div className="grid grid-cols-1 gap-2">
 					{/* CPU Usage Chart */}
-					<div className="bg-gray-50 min-h-64 dark:bg-gray-800/20 rounded-lg ">
-						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+					<div className="bg-gray-50 min-h-64 dark:bg-card rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-accent/20  items-center gap-2 mb-2 p-2 rounded-t-md">
 							<div className='flex items-center gap-1'>
 								<Cpu className="h-4 w-4 text-blue-500" />
 								<h4 className="text-gray-900 dark:text-gray-400 uppercase">CPU Usage</h4>
@@ -545,6 +545,7 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 						<div className="h-68 p-2">
 							{cpuData.length > 0 ? (
 								<VisualChart
+									key={`cpu-${selectedPod}-${selectedNamespace}-${timeRange}`}
 									type="area"
 									data={[{
 										label: 'CPU (millicores)',
@@ -584,8 +585,8 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 					</div>
 
 					{/* Memory Usage Chart */}
-					<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
-						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+					<div className="bg-gray-50  min-h-64 dark:bg-card rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-accent/20  items-center gap-2 mb-2 p-2 rounded-t-md">
 							<div className='flex items-center gap-1'>
 								<MemoryStick className="h-4 w-4 text-green-500" />
 								<h4 className="text-gray-900 dark:text-gray-400 uppercase">Memory Usage</h4>
@@ -605,6 +606,7 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 						<div className="h-68 p-2">
 							{memoryData.length > 0 ? (
 								<VisualChart
+									key={`memory-${selectedPod}-${selectedNamespace}-${timeRange}`}
 									type="area"
 									data={[{
 										label: 'Memory (MB)',
@@ -644,8 +646,8 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 					</div>
 
 					{/* Network I/O Chart */}
-					<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
-						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+					<div className="bg-gray-50  min-h-64 dark:bg-card rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-accent/20  items-center gap-2 mb-2 p-2 rounded-t-md">
 							<div className='flex items-center gap-1'>
 								<Network className="h-4 w-4 text-purple-500" />
 								<h4 className="text-gray-900 dark:text-gray-400 uppercase">Network I/O</h4>
@@ -665,6 +667,7 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 						<div className="h-68 p-2">
 							{(networkInData.length > 0 || networkOutData.length > 0) ? (
 								<VisualChart
+									key={`network-${selectedPod}-${selectedNamespace}-${timeRange}`}
 									type="line"
 									data={[
 										{
@@ -711,8 +714,8 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 					</div>
 
 					{/* Disk I/O Chart */}
-					<div className="bg-gray-50  min-h-64 dark:bg-gray-800/20 rounded-lg ">
-						<div className="text-xs flex justify-between dark:bg-gray-800/40  items-center gap-2 mb-2 p-2 rounded-t-md">
+					<div className="bg-gray-50  min-h-64 dark:bg-card rounded-lg ">
+						<div className="text-xs flex justify-between dark:bg-accent/20  items-center gap-2 mb-2 p-2 rounded-t-md">
 							<div className='flex items-center gap-1'>
 								<Activity className="h-4 w-4 text-orange-500" />
 								<h4 className="text-gray-900 dark:text-gray-400 uppercase">Disk I/O</h4>
@@ -755,6 +758,7 @@ Please analyze these ${title.toLowerCase()} metrics and provide insights or reco
 						<div className="h-68 p-2">
 							{(diskReadData.length > 0 || diskWriteData.length > 0) ? (
 								<VisualChart
+									key={`disk-${selectedPod}-${selectedNamespace}-${timeRange}-${showDiskRead}-${showDiskWrite}`}
 									type="line"
 									data={[
 										...(showDiskRead ? [{

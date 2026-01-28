@@ -1320,6 +1320,42 @@ const Deployments: React.FC = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
+                            setActiveDeployment(deployment);
+                            setSelectedDeployments(new Set([`${deployment.metadata?.namespace}/${deployment.metadata?.name}`]));
+                            handleRestartDeployments();
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Restart
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDeployment(deployment);
+                            setSelectedDeployments(new Set([`${deployment.metadata?.namespace}/${deployment.metadata?.name}`]));
+                            handleScaleDeployment();
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Edit3 className="mr-2 h-4 w-4" />
+                            Scale
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDeployment(deployment);
+                            setSelectedDeployments(new Set([`${deployment.metadata?.namespace}/${deployment.metadata?.name}`]));
+                            handlePauseResumeDeployment();
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            {isDeploymentPaused(deployment) ? (
+                              <>
+                                <Play className="mr-2 h-4 w-4" />
+                                Resume
+                              </>
+                            ) : (
+                              <>
+                                <Pause className="mr-2 h-4 w-4" />
+                                Pause
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
                             handleDriftCheck(deployment);
                           }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <GitCompareArrows className="mr-2 h-4 w-4" />

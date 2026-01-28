@@ -23,7 +23,6 @@ import {
   PolarArea,
   Scatter,
 } from 'react-chartjs-2';
-import CrosshairPlugin from 'chartjs-plugin-crosshair';
 import { cn } from '@/lib/utils';
 
 // Register Chart.js components
@@ -37,9 +36,187 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler,
-  CrosshairPlugin
+  Filler
 );
+
+// Advanced Grafana-style crosshair state management
+interface CrosshairState {
+  x: number | null;
+  isPinned: boolean;
+  timestamp: string | null;
+  syncGroup: string;
+}
+
+const crosshairStates = new Map<string, CrosshairState>();
+
+// Advanced Grafana-style crosshair plugin
+const advancedCrosshairPlugin = {
+  id: 'crosshair',
+
+  defaults: {
+    enabled: true,
+    syncGroup: 'default',
+    showTimestamp: true,
+    pinnable: true,
+    color: 'rgba(59, 130, 246, 0.8)', // blue-500
+    lineWidth: 1,
+    lineDash: [5, 5]
+  },
+
+  beforeEvent(chart: any, args: any) {
+    const event = args.event;
+    const options = chart.options.plugins.crosshair || {};
+    const syncGroup = options.syncGroup || 'default';
+
+    // Initialize state for this sync group
+    if (!crosshairStates.has(syncGroup)) {
+      crosshairStates.set(syncGroup, {
+        x: null,
+        isPinned: false,
+        timestamp: null,
+        syncGroup
+      });
+    }
+
+    const state = crosshairStates.get(syncGroup)!;
+
+    // Handle click to pin/unpin
+    if (event.type === 'click' && options.pinnable) {
+      state.isPinned = !state.isPinned;
+      chart.update('none'); // Update without animation
+      return;
+    }
+
+    // Update crosshair position if not pinned
+    if (!state.isPinned && event.type === 'mousemove') {
+      if (event.x >= chart.chartArea.left && event.x <= chart.chartArea.right) {
+        state.x = event.x;
+
+        // Get timestamp from x-axis
+        const xScale = chart.scales.x;
+        if (xScale && chart.data.labels) {
+          const index = Math.round(xScale.getValueForPixel(event.x));
+          if (index >= 0 && index < chart.data.labels.length) {
+            state.timestamp = chart.data.labels[index];
+          }
+        }
+      } else {
+        state.x = null;
+        state.timestamp = null;
+      }
+    }
+
+    // Clear on mouse leave
+    if (event.type === 'mouseout' && !state.isPinned) {
+      state.x = null;
+      state.timestamp = null;
+    }
+  },
+
+  afterDraw(chart: any) {
+    const ctx = chart.ctx;
+    const options = chart.options.plugins.crosshair || {};
+    const syncGroup = options.syncGroup || 'default';
+    const state = crosshairStates.get(syncGroup);
+
+    if (!state || state.x === null) return;
+
+    const { chartArea } = chart;
+    const x = state.x;
+
+    ctx.save();
+
+    // Draw vertical crosshair line
+    ctx.beginPath();
+    ctx.moveTo(x, chartArea.top);
+    ctx.lineTo(x, chartArea.bottom);
+    ctx.lineWidth = options.lineWidth || 1;
+    ctx.strokeStyle = state.isPinned
+      ? 'rgba(34, 197, 94, 0.8)'  // green-500 when pinned
+      : (options.color || 'rgba(59, 130, 246, 0.8)'); // blue-500 default
+    ctx.setLineDash(options.lineDash || [5, 5]);
+    ctx.stroke();
+
+    // Draw timestamp annotation at the top
+    if (options.showTimestamp && state.timestamp) {
+      const text = state.timestamp;
+      ctx.font = '11px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      const textWidth = ctx.measureText(text).width;
+      const padding = 6;
+      const boxWidth = textWidth + padding * 2;
+      const boxHeight = 20;
+      const boxX = Math.max(chartArea.left, Math.min(x - boxWidth / 2, chartArea.right - boxWidth));
+      const boxY = chartArea.top - boxHeight - 4;
+
+      // Draw timestamp background
+      ctx.fillStyle = state.isPinned
+        ? 'rgba(34, 197, 94, 0.95)'  // green-500 when pinned
+        : 'rgba(59, 130, 246, 0.95)'; // blue-500 default
+      ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+      // Draw timestamp text
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, x, boxY + 4);
+    }
+
+    // Draw value indicators on Y-axis for each dataset
+    if (chart.tooltip?._active?.length) {
+      chart.tooltip._active.forEach((activeElement: any, index: number) => {
+        const dataset = chart.data.datasets[activeElement.datasetIndex];
+        const y = activeElement.element.y;
+        const color = dataset.borderColor || dataset.backgroundColor || '#666';
+
+        // Draw horizontal line to Y-axis
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(x, y);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = typeof color === 'string' ? color : '#666';
+        ctx.setLineDash([3, 3]);
+        ctx.globalAlpha = 0.3;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Draw dot at intersection
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = typeof color === 'string' ? color : '#666';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    // Draw pin indicator if pinned
+    if (state.isPinned) {
+      const pinSize = 12;
+      const pinX = x;
+      const pinY = chartArea.top - 28;
+
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.95)';
+      ctx.beginPath();
+      ctx.arc(pinX, pinY, pinSize / 2, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Draw pin icon (simplified)
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pinX, pinY - 3);
+      ctx.lineTo(pinX, pinY + 3);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+};
+
+// Register the advanced crosshair plugin
+ChartJS.register(advancedCrosshairPlugin);
 
 export type ChartType = 'line' | 'area' | 'bar' | 'pie' | 'doughnut' | 'polarArea' | 'scatter';
 
@@ -159,7 +336,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
     const detectTheme = () => {
       if (theme === 'auto') {
         const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches ||
-                          document.documentElement.classList.contains('dark');
+          document.documentElement.classList.contains('dark');
         setIsDark(isDarkMode);
       } else {
         setIsDark(theme === 'dark');
@@ -174,13 +351,22 @@ export const VisualChart: React.FC<VisualChartProps> = ({
     }
   }, [theme]);
 
+  // Cleanup chart instance on unmount to prevent canvas reuse errors
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, []);
+
   // Generate gradient
   const createGradient = (canvas: HTMLCanvasElement, gradientConfig: GradientConfig) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
     let gradient: CanvasGradient;
-    
+
     if (gradientConfig.type === 'linear') {
       const { direction = 'vertical' } = gradientConfig;
       switch (direction) {
@@ -201,7 +387,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
     }
 
     gradientConfig.colors.forEach(colorStop => {
-      const color = colorStop.opacity !== undefined 
+      const color = colorStop.opacity !== undefined
         ? `${colorStop.color}${Math.round(colorStop.opacity * 255).toString(16).padStart(2, '0')}`
         : colorStop.color;
       gradient.addColorStop(colorStop.offset, color);
@@ -213,7 +399,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
   // Get theme colors
   const getThemeColors = (): ChartTheme => {
     if (customTheme) return customTheme;
-    
+
     return isDark ? {
       textColor: '#e5e7eb',
       gridColor: '#6b7280',
@@ -232,11 +418,11 @@ export const VisualChart: React.FC<VisualChartProps> = ({
   // Transform data for Chart.js
   const chartData = useMemo((): ChartData<any> => {
     const themeColors = getThemeColors();
-    
+
     const datasets = data.map((series, index) => {
       const defaultColor = DEFAULT_COLORS[index % DEFAULT_COLORS.length];
       const canvas = canvasRef.current;
-      
+
       let backgroundColor = series.backgroundColor || defaultColor;
       let borderColor = series.borderColor || defaultColor;
 
@@ -269,8 +455,8 @@ export const VisualChart: React.FC<VisualChartProps> = ({
         case 'polarArea':
           return {
             ...baseConfig,
-            backgroundColor: Array.isArray(series.backgroundColor) 
-              ? series.backgroundColor 
+            backgroundColor: Array.isArray(series.backgroundColor)
+              ? series.backgroundColor
               : DEFAULT_COLORS.slice(0, (series.data as number[]).length),
             borderWidth: 1,
             borderColor: themeColors.backgroundColor,
@@ -289,7 +475,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
   // Chart options
   const options = useMemo((): ChartOptions<any> => {
     const themeColors = getThemeColors();
-    
+
     const baseOptions: ChartOptions<any> = {
       responsive,
       maintainAspectRatio,
@@ -297,19 +483,21 @@ export const VisualChart: React.FC<VisualChartProps> = ({
         duration: animationDuration,
         easing: 'easeInOutQuart',
       } : false,
+      interaction: {
+        mode: 'index',  // Show all datasets at the same x-index
+        intersect: false,  // Don't require exact intersection
+        axis: 'x'  // Follow x-axis position
+      },
       plugins: {
-        
+        // Advanced Grafana-style crosshair
         crosshair: {
-          line: {
-            color: '#71717a',  // crosshair line color
-            width: 1        // crosshair line width
-          },
-          sync: {
-            enabled: true,            // enable trace line syncing with other charts
-            group: 1,                 // chart group
-            suppressTooltips: true   // suppress tooltips when showing a synced tracer
-          },
-          
+          enabled: true,
+          syncGroup: 'metrics',  // Sync all charts in the metrics view
+          showTimestamp: true,    // Show time annotation
+          pinnable: true,         // Click to pin/unpin
+          color: 'rgba(59, 130, 246, 0.8)',  // Blue crosshair
+          lineWidth: 1,
+          lineDash: [5, 5]
         },
         title: {
           display: !!title,
@@ -338,7 +526,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
           position: 'bottom' as const,
         },
         tooltip: {
-          
+
           enabled: showTooltip,
           backgroundColor: themeColors.tooltipBg,
           titleColor: themeColors.tooltipTextColor,
@@ -363,7 +551,7 @@ export const VisualChart: React.FC<VisualChartProps> = ({
               if (formatTooltip) {
                 return formatTooltip(context);
               }
-              
+
               const value = context.parsed.y ?? context.parsed;
               const formattedValue = formatValue ? formatValue(value) : `${value}${yAxisUnit}`;
               return `${context.dataset.label}: ${formattedValue}`;

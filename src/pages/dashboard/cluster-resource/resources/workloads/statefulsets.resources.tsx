@@ -63,7 +63,7 @@ const StatefulSets: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   // Default column configuration
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
@@ -76,8 +76,8 @@ const StatefulSets: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('statefulsets', defaultColumnConfig)
   );
 
@@ -191,7 +191,7 @@ const StatefulSets: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -260,7 +260,7 @@ const StatefulSets: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     // Determine which statefulSets to scale
@@ -292,7 +292,7 @@ const StatefulSets: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -465,7 +465,7 @@ const StatefulSets: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveStatefulSet(statefulSet);
     setSelectedStatefulSets(new Set([`${statefulSet.metadata?.namespace}/${statefulSet.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -528,7 +528,7 @@ const StatefulSets: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
@@ -681,9 +681,9 @@ const StatefulSets: React.FC = () => {
   // Handle incoming Kubernetes statefulset events
   const handleStatefulSetEvent = useCallback((kubeEvent: any) => {
     const { type, object: statefulSet } = kubeEvent;
-    
+
     if (!statefulSet || !statefulSet.metadata) return;
-    
+
     // Filter: only process statefulsets from selected namespaces
     if (selectedNamespaces.length > 0 && !selectedNamespaces.includes(statefulSet.metadata.namespace)) {
       return; // Skip statefulsets not in selected namespaces
@@ -692,8 +692,8 @@ const StatefulSets: React.FC = () => {
     setStatefulSets(prevStatefulSets => {
       const newStatefulSets = [...prevStatefulSets];
       const existingIndex = newStatefulSets.findIndex(
-        s => s.metadata?.namespace === statefulSet.metadata.namespace && 
-             s.metadata?.name === statefulSet.metadata.name
+        s => s.metadata?.namespace === statefulSet.metadata.namespace &&
+          s.metadata?.name === statefulSet.metadata.name
       );
 
       switch (type) {
@@ -754,7 +754,7 @@ const StatefulSets: React.FC = () => {
 
     // Create a connection ID based only on context (one connection per cluster)
     const connectionId = currentContext.name;
-    
+
     // Don't create a new connection if we already have one for the same cluster
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connectionIdRef.current === connectionId) {
       return;
@@ -800,7 +800,7 @@ const StatefulSets: React.FC = () => {
         try {
           // Direct Kubernetes API watch response (no multiplexer wrapping)
           const kubeEvent = JSON.parse(event.data);
-          
+
           // Handle Kubernetes watch event directly
           if (kubeEvent.type && kubeEvent.object) {
             handleStatefulSetEvent(kubeEvent);
@@ -818,7 +818,7 @@ const StatefulSets: React.FC = () => {
           setWsConnected(false);
           wsRef.current = null;
           connectionIdRef.current = null;
-          
+
           // Only attempt to reconnect for unexpected closures and if we still have context/namespaces
           if (event.code !== 1000 && event.code !== 1001 && currentContext && selectedNamespaces.length > 0) {
             reconnectTimeoutRef.current = setTimeout(() => {
@@ -902,7 +902,7 @@ const StatefulSets: React.FC = () => {
 
     // Clear existing statefulsets when switching contexts/namespaces
     setStatefulSets([]);
-    
+
     // If no namespaces selected, don't connect and show empty state
     if (selectedNamespaces.length === 0) {
       setLoading(false);
@@ -921,7 +921,7 @@ const StatefulSets: React.FC = () => {
     }
 
     setLoading(true);
-    
+
     // First load existing statefulsets, then start WebSocket for real-time updates
     const initializeStatefulSets = async () => {
       try {
@@ -936,7 +936,7 @@ const StatefulSets: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     initializeStatefulSets();
 
     // Cleanup function  
@@ -967,10 +967,10 @@ const StatefulSets: React.FC = () => {
       setStatefulSets([]);
       return;
     }
-    
+
     // Filter existing statefulsets based on new namespace selection
-    setStatefulSets(prevStatefulSets => 
-      prevStatefulSets.filter(statefulSet => 
+    setStatefulSets(prevStatefulSets =>
+      prevStatefulSets.filter(statefulSet =>
         statefulSet.metadata?.namespace && selectedNamespaces.includes(statefulSet.metadata.namespace)
       )
     );
@@ -1180,9 +1180,9 @@ const StatefulSets: React.FC = () => {
             {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
             <NamespaceSelector />
           </div>
-          
+
           <Button
-            variant="outline" 
+            variant="outline"
             size="sm"
             onClick={() => {
               if (!wsConnected) {
@@ -1269,6 +1269,24 @@ const StatefulSets: React.FC = () => {
                           }} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Sparkles className="mr-2 h-4 w-4" />
                             Ask AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveStatefulSet(statefulSet);
+                            setSelectedStatefulSets(new Set([`${statefulSet.metadata?.namespace}/${statefulSet.metadata?.name}`]));
+                            handleScaleStatefulSets();
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <Scale className="mr-2 h-4 w-4" />
+                            Scale
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveStatefulSet(statefulSet);
+                            setSelectedStatefulSets(new Set([`${statefulSet.metadata?.namespace}/${statefulSet.metadata?.name}`]));
+                            handleRestartStatefulSets();
+                          }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Restart
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();

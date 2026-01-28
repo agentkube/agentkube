@@ -180,7 +180,7 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
     <div className="space-y-4">
       {/* Percentage Metrics Grid */}
       <div className="grid grid-cols-3 gap-1.5">
-        <div className="bg-white dark:bg-gray-800/20 rounded-md p-4 min-h-44 flex flex-col">
+        <div className="bg-white dark:bg-card rounded-md p-4 min-h-44 flex flex-col">
           <div className="flex justify-between items-center mb-auto">
             <div className="uppercase text-xs text-gray-500">CPU Usage</div>
             {error && (
@@ -205,7 +205,7 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800/20 rounded-lg p-4 min-h-44 flex flex-col">
+        <div className="bg-white dark:bg-card rounded-lg p-4 min-h-44 flex flex-col">
           <div className="flex justify-between items-center mb-auto">
             <div className="uppercase text-xs text-gray-500">Memory Usage</div>
             {error && (
@@ -230,7 +230,7 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800/20 rounded-lg p-4 min-h-44 flex flex-col">
+        <div className="bg-white dark:bg-card rounded-lg p-4 min-h-44 flex flex-col">
           <div className="flex justify-between items-center mb-auto">
             <div className="uppercase text-xs text-gray-500">Network Usage</div>
             {error && (
@@ -258,8 +258,8 @@ const TelemetryOverview: React.FC<TelemetryOverviewProps> = ({ resourceName, nam
 
 
       {/* Summary Container */}
-      <div className="bg-gray-200 dark:bg-gray-800/20 rounded-lg">
-        <div className='py-2 px-4 dark:bg-gray-800/40 rounded-t-lg'>
+      <div className="bg-gray-200 dark:bg-card rounded-lg">
+        <div className='py-2 px-4 dark:bg-accent/20 rounded-t-lg'>
           <h3 className="uppercase text-xs font-medium text-gray-800 dark:text-gray-500">
             Summary
           </h3>

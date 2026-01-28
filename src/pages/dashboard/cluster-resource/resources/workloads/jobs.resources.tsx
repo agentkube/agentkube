@@ -64,7 +64,7 @@ const Jobs: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   // Default column configuration
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
@@ -77,8 +77,8 @@ const Jobs: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('jobs', defaultColumnConfig)
   );
 
@@ -183,7 +183,7 @@ const Jobs: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -262,7 +262,7 @@ const Jobs: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -330,7 +330,7 @@ const Jobs: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -456,7 +456,7 @@ const Jobs: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveJob(job);
     setSelectedJobs(new Set([`${job.metadata?.namespace}/${job.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -472,10 +472,10 @@ const Jobs: React.FC = () => {
         'batch',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -494,7 +494,7 @@ const Jobs: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
@@ -696,7 +696,7 @@ const Jobs: React.FC = () => {
       const newJobs = [...prevJobs];
       const existingIndex = newJobs.findIndex(
         j => j.metadata?.namespace === job.metadata.namespace &&
-             j.metadata?.name === job.metadata.name
+          j.metadata?.name === job.metadata.name
       );
 
       switch (type) {
@@ -1345,6 +1345,31 @@ const Jobs: React.FC = () => {
                               <Sparkles className="mr-2 h-4 w-4" />
                               Ask AI
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (jobStatus.status !== 'Running') {
+                                  setActiveJob(job);
+                                  setSelectedJobs(new Set([`${job.metadata?.namespace}/${job.metadata?.name}`]));
+                                  handleRerunJob();
+                                }
+                              }}
+                              className={`hover:text-gray-700 dark:hover:text-gray-500 ${jobStatus.status === 'Running' ? 'text-gray-400 dark:text-gray-600 pointer-events-none' : ''}`}
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                              Re-run
+                            </DropdownMenuItem>
+                            {jobStatus.status === 'Running' && (
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveJob(job);
+                                setSelectedJobs(new Set([`${job.metadata?.namespace}/${job.metadata?.name}`]));
+                                handleTerminateJob();
+                              }} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Terminate
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={(e) => handleViewJob(e, job)} className='hover:text-gray-700 dark:hover:text-gray-500'>
                               <Eye className="mr-2 h-4 w-4" />
                               View
