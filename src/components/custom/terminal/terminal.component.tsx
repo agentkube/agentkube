@@ -1,3 +1,14 @@
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
+import { CSS } from '@dnd-kit/utilities';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Terminal, Plus, X, ChevronDown, ExternalLink, MoreHorizontal, Edit2, Check, Globe, AtSign, FileText } from 'lucide-react';
 import { toast as sooner } from "sonner";
@@ -35,6 +46,213 @@ import {
 import { useTerminal, TerminalSession, BrowserSession, EditorSession, LoggingSession, Session } from '@/contexts/useTerminal';
 import { useDrawer } from '@/contexts/useDrawer';
 import { useCluster } from '@/contexts/clusterContext';
+
+interface SortableTabProps {
+  session: Session;
+  index: number;
+  isActive: boolean;
+  isEditing: boolean;
+  editingName: string;
+  onActivate: () => void;
+  onStartEditing: () => void;
+  onCommitEdit: () => void;
+  onCancelEdit: () => void;
+  onNameChange: (name: string) => void;
+  onClose: () => void;
+  onCloseOthers: () => void;
+  onCloseAll: () => void;
+  onAddToChat: () => void;
+  sessionsLength: number;
+}
+
+const SortableTab: React.FC<SortableTabProps> = ({
+  session,
+  index,
+  isActive,
+  isEditing,
+  editingName,
+  onActivate,
+  onStartEditing,
+  onCommitEdit,
+  onCancelEdit,
+  onNameChange,
+  onClose,
+  onCloseOthers,
+  onCloseAll,
+  onAddToChat,
+  sessionsLength
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: session.data.id, disabled: isEditing });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 50);
+    }
+  }, [isEditing]);
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div
+            className={`group flex items-center gap-1 px-3 py-1.5 border-r border-border cursor-pointer transition-colors ${isActive
+              ? 'bg-accent/50 text-foreground'
+              : 'text-muted-foreground hover:bg-background/50 hover:text-foreground'
+              } ${session.type === 'editor' && (session.data as EditorSession).hasUnsavedChanges
+                ? 'border-b border-b-foreground/50'
+                : ''
+              }`}
+            onClick={onActivate}
+          >
+            {isEditing ? (
+              <div className="flex items-center gap-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => onNameChange(e.target.value)}
+                  onBlur={onCommitEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') onCommitEdit();
+                    if (e.key === 'Escape') onCancelEdit();
+                  }}
+                  className="bg-transparent border border-border rounded px-1 text-xs w-20 outline-none focus:border-blue-500"
+                  onMouseDown={(e) => e.stopPropagation()} // Prevent drag start on input
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCommitEdit();
+                  }}
+                  className="p-0.5 hover:bg-accent rounded"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <Check className="h-3 w-3 text-green-500" />
+                </button>
+              </div>
+            ) : (
+              <>
+                {session.type === 'browser' ? (
+                  <>
+                    <Globe className="h-3 w-3 text-blue-400" />
+                    <span className="text-xs whitespace-nowrap">
+                      {session.data.name}
+                    </span>
+                  </>
+                ) : session.type === 'editor' ? (
+                  <>
+                    <FileText className="h-3 w-3 text-yellow-400" />
+                    <span className="text-xs whitespace-nowrap">
+                      {session.data.name}
+                    </span>
+                  </>
+                ) : session.type === 'logging' ? (
+                  <>
+                    <FileText className="h-3 w-3 text-emerald-400" />
+                    <span className="text-xs whitespace-nowrap">
+                      {session.data.name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xs whitespace-nowrap">
+                      Terminal{' '}
+                      <span className="text-muted-foreground/50">
+                        {session.data.name.replace('Terminal ', '')}
+                      </span>
+                    </span>
+                  </>
+                )}
+                <span className="text-[10px] text-muted-foreground/60">
+                  {index + 1}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddToChat();
+                  }}
+                  className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity text-muted-foreground hover:text-foreground"
+                  title="Add to Chat"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <AtSign className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity"
+                  title="Close Tab"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="bg-card border-border">
+          <ContextMenuItem
+            onClick={onStartEditing}
+            className="text-xs"
+          >
+            <Edit2 className="h-3 w-3 mr-2" />
+            Rename
+          </ContextMenuItem>
+          {session.type === 'terminal' && (
+            <ContextMenuItem
+              onClick={onAddToChat}
+              className="text-xs"
+            >
+              <AtSign className="h-3 w-3 mr-2" />
+              Add to Chat
+            </ContextMenuItem>
+          )}
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={onClose}
+            className="text-xs"
+          >
+            <X className="h-3 w-3 mr-2" />
+            Close
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={onCloseOthers}
+            className="text-xs"
+            disabled={sessionsLength === 1}
+          >
+            Close Others
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={onCloseAll}
+            className="text-xs text-red-400"
+          >
+            Close All
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    </div>
+  );
+};
+
+
 
 interface PendingRequest {
   command?: string;
@@ -106,11 +324,29 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   const [editingName, setEditingName] = useState('');
   const [terminalProfiles, setTerminalProfiles] = useState<TerminalProfile[]>([]);
   const terminalHeaderRef = useRef<HTMLDivElement>(null);
-  const editInputRef = useRef<HTMLInputElement>(null);
   const [isDefaultDialogOpen, setIsDefaultDialogOpen] = useState(false);
   const [defaultProfileId, setDefaultProfileId] = useState<string | null>(() => {
     return localStorage.getItem('default_terminal_profile');
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setSessions((items) => {
+        const oldIndex = items.findIndex((item) => item.data.id === active.id);
+        const newIndex = items.findIndex((item) => item.data.id === over?.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  }, [setSessions]);
 
   // Fetch available terminal profiles on mount
   useEffect(() => {
@@ -342,10 +578,6 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   const startEditing = useCallback((session: Session) => {
     setEditingSessionId(session.data.id);
     setEditingName(session.data.name);
-    setTimeout(() => {
-      editInputRef.current?.focus();
-      editInputRef.current?.select();
-    }, 50);
   }, []);
 
   // Commit the name edit
@@ -544,143 +776,38 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
           </div>
 
           <div className="flex items-center">
-            {sessions.map((session, index) => (
-              <ContextMenu key={session.data.id}>
-                <ContextMenuTrigger>
-                  <div
-                    className={`group flex items-center gap-1 px-3 py-1.5 border-r border-border cursor-pointer transition-colors ${activeSessionId === session.data.id
-                      ? 'bg-accent/50 text-foreground'
-                      : 'text-muted-foreground hover:bg-background/50 hover:text-foreground'
-                      } ${session.type === 'editor' && (session.data as EditorSession).hasUnsavedChanges
-                        ? 'border-b border-b-foreground/50'
-                        : ''
-                      }`}
-                    onClick={() => setActiveSessionId(session.data.id)}
-                  >
-                    {editingSessionId === session.data.id ? (
-                      <div className="flex items-center gap-1">
-                        <input
-                          ref={editInputRef}
-                          type="text"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onBlur={commitEdit}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') commitEdit();
-                            if (e.key === 'Escape') cancelEdit();
-                          }}
-                          className="bg-transparent border border-border rounded px-1 text-xs w-20 outline-none focus:border-blue-500"
-                        />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            commitEdit();
-                          }}
-                          className="p-0.5 hover:bg-accent rounded"
-                        >
-                          <Check className="h-3 w-3 text-green-500" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        {session.type === 'browser' ? (
-                          <>
-                            <Globe className="h-3 w-3 text-blue-400" />
-                            <span className="text-xs whitespace-nowrap">
-                              {session.data.name}
-                            </span>
-                          </>
-                        ) : session.type === 'editor' ? (
-                          <>
-                            <FileText className="h-3 w-3 text-yellow-400" />
-                            <span className="text-xs whitespace-nowrap">
-                              {session.data.name}
-                            </span>
-                          </>
-                        ) : session.type === 'logging' ? (
-                          <>
-                            <FileText className="h-3 w-3 text-emerald-400" />
-                            <span className="text-xs whitespace-nowrap">
-                              {session.data.name}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-xs whitespace-nowrap">
-                              Terminal{' '}
-                              <span className="text-muted-foreground/50">
-                                {session.data.name.replace('Terminal ', '')}
-                              </span>
-                            </span>
-                          </>
-                        )}
-                        <span className="text-[10px] text-muted-foreground/60">
-                          {index + 1}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddToChat(session);
-                          }}
-                          className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity text-muted-foreground hover:text-foreground"
-                          title="Add to Chat"
-                        >
-                          <AtSign className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            closeSession(session.data.id);
-                          }}
-                          className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="bg-card border-border">
-                  <ContextMenuItem
-                    onClick={() => startEditing(session)}
-                    className="text-xs"
-                  >
-                    <Edit2 className="h-3 w-3 mr-2" />
-                    Rename
-                  </ContextMenuItem>
-                  {session.type === 'terminal' && (
-                    <ContextMenuItem
-                      onClick={() => handleAddToChat(session)}
-                      className="text-xs"
-                    >
-                      <AtSign className="h-3 w-3 mr-2" />
-                      Add to Chat
-                    </ContextMenuItem>
-                  )}
-                  <ContextMenuSeparator />
-                  <ContextMenuItem
-                    onClick={() => closeSession(session.data.id)}
-                    className="text-xs"
-                  >
-                    <X className="h-3 w-3 mr-2" />
-                    Close
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onClick={() => closeOtherSessions(session.data.id)}
-                    className="text-xs"
-                    disabled={sessions.length === 1}
-                  >
-                    Close Others
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    onClick={closeAllSessions}
-                    className="text-xs text-red-400"
-                  >
-                    Close All
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[restrictToHorizontalAxis]}
+            >
+              <SortableContext
+                items={sessions.map(s => s.data.id)}
+                strategy={horizontalListSortingStrategy}
+              >
+                {sessions.map((session, index) => (
+                  <SortableTab
+                    key={session.data.id}
+                    session={session}
+                    index={index}
+                    sessionsLength={sessions.length}
+                    isActive={activeSessionId === session.data.id}
+                    isEditing={editingSessionId === session.data.id}
+                    editingName={editingName}
+                    onActivate={() => setActiveSessionId(session.data.id)}
+                    onStartEditing={() => startEditing(session)}
+                    onCommitEdit={commitEdit}
+                    onCancelEdit={cancelEdit}
+                    onNameChange={setEditingName}
+                    onClose={() => closeSession(session.data.id)}
+                    onCloseOthers={() => closeOtherSessions(session.data.id)}
+                    onCloseAll={closeAllSessions}
+                    onAddToChat={() => handleAddToChat(session)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
 
           {/* New tab dropdown */}
