@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, Server, Copy, Globe } from "lucide-react";
+import { Loader2, ExternalLink, Server, Copy, Globe, Dices } from "lucide-react";
 import { SiGrafana, SiDatadog, SiNewrelic, SiPrometheus } from '@icons-pack/react-simple-icons';
 import { SigNoz } from '@/assets/icons';
 import {
@@ -63,6 +64,7 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
   const [toolInstances, setToolInstances] = useState<ToolInstance[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('');
   const [selectedPort, setSelectedPort] = useState<string>('');
+  const [localPort, setLocalPort] = useState<string>('');
   const [availablePods, setAvailablePods] = useState<Array<{ name: string, ready: boolean }>>([]);
   const [selectedPod, setSelectedPod] = useState<string>('');
   const [portForwardResult, setPortForwardResult] = useState<PortForwardResponse | null>(null);
@@ -183,13 +185,32 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
   };
 
   const handleInstanceChange = (serviceAddress: string) => {
+    // Reset selection but keep the instance we're about to set
     setSelectedInstance(serviceAddress);
     setSelectedPort('');
     setSelectedPod('');
     setAvailablePods([]);
+    setLocalPort(''); // Reset local port on instance change
 
     const instance = toolInstances.find(i => i.serviceAddress === serviceAddress);
     if (instance) {
+      // Auto-select a port if available
+      if (instance.ports && instance.ports.length > 0) {
+        // Try to find a common web port first
+        const webPort = instance.ports.find(p =>
+          p.name?.includes('http') ||
+          p.name?.includes('web') ||
+          [80, 3000, 8080, 9090].includes(p.port)
+        );
+
+        if (webPort) {
+          setSelectedPort(webPort.port.toString());
+        } else {
+          // Fallback to first port
+          setSelectedPort(instance.ports[0].port.toString());
+        }
+      }
+
       fetchPodsForInstance(instance);
     }
   };
@@ -221,7 +242,7 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
         serviceNamespace: instance.namespace,
         targetPort,
         cluster: clusterName,
-        port: undefined // Let it auto-assign
+        port: localPort || undefined // Use localPort if set, otherwise auto-assign
       });
 
       setPortForwardResult(result);
@@ -249,20 +270,21 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
     }
   };
 
-  const handleOpenInExternalBrowser = () => {
-    if (portForwardResult) {
-      openPortForwardInBrowser(portForwardResult.port?.toString() || '');
-    }
-  };
-
   const handleClose = () => {
     setSelectedInstance('');
     setSelectedPort('');
     setSelectedPod('');
+    setLocalPort('');
     setToolInstances([]);
     setAvailablePods([]);
     setPortForwardResult(null);
     onClose();
+  };
+
+  const handleRandomPort = () => {
+    // Generate random port between 1024 and 65535
+    const randomPort = Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024;
+    setLocalPort(randomPort.toString());
   };
 
   const copyToClipboard = async (text: string) => {
@@ -343,7 +365,7 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
                         {port.port}
                         {port.name ? ` (${port.name})` : ''}
                         {port.protocol ? ` - ${port.protocol}` : ''}
-                        {port.targetPort && port.targetPort !== port.port ? ` � ${port.targetPort}` : ''}
+                        {port.targetPort && port.targetPort !== port.port ? ` - ${port.targetPort}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -382,6 +404,31 @@ const MonitoringDashDialog: React.FC<MonitoringDashDialogProps> = ({
                 </Select>
               </div>
             )}
+
+            {/* Local Port Selection - New Feature */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label className="text-right text-sm font-medium">
+                Local Port
+              </label>
+              <div className="col-span-3 flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Random (Auto-assign)"
+                  value={localPort}
+                  onChange={(e) => setLocalPort(e.target.value)}
+                  className="bg-transparent"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRandomPort}
+                  title="Generate Random Port"
+                  type="button"
+                >
+                  <Dices className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
             {/* Instance Info */}
             {selectedInstanceObj && (

@@ -119,7 +119,7 @@ const SecretViewer: React.FC = () => {
       });
       return;
     }
-    
+
     setShowDeleteDialog(true);
   };
 
@@ -418,7 +418,7 @@ const SecretViewer: React.FC = () => {
             });
           }} className="space-y-6">
 
-            <div className='flex justify-between'>
+          <div className='flex justify-between'>
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="data">Secret Data</TabsTrigger>
@@ -427,12 +427,12 @@ const SecretViewer: React.FC = () => {
             </TabsList>
 
             <Base64Dropdown />
-            </div>
+          </div>
 
           <TabsContent value="overview" className="space-y-6 bg-transparent">
             {/* Secret Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white bg-secondary/10 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Lock className="h-4 w-4 text-purple-500" />
                   <h3 className="text-sm font-medium">Type</h3>
@@ -445,7 +445,7 @@ const SecretViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white bg-secondary/10 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="h-4 w-4 text-blue-500" />
                   <h3 className="text-sm font-medium">Data Entries</h3>
@@ -458,7 +458,7 @@ const SecretViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white bg-secondary/10 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-green-500" />
                   <h3 className="text-sm font-medium">Total Size</h3>
@@ -473,7 +473,7 @@ const SecretViewer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white bg-secondary/10 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-medium">Age</h3>
@@ -519,7 +519,7 @@ const SecretViewer: React.FC = () => {
 
             {/* Secret Preview for service account tokens */}
             {secretType === 'Service Account Token' && secretData.data && secretData.data['token'] && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white bg-secondary/10 p-4 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Service Account Token</h2>
                   <div className="flex items-center gap-2">
@@ -547,7 +547,7 @@ const SecretViewer: React.FC = () => {
 
             {/* Data Preview for other entries */}
             {dataEntryCount > 0 && secretType !== 'Service Account Token' && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4 mb-6">
+              <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white bg-secondary/10 p-4 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium">Data Preview</h2>
                   <Button
@@ -560,7 +560,7 @@ const SecretViewer: React.FC = () => {
                 </div>
                 <div className="space-y-4">
                   {Object.entries(secretData.data || {}).slice(0, 3).map(([key, value]) => (
-                    <div key={key} className="border border-gray-200 dark:border-gray-800 rounded-lg">
+                    <div key={key} className="border border-gray-200 dark:border-accent/50 rounded-lg">
                       <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-t-lg">
                         <div className="flex items-center gap-2">
                           <Lock className="h-4 w-4 text-purple-500" />
@@ -619,7 +619,7 @@ const SecretViewer: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-6" id="data-tab">
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
+            <div className="rounded-lg border border-gray-200 dark:border-accent/50 bg-white bg-secondary/10 p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium">Secret Data</h2>
                 <div className="flex items-center gap-2">
@@ -656,8 +656,8 @@ const SecretViewer: React.FC = () => {
               ) : (
                 <div className="space-y-4">
                   {Object.entries(secretData.data || {}).map(([key, value]) => (
-                    <div key={key} className="border border-gray-200 dark:border-gray-800 rounded-lg">
-                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-t-lg">
+                    <div key={key} className="border border-gray-200 dark:border-accent/50 rounded-lg">
+                      <div className="flex items-center justify-between bg-gray-50 dark:bg-card px-4 py-2 rounded-t-lg">
                         <div className="flex items-center gap-2">
                           <Lock className="h-4 w-4 text-purple-500" />
                           <h3 className="font-medium">{key}</h3>
@@ -682,7 +682,7 @@ const SecretViewer: React.FC = () => {
                           </Button>
                         </div>
                       </div>
-                      <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-b-lg">
+                      <div className="bg-gray-100 dark:bg-card/30 p-4 rounded-b-lg">
                         {showSecretValues[key] ? (
                           <div className="font-mono text-xs break-all max-h-80 overflow-auto">
                             {(() => {
