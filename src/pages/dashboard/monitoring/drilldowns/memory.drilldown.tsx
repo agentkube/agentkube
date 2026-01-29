@@ -198,7 +198,7 @@ const MemoryDrilldown: React.FC<MemoryDrilldownProps> = ({
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-20 dark:bg-[#0B0D13]/30 backdrop-blur-md">
+                <DropdownMenuContent align="start" className="w-20 dark:bg-card/30 backdrop-blur-md">
                   {limitOptions.map((limit) => (
                     <DropdownMenuItem
                       key={limit}
@@ -226,7 +226,7 @@ const MemoryDrilldown: React.FC<MemoryDrilldownProps> = ({
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36 dark:bg-[#0B0D13]/30 backdrop-blur-md">
+                <DropdownMenuContent align="end" className="w-36 dark:bg-card/30 backdrop-blur-md">
                   {sortOptions.map((option) => (
                     <DropdownMenuItem
                       key={option.value}

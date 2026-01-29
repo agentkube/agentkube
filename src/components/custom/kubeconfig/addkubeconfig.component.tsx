@@ -279,7 +279,7 @@ const AddKubeConfigDialog: React.FC<AddKubeConfigDialogProps> = ({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl max-h-[90vh] -mt-36 overflow-hidden bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md">
+			<DialogContent className="max-w-2xl max-h-[90vh] -mt-36 overflow-hidden bg-white dark:bg-card/50 backdrop-blur-md">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Settings className="w-5 h-5" />

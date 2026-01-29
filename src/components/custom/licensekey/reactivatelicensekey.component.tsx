@@ -141,7 +141,7 @@
 //       </Button>
       
 //       <Dialog open={isOpen} onOpenChange={(open: boolean) => !isSubmitting && setIsOpen(open)}>
-//         <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-[#0B0D13] backdrop-blur-md">
+//         <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-card backdrop-blur-md">
 //           <DialogHeader>
 //             <DialogTitle className="text-2xl font-bold">Reactivate Your License</DialogTitle>
 //           </DialogHeader>

@@ -257,7 +257,7 @@ const IntegrationLookupDialog: React.FC<IntegrationLookupDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
+      <DialogContent className="sm:max-w-[500px] bg-gray-200 dark:bg-card backdrop-blur-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {toolIcon}
@@ -284,7 +284,7 @@ const IntegrationLookupDialog: React.FC<IntegrationLookupDialogProps> = ({
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select instance" />
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-200 dark:bg-[#0B0D13]/70 backdrop-blur-md'>
+                  <SelectContent className='bg-gray-200 dark:bg-card/70 backdrop-blur-md'>
                     {toolInstances.map((instance) => (
                       <SelectItem key={instance.serviceAddress} value={instance.serviceAddress}>
                         {instance.serviceAddress} ({instance.namespace})
@@ -309,7 +309,7 @@ const IntegrationLookupDialog: React.FC<IntegrationLookupDialogProps> = ({
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select port" />
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-200 dark:bg-[#0B0D13]/70 backdrop-blur-md'>
+                  <SelectContent className='bg-gray-200 dark:bg-card/70 backdrop-blur-md'>
                     {selectedInstanceObj.ports.map((port) => (
                       <SelectItem key={`${port.port}-${port.name || ''}`} value={port.port.toString()}>
                         {port.port}
@@ -344,7 +344,7 @@ const IntegrationLookupDialog: React.FC<IntegrationLookupDialogProps> = ({
                       <SelectValue placeholder="Select pod" />
                     )}
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-200 dark:bg-[#0B0D13]/70 backdrop-blur-md'>
+                  <SelectContent className='bg-gray-200 dark:bg-card/70 backdrop-blur-md'>
                     {availablePods.map((pod) => (
                       <SelectItem key={pod.name} value={pod.name}>
                         {pod.name} {pod.ready ? '(Ready)' : '(Not Ready)'}

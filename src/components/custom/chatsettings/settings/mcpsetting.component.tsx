@@ -197,7 +197,7 @@ const MCPSetting = () => {
                   <ChevronDown className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 dark:bg-[#0B0D13]/60 backdrop-blur-sm ">
+              <DropdownMenuContent align="end" className="w-48 dark:bg-card/60 backdrop-blur-sm ">
                 <DropdownMenuItem onClick={handleAddManually}>
                   Add Manually
                 </DropdownMenuItem>

@@ -761,7 +761,7 @@ const Drilldown = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-48 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border border-gray-200 dark:border-gray-700/40"
+                className="w-48 bg-white dark:bg-card/40 backdrop-blur-md border border-gray-200 dark:border-gray-700/40"
               >
                 {dataSources.map((source) => (
                   <DropdownMenuItem
@@ -921,7 +921,7 @@ const Drilldown = () => {
                     content={({ active, payload, label }) => {
                       if (active && payload && payload.length) {
                         return (
-                          <div className="rounded-lg border dark:bg-[#0B0D13]/40 backdrop-blur-md max-w-sm p-3 shadow-lg">
+                          <div className="rounded-lg border dark:bg-card/40 backdrop-blur-md max-w-sm p-3 shadow-lg">
                             <p className="text-xs font-medium text-muted-foreground mb-1">
                               Time: {label}
                             </p>

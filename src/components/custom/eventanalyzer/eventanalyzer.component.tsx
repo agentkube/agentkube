@@ -317,7 +317,7 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
 
         {isOpen && buttonPosition && createPortal(
           <div
-            className="w-96 bg-[#0B0D13]/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-[9999]"
+            className="w-96 bg-card/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-[9999]"
             style={{
               position: 'absolute',
               top: Math.max(8, buttonPosition.top),

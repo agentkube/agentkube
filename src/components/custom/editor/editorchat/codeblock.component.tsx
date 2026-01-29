@@ -144,7 +144,7 @@ export const CodeBlock = ({
     color: theme === "dark" ? "#f2f2f2CC" : "#000000"
     // color: '#000000',
   };
-  
+
   // Line props function to handle highlighted lines
   const lineProps = (lineNumber: number) => {
     const style = {
@@ -156,9 +156,9 @@ export const CodeBlock = ({
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`relative my-4 rounded-xl bg-gray-300/50 dark:bg-gray-800/10 text-gray-100 border border-gray-700/20 dark:border-gray-800 ${isFocused ? 'ring-2  dark:ring-gray-800' : ''}`} 
+      className={`relative my-4 rounded-xl bg-gray-300/50 dark:bg-gray-800/10 text-gray-100 border border-gray-700/20 dark:border-gray-800 ${isFocused ? 'ring-2  dark:ring-gray-800' : ''}`}
       tabIndex={0}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -284,67 +284,67 @@ export const CodeBlock = ({
             </div>
           ) : (
             <div className="p-4 bg-gray-300 dark:bg-gray-800/50 rounded-b-xl w-full overflow-x-auto">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-sm text-gray-400">Command output</div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowOutput(false)}
-                  className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                >
-                  Hide
-                </button>
-                <button
-                  onClick={handleCopyOutput}
-                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                >
-                  {copiedOutput ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-                <button
-                  onClick={() => setIsDialogOpen(true)}
-                  className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                >
-                  <Maximize2 size={14} />
-                </button>
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-sm text-gray-400">Command output</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowOutput(false)}
+                    className="flex items-center px-2 py-1 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                  >
+                    Hide
+                  </button>
+                  <button
+                    onClick={handleCopyOutput}
+                    className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                  >
+                    {copiedOutput ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                  <button
+                    onClick={() => setIsDialogOpen(true)}
+                    className="flex items-center p-2 text-xs rounded-[0.3rem] bg-transparent dark:bg-transparent hover:bg-gray-500/20 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                </div>
               </div>
+
+              <SyntaxHighlighter
+                language="shell"
+                style={oneDark}
+                customStyle={{
+                  ...customStyle,
+                  overflowX: 'auto',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'rgba(120, 125, 132, 0.3) transparent',
+                }}
+                // showLineNumbers={true}
+                wrapLines={true}
+                lineProps={lineProps}
+                lineNumberStyle={{
+                  minWidth: '2em',
+                  paddingRight: '1em',
+                  color: '#606366',
+                  textAlign: 'right',
+                  userSelect: 'none',
+                  marginRight: '0.5rem',
+                  borderRight: '1px solid #404040',
+                }}
+                codeTagProps={{
+                  style: {
+                    fontSize: '0.875rem',
+                    fontFamily: 'Monaco, Menlo, monospace',
+                  }
+                }}
+              >
+                {result.output}
+              </SyntaxHighlighter>
             </div>
-          
-            <SyntaxHighlighter
-              language="shell"
-              style={oneDark}
-              customStyle={{
-                ...customStyle,
-                overflowX: 'auto',
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(120, 125, 132, 0.3) transparent',
-              }}
-              // showLineNumbers={true}
-              wrapLines={true}
-              lineProps={lineProps}
-              lineNumberStyle={{
-                minWidth: '2em',
-                paddingRight: '1em',
-                color: '#606366',
-                textAlign: 'right',
-                userSelect: 'none',
-                marginRight: '0.5rem',
-                borderRight: '1px solid #404040',
-              }}
-              codeTagProps={{
-                style: {
-                  fontSize: '0.875rem',
-                  fontFamily: 'Monaco, Menlo, monospace',
-                }
-              }}
-            >
-              {result.output}
-            </SyntaxHighlighter>
-          </div>
           )}
         </>
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-200 dark:bg-[#0B0D13]">
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-gray-200 dark:bg-card">
           <DialogHeader>
             <DialogTitle>Command Output</DialogTitle>
           </DialogHeader>

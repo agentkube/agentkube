@@ -52,7 +52,7 @@ const DailyCostTrend: React.FC<DailyCostTrendProps> = ({ dailyCostData }) => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-[#0B0D13]/50 backdrop-blur-md p-4 border border-gray-200 dark:border-gray-700 rounded shadow-md min-w-[150px]">
+        <div className="bg-white dark:bg-card/50 backdrop-blur-md p-4 border border-gray-200 dark:border-gray-700 rounded shadow-md min-w-[150px]">
           <p className="font-medium text-lg font-[Anton] uppercase text-gray-800/40 dark:text-white">{label}</p>
           <div className="flex justify-between gap-2">
             <p className="text-sm text-green-600 dark:text-green-400">
@@ -62,7 +62,7 @@ const DailyCostTrend: React.FC<DailyCostTrendProps> = ({ dailyCostData }) => {
               ${payload[0].value.toFixed(2)}
             </p>
           </div>
-          <div className="flex justify-between gap-2">  
+          <div className="flex justify-between gap-2">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Idle:
             </p>

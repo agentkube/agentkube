@@ -835,7 +835,7 @@ const Investigations: React.FC = () => {
                                         <MoreVertical className="h-4 w-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                                    <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-md border-gray-800/50'>
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -909,7 +909,7 @@ const Investigations: React.FC = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.isOpen} onOpenChange={(open) => !open && cancelDeleteTask()}>
-        <DialogContent className="sm:max-w-md dark:bg-[#0B0D13]/40 backdrop-blur-md">
+        <DialogContent className="sm:max-w-md dark:bg-card/40 backdrop-blur-md">
           <DialogHeader>
             <DialogTitle>Delete Task</DialogTitle>
             <DialogDescription>

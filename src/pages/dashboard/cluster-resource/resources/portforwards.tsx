@@ -143,7 +143,7 @@ const PortForwards: React.FC = () => {
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
-        <DialogContent className="max-w-md bg-gray-200 dark:bg-[#0B0D13]/70 backdrop-blur-sm">
+        <DialogContent className="max-w-md bg-gray-200 dark:bg-card/70 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle>
               {confirmDialog.action === 'delete' ? 'Delete Port Forward' : 'Stop Port Forward'}

@@ -54,7 +54,7 @@ const ReplicationControllers: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
@@ -65,8 +65,8 @@ const ReplicationControllers: React.FC = () => {
     { key: 'labels', label: 'Labels', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('replicationcontrollers', defaultColumnConfig)
   );
   // --- Start of Multi-select ---
@@ -180,7 +180,7 @@ const ReplicationControllers: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -266,7 +266,7 @@ const ReplicationControllers: React.FC = () => {
 
   const handleDeleteReplicationController = (e: React.MouseEvent, rc: any) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -275,7 +275,7 @@ const ReplicationControllers: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveReplicationController(rc);
     setSelectedReplicationControllers(new Set([`${rc.metadata?.namespace}/${rc.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -291,10 +291,10 @@ const ReplicationControllers: React.FC = () => {
         '', // ReplicationController is in the core API group (empty string)
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -320,7 +320,7 @@ const ReplicationControllers: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -390,7 +390,7 @@ const ReplicationControllers: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -428,7 +428,7 @@ const ReplicationControllers: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm ReplicationController Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -469,7 +469,7 @@ const ReplicationControllers: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const newConfig = columnConfig.map(col => 
+    const newConfig = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(newConfig);
@@ -738,7 +738,7 @@ const ReplicationControllers: React.FC = () => {
             {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
             <NamespaceSelector />
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -910,7 +910,7 @@ const ReplicationControllers: React.FC = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                        <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
                             handleAskAI(rc);

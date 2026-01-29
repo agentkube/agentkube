@@ -61,7 +61,7 @@ const HelmReleases: React.FC = () => {
   const [selectedRelease, setSelectedRelease] = useState<HelmRelease | null>(null);
   const [releaseHistory, setReleaseHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  
+
   // Uninstall dialog state
   const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false);
   const [releaseToUninstall, setReleaseToUninstall] = useState<HelmRelease | null>(null);
@@ -276,7 +276,7 @@ const HelmReleases: React.FC = () => {
           console.error('Failed to refresh releases after action:', refreshError);
           // If refresh fails, just remove the specific release for uninstall actions
           if (action === 'uninstall') {
-            setReleases(prev => prev.filter(r => 
+            setReleases(prev => prev.filter(r =>
               !(r.name === release.name && r.namespace === release.namespace)
             ));
           }
@@ -563,9 +563,9 @@ const HelmReleases: React.FC = () => {
                     </TableCell>
                     {(showAllNamespaces || !namespace) && (
                       <TableCell>
-                       <span className='hover:text-blue-500 hover:underline cursor-pointer' onClick={() => navigate(`/dashboard/explore/namespaces/${release.namespace}`)}>
-                        {release.namespace}
-                       </span>
+                        <span className='hover:text-blue-500 hover:underline cursor-pointer' onClick={() => navigate(`/dashboard/explore/namespaces/${release.namespace}`)}>
+                          {release.namespace}
+                        </span>
                       </TableCell>
                     )}
                     <TableCell className="text-center">
@@ -606,7 +606,7 @@ const HelmReleases: React.FC = () => {
                             )}
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
+                        <DropdownMenuContent align="end" className="dark:bg-card/40 backdrop-blur-md border-gray-800/50">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleViewHistory(release)}>

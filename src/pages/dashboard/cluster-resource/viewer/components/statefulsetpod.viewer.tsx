@@ -154,50 +154,50 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
 
     try {
       setLoading(true);
-      
+
       // Get the statefulSet's label selector
       const labelSelector = getLabelSelector();
-      
+
       if (!labelSelector) {
         throw new Error('Unable to determine label selector for this StatefulSet');
       }
-      
+
       // Fetch pods matching the statefulSet's selector
       const podsData = await listResources<'pods'>(
         clusterName,
         'pods',
-        { 
+        {
           namespace,
           labelSelector
         }
       );
-      
+
       // Sort pods by ordinal index (extracted from the name)
       podsData.sort((a, b) => {
         const aName = a.metadata?.name || '';
         const bName = b.metadata?.name || '';
         const aIndex = aName.split('-').pop() || '';
         const bIndex = bName.split('-').pop() || '';
-        
+
         // Try to parse as numbers for proper numerical sorting
         const aNum = parseInt(aIndex);
         const bNum = parseInt(bIndex);
-        
+
         if (!isNaN(aNum) && !isNaN(bNum)) {
           return aNum - bNum;
         }
-        
+
         // Fallback to string comparison
         return aIndex.localeCompare(bIndex);
       });
-      
+
       setPods(podsData);
-      
+
       // Update pod status counts
       let readyCount = 0;
       let pendingCount = 0;
       let failedCount = 0;
-      
+
       podsData.forEach(pod => {
         const phase = pod.status?.phase?.toLowerCase();
         if (phase === 'running') {
@@ -214,14 +214,14 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
           failedCount++;
         }
       });
-      
+
       setPodCount({
         total: podsData.length,
         ready: readyCount,
         pending: pendingCount,
         failed: failedCount
       });
-      
+
       setError(null);
     } catch (err) {
       console.error('Failed to fetch pods for StatefulSet:', err);
@@ -400,54 +400,54 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
   const getContainerStatusInfo = (pod: V1Pod): { icon: JSX.Element; message: string } => {
     const containerStatuses = pod.status?.containerStatuses || [];
     const total = containerStatuses.length;
-    
+
     if (total === 0) {
-      return { 
-        icon: <CircleDashed className="h-4 w-4 text-gray-400" />, 
-        message: 'No containers' 
+      return {
+        icon: <CircleDashed className="h-4 w-4 text-gray-400" />,
+        message: 'No containers'
       };
     }
-    
+
     const ready = containerStatuses.filter(status => status.ready).length;
     const waiting = containerStatuses.filter(status => status.state?.waiting).length;
     const running = containerStatuses.filter(status => status.state?.running).length;
     const terminated = containerStatuses.filter(status => status.state?.terminated).length;
-    
+
     // All containers ready
     if (ready === total) {
-      return { 
-        icon: <CircleCheck className="h-4 w-4 text-green-500" />, 
-        message: 'All containers ready' 
+      return {
+        icon: <CircleCheck className="h-4 w-4 text-green-500" />,
+        message: 'All containers ready'
       };
     }
-    
+
     // Some containers waiting
     if (waiting > 0) {
-      return { 
-        icon: <CircleAlert className="h-4 w-4 text-yellow-500" />, 
-        message: `${waiting} container(s) waiting, ${ready}/${total} ready` 
+      return {
+        icon: <CircleAlert className="h-4 w-4 text-yellow-500" />,
+        message: `${waiting} container(s) waiting, ${ready}/${total} ready`
       };
     }
-    
+
     // Some containers terminated
     if (terminated > 0) {
-      return { 
-        icon: <CircleX className="h-4 w-4 text-red-500" />, 
-        message: `${terminated} container(s) terminated, ${ready}/${total} ready` 
+      return {
+        icon: <CircleX className="h-4 w-4 text-red-500" />,
+        message: `${terminated} container(s) terminated, ${ready}/${total} ready`
       };
     }
-    
+
     // Some containers running but not ready
     if (running > 0 && ready < total) {
-      return { 
-        icon: <CircleAlert className="h-4 w-4 text-orange-500" />, 
-        message: `${running} container(s) running, ${ready}/${total} ready` 
+      return {
+        icon: <CircleAlert className="h-4 w-4 text-orange-500" />,
+        message: `${running} container(s) running, ${ready}/${total} ready`
       };
     }
-    
-    return { 
-      icon: <CircleDashed className="h-4 w-4 text-gray-400" />, 
-      message: `${ready}/${total} containers ready` 
+
+    return {
+      icon: <CircleDashed className="h-4 w-4 text-gray-400" />,
+      message: `${ready}/${total} containers ready`
     };
   };
 
@@ -645,17 +645,17 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
   const isPodFailing = (pod: V1Pod): boolean => {
     const phase = pod.status?.phase?.toLowerCase();
     return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' ||
-           (pod.status?.containerStatuses || []).some(status =>
-             status.state?.waiting?.reason === 'CrashLoopBackOff' ||
-             status.state?.waiting?.reason === 'ImagePullBackOff' ||
-             status.state?.waiting?.reason === 'ErrImagePull'
-           );
+      (pod.status?.containerStatuses || []).some(status =>
+        status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+        status.state?.waiting?.reason === 'ImagePullBackOff' ||
+        status.state?.waiting?.reason === 'ErrImagePull'
+      );
   };
 
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]/90 backdrop-blur-sm">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card/90 backdrop-blur-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Pod Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -774,7 +774,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
     // Use createPortal to render the tooltip at document level, preventing event issues
     return createPortal(
       <div
-        className="fixed z-50 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
+        className="fixed z-50 bg-white dark:bg-card/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
         style={{
           left: `${tooltipPosition.x + 10}px`,
           top: `${tooltipPosition.y - 80}px`,
@@ -819,9 +819,9 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">StatefulSet Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchStatefulSetPods}
             disabled={loading}
           >
@@ -842,9 +842,9 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">StatefulSet Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchStatefulSetPods}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -867,9 +867,9 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">StatefulSet Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchStatefulSetPods}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -887,9 +887,9 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
     <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <h2 className="text-lg font-medium">StatefulSet Pods ({filteredPods.length})</h2>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={fetchStatefulSetPods}
         >
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -994,7 +994,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
               const ordinal = getPodOrdinal(pod.metadata?.name);
 
               return (
-                <TableRow 
+                <TableRow
                   key={podKey}
                   className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
                   onClick={() => handlePodDetails(pod)}
@@ -1030,7 +1030,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                  <span className={getTotalRestarts(pod) > 0 ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
+                    <span className={getTotalRestarts(pod) > 0 ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
                       {getTotalRestarts(pod)}
                     </span>
                   </TableCell>
@@ -1102,7 +1102,7 @@ const StatefulSetPods: React.FC<StatefulSetPodsProps> = ({
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                      <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-md border-gray-800/50'>
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
                           handleAskAI(pod);

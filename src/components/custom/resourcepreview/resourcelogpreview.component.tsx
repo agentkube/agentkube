@@ -69,7 +69,7 @@ const ResourceLogPreview: React.FC<ResourceLogPreviewProps> = ({ log, onRemove }
 
       {/* Tooltip/Preview */}
       {isOpen && (
-        <div className="absolute left-0 min-w-[45vw] bottom-full mb-1 w-full rounded-xl shadow-lg bg-gray-100/60 dark:bg-[#0B0D13]/40 backdrop-blur-md border border-gray-300 dark:border-gray-800/50 z-[60]">
+        <div className="absolute left-0 min-w-[45vw] bottom-full mb-1 w-full rounded-xl shadow-lg bg-gray-100/60 dark:bg-card/40 backdrop-blur-md border border-gray-300 dark:border-gray-800/50 z-[60]">
           {/* Header */}
           <div className="flex items-center justify-between p-2 border-b bg-gray-300/30 dark:bg-gray-600/20 border-gray-200 dark:border-gray-500/30">
             <div className="flex items-center flex-wrap text-sm font-medium space-x-2">
@@ -97,7 +97,7 @@ const ResourceLogPreview: React.FC<ResourceLogPreviewProps> = ({ log, onRemove }
           </div>
 
           {/* Logs Content */}
-          <div className={`bg-gray-800 dark:bg-[#0B0D13]/40 relative group ${isExpanded ? 'max-h-96' : 'max-h-44'} overflow-auto
+          <div className={`bg-gray-800 dark:bg-card/40 relative group ${isExpanded ? 'max-h-96' : 'max-h-44'} overflow-auto
             rounded-b-lg shadow-lg
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 

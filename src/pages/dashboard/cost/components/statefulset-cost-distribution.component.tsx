@@ -77,10 +77,10 @@ const StatefulsetCostDistribution: React.FC<StatefulsetCostDistributionProps> = 
     field: null,
     direction: null
   });
-  
+
   const loadOpenCostConfig = useCallback(() => {
     if (!currentContext) return;
-    
+
     try {
       const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
       if (savedConfig) {
@@ -567,12 +567,11 @@ ${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)
                   </p>
                   <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
                     <div
-                      className={`h-1 rounded-[0.3rem] ${
-                        costData.efficiency < 20 ? 'bg-red-500' :
-                        costData.efficiency < 50 ? 'bg-amber-500' :
-                        costData.efficiency < 80 ? 'bg-blue-500' :
-                        'bg-green-500'
-                      }`}
+                      className={`h-1 rounded-[0.3rem] ${costData.efficiency < 20 ? 'bg-red-500' :
+                          costData.efficiency < 50 ? 'bg-amber-500' :
+                            costData.efficiency < 80 ? 'bg-blue-500' :
+                              'bg-green-500'
+                        }`}
                       style={{ width: `${Math.min(costData.efficiency, 100)}%` }}
                     ></div>
                   </div>
@@ -687,7 +686,7 @@ ${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)
                 {sortedStatefulsets.map((statefulset, idx) => {
                   const stsNetworkCost = statefulset.resources.network ?? 0;
                   const stsGpuCost = statefulset.resources.gpu ?? 0;
-                  
+
                   return (
                     <TableRow
                       key={`${statefulset.namespace}-${statefulset.name}-${idx}`}
@@ -696,7 +695,7 @@ ${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)
                       <TableCell className="font-medium">
                         <div className="flex items-center">
                           <div className={`w-3 h-3 rounded-full ${getPercentageColor(statefulset.percentage)} mr-3 opacity-80`}></div>
-                          <span 
+                          <span
                             className="cursor-pointer hover:underline hover:text-blue-600 dark:hover:text-blue-400"
                             onClick={() => navigate(`/dashboard/explore/statefulsets/${statefulset.namespace}/${statefulset.name}`)}
                           >
@@ -705,7 +704,7 @@ ${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span 
+                        <span
                           className="cursor-pointer hover:underline text-blue-600 dark:text-blue-400"
                           onClick={() => navigate(`/dashboard/explore/namespaces/${statefulset.namespace}`)}
                         >
@@ -719,7 +718,7 @@ ${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)
                         <div className="mx-auto">
                           <span className="mr-4">{round(statefulset.percentage, 1)}%</span>
                           <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700/30 rounded-full">
-                            <div 
+                            <div
                               className={`h-1 ${getPercentageColor(statefulset.percentage)} rounded-full`}
                               style={{ width: `${Math.min(statefulset.percentage, 100)}%` }}
                             ></div>
@@ -770,7 +769,7 @@ ${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)
                         {stsGpuCost > 0 ? (
                           <div className="flex items-center justify-center">
                             <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                             </svg>
                             ${formatCost(stsGpuCost)}
                           </div>
@@ -788,8 +787,8 @@ ${statefulset.resources.gpu ? `• GPU: $${formatCost(statefulset.resources.gpu)
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem 
+                          <DropdownMenuContent align="end" className="dark:bg-card/40 backdrop-blur-md border-gray-800/50">
+                            <DropdownMenuItem
                               className="hover:text-gray-700 dark:hover:text-gray-500"
                               onClick={() => handleAskAi(statefulset)}
                             >

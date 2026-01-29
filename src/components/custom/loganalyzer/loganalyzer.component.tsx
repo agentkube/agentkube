@@ -260,7 +260,7 @@ const LogAnalyzer: React.FC<LogAnalyzerProps> = ({
         </Tooltip>
 
         {isOpen && (
-          <div className="absolute top-full right-0 mt-2 w-96 bg-[#0B0D13]/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-50">
+          <div className="absolute top-full right-0 mt-2 w-96 bg-card/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-50">
             <div>
               <div className="flex items-center justify-between mb-4 pt-4 px-4">
                 <div className='flex items-center gap-2'>

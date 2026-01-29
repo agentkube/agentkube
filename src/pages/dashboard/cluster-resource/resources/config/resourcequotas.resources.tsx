@@ -92,7 +92,7 @@ const ResourceQuotas: React.FC = () => {
   const { isReconMode } = useReconMode();
 
   // Column configuration state with localStorage persistence
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('resourcequotas', defaultColumnConfig)
   );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
@@ -239,7 +239,7 @@ const ResourceQuotas: React.FC = () => {
       return;
     }
 
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -326,7 +326,7 @@ const ResourceQuotas: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -365,7 +365,7 @@ const ResourceQuotas: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm ResourceQuota Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -823,7 +823,7 @@ const ResourceQuotas: React.FC = () => {
             <div className="text-sm font-medium mb-2">Namespaces</div>
             <NamespaceSelector />
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -961,30 +961,30 @@ const ResourceQuotas: React.FC = () => {
                     )}
                     {isColumnVisible('actions') && (
                       <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
-                          <DropdownMenuItem onClick={(e) => handleViewQuotaMenuItem(e, quota)} className='hover:text-gray-700 dark:hover:text-gray-500'>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
-                            onClick={(e) => handleDeleteQuotaMenuItem(e, quota)}
-                          >
-                            <Trash className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                            <DropdownMenuItem onClick={(e) => handleViewQuotaMenuItem(e, quota)} className='hover:text-gray-700 dark:hover:text-gray-500'>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-500 dark:text-red-400 focus:text-red-500 dark:focus:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                              onClick={(e) => handleDeleteQuotaMenuItem(e, quota)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     )}
                   </TableRow>

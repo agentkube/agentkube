@@ -53,7 +53,7 @@ const ReplicaSets: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   // Default column configuration
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
@@ -65,8 +65,8 @@ const ReplicaSets: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('replicasets', defaultColumnConfig)
   );
 
@@ -180,7 +180,7 @@ const ReplicaSets: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     // Determine which replicaSets to scale
@@ -214,7 +214,7 @@ const ReplicaSets: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -287,7 +287,7 @@ const ReplicaSets: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -339,7 +339,7 @@ const ReplicaSets: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveReplicaSet(replicaSet);
     setSelectedReplicaSets(new Set([`${replicaSet.metadata?.namespace}/${replicaSet.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -355,10 +355,10 @@ const ReplicaSets: React.FC = () => {
         'apps', // API group
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -382,7 +382,7 @@ const ReplicaSets: React.FC = () => {
 
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm ReplicaSet Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -422,7 +422,7 @@ const ReplicaSets: React.FC = () => {
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
     setColumnConfig(prev => {
-      const updated = prev.map(col => 
+      const updated = prev.map(col =>
         col.key === columnKey ? { ...col, visible } : col
       );
       // Save to localStorage
@@ -845,7 +845,7 @@ const ReplicaSets: React.FC = () => {
             {/* <div className="text-sm font-medium mb-2">Namespaces</div> */}
             <NamespaceSelector />
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -915,7 +915,7 @@ const ReplicaSets: React.FC = () => {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                          <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               handleAskAI(replicaSet);

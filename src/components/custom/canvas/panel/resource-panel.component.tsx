@@ -1084,7 +1084,7 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 300, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-80 bg-gray-100 dark:bg-[#0B0D13]/50 backdrop-blur-xl rounded-xl shadow-xl text-gray-600 overflow-y-auto max-h-[calc(100vh-4rem)]"
+            className="w-80 bg-gray-100 dark:bg-card/50 backdrop-blur-xl rounded-xl shadow-xl text-gray-600 overflow-y-auto max-h-[calc(100vh-4rem)]"
           >
             <div className="p-4">
               <div className="flex justify-between items-center mb-6">
@@ -1124,8 +1124,8 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                             key={option.value}
                             onClick={() => handlePositionChange(option.value)}
                             className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 ${panelPosition === option.value
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                : 'text-gray-700 dark:text-gray-300'
+                              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                              : 'text-gray-700 dark:text-gray-300'
                               } first:rounded-t-lg last:rounded-b-lg`}
                           >
                             <option.icon size={14} />
@@ -1147,9 +1147,9 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                   <div className={`grid gap-x-2 ${resource.namespace ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <div className='group'>
                       <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300/50">Name</h4>
-                      <p 
+                      <p
                         className="text-sm text-blue-600 dark:text-white hover:text-blue-400 dark:hover:text-blue-400 break-all cursor-pointer hover:underline flex items-center gap-1"
-                        onClick={() => navigate(resource.namespace 
+                        onClick={() => navigate(resource.namespace
                           ? `/dashboard/explore/${resource.resourceType}/${resource.namespace}/${resource.resourceName}`
                           : `/dashboard/explore/${resource.resourceType}/${resource.resourceName}`
                         )}
@@ -1162,11 +1162,11 @@ export const ResourceDetailsPanel = ({ resource, onClose }: ResourceDetailsPanel
                     {resource.namespace && (
                       <div className='group'>
                         <h4 className="text-xs font-medium text-gray-500 dark:text-gray-300/50">Namespace</h4>
-                        <p 
+                        <p
                           className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:underline flex items-center gap-1"
                           onClick={() => navigate(`/dashboard/explore/namespaces/${resource.namespace}`)}
                         >
-                           <span>{resource.namespace}</span>
+                          <span>{resource.namespace}</span>
                           <ArrowUpRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </p>
                       </div>

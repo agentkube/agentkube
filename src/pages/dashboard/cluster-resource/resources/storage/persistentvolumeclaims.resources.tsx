@@ -79,7 +79,7 @@ const PersistentVolumeClaims: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('persistentvolumeclaims', defaultColumnConfig)
   );
 
@@ -109,7 +109,7 @@ const PersistentVolumeClaims: React.FC = () => {
 
   const handleDeletePvcMenuItem = (e: React.MouseEvent, pvc: V1PersistentVolumeClaim) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -118,7 +118,7 @@ const PersistentVolumeClaims: React.FC = () => {
       });
       return;
     }
-    
+
     setActivePvc(pvc);
     setSelectedPvcs(new Set([`${pvc.metadata?.namespace}/${pvc.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -208,7 +208,7 @@ const PersistentVolumeClaims: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
 
     try {
@@ -287,7 +287,7 @@ const PersistentVolumeClaims: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -302,10 +302,10 @@ const PersistentVolumeClaims: React.FC = () => {
         '',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -385,7 +385,7 @@ const PersistentVolumeClaims: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -415,7 +415,7 @@ const PersistentVolumeClaims: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm PVC Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -507,7 +507,7 @@ const PersistentVolumeClaims: React.FC = () => {
       const newPvcs = [...prevPvcs];
       const existingIndex = newPvcs.findIndex(
         p => p.metadata?.namespace === pvc.metadata.namespace &&
-             p.metadata?.name === pvc.metadata.name
+          p.metadata?.name === pvc.metadata.name
       );
 
       switch (type) {
@@ -1031,7 +1031,7 @@ const PersistentVolumeClaims: React.FC = () => {
     const sortField = sortFieldMap[column.key];
     const isCenterColumn = ['status', 'volume', 'capacity', 'accessModes', 'storageClass', 'age'].includes(column.key);
     const widthClass = column.key === 'status' || column.key === 'capacity' || column.key === 'age' ? 'w-[100px]' :
-                       column.key === 'accessModes' || column.key === 'storageClass' ? 'w-[150px]' : '';
+      column.key === 'accessModes' || column.key === 'storageClass' ? 'w-[150px]' : '';
 
     return (
       <TableHead
@@ -1253,7 +1253,7 @@ const PersistentVolumeClaims: React.FC = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                        <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
                             handleAskAI(pvc);

@@ -846,7 +846,7 @@ const Events: React.FC = () => {
                       )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 dark:bg-[#0B0D13]/30 backdrop-blur-md dark:text-gray-400 border-gray-400 dark:border-gray-800">
+                <PopoverContent className="w-80 dark:bg-card/30 backdrop-blur-md dark:text-gray-400 border-gray-400 dark:border-gray-800">
                   <div className="space-y-4">
                     <h4 className="font-medium mb-2">Event Filters</h4>
 
@@ -1201,7 +1201,7 @@ const Events: React.FC = () => {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                          <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-md border-gray-800/50'>
                             {/* <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               toast({ title: "Ask AI", description: "Feature yet to be implemented" })

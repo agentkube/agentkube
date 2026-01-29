@@ -103,7 +103,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
 
     try {
       setLoading(true);
-      
+
       // Fetch pods scheduled to this node using a field selector
       const fieldSelector = `spec.nodeName=${nodeName}`;
       const podsData = await listResources<'pods'>(
@@ -111,7 +111,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
         'pods',
         { fieldSelector }
       );
-      
+
       setPods(podsData);
       setError(null);
     } catch (err) {
@@ -400,7 +400,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
     // Use createPortal to render the tooltip at document level, preventing event issues
     return createPortal(
       <div
-        className="fixed z-50 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
+        className="fixed z-50 bg-white dark:bg-card/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
         style={{
           left: `${tooltipPosition.x + 10}px`,
           top: `${tooltipPosition.y - 80}px`,
@@ -445,9 +445,9 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Pods Running on This Node</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchNodePods}
             disabled={loading}
           >
@@ -468,9 +468,9 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Pods Running on This Node</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchNodePods}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -550,7 +550,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
               const podMetrics = podsMetrics[podKey];
 
               return (
-                <TableRow 
+                <TableRow
                   key={podKey}
                   className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
                   onClick={() => handlePodDetails(pod)}
@@ -568,7 +568,7 @@ const NodePods: React.FC<NodePodsProps> = ({ nodeName, clusterName }) => {
                       {pod.metadata?.namespace}
                     </div>
                   </TableCell>
-            
+
                   <TableCell className="text-center">
                     {getContainerStatuses(pod)}
                   </TableCell>

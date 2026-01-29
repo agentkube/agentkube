@@ -65,7 +65,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isSaving && !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-md bg-gray-200 dark:bg-[#0B0D13]">
+      <DialogContent className="sm:max-w-md bg-gray-200 dark:bg-card">
         <DialogHeader>
           <DialogTitle className="text-black dark:text-white">
             {isEditing ? 'Edit MCP Server' : 'Add MCP Server'}
@@ -83,7 +83,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
                 placeholder="Server name"
                 value={serverName}
                 onChange={(e) => onServerNameChange(e.target.value)}
-                className="bg-white dark:bg-[#0B0D13] border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
+                className="bg-white dark:bg-card border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
                 disabled={isSaving}
               />
             </div>
@@ -96,10 +96,10 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
                 onValueChange={onServerTypeChange}
                 disabled={isSaving}
               >
-                <SelectTrigger className="bg-white dark:bg-[#0B0D13] border-gray-300 dark:border-gray-800/50 text-black dark:text-white">
+                <SelectTrigger className="bg-white dark:bg-card border-gray-300 dark:border-gray-800/50 text-black dark:text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#0B0D13] border-gray-300 dark:border-gray-800/50 text-black dark:text-white">
+                <SelectContent className="bg-white dark:bg-card border-gray-300 dark:border-gray-800/50 text-black dark:text-white">
                   <SelectItem value="remote">sse</SelectItem>
                   <SelectItem value="process">command</SelectItem>
                 </SelectContent>
@@ -117,7 +117,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
                 placeholder="URL to SSE endpoint (e.g., http://localhost:8082/sse)"
                 value={serverUrl}
                 onChange={(e) => onServerUrlChange(e.target.value)}
-                className="bg-white dark:bg-[#0B0D13] border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
+                className="bg-white dark:bg-card border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
                 disabled={isSaving}
               />
             </div>
@@ -132,7 +132,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
                   placeholder="Command (e.g., npx, python)"
                   value={serverCommand}
                   onChange={(e) => onServerCommandChange(e.target.value)}
-                  className="bg-white dark:bg-[#0B0D13] border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
+                  className="bg-white dark:bg-card border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
                   disabled={isSaving}
                 />
               </div>
@@ -145,7 +145,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
                   placeholder="-y @modelcontextprotocol/server-filesystem /Applications"
                   value={serverArgs}
                   onChange={(e) => onServerArgsChange(e.target.value)}
-                  className="bg-white dark:bg-[#0B0D13] border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
+                  className="bg-white dark:bg-card border-gray-300 dark:border-gray-800/50 text-black dark:text-white"
                   disabled={isSaving}
                 />
               </div>
@@ -153,7 +153,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
           )}
         </div>
 
-        
+
         {serverType === 'process' && (
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -176,7 +176,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
                 {envKeys.map(key => (
                   <div key={key} className="grid grid-cols-5 gap-2">
                     <Input
-                      className="col-span-2 bg-white dark:bg-[#0B0D13]"
+                      className="col-span-2 bg-white dark:bg-card"
                       value={key}
                       onChange={(e) => {
                         const newEnv = { ...serverEnv };
@@ -189,7 +189,7 @@ const AddMCPServer: React.FC<AddMCPServerProps> = ({
                       placeholder="KEY"
                     />
                     <Input
-                      className="col-span-2 bg-white dark:bg-[#0B0D13]"
+                      className="col-span-2 bg-white dark:bg-card"
                       value={serverEnv[key] || ''}
                       onChange={(e) => handleEnvChange(key, e.target.value)}
                       placeholder="VALUE"

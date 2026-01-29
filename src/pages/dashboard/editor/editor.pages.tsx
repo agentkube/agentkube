@@ -357,7 +357,7 @@ const AIEditor: React.FC<AIEditorProps> = ({
                         <Blur />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm'>
+                    <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm'>
                       {/* <DropdownMenuSeparator /> */}
                       <DropdownMenuItem onClick={() => navigate('/settings/appearance')}>
                         <Settings className="h-4 w-4 mr-2" />

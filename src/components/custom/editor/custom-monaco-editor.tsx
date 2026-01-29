@@ -67,17 +67,17 @@ const CustomMonacoEditor: React.FC<CustomMonacoEditorProps> = ({
       const isDarkTheme = theme !== 'vs-dark';
       widget.className = `
         absolute z-50 w-[600px] shadow-lg border border-gray-600/50 rounded-[0.5rem]
-        ${isDarkTheme ? 'bg-[#0B0D13]/50' : 'bg-white'}
+        ${isDarkTheme ? 'bg-card/50' : 'bg-white'}
       `;
       widget.innerHTML = `
-        <div class="flex items-center px-3 py-2 gap-2 border-b rounded-t-[0.5rem] ${isDarkTheme ? 'bg-[#0B0D13] border-gray-800/50 text-[#cccccc]' : 'bg-gray-100 border-gray-200 text-gray-700'}">
+        <div class="flex items-center px-3 py-2 gap-2 border-b rounded-t-[0.5rem] ${isDarkTheme ? 'bg-card border-gray-800/50 text-[#cccccc]' : 'bg-gray-100 border-gray-200 text-gray-700'}">
           <span class="text-xs opacity-70">Editing instructions... (↑↓ for history, @ for code / documentation)</span>
           <div class="flex-1"></div>
           <span class="text-xs opacity-70">Esc to close</span>
         </div>
         <input type="text" 
           class="w-full px-3 py-2 text-sm outline-none border-none rounded-b-[0.5rem] ${isDarkTheme
-          ? 'bg-[#0B0D13]/50 backdrop-blur-md text-[#cccccc] placeholder-[#6c6c6c]'
+          ? 'bg-card/50 backdrop-blur-md text-[#cccccc] placeholder-[#6c6c6c]'
           : 'bg-white text-gray-900 placeholder-gray-500'
         }"
           placeholder="Ask a question about the code..." 

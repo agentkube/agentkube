@@ -214,7 +214,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
 
   // Column configuration state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  
+
   const defaultColumnConfig: ColumnConfig[] = [
     { key: 'name', label: 'Name', visible: true, canToggle: false }, // Required column
     { key: 'namespace', label: 'Namespace', visible: true, canToggle: true },
@@ -224,8 +224,8 @@ const HorizontalPodAutoscalers: React.FC = () => {
     { key: 'age', label: 'Age', visible: true, canToggle: true },
     { key: 'actions', label: 'Actions', visible: true, canToggle: false } // Required column
   ];
-  
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('horizontalpodautoscalers', defaultColumnConfig)
   );
 
@@ -329,7 +329,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
 
   const handleDeleteHpaMenuItem = (e: React.MouseEvent, hpa: V1HorizontalPodAutoscaler) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -338,7 +338,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveHpa(hpa);
     setSelectedHpas(new Set([`${hpa.metadata?.namespace}/${hpa.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -354,7 +354,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -459,7 +459,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -498,7 +498,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm HPA Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1153,7 +1153,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
             <div className="text-sm font-medium mb-2">Namespaces</div>
             <NamespaceSelector />
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -1210,7 +1210,7 @@ const HorizontalPodAutoscalers: React.FC = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                        <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
                           <DropdownMenuItem onClick={handleViewHpa} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

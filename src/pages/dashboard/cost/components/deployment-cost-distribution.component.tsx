@@ -77,11 +77,11 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
     field: null,
     direction: null
   });
-  
+
 
   const loadOpenCostConfig = useCallback(() => {
     if (!currentContext) return;
-    
+
     try {
       const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
       if (savedConfig) {
@@ -106,15 +106,15 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
         setError("No cluster selected. Please select a cluster to view cost data.");
         return;
       }
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Define constants
         const OPENCOST_NAMESPACE = openCostConfig.namespace;
         const OPENCOST_SERVICE = openCostConfig.service;
-        
+
         // Build path and query parameters
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
@@ -123,12 +123,12 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
           includeIdle: 'true',     // include idle resources
           accumulate: 'true'       // accumulate the values
         }).toString();
-        
+
         const fullPath = `${path}?${queryParams}`;
-        
+
         // Directly use kubeProxyRequest
         const response = await kubeProxyRequest(currentContext.name, fullPath, 'GET') as OpenCostAllocationResponse;
-        
+
         // Transform the data
         const transformedData = transformOpenCostDeploymentData(response.data);
         setCostData(transformedData);
@@ -149,7 +149,7 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
         setLoading(false);
       }
     };
-    
+
     fetchDeploymentCostData();
   }, [currentContext, timeRange, openCostConfig]);
 
@@ -157,8 +157,8 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
   const transformOpenCostDeploymentData = (data: Record<string, any>[]): DeploymentCostSummary => {
     // If no data is available, return empty array
     if (!data || data.length === 0 || !data[0]) {
-      return { 
-        deployments: [], 
+      return {
+        deployments: [],
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
@@ -172,7 +172,7 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
     try {
       // Extract the single allocation set (since we're using accumulate=true)
       const controllerData = data[0];
-      
+
       // Initialize resource totals
       let totalCpuCost = 0;
       let totalRamCost = 0;
@@ -182,55 +182,55 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
       let deploymentsTotalCost = 0;
       let weightedEfficiency = 0;
       let totalResourceCostForEfficiency = 0;
-      
+
       // Filter only the Deployment resources and calculate total costs
       const deployments = Object.entries(controllerData)
         .filter(([name, data]) => {
           const allocation = data as any;
           // Filter out idle, unallocated, and non-deployment controllers
-          return name !== '__idle__' && 
-                 name !== '__unallocated__' && 
-                 allocation.properties?.controllerKind?.toLowerCase() === 'deployment';
+          return name !== '__idle__' &&
+            name !== '__unallocated__' &&
+            allocation.properties?.controllerKind?.toLowerCase() === 'deployment';
         })
         .map(([name, data]) => {
           const allocation = data as any;
           const cost = allocation.totalCost || 0;
           deploymentsTotalCost += cost;
-          
+
           // Extract namespace information
           const namespace = allocation.properties?.namespace || 'unknown';
           const controllerKind = allocation.properties?.controllerKind || 'Deployment';
-          
+
           // Extract efficiency metric - convert to percentage
-          const efficiency = allocation.totalEfficiency != null ? 
+          const efficiency = allocation.totalEfficiency != null ?
             allocation.totalEfficiency * 100 : 0;
-          
+
           // Add to resource totals
           const cpuCost = allocation.cpuCost || 0;
           const ramCost = allocation.ramCost || 0;
           const pvCost = allocation.pvCost || 0;
-          
+
           // Calculate network costs (sum of all network-related costs)
-          const networkCost = (allocation.networkCost || 0) + 
-                            (allocation.networkCrossZoneCost || 0) + 
-                            (allocation.networkCrossRegionCost || 0) + 
-                            (allocation.networkInternetCost || 0);
-          
+          const networkCost = (allocation.networkCost || 0) +
+            (allocation.networkCrossZoneCost || 0) +
+            (allocation.networkCrossRegionCost || 0) +
+            (allocation.networkInternetCost || 0);
+
           // GPU costs
           const gpuCost = allocation.gpuCost || 0;
-          
+
           // Add to resource totals
           totalCpuCost += cpuCost;
           totalRamCost += ramCost;
           totalPvCost += pvCost;
           totalNetworkCost += networkCost;
           totalGpuCost += gpuCost;
-          
+
           // Calculate weighted efficiency
           const resourceCostForEfficiency = cpuCost + ramCost;
           weightedEfficiency += efficiency * resourceCostForEfficiency;
           totalResourceCostForEfficiency += resourceCostForEfficiency;
-          
+
           // Create resource cost breakdown
           const resources: ResourceCost = {
             cpu: cpuCost,
@@ -240,11 +240,11 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
             gpu: gpuCost,
             total: cost
           };
-          
+
           // Extract deployment name from the controller name
           // Format is typically "namespace/deployment-name"
           const deploymentName = name.split('/').length > 1 ? name.split('/')[1] : name;
-          
+
           return {
             name: deploymentName,
             namespace: namespace,
@@ -256,19 +256,19 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
           };
         })
         .sort((a, b) => b.cost - a.cost); // Sort by cost (highest first)
-      
+
       // Calculate percentage based on total deployment cost
       deployments.forEach(deployment => {
         deployment.percentage = deploymentsTotalCost > 0 ? (deployment.cost / deploymentsTotalCost) * 100 : 0;
       });
-      
+
       // Calculate overall efficiency
-      const averageEfficiency = totalResourceCostForEfficiency > 0 
-        ? weightedEfficiency / totalResourceCostForEfficiency 
+      const averageEfficiency = totalResourceCostForEfficiency > 0
+        ? weightedEfficiency / totalResourceCostForEfficiency
         : 0;
-      
-      return { 
-        deployments, 
+
+      return {
+        deployments,
         totalCost: deploymentsTotalCost,
         cpuCost: totalCpuCost,
         ramCost: totalRamCost,
@@ -279,15 +279,15 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
       };
     } catch (error) {
       console.error("Error processing OpenCost deployment data:", error);
-      return { 
-        deployments: [], 
+      return {
+        deployments: [],
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
         pvCost: 0,
         networkCost: 0,
         gpuCost: 0,
-        efficiency: 0 
+        efficiency: 0
       };
     }
   };
@@ -307,7 +307,7 @@ const DeploymentCostDistribution: React.FC<DeploymentCostDistributionProps> = ({
     if (efficiency < 80) return "text-blue-500";
     return "text-green-500";
   };
-  
+
   // Filter deployments based on search query and selected namespace
   const filteredDeployments = useMemo(() => {
     let deployments = costData.deployments;
@@ -477,7 +477,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <h2 className="text-sm uppercase font-light text-gray-700 dark:text-gray-300 mb-4">Summary</h2>
-          
+
           <div className="grid grid-cols-4 gap-1">
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
@@ -487,7 +487,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -499,7 +499,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -511,7 +511,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                 </div>
               </CardContent>
             </Card>
-            
+
             {costData.pvCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -525,7 +525,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                 </CardContent>
               </Card>
             )}
-            
+
             {networkCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -539,13 +539,13 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                 </CardContent>
               </Card>
             )}
-            
+
             {gpuCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
                   <div className="flex items-center gap-1 mb-auto">
                     <svg className="h-3 w-3 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                     </svg>
                     <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">GPU</h2>
                   </div>
@@ -555,7 +555,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                 </CardContent>
               </Card>
             )}
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -568,12 +568,11 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                   </p>
                   <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
                     <div
-                      className={`h-1 rounded-[0.3rem] ${
-                        costData.efficiency < 20 ? 'bg-red-500' :
-                        costData.efficiency < 50 ? 'bg-amber-500' :
-                        costData.efficiency < 80 ? 'bg-blue-500' :
-                        'bg-green-500'
-                      }`}
+                      className={`h-1 rounded-[0.3rem] ${costData.efficiency < 20 ? 'bg-red-500' :
+                          costData.efficiency < 50 ? 'bg-amber-500' :
+                            costData.efficiency < 80 ? 'bg-blue-500' :
+                              'bg-green-500'
+                        }`}
                       style={{ width: `${Math.min(costData.efficiency, 100)}%` }}
                     ></div>
                   </div>
@@ -583,7 +582,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Namespace Selector */}
       <NamespaceSelector />
 
@@ -688,7 +687,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                 {sortedDeployments.map((deployment, idx) => {
                   const depNetworkCost = deployment.resources.network ?? 0;
                   const depGpuCost = deployment.resources.gpu ?? 0;
-                  
+
                   return (
                     <TableRow
                       key={`${deployment.namespace}-${deployment.name}-${idx}`}
@@ -697,7 +696,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                       <TableCell className="font-medium">
                         <div className="flex items-center">
                           <div className={`w-3 h-3 rounded-full ${getPercentageColor(deployment.percentage)} mr-3 opacity-80`}></div>
-                          <span 
+                          <span
                             className="cursor-pointer hover:underline hover:text-blue-600 dark:hover:text-blue-400"
                             onClick={() => navigate(`/dashboard/explore/deployments/${deployment.namespace}/${deployment.name}`)}
                           >
@@ -706,7 +705,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span 
+                        <span
                           className="cursor-pointer hover:underline text-blue-600 dark:text-blue-400"
                           onClick={() => navigate(`/dashboard/explore/namespaces/${deployment.namespace}`)}
                         >
@@ -720,7 +719,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                         <div className="mx-auto">
                           <span className="mr-4">{round(deployment.percentage, 1)}%</span>
                           <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700/30 rounded-full">
-                            <div 
+                            <div
                               className={`h-1 ${getPercentageColor(deployment.percentage)} rounded-full`}
                               style={{ width: `${Math.min(deployment.percentage, 100)}%` }}
                             ></div>
@@ -771,7 +770,7 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                         {depGpuCost > 0 ? (
                           <div className="flex items-center justify-center">
                             <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                             </svg>
                             ${formatCost(depGpuCost)}
                           </div>
@@ -789,8 +788,8 @@ ${deployment.resources.gpu ? `• GPU: $${formatCost(deployment.resources.gpu)}`
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem 
+                          <DropdownMenuContent align="end" className="dark:bg-card/40 backdrop-blur-md border-gray-800/50">
+                            <DropdownMenuItem
                               className="hover:text-gray-700 dark:hover:text-gray-500"
                               onClick={() => handleAskAi(deployment)}
                             >

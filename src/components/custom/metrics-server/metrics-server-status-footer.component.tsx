@@ -172,7 +172,7 @@ const MetricsServerStatusFooter: React.FC<MetricsServerStatusFooterProps> = ({ c
                 </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent className="bg-white dark:bg-[#0B0D13]/60 backdrop-blur-md p-1 text-gray-900 dark:text-gray-100">
+            <TooltipContent className="bg-white dark:bg-card/60 backdrop-blur-md p-1 text-gray-900 dark:text-gray-100">
               <p>Metrics Server Status</p>
             </TooltipContent>
           </Tooltip>

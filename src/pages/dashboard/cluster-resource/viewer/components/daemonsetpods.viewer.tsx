@@ -627,18 +627,18 @@ const DaemonSetPods: React.FC<DaemonSetPodsProps> = ({
   const isPodFailing = (pod: V1Pod): boolean => {
     const phase = pod.status?.phase?.toLowerCase();
     return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' ||
-           (pod.status?.containerStatuses || []).some(status =>
-             status.state?.waiting?.reason === 'CrashLoopBackOff' ||
-             status.state?.waiting?.reason === 'ImagePullBackOff' ||
-             status.state?.waiting?.reason === 'ErrImagePull'
-           );
+      (pod.status?.containerStatuses || []).some(status =>
+        status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+        status.state?.waiting?.reason === 'ImagePullBackOff' ||
+        status.state?.waiting?.reason === 'ErrImagePull'
+      );
   };
 
   // Delete confirmation dialog
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]/90 backdrop-blur-sm">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card/90 backdrop-blur-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Pod Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -757,7 +757,7 @@ const DaemonSetPods: React.FC<DaemonSetPodsProps> = ({
     // Use createPortal to render the tooltip at document level, preventing event issues
     return createPortal(
       <div
-        className="fixed z-50 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
+        className="fixed z-50 bg-white dark:bg-card/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
         style={{
           left: `${tooltipPosition.x + 10}px`,
           top: `${tooltipPosition.y - 80}px`,
@@ -1080,7 +1080,7 @@ const DaemonSetPods: React.FC<DaemonSetPodsProps> = ({
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                      <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-md border-gray-800/50'>
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
                           handleAskAI(pod);

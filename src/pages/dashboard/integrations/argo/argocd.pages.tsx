@@ -436,7 +436,7 @@ const ArgoCDView = () => {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
+            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-card backdrop-blur-sm">
               {['All', 'Synced', 'OutOfSync', 'Unknown'].map((filter) => (
                 <DropdownMenuItem
                   key={filter}
@@ -459,7 +459,7 @@ const ArgoCDView = () => {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
+            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-card backdrop-blur-sm">
               {['All', 'Healthy', 'Progressing', 'Degraded', 'Suspended', 'Missing', 'Unknown'].map(
                 (filter) => (
                   <DropdownMenuItem
@@ -484,7 +484,7 @@ const ArgoCDView = () => {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-[#0B0D13] backdrop-blur-sm">
+            <DropdownMenuContent align="end" className="bg-gray-200 dark:bg-card backdrop-blur-sm">
               <DropdownMenuItem
                 onClick={() => setProjectFilter('All')}
                 className="flex items-center justify-between"

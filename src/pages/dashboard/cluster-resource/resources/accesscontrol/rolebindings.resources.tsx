@@ -306,10 +306,10 @@ const RoleBindings: React.FC = () => {
         'rbac.authorization.k8s.io',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -335,7 +335,7 @@ const RoleBindings: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -423,7 +423,7 @@ const RoleBindings: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[200px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[200px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -487,7 +487,7 @@ const RoleBindings: React.FC = () => {
 
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm RoleBinding Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -531,7 +531,7 @@ const RoleBindings: React.FC = () => {
   });
 
   // Column configuration state with localStorage persistence
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('rolebindings', defaultColumnConfig)
   );
 
@@ -984,7 +984,7 @@ const RoleBindings: React.FC = () => {
             <div className="text-sm font-medium mb-2">Namespaces</div>
             <NamespaceSelector />
           </div>
-          
+
           <Button
             variant="outline"
             size="icon"
@@ -1046,7 +1046,7 @@ const RoleBindings: React.FC = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                        <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
                             handleAskAI(binding);

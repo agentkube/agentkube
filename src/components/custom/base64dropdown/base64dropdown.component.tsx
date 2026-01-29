@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { FileText, Copy, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -81,14 +81,14 @@ const Base64Dropdown: React.FC<Base64DropdownProps> = ({ className }) => {
           Base64
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className="w-96 p-0 dark:bg-[#0B0D13]/40 backdrop-blur-xl">
+      <DropdownMenuContent align='end' className="w-96 p-0 dark:bg-card/40 backdrop-blur-xl">
         <div className="p-4">
           <Tabs defaultValue="decode" className="w-full">
             <TabsList className="text-sm grid w-full grid-cols-3 dark:bg-transparent">
               <TabsTrigger value="decode">Decode</TabsTrigger>
               <TabsTrigger value="encode">Encode</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="decode" className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
@@ -104,7 +104,7 @@ const Base64Dropdown: React.FC<Base64DropdownProps> = ({ className }) => {
                   }}
                   className="min-h-[80px] font-mono text-xs"
                 />
-                <Button 
+                <Button
                   onClick={handleDecode}
                   disabled={!decodeInput.trim()}
                   className="w-full mt-4"
@@ -112,13 +112,13 @@ const Base64Dropdown: React.FC<Base64DropdownProps> = ({ className }) => {
                   Decode
                 </Button>
               </div>
-              
+
               {decodeError && (
                 <Alert variant="destructive">
                   <AlertDescription>{decodeError}</AlertDescription>
                 </Alert>
               )}
-              
+
               {decodeOutput && (
                 <div>
                   <div className="flex justify-between items-center mb-2">
@@ -146,7 +146,7 @@ const Base64Dropdown: React.FC<Base64DropdownProps> = ({ className }) => {
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="encode" className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
@@ -162,7 +162,7 @@ const Base64Dropdown: React.FC<Base64DropdownProps> = ({ className }) => {
                   }}
                   className="min-h-[80px] font-mono text-xs"
                 />
-                <Button 
+                <Button
                   onClick={handleEncode}
                   disabled={!encodeInput.trim()}
                   className="w-full mt-4"
@@ -170,13 +170,13 @@ const Base64Dropdown: React.FC<Base64DropdownProps> = ({ className }) => {
                   Encode
                 </Button>
               </div>
-              
+
               {encodeError && (
                 <Alert variant="destructive">
                   <AlertDescription>{encodeError}</AlertDescription>
                 </Alert>
               )}
-              
+
               {encodeOutput && (
                 <div>
                   <div className="flex justify-between items-center mb-2">

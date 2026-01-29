@@ -422,7 +422,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
 
           {/* Drawer with smooth animation */}
           <motion.div
-            className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-lg shadow-lg z-40"
+            className="fixed top-0 right-0 h-full w-1/2 bg-gray-100 dark:bg-card/60 backdrop-blur-lg shadow-lg z-40"
             initial="hidden"
             animate="visible"
             exit="exit"
@@ -531,7 +531,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                             />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64 dark:bg-[#0B0D13]/60 backdrop-blur-md">
+                        <DropdownMenuContent align="end" className="w-64 dark:bg-card/60 backdrop-blur-md">
                           {iacTools.map((tool) => (
                             <DropdownMenuItem
                               key={tool.name}
@@ -569,7 +569,7 @@ const ProvisionDrawer: React.FC<ProvisionDrawerProps> = ({ isOpen, onClose }) =>
                             <Github size={16} />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-80 dark:bg-[#0B0D13]/60 backdrop-blur-md p-4">
+                        <DropdownMenuContent align="end" className="w-80 dark:bg-card/60 backdrop-blur-md p-4">
                           <div className="space-y-4">
                             <div>
                               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">

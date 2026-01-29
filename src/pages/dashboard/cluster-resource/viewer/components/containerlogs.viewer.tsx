@@ -613,7 +613,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
               <SelectTrigger className="w-[180px] h-9 text-sm">
                 <SelectValue placeholder="Select container" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-sm">
+              <SelectContent className="bg-gray-100 dark:bg-card/30 backdrop-blur-sm">
                 {containers.map(container => (
                   <SelectItem key={container} value={container}>{container}</SelectItem>
                 ))}
@@ -629,7 +629,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-sm">
+              <DropdownMenuContent align="end" className="w-56 bg-gray-100 dark:bg-card/30 backdrop-blur-sm">
                 <DropdownMenuLabel>Time Range</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
@@ -797,7 +797,7 @@ const ContainerLogs: React.FC<ContainerLogsProps> = ({
               <SelectTrigger className="w-[80px] h-8 text-sm">
                 <SelectValue placeholder="Lines" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-sm">
+              <SelectContent className="bg-gray-100 dark:bg-card/30 backdrop-blur-sm">
                 <SelectItem value="10">10</SelectItem>
                 <SelectItem value="20">20</SelectItem>
                 <SelectItem value="50">50</SelectItem>

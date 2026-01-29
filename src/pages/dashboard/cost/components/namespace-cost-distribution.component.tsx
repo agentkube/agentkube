@@ -109,15 +109,15 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
         setError("No cluster selected. Please select a cluster to view cost data.");
         return;
       }
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Define constants
         const OPENCOST_NAMESPACE = openCostConfig.namespace;
         const OPENCOST_SERVICE = openCostConfig.service;
-        
+
         // Build path and query parameters
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
@@ -126,19 +126,19 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
           includeIdle: 'true',     // include idle resources
           accumulate: 'true'       // accumulate the values
         }).toString();
-        
+
         const fullPath = `${path}?${queryParams}`;
-        
+
         // Directly use kubeProxyRequest
         const response = await kubeProxyRequest(currentContext.name, fullPath, 'GET') as OpenCostAllocationResponse;
-        
+
         // Transform the data
         const transformedData = transformOpenCostNamespaceData(response.data);
         setCostData(transformedData);
       } catch (err) {
         console.error("Error fetching OpenCost namespace data:", err);
-        setCostData({ 
-          namespaces: [], 
+        setCostData({
+          namespaces: [],
           totalCost: 0,
           cpuCost: 0,
           ramCost: 0,
@@ -152,7 +152,7 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
         setLoading(false);
       }
     };
-    
+
     fetchNamespaceCostData();
   }, [currentContext, timeRange, openCostConfig]);
 
@@ -239,8 +239,8 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
   const transformOpenCostNamespaceData = (data: Record<string, any>[]): NamespaceCostSummary => {
     // If no data is available, return empty array
     if (!data || data.length === 0 || !data[0]) {
-      return { 
-        namespaces: [], 
+      return {
+        namespaces: [],
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
@@ -254,7 +254,7 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
     try {
       // Extract the single allocation set (since we're using accumulate=true)
       const namespaceData = data[0];
-      
+
       // Initialize resource totals
       let totalCpuCost = 0;
       let totalRamCost = 0;
@@ -264,28 +264,28 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
       let namespacesTotalCost = 0;
       let weightedEfficiency = 0;
       let totalResourceCostForEfficiency = 0;
-      
+
       // Calculate total cost across all namespaces (excluding __idle__ and __unallocated__)
       Object.entries(namespaceData).forEach(([name, data]) => {
         if (name !== '__idle__' && name !== '__unallocated__') {
           const allocation = data as any;
           namespacesTotalCost += allocation.totalCost || 0;
-          
+
           // Add to resource totals
           totalCpuCost += allocation.cpuCost || 0;
           totalRamCost += allocation.ramCost || 0;
           totalPvCost += allocation.pvCost || 0;
-          
+
           // Calculate network costs (sum of all network-related costs)
-          const networkCost = (allocation.networkCost || 0) + 
-                            (allocation.networkCrossZoneCost || 0) + 
-                            (allocation.networkCrossRegionCost || 0) + 
-                            (allocation.networkInternetCost || 0);
+          const networkCost = (allocation.networkCost || 0) +
+            (allocation.networkCrossZoneCost || 0) +
+            (allocation.networkCrossRegionCost || 0) +
+            (allocation.networkInternetCost || 0);
           totalNetworkCost += networkCost;
-          
+
           // GPU costs
           totalGpuCost += allocation.gpuCost || 0;
-          
+
           // Calculate weighted efficiency
           const efficiency = allocation.totalEfficiency || 0;
           const resourceCostForEfficiency = (allocation.cpuCost || 0) + (allocation.ramCost || 0);
@@ -293,7 +293,7 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
           totalResourceCostForEfficiency += resourceCostForEfficiency;
         }
       });
-      
+
       // Transform each namespace entry to the expected format
       const namespaces = Object.entries(namespaceData)
         .filter(([name, _]) => name !== '__idle__' && name !== '__unallocated__')
@@ -301,17 +301,17 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
           const allocation = data as any;
           const cost = allocation.totalCost || 0;
           const percentage = namespacesTotalCost > 0 ? (cost / namespacesTotalCost) * 100 : 0;
-          
+
           // Extract efficiency metric - convert to percentage
-          const efficiency = allocation.totalEfficiency != null ? 
+          const efficiency = allocation.totalEfficiency != null ?
             allocation.totalEfficiency * 100 : 0;
-          
+
           // Calculate network costs (sum of all network-related costs)
-          const networkCost = (allocation.networkCost || 0) + 
-                            (allocation.networkCrossZoneCost || 0) + 
-                            (allocation.networkCrossRegionCost || 0) + 
-                            (allocation.networkInternetCost || 0);
-          
+          const networkCost = (allocation.networkCost || 0) +
+            (allocation.networkCrossZoneCost || 0) +
+            (allocation.networkCrossRegionCost || 0) +
+            (allocation.networkInternetCost || 0);
+
           // Create resource cost breakdown
           const resources: ResourceCost = {
             cpu: allocation.cpuCost || 0,
@@ -321,7 +321,7 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
             gpu: allocation.gpuCost || 0,
             total: cost
           };
-          
+
           return {
             name: name,
             cost: cost,
@@ -331,14 +331,14 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
           };
         })
         .sort((a, b) => b.cost - a.cost); // Sort by cost (highest first)
-      
+
       // Calculate overall efficiency
-      const averageEfficiency = totalResourceCostForEfficiency > 0 
-        ? weightedEfficiency / totalResourceCostForEfficiency 
+      const averageEfficiency = totalResourceCostForEfficiency > 0
+        ? weightedEfficiency / totalResourceCostForEfficiency
         : 0;
-      
-      return { 
-        namespaces, 
+
+      return {
+        namespaces,
         totalCost: namespacesTotalCost,
         cpuCost: totalCpuCost,
         ramCost: totalRamCost,
@@ -349,15 +349,15 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
       };
     } catch (error) {
       console.error("Error processing OpenCost namespace data:", error);
-      return { 
-        namespaces: [], 
+      return {
+        namespaces: [],
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
         pvCost: 0,
         networkCost: 0,
         gpuCost: 0,
-        efficiency: 0 
+        efficiency: 0
       };
     }
   };
@@ -377,7 +377,7 @@ const NamespaceCostDistribution: React.FC<NamespaceCostDistributionProps> = ({ t
     if (efficiency < 80) return "text-blue-500";
     return "text-green-500";
   };
-  
+
   // Format currency values consistently
   const formatCost = (value: number): string => {
     return value.toFixed(2);
@@ -454,7 +454,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <h2 className="text-sm uppercase font-light text-gray-700 dark:text-gray-300 mb-4">Summary</h2>
-          
+
           <div className="grid grid-cols-4 gap-1">
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
@@ -464,7 +464,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -476,7 +476,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -488,7 +488,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                 </div>
               </CardContent>
             </Card>
-            
+
             {costData.pvCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -502,7 +502,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                 </CardContent>
               </Card>
             )}
-            
+
             {networkCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -516,13 +516,13 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                 </CardContent>
               </Card>
             )}
-            
+
             {gpuCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
                   <div className="flex items-center gap-1 mb-auto">
                     <svg className="h-3 w-3 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                     </svg>
                     <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">GPU</h2>
                   </div>
@@ -532,7 +532,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                 </CardContent>
               </Card>
             )}
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -545,12 +545,11 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                   </p>
                   <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
                     <div
-                      className={`h-1 rounded-[0.3rem] ${
-                        costData.efficiency < 20 ? 'bg-red-500' :
-                        costData.efficiency < 50 ? 'bg-amber-500' :
-                        costData.efficiency < 80 ? 'bg-blue-500' :
-                        'bg-green-500'
-                      }`}
+                      className={`h-1 rounded-[0.3rem] ${costData.efficiency < 20 ? 'bg-red-500' :
+                          costData.efficiency < 50 ? 'bg-amber-500' :
+                            costData.efficiency < 80 ? 'bg-blue-500' :
+                              'bg-green-500'
+                        }`}
                       style={{ width: `${Math.min(costData.efficiency, 100)}%` }}
                     ></div>
                   </div>
@@ -587,7 +586,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
           </AlertDescription>
         </Alert>
       )}
-      
+
       {/* Namespace Table */}
       {sortedNamespaces.length > 0 && (
         <Card className="text-gray-800 dark:text-gray-300 bg-gray-100 dark:bg-transparent border-gray-200 dark:border-gray-900/10 rounded-2xl shadow-none">
@@ -656,7 +655,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                 {sortedNamespaces.map((namespace) => {
                   const nsNetworkCost = namespace.resources.network ?? 0;
                   const nsGpuCost = namespace.resources.gpu ?? 0;
-                  
+
                   return (
                     <TableRow
                       key={namespace.name}
@@ -675,7 +674,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                         <div className="mx-auto">
                           <span className="mr-4">{round(namespace.percentage, 1)}%</span>
                           <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700/30 rounded-full">
-                            <div 
+                            <div
                               className={`h-1 ${getPercentageColor(namespace.percentage)} rounded-full`}
                               style={{ width: `${Math.min(namespace.percentage, 100)}%` }}
                             ></div>
@@ -726,7 +725,7 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                         {nsGpuCost > 0 ? (
                           <div className="flex items-center justify-center">
                             <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                             </svg>
                             ${formatCost(nsGpuCost)}
                           </div>
@@ -744,8 +743,8 @@ ${namespace.resources.gpu ? `• GPU: $${formatCost(namespace.resources.gpu)}` :
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem 
+                          <DropdownMenuContent align="end" className="dark:bg-card/40 backdrop-blur-md border-gray-800/50">
+                            <DropdownMenuItem
                               className="hover:text-gray-700 dark:hover:text-gray-500"
                               onClick={() => handleAskAi(namespace)}
                             >

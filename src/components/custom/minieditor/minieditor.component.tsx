@@ -468,7 +468,7 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
         <TooltipTrigger asChild>
           <Button
             onClick={onToggle}
-            className={`fixed text-forground bottom-8 right-4 w-14 h-14 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md  transition-all duration-300 z-40 ${isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 dark:bg-[#0B0D13]/30 hover:bg-blue-600'
+            className={`fixed text-forground bottom-8 right-4 w-14 h-14 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md  transition-all duration-300 z-40 ${isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 dark:bg-card/30 hover:bg-blue-600'
               }`}
             size="icon"
           >
@@ -486,7 +486,7 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
       {/* Expandable Container */}
       {isOpen && (
         <div
-          className="fixed bottom-24 dark:text-gray-300/80 right-8 w-1/2 bg-white dark:bg-[#0B0D13]/20 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-xl shadow-2xl z-40 animate-in slide-in-from-bottom-4 duration-300"
+          className="fixed bottom-24 dark:text-gray-300/80 right-8 w-1/2 bg-white dark:bg-card/20 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-xl shadow-2xl z-40 animate-in slide-in-from-bottom-4 duration-300"
           style={{ height: editorHeight }}
         >
           {/* Resize Handle */}
@@ -528,7 +528,7 @@ export const MiniEditor = ({ isOpen, onToggle, currentResourceType }: MiniEditor
                         <p className="text-xs">Tabs</p>
                       </TooltipContent>
                     </Tooltip>
-                    <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto dark:bg-[#0B0D13]/50 backdrop-blur-xl">
+                    <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto dark:bg-card/50 backdrop-blur-xl">
                       {resourceTabs.map((tab) => (
                         <DropdownMenuItem
                           key={tab.id}

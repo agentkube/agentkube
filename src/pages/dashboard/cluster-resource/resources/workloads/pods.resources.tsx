@@ -1041,7 +1041,7 @@ const Pods: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -1079,7 +1079,7 @@ const Pods: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]/90 backdrop-blur-sm">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card/90 backdrop-blur-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Pod Deletion</AlertDialogTitle>
             <AlertDialogDescription>

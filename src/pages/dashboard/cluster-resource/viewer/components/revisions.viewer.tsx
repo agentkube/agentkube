@@ -392,30 +392,30 @@ const RevisionsViewer: React.FC<RevisionsViewerProps> = ({
 
         {/* Revisions Table */}
         <div className="rounded-lg border-gray-200 dark:border-gray-800">
-            <Table>
-              <TableHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columnConfig.map((col) => col.visible && (
+                  <TableHead key={col.key} className={col.key === 'actions' ? 'text-right' : ''}>
+                    {col.label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {revisions.length === 0 ? (
                 <TableRow>
-                  {columnConfig.map((col) => col.visible && (
-                    <TableHead key={col.key} className={col.key === 'actions' ? 'text-right' : ''}>
-                      {col.label}
-                    </TableHead>
-                  ))}
+                  <TableCell colSpan={columnConfig.filter(col => col.visible).length} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No revision history is available for this {resourceType}.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {revisions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={columnConfig.filter(col => col.visible).length} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      No revision history is available for this {resourceType}.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  revisions.map((revision) => (
-                    <TableRow key={revision.name}>
-                      {columnConfig.map((col) => {
-                        if (!col.visible) return null;
+              ) : (
+                revisions.map((revision) => (
+                  <TableRow key={revision.name}>
+                    {columnConfig.map((col) => {
+                      if (!col.visible) return null;
 
-                        switch (col.key) {
+                      switch (col.key) {
                         case 'revision':
                           return (
                             <TableCell key={col.key} className="font-medium hover:text-blue-400 text-blue-500">
@@ -503,7 +503,7 @@ const RevisionsViewer: React.FC<RevisionsViewerProps> = ({
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                                <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-md border-gray-800/50'>
                                   {resourceType === 'deployment' && !revision.isCurrent && (
                                     <>
                                       <DropdownMenuItem
@@ -533,11 +533,11 @@ const RevisionsViewer: React.FC<RevisionsViewerProps> = ({
                       }
                     })}
                   </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
         {/* Delete Confirmation Dialog */}
         {revisionToDelete && (

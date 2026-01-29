@@ -86,7 +86,7 @@ const LimitRanges: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Column filtering state
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('limitranges', defaultColumnConfig)
   );
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
@@ -200,7 +200,7 @@ const LimitRanges: React.FC = () => {
 
   const handleDeleteLimitRangeMenuItem = (e: React.MouseEvent, limitRange: V1LimitRange) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -209,7 +209,7 @@ const LimitRanges: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveLimitRange(limitRange);
     setSelectedLimitRanges(new Set([`${limitRange.metadata?.namespace}/${limitRange.metadata?.name}`]));
     setShowDeleteDialog(true);
@@ -225,7 +225,7 @@ const LimitRanges: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -312,7 +312,7 @@ const LimitRanges: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -351,7 +351,7 @@ const LimitRanges: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm LimitRange Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -843,7 +843,7 @@ const LimitRanges: React.FC = () => {
             <div className="text-sm font-medium mb-2">Namespaces</div>
             <NamespaceSelector />
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -902,7 +902,7 @@ const LimitRanges: React.FC = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
+                        <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300'>
                           <DropdownMenuItem onClick={handleViewLimitRange} className='hover:text-gray-700 dark:hover:text-gray-500'>
                             <Eye className="mr-2 h-4 w-4" />
                             View

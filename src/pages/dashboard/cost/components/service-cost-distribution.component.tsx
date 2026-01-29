@@ -25,7 +25,7 @@ interface ServiceCostSummary {
   efficiency: number;
 }
 
-interface ServiceCostDistributionProps {  
+interface ServiceCostDistributionProps {
   timeRange: string;
   onReload: () => Promise<void>;
 }
@@ -67,7 +67,7 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
 
   useEffect(() => {
     if (!currentContext) return;
-    
+
     try {
       const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
       if (savedConfig) {
@@ -80,8 +80,8 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
       console.error('Error loading saved OpenCost config:', err);
     }
   }, [currentContext]);
-  
-  
+
+
   useEffect(() => {
     const fetchServiceCostData = async () => {
       if (!currentContext?.name) {
@@ -89,15 +89,15 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
         setError("No cluster selected. Please select a cluster to view cost data.");
         return;
       }
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Define constants
         const OPENCOST_NAMESPACE = openCostConfig.namespace;
         const OPENCOST_SERVICE = openCostConfig.service;
-        
+
         // Build path and query parameters for service data
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
@@ -106,12 +106,12 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
           includeIdle: 'true',  // include idle resources
           accumulate: 'true'    // accumulate the values
         }).toString();
-        
+
         const fullPath = `${path}?${queryParams}`;
-        
+
         // Directly use kubeProxyRequest
         const response = await kubeProxyRequest(currentContext.name, fullPath, 'GET') as OpenCostAllocationResponse;
-        
+
         // Transform the data
         const transformedData = transformOpenCostServiceData(response.data);
         setCostData(transformedData);
@@ -133,7 +133,7 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
         setLoading(false);
       }
     };
-    
+
     fetchServiceCostData();
   }, [currentContext, timeRange]);
 
@@ -224,34 +224,34 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
   const transformOpenCostServiceData = (data: Record<string, any>[]): ServiceCostSummary => {
     // If no data is available, return empty array
     if (!data || data.length === 0 || !data[0]) {
-      return { 
-        services: [], 
-        idleCost: 0, 
+      return {
+        services: [],
+        idleCost: 0,
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
         pvCost: 0,
         networkCost: 0,
         gpuCost: 0,
-        efficiency: 0 
+        efficiency: 0
       };
     }
 
     try {
       // Extract the single allocation set (since we're using accumulate=true)
       const serviceData = data[0];
-      
+
       // Extract idle cost
       const idleCost = serviceData['__idle__']?.totalCost || 0;
       const idleCpuCost = serviceData['__idle__']?.cpuCost || 0;
       const idleRamCost = serviceData['__idle__']?.ramCost || 0;
       const idlePvCost = serviceData['__idle__']?.pvCost || 0;
-      const idleNetworkCost = (serviceData['__idle__']?.networkCost || 0) + 
-                            (serviceData['__idle__']?.networkCrossZoneCost || 0) + 
-                            (serviceData['__idle__']?.networkCrossRegionCost || 0) + 
-                            (serviceData['__idle__']?.networkInternetCost || 0);
+      const idleNetworkCost = (serviceData['__idle__']?.networkCost || 0) +
+        (serviceData['__idle__']?.networkCrossZoneCost || 0) +
+        (serviceData['__idle__']?.networkCrossRegionCost || 0) +
+        (serviceData['__idle__']?.networkInternetCost || 0);
       const idleGpuCost = serviceData['__idle__']?.gpuCost || 0;
-      
+
       // Initialize resource totals
       let totalCpuCost = idleCpuCost;
       let totalRamCost = idleRamCost;
@@ -261,7 +261,7 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
       let servicesTotalCost = 0;
       let weightedEfficiency = 0;
       let totalResourceCostForEfficiency = 0;
-      
+
       // Transform each service entry to the expected format
       const services = Object.entries(serviceData)
         .filter(([name, _]) => name !== '__idle__' && name !== '__unallocated__')
@@ -269,37 +269,37 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
           const allocation = data as any;
           const cost = allocation.totalCost || 0;
           servicesTotalCost += cost; // Add to total as we process each service
-          
+
           // Extract namespace from properties
           const namespace = allocation.properties?.namespace || 'unknown';
-          
+
           // Extract controller information if available
           const controller = allocation.properties?.controller;
           const controllerKind = allocation.properties?.controllerKind;
-          
+
           // Add to resource totals
           const cpuCost = allocation.cpuCost || 0;
           const ramCost = allocation.ramCost || 0;
           const pvCost = allocation.pvCost || 0;
-          const networkCost = (allocation.networkCost || 0) + 
-                            (allocation.networkCrossZoneCost || 0) + 
-                            (allocation.networkCrossRegionCost || 0) + 
-                            (allocation.networkInternetCost || 0);
+          const networkCost = (allocation.networkCost || 0) +
+            (allocation.networkCrossZoneCost || 0) +
+            (allocation.networkCrossRegionCost || 0) +
+            (allocation.networkInternetCost || 0);
           const gpuCost = allocation.gpuCost || 0;
-          
+
           // Add to resource totals
           totalCpuCost += cpuCost;
           totalRamCost += ramCost;
           totalPvCost += pvCost;
           totalNetworkCost += networkCost;
           totalGpuCost += gpuCost;
-          
+
           // Calculate weighted efficiency
           const efficiency = allocation.totalEfficiency || 0;
           const resourceCostForEfficiency = cpuCost + ramCost;
           weightedEfficiency += efficiency * resourceCostForEfficiency;
           totalResourceCostForEfficiency += resourceCostForEfficiency;
-          
+
           // Create resource cost breakdown
           const resources: ResourceCost = {
             cpu: cpuCost,
@@ -309,7 +309,7 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
             gpu: gpuCost,
             total: cost
           };
-          
+
           return {
             name: name,
             namespace: namespace,
@@ -322,23 +322,23 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
           };
         })
         .sort((a, b) => b.cost - a.cost); // Sort by cost (highest first)
-      
+
       // Calculate percentage based on total service cost
       services.forEach(service => {
         service.percentage = servicesTotalCost > 0 ? (service.cost / servicesTotalCost) * 100 : 0;
       });
-      
+
       // Overall total cost
       const totalCost = servicesTotalCost + idleCost;
-      
+
       // Calculate overall efficiency
-      const averageEfficiency = totalResourceCostForEfficiency > 0 
-        ? weightedEfficiency / totalResourceCostForEfficiency 
+      const averageEfficiency = totalResourceCostForEfficiency > 0
+        ? weightedEfficiency / totalResourceCostForEfficiency
         : 0;
-      
-      return { 
-        services, 
-        idleCost, 
+
+      return {
+        services,
+        idleCost,
         totalCost,
         cpuCost: totalCpuCost,
         ramCost: totalRamCost,
@@ -349,16 +349,16 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
       };
     } catch (error) {
       console.error("Error processing OpenCost service data:", error);
-      return { 
-        services: [], 
-        idleCost: 0, 
+      return {
+        services: [],
+        idleCost: 0,
         totalCost: 0,
         cpuCost: 0,
         ramCost: 0,
         pvCost: 0,
         networkCost: 0,
         gpuCost: 0,
-        efficiency: 0 
+        efficiency: 0
       };
     }
   };
@@ -378,12 +378,12 @@ const ServiceCostDistribution: React.FC<ServiceCostDistributionProps> = ({ timeR
     if (efficiency < 80) return "text-blue-500";
     return "text-green-500";
   };
-  
+
   // Format efficiency value
   const formatEfficiency = (efficiency: number): string => {
     return `${round(efficiency * 100, 1)}%`;
   };
-  
+
   // Format cost with 2 decimal places
   const formatCost = (cost: number): string => {
     return cost.toFixed(2);
@@ -459,7 +459,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <h2 className="text-sm uppercase font-light text-gray-700 dark:text-gray-300 mb-4">Summary</h2>
-          
+
           <div className="grid grid-cols-4 gap-1">
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
@@ -469,7 +469,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -481,7 +481,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -493,7 +493,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                 </div>
               </CardContent>
             </Card>
-            
+
             {costData.pvCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -507,7 +507,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                 </CardContent>
               </Card>
             )}
-            
+
             {costData.networkCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -521,13 +521,13 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                 </CardContent>
               </Card>
             )}
-            
+
             {costData.gpuCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
                   <div className="flex items-center gap-1 mb-auto">
                     <svg className="h-3 w-3 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                     </svg>
                     <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">GPU</h2>
                   </div>
@@ -537,7 +537,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                 </CardContent>
               </Card>
             )}
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -550,12 +550,11 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                   </p>
                   <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
                     <div
-                      className={`h-1 rounded-[0.3rem] ${
-                        costData.efficiency < 0.20 ? 'bg-red-500' :
-                        costData.efficiency < 0.50 ? 'bg-amber-500' :
-                        costData.efficiency < 0.80 ? 'bg-blue-500' :
-                        'bg-green-500'
-                      }`}
+                      className={`h-1 rounded-[0.3rem] ${costData.efficiency < 0.20 ? 'bg-red-500' :
+                          costData.efficiency < 0.50 ? 'bg-amber-500' :
+                            costData.efficiency < 0.80 ? 'bg-blue-500' :
+                              'bg-green-500'
+                        }`}
                       style={{ width: `${Math.min(costData.efficiency * 100, 100)}%` }}
                     ></div>
                   </div>
@@ -667,7 +666,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                 {sortedServices.map((service, idx) => {
                   const serviceNetworkCost = service.resources.network ?? 0;
                   const serviceGpuCost = service.resources.gpu ?? 0;
-                  
+
                   return (
                     <TableRow
                       key={idx}
@@ -694,7 +693,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                         <div className="mx-auto">
                           <span className="mr-4">{round(service.percentage, 1)}%</span>
                           <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700/30 rounded-full">
-                            <div 
+                            <div
                               className={`h-1 ${getPercentageColor(service.percentage)} rounded-full`}
                               style={{ width: `${Math.min(service.percentage, 100)}%` }}
                             ></div>
@@ -745,7 +744,7 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                         {serviceGpuCost > 0 ? (
                           <div className="flex items-center justify-center">
                             <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                             </svg>
                             ${formatCost(serviceGpuCost)}
                           </div>
@@ -763,8 +762,8 @@ ${service.resources.gpu ? `• GPU: $${formatCost(service.resources.gpu)}` : ''}
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem 
+                          <DropdownMenuContent align="end" className="dark:bg-card/40 backdrop-blur-md border-gray-800/50">
+                            <DropdownMenuItem
                               className="hover:text-gray-700 dark:hover:text-gray-500"
                               onClick={() => handleAskAi(service)}
                             >

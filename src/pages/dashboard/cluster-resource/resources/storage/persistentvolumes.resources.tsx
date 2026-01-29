@@ -156,7 +156,7 @@ const PersistentVolumes: React.FC = () => {
 
   // Column visibility state
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() => 
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(() =>
     getStoredColumnConfig('persistentvolumes', defaultColumnConfig)
   );
 
@@ -186,7 +186,7 @@ const PersistentVolumes: React.FC = () => {
 
   const handleDeleteVolumeMenuItem = (e: React.MouseEvent, volume: V1PersistentVolume) => {
     e.stopPropagation();
-    
+
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -195,7 +195,7 @@ const PersistentVolumes: React.FC = () => {
       });
       return;
     }
-    
+
     setActiveVolume(volume);
     setSelectedVolumes(new Set([volume.metadata?.name || '']));
     setShowDeleteDialog(true);
@@ -284,7 +284,7 @@ const PersistentVolumes: React.FC = () => {
       });
       return;
     }
-    
+
     setShowContextMenu(false);
     setShowDeleteDialog(true);
   };
@@ -299,10 +299,10 @@ const PersistentVolumes: React.FC = () => {
         '',
         'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -386,7 +386,7 @@ const PersistentVolumes: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-50 min-w-[180px] bg-white dark:bg-[#0B0D13] backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
+        className="fixed z-50 min-w-[180px] bg-white dark:bg-card backdrop-blur-sm rounded-md shadow-lg border border-gray-300 dark:border-gray-800/60 py-1 text-sm"
         style={{
           left: `${contextMenuPosition.x}px`,
           top: shouldShowAbove
@@ -416,7 +416,7 @@ const PersistentVolumes: React.FC = () => {
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm PV Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -460,7 +460,7 @@ const PersistentVolumes: React.FC = () => {
 
   // Column management functions
   const handleColumnToggle = (columnKey: string, visible: boolean) => {
-    const updated = columnConfig.map(col => 
+    const updated = columnConfig.map(col =>
       col.key === columnKey ? { ...col, visible } : col
     );
     setColumnConfig(updated);
@@ -955,10 +955,10 @@ const PersistentVolumes: React.FC = () => {
     const isCenterColumn = ['status', 'claim', 'capacity', 'accessModes', 'storageClass', 'reclaimPolicy', 'age'].includes(column.key);
 
     const widthClass = column.key === 'status' ? 'w-[100px]' :
-                       column.key === 'capacity' ? 'w-[100px]' :
-                       column.key === 'accessModes' ? 'w-[150px]' :
-                       column.key === 'storageClass' ? 'w-[150px]' :
-                       column.key === 'age' ? 'w-[80px]' : '';
+      column.key === 'capacity' ? 'w-[100px]' :
+        column.key === 'accessModes' ? 'w-[150px]' :
+          column.key === 'storageClass' ? 'w-[150px]' :
+            column.key === 'age' ? 'w-[80px]' : '';
 
     return (
       <TableHead
@@ -1046,7 +1046,7 @@ const PersistentVolumes: React.FC = () => {
               className={`px-2 py-1 rounded-[0.3rem] text-xs font-medium ${volume.spec?.persistentVolumeReclaimPolicy === 'Delete'
                 ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                 : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-              }`}
+                }`}
             >
               {volume.spec?.persistentVolumeReclaimPolicy || 'Retain'}
             </span>
@@ -1180,7 +1180,7 @@ const PersistentVolumes: React.FC = () => {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
+                        <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300 '>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
                             handleAskAI(volume);

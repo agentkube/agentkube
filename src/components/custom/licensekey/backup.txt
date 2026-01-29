@@ -299,7 +299,7 @@ const LicenseKeyDialog: React.FC<LicenseKeyDialogProps> = ({ onSuccess }) => {
           Add License Key
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-[#0B0D13] backdrop-blur-md">
+      <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-card backdrop-blur-md">
         <DialogHeader>
           <DialogTitle className="text-2xl font-[Anton] uppercase font-bold">{success ? "License Activated" : "Enter License Key"}</DialogTitle>
         </DialogHeader>

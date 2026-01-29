@@ -1177,7 +1177,7 @@ ${state.remediation || 'No specific remediation provided'}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md dark:bg-[#0B0D13]/40 backdrop-blur-md">
+        <DialogContent className="sm:max-w-md dark:bg-card/40 backdrop-blur-md">
           <DialogHeader>
             <DialogTitle>Delete Investigation</DialogTitle>
             <DialogDescription>

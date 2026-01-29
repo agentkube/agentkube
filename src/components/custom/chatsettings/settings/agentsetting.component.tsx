@@ -410,7 +410,7 @@ const AgentSetting: React.FC = () => {
             <TooltipTrigger asChild>
               <Info className="w-4 h-4 text-gray-600 dark:text-gray-400 cursor-pointer" />
             </TooltipTrigger>
-            <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-accent/50'>
+            <TooltipContent className='bg-gray-100/20 dark:bg-card/30 backdrop-blur-sm border dark:border-accent/50'>
               <p className="max-w-xs text-black dark:text-gray-200 p-1">
                 Extended tools require additional configuration and need to be enabled before usage.
               </p>
@@ -442,7 +442,7 @@ const AgentSetting: React.FC = () => {
                     <TooltipTrigger asChild>
                       <p className="text-xs text-gray-600 dark:text-gray-400 w-44 lg:w-96  truncate text-end cursor-pointer">{tool.description}</p>
                     </TooltipTrigger>
-                    <TooltipContent className='bg-gray-100/20 dark:bg-[#0B0D13]/30 backdrop-blur-sm border dark:border-accent/50'>
+                    <TooltipContent className='bg-gray-100/20 dark:bg-card/30 backdrop-blur-sm border dark:border-accent/50'>
                       <span className='flex items-center space-x-2 py-2 px-1'>
                         <Lightbulb className='h-4 text-yellow-400' />
                         <p className="max-w-xs text-black dark:text-gray-200">{tool.description}</p>
@@ -457,7 +457,7 @@ const AgentSetting: React.FC = () => {
                     <DropdownMenuTrigger asChild>
                       <EllipsisVertical className='h-4' />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className=" dark:bg-[#0B0D13]/60 backdrop-blur-md">
+                    <DropdownMenuContent align="end" className=" dark:bg-card/60 backdrop-blur-md">
                       <DropdownMenuItem
                         onClick={() => toggleExtendedTool(tool.id)}
                         className="flex items-center justify-between"

@@ -48,7 +48,7 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
 
   useEffect(() => {
     if (!currentContext) return;
-    
+
     try {
       const savedConfig = localStorage.getItem(`${currentContext.name}.openCostConfig`);
       if (savedConfig) {
@@ -69,14 +69,14 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
         setError("No cluster selected. Please select a cluster to view cost data.");
         return;
       }
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         const OPENCOST_NAMESPACE = openCostConfig.namespace;
         const OPENCOST_SERVICE = openCostConfig.service;
-        
+
         // Build path and query parameters
         const path = `api/v1/namespaces/${OPENCOST_NAMESPACE}/services/${OPENCOST_SERVICE}/proxy/model/allocation/compute`;
         const queryParams = new URLSearchParams({
@@ -85,35 +85,35 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
           includeIdle: 'true', // Include idle resources
           accumulate: 'true'   // Accumulate the values (matching rangeToCumulative behavior)
         }).toString();
-        
+
         const fullPath = `${path}?${queryParams}`;
-        
+
         // Request cost data via kube proxy
         const response = await kubeProxyRequest(
-          currentContext.name, 
-          fullPath, 
+          currentContext.name,
+          fullPath,
           'GET'
         ) as OpenCostAllocationResponse;
-        
+
         if (!response.data || response.data.length === 0 || !response.data[0]) {
           setError("No cost data available for the selected time period");
           setLoading(false);
           return;
         }
-        
+
         // Extract the single allocation set (since we're using accumulate=true)
         const allocationSet = response.data[0];
-        
+
         // Process data in similar fashion to rangeToCumulative and cumulativeToTotals functions
         let processedNodes: AggregatedNodeCost[] = [];
         let idle: AggregatedNodeCost | null = null;
         let unallocated: AggregatedNodeCost | null = null;
         let totalCost = 0;
-        
+
         // Process each node in the allocation set
         forEach(allocationSet, (allocation, nodeName) => {
           const hrs = get(allocation, "minutes", 0) / 60.0;
-          
+
           // Special handling for idle and unallocated costs
           if (nodeName === '__idle__') {
             idle = {
@@ -123,10 +123,10 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
               cpuCost: allocation.cpuCost || 0,
               ramCost: allocation.ramCost || 0,
               pvCost: allocation.pvCost || 0,
-              networkCost: (allocation.networkCost || 0) + 
-                         (allocation.networkCrossZoneCost || 0) + 
-                         (allocation.networkCrossRegionCost || 0) + 
-                         (allocation.networkInternetCost || 0),
+              networkCost: (allocation.networkCost || 0) +
+                (allocation.networkCrossZoneCost || 0) +
+                (allocation.networkCrossRegionCost || 0) +
+                (allocation.networkInternetCost || 0),
               gpuCost: allocation.gpuCost || 0,
               externalCost: allocation.externalCost || 0,
               sharedCost: allocation.sharedCost || 0,
@@ -140,7 +140,7 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
             };
             return;
           }
-          
+
           if (nodeName === '__unallocated__') {
             unallocated = {
               name: 'Unallocated Resources',
@@ -149,10 +149,10 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
               cpuCost: allocation.cpuCost || 0,
               ramCost: allocation.ramCost || 0,
               pvCost: allocation.pvCost || 0,
-              networkCost: (allocation.networkCost || 0) + 
-                         (allocation.networkCrossZoneCost || 0) + 
-                         (allocation.networkCrossRegionCost || 0) + 
-                         (allocation.networkInternetCost || 0),
+              networkCost: (allocation.networkCost || 0) +
+                (allocation.networkCrossZoneCost || 0) +
+                (allocation.networkCrossRegionCost || 0) +
+                (allocation.networkInternetCost || 0),
               gpuCost: allocation.gpuCost || 0,
               externalCost: allocation.externalCost || 0,
               sharedCost: allocation.sharedCost || 0,
@@ -166,18 +166,18 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
             };
             return;
           }
-          
+
           // Extract instance type if available
-          const instanceType = get(allocation, 'properties.labels["node.kubernetes.io/instance-type"]', '') || 
-                               get(allocation, 'properties.instanceType', '') || 
-                               'unknown';
-          
+          const instanceType = get(allocation, 'properties.labels["node.kubernetes.io/instance-type"]', '') ||
+            get(allocation, 'properties.instanceType', '') ||
+            'unknown';
+
           // Calculate network costs by summing all network-related costs
-          const networkCost = (allocation.networkCost || 0) + 
-                            (allocation.networkCrossZoneCost || 0) + 
-                            (allocation.networkCrossRegionCost || 0) + 
-                            (allocation.networkInternetCost || 0);
-          
+          const networkCost = (allocation.networkCost || 0) +
+            (allocation.networkCrossZoneCost || 0) +
+            (allocation.networkCrossRegionCost || 0) +
+            (allocation.networkInternetCost || 0);
+
           // Create node cost object
           const nodeCost: AggregatedNodeCost = {
             name: nodeName,
@@ -198,14 +198,14 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
             ramReqByteHrs: get(allocation, "ramByteRequestAverage", 0) * hrs,
             ramUseByteHrs: get(allocation, "ramByteUsageAverage", 0) * hrs
           };
-          
+
           processedNodes.push(nodeCost);
           totalCost += nodeCost.totalCost;
         });
-        
+
         // Sort nodes by total cost (descending)
         const sortedNodes = sortBy(processedNodes, node => -node.totalCost);
-        
+
         setNodeCosts(sortedNodes);
         setIdleCost(idle);
         setUnallocatedCost(unallocated);
@@ -221,7 +221,7 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
         setLoading(false);
       }
     };
-    
+
     fetchCostData();
   }, [currentContext]);
 
@@ -308,7 +308,7 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
 
     return null;
   };
-  
+
   // Get color based on percentage of total cost
   const getPercentageColor = (percentage: number): string => {
     if (percentage < 20) return "bg-green-500";
@@ -324,12 +324,12 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
     if (efficiency < 0.80) return "text-blue-500";
     return "text-green-500";
   };
-  
+
   // Format efficiency value
   const formatEfficiency = (efficiency: number): string => {
     return `${round(efficiency * 100, 1)}%`;
   };
-  
+
   // Format cost with 2 decimal places
   const formatCost = (cost: number): string => {
     return cost.toFixed(2);
@@ -337,7 +337,7 @@ const NodeCostDistribution: React.FC<NodeCostDistributionProps> = ({ timeRange, 
 
   const handleAskAi = (node: AggregatedNodeCost) => {
     const percentage = clusterTotalCost > 0 ? (node.totalCost / clusterTotalCost) * 100 : 0;
-    
+
     const structuredContent = `**${node.name} Node Cost Analysis**
 
 **Node:** ${node.name}
@@ -365,7 +365,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
       description: `${node.name} node cost data added to chat context`
     });
   };
-  
+
   if (loading) {
     return (
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
@@ -378,7 +378,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
       </Card>
     );
   }
-  
+
   if (error) {
     return (
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
@@ -391,7 +391,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
       </Card>
     );
   }
-  
+
   if (nodeCosts.length === 0) {
     return (
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
@@ -412,7 +412,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
     let totalPvCost = 0;
     let totalNetworkCost = 0;
     let grandTotalCost = 0;
-    
+
     // Add all node costs
     nodeCosts.forEach(node => {
       totalCpuCost += node.cpuCost || 0;
@@ -422,7 +422,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
       totalNetworkCost += node.networkCost || 0;
       grandTotalCost += node.totalCost || 0;
     });
-    
+
     // Add idle costs if present
     if (idleCost) {
       totalCpuCost += idleCost.cpuCost || 0;
@@ -432,7 +432,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
       totalNetworkCost += idleCost.networkCost || 0;
       grandTotalCost += idleCost.totalCost || 0;
     }
-    
+
     // Add unallocated costs if present
     if (unallocatedCost) {
       totalCpuCost += unallocatedCost.cpuCost || 0;
@@ -442,26 +442,26 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
       totalNetworkCost += unallocatedCost.networkCost || 0;
       grandTotalCost += unallocatedCost.totalCost || 0;
     }
-    
+
     // Calculate weighted average efficiency for active nodes only (excluding idle)
     let weightedEfficiency = 0;
     let totalActiveResourceCost = 0;
-    
+
     nodeCosts.forEach(node => {
       const resourceCost = node.cpuCost + node.ramCost; // Only include CPU and RAM in efficiency calculation
       weightedEfficiency += node.totalEfficiency * resourceCost;
       totalActiveResourceCost += resourceCost;
     });
-    
+
     if (unallocatedCost) {
       const resourceCost = unallocatedCost.cpuCost + unallocatedCost.ramCost;
       weightedEfficiency += unallocatedCost.totalEfficiency * resourceCost;
       totalActiveResourceCost += resourceCost;
     }
-    
-    const avgEfficiency = totalActiveResourceCost > 0 ? 
+
+    const avgEfficiency = totalActiveResourceCost > 0 ?
       weightedEfficiency / totalActiveResourceCost : 0;
-    
+
     return {
       cpuCost: totalCpuCost,
       ramCost: totalRamCost,
@@ -472,16 +472,16 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
       efficiency: avgEfficiency
     };
   };
-  
+
   const totals = calculateTotals();
-  
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
       <Card className="bg-white dark:bg-gray-800/20 border-gray-200/50 dark:border-gray-700/30 shadow-none">
         <CardContent className="p-6">
           <h2 className="text-sm uppercase font-light text-gray-700 dark:text-gray-300 mb-4">Summary</h2>
-          
+
           <div className="grid grid-cols-4 gap-1">
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
@@ -491,7 +491,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -503,7 +503,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -515,7 +515,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                 </div>
               </CardContent>
             </Card>
-            
+
             {totals.pvCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -529,7 +529,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                 </CardContent>
               </Card>
             )}
-            
+
             {totals.networkCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
@@ -543,13 +543,13 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                 </CardContent>
               </Card>
             )}
-            
+
             {totals.gpuCost > 0 && (
               <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
                 <CardContent className="py-2 flex flex-col h-full">
                   <div className="flex items-center gap-1 mb-auto">
                     <svg className="h-3 w-3 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                      <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                     </svg>
                     <h2 className="text-sm font-medium text-gray-800 dark:text-gray-500 uppercase">GPU</h2>
                   </div>
@@ -559,7 +559,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                 </CardContent>
               </Card>
             )}
-            
+
             <Card className="bg-gray-50 dark:bg-transparent rounded-md border border-gray-200 dark:border-gray-800/50 shadow-none min-h-44">
               <CardContent className="py-2 flex flex-col h-full">
                 <div className="flex items-center gap-1 mb-auto">
@@ -572,12 +572,11 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                   </p>
                   <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
                     <div
-                      className={`h-1 rounded-[0.3rem] ${
-                        totals.efficiency < 0.20 ? 'bg-red-500' :
-                        totals.efficiency < 0.50 ? 'bg-amber-500' :
-                        totals.efficiency < 0.80 ? 'bg-blue-500' :
-                        'bg-green-500'
-                      }`}
+                      className={`h-1 rounded-[0.3rem] ${totals.efficiency < 0.20 ? 'bg-red-500' :
+                          totals.efficiency < 0.50 ? 'bg-amber-500' :
+                            totals.efficiency < 0.80 ? 'bg-blue-500' :
+                              'bg-green-500'
+                        }`}
                       style={{ width: `${Math.min(totals.efficiency * 100, 100)}%` }}
                     ></div>
                   </div>
@@ -688,7 +687,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
               <TableBody>
                 {sortedNodes.map((node) => {
                   const percentage = clusterTotalCost > 0 ? (node.totalCost / clusterTotalCost) * 100 : 0;
-                  
+
                   return (
                     <TableRow
                       key={node.name}
@@ -708,7 +707,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                         <div className="mx-auto">
                           <span className="mr-4">{round(percentage, 1)}%</span>
                           <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700/30 rounded-full">
-                            <div 
+                            <div
                               className={`h-1 ${getPercentageColor(percentage)} rounded-full`}
                               style={{ width: `${Math.min(percentage, 100)}%` }}
                             ></div>
@@ -759,7 +758,7 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                         {node.gpuCost > 0 ? (
                           <div className="flex items-center justify-center">
                             <svg className="h-3 w-3 text-yellow-500 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z"/>
+                              <path d="M4 4h16v16H4V4zm1 1v14h14V5H5zm11 9v3h1v-3h-1zm-8 2v1h3v-1H8zm4 0v1h2v-1h-2z" />
                             </svg>
                             ${formatCost(node.gpuCost)}
                           </div>
@@ -777,8 +776,8 @@ ${node.gpuCost > 0 ? `• GPU Cost: $${formatCost(node.gpuCost)}` : ''}
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50">
-                            <DropdownMenuItem 
+                          <DropdownMenuContent align="end" className="dark:bg-card/40 backdrop-blur-md border-gray-800/50">
+                            <DropdownMenuItem
                               className="hover:text-gray-700 dark:hover:text-gray-500"
                               onClick={() => handleAskAi(node)}
                             >

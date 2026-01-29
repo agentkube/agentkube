@@ -458,7 +458,7 @@ const Kubeconfig = () => {
 
       {/* Path Input Dialog */}
       <Dialog open={isPathDialogOpen} onOpenChange={setIsPathDialogOpen}>
-        <DialogContent className="bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-md">
+        <DialogContent className="bg-gray-100 dark:bg-card/30 backdrop-blur-md">
           <DialogHeader>
             <DialogTitle>Add Kubeconfig Path</DialogTitle>
           </DialogHeader>

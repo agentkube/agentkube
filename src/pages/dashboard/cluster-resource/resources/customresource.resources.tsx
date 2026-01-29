@@ -456,11 +456,11 @@ const CustomResources: React.FC = () => {
     try {
       // Find the CRD for this resource to get proper API details
       const crd = crds.find(c => c.spec.group === activeGroup && c.spec.names.kind === activeCRD);
-      
+
       if (!crd) {
         throw new Error('Could not find CRD definition');
       }
-      
+
       // Convert resource to EnrichedSearchResult format
       const resourceContext = resourceToEnrichedSearchResult(
         resource,
@@ -469,10 +469,10 @@ const CustomResources: React.FC = () => {
         crd.spec.group,
         crd.spec.versions.find(v => v.storage)?.name || crd.spec.versions[0]?.name || 'v1'
       );
-      
+
       // Add to chat context and open drawer
       addResourceContext(resourceContext);
-      
+
       // Show success toast
       toast({
         title: "Added to Chat",
@@ -498,7 +498,7 @@ const CustomResources: React.FC = () => {
       });
       return;
     }
-    
+
     if (!resource.metadata?.name || !currentContext) {
       return;
     }
@@ -816,7 +816,7 @@ const CustomResources: React.FC = () => {
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="dark:bg-[#0B0D13]/40 backdrop-blur-sm text-gray-800 dark:text-gray-300">
+                      <DropdownMenuContent align="end" className="dark:bg-card/40 backdrop-blur-sm text-gray-800 dark:text-gray-300">
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
                           handleAskAI(resource);
@@ -869,7 +869,7 @@ const CustomResources: React.FC = () => {
     return <ErrorComponent message={error} />;
   }
 
-return (
+  return (
     <div className="p-6 space-y-6
     max-h-[92vh] overflow-y-auto
       

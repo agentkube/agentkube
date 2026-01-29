@@ -171,7 +171,7 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
           <TooltipContent
             side="left"
             align="center"
-            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
+            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-card/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
             sideOffset={8}
             onMouseEnter={() => setIsTooltipOpen(true)}
             onMouseLeave={() => setIsTooltipOpen(false)}
@@ -204,7 +204,7 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
           <TooltipContent
             side="left"
             align="center"
-            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
+            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-card/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
             sideOffset={8}
             onMouseEnter={() => setIsTooltipOpen(true)}
             onMouseLeave={() => setIsTooltipOpen(false)}
@@ -240,7 +240,7 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
         <TooltipContent
           side="left"
           align="center"
-          className="w-80 p-0 border-0 shadow-2xl bg-white dark:bg-[#0B0D13]/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 "
+          className="w-80 p-0 border-0 shadow-2xl bg-white dark:bg-card/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 "
           sideOffset={8}
           onMouseEnter={() => setIsTooltipOpen(true)}
           onMouseLeave={() => {
@@ -280,7 +280,7 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
 
             </div>
 
-            <div className='bg-white dark:bg-[#0B0D13]/40 p-4 space-y-3'>
+            <div className='bg-white dark:bg-card/40 p-4 space-y-3'>
               {/* Description with Read More */}
               {hasDescription && (
                 <div className="space-y-1">
@@ -694,7 +694,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md shadow-lg dark:bg-[#0B0D13]/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 border border-gray-400/30 dark:border-gray-800/50 z-50">
+        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md shadow-lg dark:bg-card/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 border border-gray-400/30 dark:border-gray-800/50 z-50">
           <div className="p-2">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />

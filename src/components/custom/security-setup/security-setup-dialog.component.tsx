@@ -153,7 +153,7 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl bg-gray-100 dark:bg-[#0B0D13]/50 border-gray-200 dark:border-gray-900/10 backdrop-blur-lg">
+      <DialogContent className="sm:max-w-3xl bg-gray-100 dark:bg-card/50 border-gray-200 dark:border-gray-900/10 backdrop-blur-lg">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-3">
             <SiTrivy className="w-8 h-8 text-blue-500" />
@@ -233,7 +233,7 @@ const TrivyInstallDialog: React.FC<TrivyInstallDialogProps> = ({ isOpen, onClose
                     <SelectTrigger>
                       <SelectValue placeholder="Select namespace" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-100 dark:bg-[#0B0D13]/60 backdrop-blur-md dark:text-white">
+                    <SelectContent className="bg-gray-100 dark:bg-card/60 backdrop-blur-md dark:text-white">
                       {availableNamespaces.map((ns) => (
                         <SelectItem key={ns} value={ns}>
                           {ns}

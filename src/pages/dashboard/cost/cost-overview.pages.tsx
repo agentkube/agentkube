@@ -81,7 +81,7 @@ const CostOverview: React.FC = () => {
 
     try {
       let config = null;
-      
+
       // First try to load from cluster configuration
       try {
         const clusterConfig = await getClusterConfig(currentContext.name);
@@ -119,7 +119,7 @@ const CostOverview: React.FC = () => {
     if (!currentContext) return;
 
     setOpenCostConfig(config);
-    
+
     try {
       // Map service to service_address for cluster configuration
       const clusterConfig = {
@@ -194,7 +194,7 @@ const CostOverview: React.FC = () => {
 
   const handleRefreshIntervalChange = useCallback((interval: string) => {
     setRefreshInterval(interval);
-    
+
     // Clear existing timer
     if (refreshTimerRef.current) {
       clearInterval(refreshTimerRef.current);
@@ -273,7 +273,7 @@ const CostOverview: React.FC = () => {
             )}
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
- 
+
             <Select defaultValue={timeRange} onValueChange={setTimeRange}>
               <SelectTrigger className="w-32 dark:bg-transparent dark:text-white">
                 <SelectValue placeholder="Time Range" />
@@ -315,7 +315,7 @@ const CostOverview: React.FC = () => {
                 </div>
                 <DropdownMenuContent
                   align="end"
-                  className="w-20 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-md border border-gray-200 dark:border-gray-700/40"
+                  className="w-20 bg-white dark:bg-card/40 backdrop-blur-md border border-gray-200 dark:border-gray-700/40"
                 >
                   {['Off', 'Auto', '5s', '10s', '30s', '1m', '5m', '15m', '30m', '1h', '2h', '1d'].map((interval) => (
                     <DropdownMenuItem

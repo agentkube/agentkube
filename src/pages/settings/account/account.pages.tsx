@@ -33,7 +33,7 @@ const Account = () => {
     const fetchUserProfile = async () => {
       try {
         const profile = await getUserProfile();
-        
+
         // Update user with fresh profile data
         setUser(prevUser => {
           return {
@@ -176,7 +176,7 @@ const Account = () => {
             method: 'manual_callback'
           });
         }
-        
+
         setIsLoginDialogOpen(false);
         setAuthCode('');
       }
@@ -253,7 +253,7 @@ const Account = () => {
 
         {/* Manual Code Entry Dialog */}
         <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
-          <DialogContent className="sm:max-w-lg bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-md">
+          <DialogContent className="sm:max-w-lg bg-gray-100 dark:bg-card/30 backdrop-blur-md">
             <DialogHeader>
               <DialogTitle className='text-center'>Complete Authentication</DialogTitle>
             </DialogHeader>
@@ -342,7 +342,7 @@ const Account = () => {
 
         {/* Logout Confirmation Dialog */}
         <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-          <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-[#0B0D13]/50 backdrop-blur-xl">
+          <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-card/50 backdrop-blur-xl">
             <DialogHeader>
               <DialogTitle>Confirm Logout</DialogTitle>
             </DialogHeader>
@@ -408,15 +408,14 @@ const Account = () => {
                     {user.name}
                   </p>
                   {user.subscription?.plan && (
-                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                      user.subscription.plan === 'free' 
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${user.subscription.plan === 'free'
                         ? 'bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-200'
                         : user.subscription.plan === 'developer'
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
-                        : user.subscription.plan === 'startup'
-                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-200'
-                    }`}>
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
+                          : user.subscription.plan === 'startup'
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-200'
+                      }`}>
                       {user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1)}
                     </span>
                   )}
@@ -476,14 +475,14 @@ const Account = () => {
           <div className="mt-20">
             <div className="flex items-baseline gap-2">
               {(() => {
-                const usagePercentage = user.usage_limit 
+                const usagePercentage = user.usage_limit
                   ? Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)
                   : 0;
-                
-                const numberColor = usagePercentage >= 80 
-                  ? 'text-yellow-600 dark:text-yellow-600' 
+
+                const numberColor = usagePercentage >= 80
+                  ? 'text-yellow-600 dark:text-yellow-600'
                   : 'text-blue-600 dark:text-blue-400';
-                
+
                 return (
                   <p className={`text-5xl font-light ${numberColor} mb-1`}>
                     {user.usage_count || 0}
@@ -498,14 +497,14 @@ const Account = () => {
             </div>
             <div className="w-full h-1 bg-gray-200 dark:bg-gray-800/30 rounded-[0.3rem] mt-1">
               {(() => {
-                const usagePercentage = user.usage_limit 
+                const usagePercentage = user.usage_limit
                   ? Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)
                   : 0;
-                
-                const barColor = usagePercentage >= 80 
-                  ? 'bg-yellow-500 dark:bg-yellow-600' 
+
+                const barColor = usagePercentage >= 80
+                  ? 'bg-yellow-500 dark:bg-yellow-600'
                   : 'bg-blue-500 dark:bg-blue-400';
-                
+
                 return (
                   <div
                     className={`h-1 ${barColor} rounded-[0.3rem]`}
@@ -514,13 +513,13 @@ const Account = () => {
                 );
               })()}
             </div>
-            
+
             {/* Upgrade button when usage is high */}
             {(() => {
-              const usagePercentage = user.usage_limit 
+              const usagePercentage = user.usage_limit
                 ? Math.min((user.usage_count || 0) / user.usage_limit * 100, 100)
                 : 0;
-              
+
               if (usagePercentage >= 80) {
                 return (
                   <div className="mt-3">
@@ -548,7 +547,7 @@ const Account = () => {
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-[#0B0D13]/40 backdrop-blur-xl">
+        <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-card/40 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>Confirm Logout</DialogTitle>
           </DialogHeader>

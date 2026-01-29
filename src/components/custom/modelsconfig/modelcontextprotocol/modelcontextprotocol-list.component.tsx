@@ -153,7 +153,7 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
                   {tool.name}
                 </span>
               </TooltipTrigger>
-              <TooltipContent className='bg-gray-50 dark:bg-[#0B0D13]/20 dark:text-white  backdrop-blur-md border border-gray-400/20 max-w-sm' side="top">
+              <TooltipContent className='bg-gray-50 dark:bg-card/20 dark:text-white  backdrop-blur-md border border-gray-400/20 max-w-sm' side="top">
                 <p>{tool.description || "No description available"}</p>
               </TooltipContent>
             </Tooltip>
@@ -173,7 +173,7 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
                 <div className={`w-2 h-2 rounded-full ${server.connected ? 'bg-green-500' : 'bg-red-500'} mr-2`}></div>
                 <span className="font-medium text-black dark:text-white mr-2">{server.name}</span>
                 <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 rounded-md ml-1">
-                  {server.type === "process" ? "stdio": "sse"}
+                  {server.type === "process" ? "stdio" : "sse"}
                 </span>
               </div>
 
@@ -276,7 +276,7 @@ const MCPServerList: React.FC<MCPServerListProps> = ({ servers, onEdit, onDelete
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-[#0B0D13] border-gray-300 dark:border-gray-900">
+        <DialogContent className="sm:max-w-md bg-white dark:bg-card border-gray-300 dark:border-gray-900">
           <DialogHeader>
             <DialogTitle className="text-black dark:text-white">Confirm Delete</DialogTitle>
           </DialogHeader>

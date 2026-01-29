@@ -25,7 +25,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-gray-100 dark:bg-[#0B0D13]/30 backdrop-blur-md p-2 text-xs rounded-[0.5rem] shadow border border-gray-200 dark:border-gray-800">
+      <div className="bg-gray-100 dark:bg-card/30 backdrop-blur-md p-2 text-xs rounded-[0.5rem] shadow border border-gray-200 dark:border-gray-800">
         <p className="font-semibold font-[Anton] text-lg">SEVERITY <span className='font-bold uppercase text-gray-400'>{data.name}</span></p>
         <p className="text-gray-600 dark:text-gray-200">Total: <span className='font-bold'>{data.value}</span></p>
         <p className="text-gray-600 dark:text-gray-200">Percentage: <span className='font-bold'>{data.percentage}</span></p>
@@ -37,10 +37,10 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 const SecurityReportStats: React.FC<SecurityReportStatsProps> = ({ report }) => {
   if (!report?.Results?.[0]?.MisconfSummary) return null;
-  
+
   // const summary = report.Results[0].MisconfSummary;
   const misconfigurations = report.Results[0].Misconfigurations || [];
-  
+
   const initialSeverityCounts: SeverityCounts = {
     CRITICAL: 0,
     HIGH: 0,
@@ -60,32 +60,32 @@ const SecurityReportStats: React.FC<SecurityReportStatsProps> = ({ report }) => 
   const totalVulnerabilities = Object.values(severityCounts).reduce((a, b) => a + b, 0);
 
   const vulnerabilityData: VulnerabilityData[] = [
-    { 
-      name: 'Critical', 
+    {
+      name: 'Critical',
       value: severityCounts.CRITICAL,
       percentage: `${((severityCounts.CRITICAL / totalVulnerabilities) * 100).toFixed(1)}%`,
       color: '#F05252'
     },
-    { 
-      name: 'High', 
+    {
+      name: 'High',
       value: severityCounts.HIGH,
       percentage: `${((severityCounts.HIGH / totalVulnerabilities) * 100).toFixed(1)}%`,
       color: '#F98080'
     },
-    { 
-      name: 'Medium', 
+    {
+      name: 'Medium',
       value: severityCounts.MEDIUM,
       percentage: `${((severityCounts.MEDIUM / totalVulnerabilities) * 100).toFixed(1)}%`,
       color: '#FACA15'
     },
-    { 
-      name: 'Low', 
+    {
+      name: 'Low',
       value: severityCounts.LOW,
       percentage: `${((severityCounts.LOW / totalVulnerabilities) * 100).toFixed(1)}%`,
       color: '#6875F5'
     },
-    { 
-      name: 'None', 
+    {
+      name: 'None',
       value: severityCounts.NONE,
       percentage: `${((severityCounts.NONE / totalVulnerabilities) * 100).toFixed(1)}%`,
       color: '#31C48D'
@@ -118,11 +118,11 @@ const SecurityReportStats: React.FC<SecurityReportStatsProps> = ({ report }) => 
           <div className="text-gray-400">{totalVulnerabilities}</div>
         </div>
       </div>
-      
+
       <div className="flex justify-between text-xs py-4">
         {vulnerabilityData.map((item, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className="px-4"
             style={{ borderLeft: `4px solid ${item.color}` }}
           >

@@ -154,31 +154,31 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
 
     try {
       setLoading(true);
-      
+
       // Get the deployment's label selector
       const labelSelector = getLabelSelector();
-      
+
       if (!labelSelector) {
         throw new Error('Unable to determine label selector for this deployment');
       }
-      
+
       // Fetch pods matching the deployment's selector
       const podsData = await listResources<'pods'>(
         clusterName,
         'pods',
-        { 
+        {
           namespace,
           labelSelector
         }
       );
-      
+
       setPods(podsData);
-      
+
       // Update pod status counts
       let readyCount = 0;
       let pendingCount = 0;
       let failedCount = 0;
-      
+
       podsData.forEach(pod => {
         const phase = pod.status?.phase?.toLowerCase();
         if (phase === 'running') {
@@ -195,14 +195,14 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
           failedCount++;
         }
       });
-      
+
       setPodCount({
         total: podsData.length,
         ready: readyCount,
         pending: pendingCount,
         failed: failedCount
       });
-      
+
       setError(null);
     } catch (err) {
       console.error('Failed to fetch pods for deployment:', err);
@@ -397,7 +397,7 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
     // All containers ready
     if (ready === total) {
       return {
-        icon: <CircleCheck className="h-4 w-4 text-green-500" />,   
+        icon: <CircleCheck className="h-4 w-4 text-green-500" />,
         message: 'All containers ready'
       };
     }
@@ -413,7 +413,7 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
     // Some containers terminated
     if (terminated > 0) {
       return {
-        icon: <CircleX className="h-4 w-4 text-red-500" />, 
+        icon: <CircleX className="h-4 w-4 text-red-500" />,
         message: `${terminated} container(s) terminated, ${ready}/${total} ready`
       };
     }
@@ -628,11 +628,11 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
   const isPodFailing = (pod: V1Pod): boolean => {
     const phase = pod.status?.phase?.toLowerCase();
     return phase === 'failed' || phase === 'error' || phase === 'crashloopbackoff' ||
-           (pod.status?.containerStatuses || []).some(status =>
-             status.state?.waiting?.reason === 'CrashLoopBackOff' ||
-             status.state?.waiting?.reason === 'ImagePullBackOff' ||
-             status.state?.waiting?.reason === 'ErrImagePull'
-           );
+      (pod.status?.containerStatuses || []).some(status =>
+        status.state?.waiting?.reason === 'CrashLoopBackOff' ||
+        status.state?.waiting?.reason === 'ImagePullBackOff' ||
+        status.state?.waiting?.reason === 'ErrImagePull'
+      );
   };
 
   // Resource usage tooltip handlers
@@ -724,7 +724,7 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
     // Use createPortal to render the tooltip at document level, preventing event issues
     return createPortal(
       <div
-        className="fixed z-50 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
+        className="fixed z-50 bg-white dark:bg-card/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
         style={{
           left: `${tooltipPosition.x + 10}px`,
           top: `${tooltipPosition.y - 80}px`,
@@ -769,9 +769,9 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Managed Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchDeploymentPods}
             disabled={loading}
           >
@@ -792,9 +792,9 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Managed Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchDeploymentPods}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -817,9 +817,9 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Managed Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchDeploymentPods}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -837,7 +837,7 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
   const renderDeleteDialog = () => {
     return (
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-gray-100 dark:bg-[#0B0D13]/90 backdrop-blur-sm">
+        <AlertDialogContent className="bg-gray-100 dark:bg-card/90 backdrop-blur-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Pod Deletion</AlertDialogTitle>
             <AlertDialogDescription>
@@ -976,10 +976,10 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
               const containerStatus = getContainerStatusInfo(pod);
 
               return (
-                <TableRow 
+                <TableRow
                   key={podKey}
                   className="bg-gray-50 dark:bg-transparent border-b border-gray-400 dark:border-gray-800/80 hover:cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/30"
-                  
+
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -1082,7 +1082,7 @@ const DeploymentPods: React.FC<DeploymentPodsProps> = ({
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className='dark:bg-[#0B0D13]/40 backdrop-blur-md border-gray-800/50'>
+                      <DropdownMenuContent align="end" className='dark:bg-card/40 backdrop-blur-md border-gray-800/50'>
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
                           handleAskAI(pod);

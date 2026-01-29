@@ -105,21 +105,21 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
 
     try {
       setLoading(true);
-      
+
       // Create a label selector based on the job controller
       // Jobs use job-name label to identify their pods
       const labelSelector = `job-name=${jobName}`;
-      
+
       // Fetch pods for this job
       const podsData = await listResources<'pods'>(
         clusterName,
         'pods',
-        { 
+        {
           namespace,
-          labelSelector 
+          labelSelector
         }
       );
-      
+
       setPods(podsData);
       setError(null);
     } catch (err) {
@@ -320,13 +320,13 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
   // Get pod status completion info
   const getPodCompletionInfo = (pod: V1Pod): { isCompleted: boolean; isSuccessful: boolean } => {
     const phase = pod.status?.phase?.toLowerCase();
-    
+
     if (phase === 'succeeded') {
       return { isCompleted: true, isSuccessful: true };
     } else if (phase === 'failed') {
       return { isCompleted: true, isSuccessful: false };
     }
-    
+
     return { isCompleted: false, isSuccessful: false };
   };
 
@@ -419,7 +419,7 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
     // Use createPortal to render the tooltip at document level, preventing event issues
     return createPortal(
       <div
-        className="fixed z-50 bg-white dark:bg-[#0B0D13]/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
+        className="fixed z-50 bg-white dark:bg-card/40 backdrop-blur-sm min-w-[150px] p-3 rounded-md shadow-lg border border-gray-300 dark:border-gray-800 text-xs"
         style={{
           left: `${tooltipPosition.x + 10}px`,
           top: `${tooltipPosition.y - 80}px`,
@@ -487,9 +487,9 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Job Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchJobPods}
             disabled={loading}
           >
@@ -510,9 +510,9 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium">Job Pods</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchJobPods}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -533,9 +533,9 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
     <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-medium">Job Pods ({filteredPods.length})</h2>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={fetchJobPods}
         >
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -623,7 +623,7 @@ const JobPods: React.FC<JobPodsProps> = ({ jobName, namespace, clusterName, job 
               const { isCompleted, isSuccessful } = getPodCompletionInfo(pod);
 
               return (
-                <TableRow 
+                <TableRow
                   key={podKey}
                   className={`
                     bg-gray-50 dark:bg-transparent 

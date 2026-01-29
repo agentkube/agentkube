@@ -373,7 +373,7 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
                 <SelectTrigger className="border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
                   <SelectValue placeholder="All Namespaces" />
                 </SelectTrigger>
-                <SelectContent className="dark:bg-[#0B0D13]/30 backdrop-blur-md">
+                <SelectContent className="dark:bg-card/30 backdrop-blur-md">
                   <SelectItem value="all-namespaces">All Namespaces</SelectItem>
                   <SelectItem value="default">default</SelectItem>
                   <SelectItem value="production">production</SelectItem>
@@ -391,7 +391,7 @@ const TrivyNotInstalledVulnReport: React.FC<TrivyNotInstalledVulnReportProps> = 
               <SelectTrigger className="w-32 border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-[#0B0D13]/30 backdrop-blur-md">
+              <SelectContent className="dark:bg-card/30 backdrop-blur-md">
                 <SelectItem value="all">All</SelectItem>
                 {SEVERITY_LEVELS.map((severity) => (
                   <SelectItem key={severity} value={severity}>

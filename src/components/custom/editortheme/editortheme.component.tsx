@@ -66,7 +66,7 @@ spec:
               <SelectTrigger className="w-full h-8">
                 <SelectValue placeholder="Select editor theme" />
               </SelectTrigger>
-              <SelectContent className='dark:bg-[#0B0D13]/50 backdrop-blur-md'>
+              <SelectContent className='dark:bg-card/50 backdrop-blur-md'>
                 {Themes.map((theme) => (
                   <SelectItem key={theme.name} value={theme.name}>{theme.displayName} {theme.type === 'dark' && (<span className='text-xs dark:text-blue-500 dark:bg-blue-500/20 px-1.5 rounded-sm'>{theme.type}</span>)} </SelectItem>
                 ))}
@@ -77,7 +77,7 @@ spec:
 
         {/* Right side - Editor Preview */}
         <div className="border border-gray-300 dark:border-gray-500/20 rounded-lg overflow-hidden">
-          <div className="bg-gray-100 dark:bg-[#0B0D13]/40 px-3 py-2 border-b border-gray-300 dark:border-gray-500/20">
+          <div className="bg-gray-100 dark:bg-card/40 px-3 py-2 border-b border-gray-300 dark:border-gray-500/20">
             <span className="text-xs font-medium">Preview</span>
           </div>
           <div className="h-64">

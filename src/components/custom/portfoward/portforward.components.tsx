@@ -291,7 +291,7 @@ const PortForwardDialog: React.FC<PortForwardDialogProps> = ({
                       <SelectValue placeholder="Select a pod" />
                     )}
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-200 dark:bg-[#0B0D13]/70 backdrop-blur-md'>
+                  <SelectContent className='bg-gray-200 dark:bg-card/70 backdrop-blur-md'>
                     {availablePods.map((pod) => (
                       <SelectItem key={pod.name} value={pod.name}>
                         {pod.name} {pod.ready ? '(Ready)' : '(Not Ready)'}

@@ -61,7 +61,7 @@ const AuditReport = () => {
 
   // For the demo dialog
   const [isDemoOpen, setIsDemoOpen] = useState(false);
-  
+
   // For button animation
   const [isButtonExpanded, setIsButtonExpanded] = useState(false);
 
@@ -79,11 +79,11 @@ const AuditReport = () => {
     const expandTimer = setTimeout(() => {
       setIsButtonExpanded(true);
     }, 500);
-    
+
     const collapseTimer = setTimeout(() => {
       setIsButtonExpanded(false);
     }, 3000); // 500ms + 2500ms = 3000ms total
-    
+
     return () => {
       clearTimeout(expandTimer);
       clearTimeout(collapseTimer);
@@ -387,10 +387,10 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
               >
                 <motion.div
                   initial={{ width: 40 }}
-                  animate={{ 
-                    width: isButtonExpanded ? 144 : 14 
+                  animate={{
+                    width: isButtonExpanded ? 144 : 14
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 0.4,
                     ease: "easeInOut"
                   }}
@@ -399,11 +399,11 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
                   <Play className="w-4 h-4 flex-shrink-0" />
                   <motion.span
                     initial={{ opacity: 0, width: 0 }}
-                    animate={{ 
+                    animate={{
                       opacity: isButtonExpanded ? 1 : 0,
                       width: isButtonExpanded ? 'auto' : 0
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 0.3,
                       delay: isButtonExpanded ? 0.2 : 0,
                       ease: "easeOut"
@@ -496,7 +496,7 @@ ${check.messages.map((msg: string) => `• ${msg}`).join('\n')}
               <SelectTrigger className="w-32 h-full border border-gray-400 dark:border-gray-800/50 rounded-md dark:bg-transparent">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-[#0B0D13]/30 backdrop-blur-md ">
+              <SelectContent className="dark:bg-card/30 backdrop-blur-md ">
                 <SelectItem value="all">All</SelectItem>
                 {SEVERITY_LEVELS.map((severity) => (
                   <SelectItem key={severity} value={severity}>
