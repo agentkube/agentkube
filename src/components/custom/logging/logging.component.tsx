@@ -32,6 +32,12 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { TimeRangePicker, TimeRange, getDefaultTimeRange } from './time-range-picker';
+import { LogQLBuilder } from './logql-builder.component';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export interface LoggingTabProps {
   sessionId: string;
@@ -352,6 +358,7 @@ const LoggingTab: React.FC<LoggingTabProps> = ({
   const [config, setConfig] = useState<LoggingConfig>(DEFAULT_LOKI_CONFIG);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [tempConfig, setTempConfig] = useState<LoggingConfig>(DEFAULT_LOKI_CONFIG);
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
 
   // Load Loki config
   useEffect(() => {
@@ -590,9 +597,27 @@ const LoggingTab: React.FC<LoggingTabProps> = ({
       <div className="flex items-center gap-2 px-2 py-1.5 bg-card/30 border-b border-border">
         <ScrollText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none text-muted-foreground/50">
-            <span className="font-mono text-[10px] font-bold bg-muted/50 px-1 py-0.5 rounded">LogQL</span>
-          </div>
+          <Popover open={isBuilderOpen} onOpenChange={setIsBuilderOpen}>
+            <PopoverTrigger asChild>
+              <div className="absolute inset-y-0 left-0 flex items-center pl-2 text-muted-foreground/50 cursor-pointer hover:text-muted-foreground z-10">
+                <span className="font-mono text-[10px] font-bold bg-muted/50 hover:bg-primary/20 px-1 py-0.5 rounded transition-colors">LogQL</span>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-auto p-0 border-0 shadow-2xl"
+              align="start"
+              side="bottom"
+              sideOffset={8}
+            >
+              <LogQLBuilder
+                value={query}
+                onChange={setQuery}
+                onClose={() => setIsBuilderOpen(false)}
+                clusterName={currentContext?.name}
+                lokiConfig={config}
+              />
+            </PopoverContent>
+          </Popover>
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
