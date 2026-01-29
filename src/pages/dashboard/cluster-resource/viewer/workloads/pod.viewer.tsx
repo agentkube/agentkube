@@ -28,7 +28,7 @@ import { DeletionDialog, ResourceViewerYamlTab } from '@/components/custom';
 import PodMetricsComponent from '@/components/custom/metrics/pod-metrics.component';
 import ImageVulnDrawer from '@/components/custom/imagevulndrawer/imagevulndrawer.component';
 import MetricsServerInstallationDialog from '@/components/custom/metrics-server/metricssvrinstallationdialog.component';
-import { runExternalShell } from '@/api/external';
+import { useTerminal } from '@/contexts/useTerminal';
 import { useSearchParams } from 'react-router-dom';
 
 // Define interface for pod data (extending V1Pod with events)
@@ -46,6 +46,7 @@ const PodViewer: React.FC = () => {
   const { podName, namespace } = useParams<{ podName: string; namespace: string }>();
   const navigate = useNavigate();
   const { isReconMode } = useReconMode();
+  const { openTerminalWithCommand } = useTerminal();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || 'overview';
@@ -57,18 +58,18 @@ const PodViewer: React.FC = () => {
   // Fetch events for the pod
   const fetchEvents = async () => {
     if (!currentContext || !namespace || !podName) return;
-  
+
     try {
       // Fetch events specific to this pod using fieldSelector
       const eventData = await listResources<'events'>(
         currentContext.name,
         'events',
-        { 
+        {
           namespace,
           fieldSelector: `involvedObject.name=${podName},involvedObject.kind=Pod`
         }
       );
-  
+
       setEvents(eventData);
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -120,7 +121,7 @@ const PodViewer: React.FC = () => {
       });
       return;
     }
-    
+
     setShowDeleteDialog(true);
   };
 
@@ -153,7 +154,7 @@ const PodViewer: React.FC = () => {
     }
   };
 
-  const handleOpenShell = async () => {
+  const handleOpenShell = () => {
     if (isReconMode) {
       toast({
         title: "Recon Mode",
@@ -162,22 +163,17 @@ const PodViewer: React.FC = () => {
       });
       return;
     }
-    
-    try {
-      if (!currentContext?.name || !namespace || !podName) return;
 
-      // For the main container if there are multiple
-      const containerName = podData?.spec?.containers?.[0]?.name;
+    if (!currentContext?.name || !namespace || !podName) return;
 
-      // Remove unnecessary flags that might be causing problems
-      // Simplify the command to avoid escaping issues
-      const command = `kubectl exec -i -t -n ${namespace} ${podName} ${containerName ? `-c ${containerName}` : ''} -- sh`;
+    // For the main container if there are multiple
+    const containerName = podData?.spec?.containers?.[0]?.name;
 
-      await runExternalShell(currentContext.name, command);
-    } catch (err) {
-      console.error('Error opening shell:', err);
-      setError(err instanceof Error ? err.message : 'Failed to open shell');
-    }
+    // Remove unnecessary flags that might be causing problems
+    // Simplify the command to avoid escaping issues
+    const command = `kubectl exec -i -t -n ${namespace} ${podName} ${containerName ? `-c ${containerName}` : ''} -- sh`;
+
+    openTerminalWithCommand(command, `Shell: ${podName}`, true);
   };
 
   const handleOpenImageVuln = () => {
@@ -192,7 +188,7 @@ const PodViewer: React.FC = () => {
   // Handler for when dialog closes - refresh metrics server status
   const handleDialogClose = async (open: boolean) => {
     setIsMetricsInstallDialogOpen(open);
-    
+
     if (!open) {
       // Dialog is closing - refresh metrics server status and clear metrics error
       try {
@@ -294,9 +290,9 @@ const PodViewer: React.FC = () => {
         description = "The state of the pod could not be determined.";
         break;
     }
-  
+
     if (!alertType) return null;
-  
+
     return (
       <Alert variant={alertType} className="mb-6">
         <div className="flex items-center space-x-2">
