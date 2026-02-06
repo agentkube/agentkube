@@ -173,6 +173,11 @@ func (b *DependencyGraphBuilder) processWorkloadDependencies(ctx context.Context
 func (b *DependencyGraphBuilder) processPodDependencies(ctx context.Context, resource ResourceIdentifier, obj *unstructured.Unstructured, depth int) error {
 	parentID := b.getNodeID(resource)
 
+	// 0. Owner references (ReplicaSet -> Deployment, etc.) - discover upward
+	if err := b.addOwnerDependencies(ctx, resource, obj, parentID, depth); err != nil {
+		// Log but continue
+	}
+
 	// 1. Node dependency
 	if err := b.addNodeDependency(ctx, resource, obj, parentID, depth); err != nil {
 		// Log but continue

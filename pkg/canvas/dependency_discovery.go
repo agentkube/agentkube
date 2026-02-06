@@ -556,3 +556,130 @@ func resourceToKind(resource string) string {
 	}
 	return resource
 }
+
+// addOwnerDependencies discovers and adds owner resources (upward traversal)
+// This allows discovering Pod -> ReplicaSet -> Deployment ownership chain
+func (b *DependencyGraphBuilder) addOwnerDependencies(ctx context.Context, resource ResourceIdentifier, obj *unstructured.Unstructured, parentID string, depth int) error {
+	ownerRefs := obj.GetOwnerReferences()
+	if len(ownerRefs) == 0 {
+		return nil
+	}
+
+	for _, ownerRef := range ownerRefs {
+		// Determine the resource type from the Kind
+		ownerGroup := getGroupFromAPIVersion(ownerRef.APIVersion)
+		ownerVersion := getVersionFromAPIVersion(ownerRef.APIVersion)
+		ownerResourceType := kindToResource(ownerRef.Kind)
+
+		// Determine the category based on owner kind
+		category := b.getCategoryForKind(ownerRef.Kind)
+
+		ownerResource := ResourceIdentifier{
+			Namespace:    resource.Namespace, // Owner is typically in the same namespace
+			Group:        ownerGroup,
+			Version:      ownerVersion,
+			ResourceType: ownerResourceType,
+			ResourceName: ownerRef.Name,
+		}
+
+		// Add the owner as a dependency with "owned-by" relationship
+		if err := b.addDependencyWithEdge(ctx, ownerResource, parentID, category, "owned-by", depth+1, true); err != nil {
+			continue
+		}
+
+		// Recursively discover the owner's owners (e.g., ReplicaSet -> Deployment)
+		ownerObj, err := b.getResource(ctx, ownerResource)
+		if err != nil {
+			continue
+		}
+
+		// Recursive call to find owners of the owner
+		ownerNodeID := b.getNodeID(ownerResource)
+		b.addOwnerDependencies(ctx, ownerResource, ownerObj, ownerNodeID, depth+1)
+	}
+
+	return nil
+}
+
+// getCategoryForKind returns the appropriate DependencyCategory for a given Kind
+func (b *DependencyGraphBuilder) getCategoryForKind(kind string) DependencyCategory {
+	// Workload controllers
+	workloadKinds := map[string]bool{
+		"Deployment":            true,
+		"ReplicaSet":            true,
+		"StatefulSet":           true,
+		"DaemonSet":             true,
+		"ReplicationController": true,
+		"Job":                   true,
+		"CronJob":               true,
+		"Pod":                   true,
+	}
+	if workloadKinds[kind] {
+		return CategoryWorkloads
+	}
+
+	// RBAC
+	rbacKinds := map[string]bool{
+		"ServiceAccount":     true,
+		"Role":               true,
+		"ClusterRole":        true,
+		"RoleBinding":        true,
+		"ClusterRoleBinding": true,
+	}
+	if rbacKinds[kind] {
+		return CategoryRBAC
+	}
+
+	// Network
+	networkKinds := map[string]bool{
+		"Service":       true,
+		"Ingress":       true,
+		"NetworkPolicy": true,
+		"EndpointSlice": true,
+	}
+	if networkKinds[kind] {
+		return CategoryNetwork
+	}
+
+	// Configuration
+	configKinds := map[string]bool{
+		"ConfigMap": true,
+		"Secret":    true,
+	}
+	if configKinds[kind] {
+		return CategoryConfiguration
+	}
+
+	// Storage
+	storageKinds := map[string]bool{
+		"PersistentVolumeClaim": true,
+		"PersistentVolume":      true,
+		"StorageClass":          true,
+	}
+	if storageKinds[kind] {
+		return CategoryStorage
+	}
+
+	// Compute (Nodes)
+	if kind == "Node" {
+		return CategoryCompute
+	}
+
+	// Scheduling
+	schedulingKinds := map[string]bool{
+		"PriorityClass": true,
+		"ResourceQuota": true,
+		"LimitRange":    true,
+	}
+	if schedulingKinds[kind] {
+		return CategoryScheduling
+	}
+
+	// Autoscaling
+	if kind == "HorizontalPodAutoscaler" {
+		return CategoryAutoscaling
+	}
+
+	// Default to Custom for unknown kinds (likely CRDs)
+	return CategoryCustom
+}
