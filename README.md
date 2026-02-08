@@ -65,7 +65,11 @@ For comprehensive documentation, visit [docs.agentkube.com](https://docs.agentku
 
 ## Contributing
 
-We welcome contributions from the community! Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+We welcome contributions from the community! Whether it's bug reports, feature requests, documentation improvements, or code changes -- every contribution matters.
+
+- **[Contributing Guide](CONTRIBUTING.md)** -- How to contribute, coding standards, and PR workflow
+- **[Development Guide](DEVELOPMENT.md)** -- Setting up your local development environment
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** -- Community standards and expectations
 
 For questions or concerns about community guidelines, contact us at [`info@agentkube.com`](mailto:info@agentkube.com).
 
