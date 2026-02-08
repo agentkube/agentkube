@@ -1,4 +1,4 @@
-![](./assets/platform.png)
+![](./assets/thumbnail-banner.png)
 
 <!-- TEXT_SECTION:header:START -->
 <div>
