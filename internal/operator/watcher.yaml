@@ -1,0 +1,10 @@
+enabled: true
+skipClusters: []
+includeClusters: 
+  - kind-black-dinosaurs
+  - kind-rooster-one
+resource:
+  deployment: true
+  namespace: true
+customresources: []
+namespace: ""

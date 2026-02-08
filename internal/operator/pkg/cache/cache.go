@@ -1,0 +1,153 @@
+package cache
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"time"
+)
+
+// Cache is an interface for a cache
+// that can be used to store and retrieve values.
+type Cache[T any] interface {
+	Set(ctx context.Context, key string, value T) error
+	SetWithTTL(ctx context.Context, key string, value T, ttl time.Duration) error
+	Delete(ctx context.Context, key string) error
+	Get(ctx context.Context, key string) (T, error)
+	GetAll(ctx context.Context, selectFunc func(key string) bool) (map[string]T, error)
+	UpdateTTL(ctx context.Context, key string, ttl time.Duration) error
+}
+
+var (
+	ErrNotFound     = errors.New("key not found")
+	cleanUpInterval = 10 * time.Second
+)
+
+type cacheValue[T any] struct {
+	value     T
+	expiresAt time.Time
+}
+
+type cacheImpl[T any] struct {
+	store           map[string]cacheValue[T]
+	lock            sync.RWMutex
+	cleanUpInterval time.Duration
+}
+
+// New creates a new cache.
+func New[T any]() Cache[T] {
+	cache := &cacheImpl[T]{
+		store:           make(map[string]cacheValue[T]),
+		cleanUpInterval: cleanUpInterval,
+	}
+
+	go cache.cleanUp()
+
+	return cache
+}
+
+// Set stores a value in the cache.
+func (c *cacheImpl[T]) Set(ctx context.Context, key string, value T) error {
+	return c.SetWithTTL(ctx, key, value, 0)
+}
+
+// SetWithTTL stores a value in the cache with a TTL.
+func (c *cacheImpl[T]) SetWithTTL(ctx context.Context, key string, value T, ttl time.Duration) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	expiresAt := time.Time{}
+	if ttl != 0 {
+		expiresAt = time.Now().Add(ttl)
+	}
+
+	c.store[key] = cacheValue[T]{
+		value:     value,
+		expiresAt: expiresAt,
+	}
+
+	return nil
+}
+
+// Delete removes a value from the cache.
+func (c *cacheImpl[T]) Delete(ctx context.Context, key string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	delete(c.store, key)
+
+	return nil
+}
+
+// Get retrieves a value from the cache.
+func (c *cacheImpl[T]) Get(ctx context.Context, key string) (T, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	value, ok := c.store[key]
+	if !ok {
+		return *new(T), ErrNotFound
+	}
+
+	if value.expiresAt.IsZero() || value.expiresAt.After(time.Now()) {
+		return value.value, nil
+	}
+
+	return *new(T), ErrNotFound
+}
+
+// GetAll retrieves all values from the cache.
+func (c *cacheImpl[T]) GetAll(ctx context.Context, selectFunc func(key string) bool) (map[string]T, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	values := make(map[string]T)
+
+	for key, value := range c.store {
+		if selectFunc != nil && !selectFunc(key) {
+			continue
+		}
+
+		if (value.expiresAt.IsZero()) || (!value.expiresAt.IsZero() && value.expiresAt.After(time.Now())) {
+			values[key] = value.value
+		}
+	}
+
+	return values, nil
+}
+
+// cleanUp removes expired values from the cache.
+func (c *cacheImpl[T]) cleanUp() {
+	ticker := time.NewTicker(c.cleanUpInterval)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+
+		c.lock.Lock()
+		for key, value := range c.store {
+			if !value.expiresAt.IsZero() && value.expiresAt.Before(time.Now()) {
+				delete(c.store, key)
+			}
+		}
+		c.lock.Unlock()
+	}
+}
+
+// UpdateTTL updates the TTL of a value in the cache.
+func (c *cacheImpl[T]) UpdateTTL(ctx context.Context, key string, ttl time.Duration) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	value, ok := c.store[key]
+	if !ok {
+		return ErrNotFound
+	}
+
+	if value.expiresAt.IsZero() || value.expiresAt.After(time.Now()) {
+		value.expiresAt = time.Now().Add(ttl)
+		c.store[key] = value
+	}
+
+	return nil
+}
