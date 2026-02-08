@@ -1,0 +1,461 @@
+import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { Button } from "@/components/ui/button"
+import { Sparkles, X, Loader2, RotateCcw, User, Crown, ArrowUpRight, Copy, CheckCheck } from "lucide-react"
+import MarkdownContent from '@/utils/markdown-formatter'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useAuth } from '@/contexts/useAuth'
+import { useNavigate } from 'react-router-dom'
+import { openExternalUrl } from '@/api/external'
+import { CoreV1Event as V1Event } from '@kubernetes/client-node'
+import { analyzeEventStream, EventAnalysisRequest } from '@/api/event.analyzer'
+import { listResources } from '@/api/internal/resources'
+import { resourceToEnrichedSearchResult } from '@/utils/resource-to-enriched.utils'
+import { useCluster } from '@/contexts/clusterContext'
+import { getAgentModel } from '@/api/settings'
+
+interface EventAnalyzerProps {
+  event: V1Event
+  clusterName: string
+}
+
+const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
+  event,
+  clusterName
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisContent, setAnalysisContent] = useState<string>('')
+  const [hasFetched, setHasFetched] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [buttonPosition, setButtonPosition] = useState<{ top: number; left: number } | null>(null)
+  const [resourceYaml, setResourceYaml] = useState<string | undefined>(undefined)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const { user, loading } = useAuth()
+  const { currentContext } = useCluster()
+  const navigate = useNavigate()
+
+  // Function to fetch involved object YAML
+  const fetchInvolvedObjectYaml = async (): Promise<string | undefined> => {
+    if (!currentContext || !event.involvedObject) return undefined
+
+    const { kind, name, namespace } = event.involvedObject
+    if (!kind || !name) return undefined
+
+    try {
+      // Convert kind to resource type (e.g., Pod -> pods, Deployment -> deployments)
+      const resourceType = kind.toLowerCase() + 's'
+
+      // Determine if resource is namespaced
+      const isNamespaced = !!namespace
+
+      // Fetch the resource
+      const resources = await listResources(
+        currentContext.name,
+        resourceType,
+        {
+          namespace: isNamespaced ? namespace : undefined,
+          name: name
+        }
+      )
+
+      if (resources.length > 0) {
+        // Convert to enriched search result which includes YAML
+        const enrichedResource = resourceToEnrichedSearchResult(
+          resources[0],
+          resourceType,
+          isNamespaced,
+          '', // group - can be determined based on kind if needed
+          'v1' // version - can be determined based on kind if needed
+        )
+
+        return enrichedResource.resourceContent
+      }
+    } catch (error) {
+      console.error(`Failed to fetch YAML for ${kind}/${name}:`, error)
+    }
+
+    return undefined
+  }
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  const startAnalysis = async () => {
+    if (isAnalyzing || hasFetched) return
+
+    // Check if user is authenticated and block the request if not
+    if (!user || !user.isAuthenticated) {
+      return
+    }
+
+    // Check if user has exceeded their usage limit
+    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+      return
+    }
+
+    setIsAnalyzing(true)
+    setAnalysisContent('')
+
+    try {
+      // Fetch involved object YAML if not already fetched
+      let yaml = resourceYaml
+      if (!yaml) {
+        yaml = await fetchInvolvedObjectYaml()
+        setResourceYaml(yaml)
+      }
+
+      // Get the configured model for event analyzer
+      const model = await getAgentModel('eventAnalyzer')
+
+      const request: EventAnalysisRequest = {
+        event: event as any, // Convert V1Event to any for API compatibility
+        cluster_name: clusterName,
+        kubecontext: clusterName,
+        model: model,
+        resource_yaml: yaml
+      }
+
+      await analyzeEventStream(request, {
+        onContent: (_index: number, text: string) => {
+          setAnalysisContent(prev => prev + text)
+        },
+        // onToolCall: (toolCall: any) => {
+        //   // Handle tool calls if needed - commented out for now
+        //   console.log('Tool call:', toolCall)
+        // },
+        onComplete: (reason: string) => {
+          console.log('Analysis complete:', reason)
+          setHasFetched(true)
+          setIsAnalyzing(false)
+        },
+        onError: (error: Error) => {
+          console.error('Error generating analysis:', error)
+          setIsAnalyzing(false)
+          setAnalysisContent('Failed to generate event analysis. Please try again.')
+        }
+      })
+
+    } catch (error) {
+      console.error('Error generating analysis:', error)
+      setIsAnalyzing(false)
+      setAnalysisContent('Failed to generate event analysis. Please try again.')
+    }
+  }
+
+  const handleClick = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setButtonPosition({
+        top: rect.top + window.scrollY - 100, // Move 20px upwards
+        left: rect.left + window.scrollX - 384 - 8 // Position to the left with 8px gap
+      })
+    }
+
+    if (!hasFetched) {
+      startAnalysis()
+    }
+    setIsOpen(!isOpen)
+  }
+
+  const handleRerun = () => {
+    setHasFetched(false)
+    setAnalysisContent('')
+    startAnalysis()
+  }
+
+  const handleSignIn = () => {
+    navigate('/settings/account')
+  }
+
+  const handleUpgrade = () => {
+    openExternalUrl("https://account.agentkube.com")
+  }
+
+  const handleDismiss = () => {
+    setIsDismissed(true)
+  }
+
+  const handleCopyAnalysis = async () => {
+    if (analysisContent) {
+      await navigator.clipboard.writeText(analysisContent)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  // Check if we should show sign in
+  const shouldShowSignIn = !loading && (!user || !user.isAuthenticated)
+
+  // Check if we should show upgrade
+  const shouldShowUpgrade = !loading && user?.isAuthenticated && !isDismissed && (() => {
+    const usagePercentage = user.usage_limit && user.usage_count ? (user.usage_count / user.usage_limit) * 100 : 0
+    const hasExceededLimit = user.usage_limit && (user.usage_count || 0) >= user.usage_limit
+    return hasExceededLimit || usagePercentage >= 80
+  })()
+
+  const hasExceededLimit = user?.usage_limit && (user?.usage_count || 0) >= user?.usage_limit
+
+  // Sign In Component
+  const SignInComponent = () => (
+    <div className="px-4 py-3 bg-blue-500/10 border-t border-border">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between w-full space-x-3">
+          <div className="flex-shrink-0">
+            <User className="h-5 w-5 text-blue-600" />
+          </div>
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-0.5 leading-tight">
+                Sign In
+              </h4>
+              <p className="text-xs text-muted-foreground leading-tight">
+                Sign in to access AI event analysis.
+              </p>
+            </div>
+            <Button
+              onClick={handleSignIn}
+              className="flex justify-between min-w-28 bg-blue-600 hover:bg-blue-700 text-white h-7 px-3 text-xs"
+            >
+              Sign In
+              <ArrowUpRight className="h-3 w-3 ml-1" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Upgrade Component
+  const UpgradeComponent = () => (
+    <div className={`px-4 py-3 border-t ${hasExceededLimit
+      ? 'bg-gradient-to-r from-blue-500/10 to-gray-500/10 border-border'
+      : 'bg-gradient-to-r from-yellow-500/10 to-gray-500/10 border-border'
+      }`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-start w-full space-x-3">
+          <div className="flex-shrink-0">
+            <Crown className={`h-5 w-5 ${hasExceededLimit
+              ? 'text-red-600'
+              : 'text-orange-600'
+              }`} />
+          </div>
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-1">
+                {hasExceededLimit ? 'Usage Limit Exceeded' : 'Credits Running Low'}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {hasExceededLimit
+                  ? `You've reached your limit of ${user?.usage_limit} credits. Upgrade to continue.`
+                  : `You've used ${user?.usage_count} of ${user?.usage_limit} credits. Upgrade for unlimited usage.`
+                }
+              </p>
+            </div>
+            <Button
+              onClick={handleUpgrade}
+              size="sm"
+              className={`text-white h-7 w-32 flex justify-between px-3 text-xs ${hasExceededLimit
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-orange-600 hover:bg-orange-700'
+                }`}
+            >
+              Upgrade
+              <ArrowUpRight className="h-3 w-3 ml-1" />
+            </Button>
+          </div>
+        </div>
+        <button
+          onClick={handleDismiss}
+          className="ml-3 text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <TooltipProvider>
+      <div className="relative" ref={dropdownRef}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              ref={buttonRef}
+              onClick={handleClick}
+              variant={isOpen ? "outline" : "ghost"}
+            >
+              <Sparkles className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="p-1">
+            <p>AI Analysis</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {isOpen && buttonPosition && createPortal(
+          <div
+            className="w-96 bg-card/60 backdrop-blur-lg border border-gray-800/50 rounded-lg shadow-lg z-[9999]"
+            style={{
+              position: 'absolute',
+              top: Math.max(8, buttonPosition.top),
+              left: Math.max(8, buttonPosition.left)
+            }}
+            ref={dropdownRef}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4 pt-4 px-4">
+                <div className='flex items-center gap-2'>
+                  <Sparkles className='h-4 w-4' />
+                  <h3 className="text-lg font-light text-white">AI Analysis</h3>
+
+                </div>
+                <div className='flex items-center'>
+                  {hasFetched && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRerun}
+                      disabled={isAnalyzing}
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                    >
+                      <RotateCcw />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-2 px-4">
+                <div className="text-xs text-foreground space-y-1">
+                  <div className="flex"><span className="text-gray-500 w-20">Type</span>
+                    <span className={`${event.type === 'Warning'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : event.type === 'Normal'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-muted-foreground'
+                      }`}>
+                      {event.type || 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="flex"><span className="text-gray-500 w-20">Reason</span>
+                    <span className={`${['Failed', 'FailedMount', 'FailedSync', 'Unhealthy', 'BackOff'].includes(event.reason || '')
+                      ? 'text-red-600 dark:text-red-400'
+                      : ['Killing', 'Preempting', 'FailedScheduling'].includes(event.reason || '')
+                        ? 'text-orange-600 dark:text-orange-400'
+                        : ['Started', 'Created', 'Scheduled', 'Pulled', 'Pulling'].includes(event.reason || '')
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-muted-foreground'
+                      }`}>
+                      {event.reason || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex"><span className="text-gray-500 w-20">Object</span>
+                    <span className="text-blue-600 hover:text-blue-500 hover:underline truncate max-w-64 cursor-pointer" onClick={() => navigate(`/dashboard/explore/${event.involvedObject?.kind?.toLowerCase() + 's'}/${event.metadata?.namespace}/${event.involvedObject?.name}`)}>
+                      {event.involvedObject?.kind}/{event.involvedObject?.name || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex"><span className="text-gray-500 w-20">Namespace</span>
+                    <span className="text-blue-600 hover:text-blue-500 hover:underline cursor-pointer" onClick={() => navigate(`/dashboard/explore/namespaces/${event.metadata?.namespace}`)}>
+                      {event.metadata?.namespace || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex"><span className="text-gray-500 w-20">Source</span> {event.source?.component || 'N/A'}</div>
+                  <div className="flex"><span className="text-gray-500 w-20">Count</span> {event.count || 1}</div>
+                  <div className="flex"><span className="text-gray-500 w-20">Cluster</span> {clusterName}</div>
+                  <div className="flex flex-col"><span className="text-gray-500 w-20">Message</span>
+                    <span className="text-xs text-gray-300 mt-1 break-words">
+                      {event.message || 'No message available'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {!hasFetched && !isAnalyzing ? (
+                <div className="text-center py-6 px-4 bg-secondary border-t border-border">
+                  <Sparkles className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400 mb-4">Ready to analyze this event</p>
+                  <Button
+                    onClick={startAnalysis}
+                    disabled={isAnalyzing}
+                    className="w-full"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Start Analysis
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-secondary border-t border-border max-h-80 overflow-y-auto 
+            [&::-webkit-scrollbar]:w-1.5 
+            [&::-webkit-scrollbar-track]:bg-transparent 
+            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50 px-4">
+                  {isAnalyzing && (
+                    <div className="flex py-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Analyzing event...</span>
+                    </div>
+                  )}
+
+                  {analysisContent && (
+                    <div className="relative py-8">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-4 right-0 h-1 w-8 p-0 z-10 bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white backdrop-blur-sm"
+                        onClick={handleCopyAnalysis}
+                      >
+                        {copied ? <CheckCheck className="text-green-500 h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                      <div className="text-xs text-gray-300">
+                        <MarkdownContent content={analysisContent} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sign In Component */}
+              {shouldShowSignIn && <SignInComponent />}
+
+              {/* Upgrade Component */}
+              {shouldShowUpgrade && <UpgradeComponent />}
+            </div>
+          </div>,
+          document.body
+        )}
+      </div>
+    </TooltipProvider>
+  )
+}
+
+export default EventAnalyzer

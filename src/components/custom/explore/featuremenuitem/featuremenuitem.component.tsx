@@ -1,0 +1,168 @@
+// FeatureMenuItem.tsx
+import React, { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { FeatureItem } from '@/types/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+interface FeatureMenuItemProps {
+  feature: FeatureItem;
+  isCollapsed: boolean;
+  expandedFeatures: string[];
+  selectedFeaturePath: string;
+  onFeatureClick: (feature: FeatureItem) => void;
+  onExpandToggle: (featureId: string) => void;
+}
+
+const FeatureMenuItem: React.FC<FeatureMenuItemProps> = ({
+  feature,
+  isCollapsed,
+  expandedFeatures,
+  selectedFeaturePath,
+  onFeatureClick,
+  onExpandToggle
+}) => {
+  const hasChildren = feature.children && feature.children.length > 0;
+  const isExpanded = expandedFeatures.includes(feature.id);
+  const isSelected = feature.path === selectedFeaturePath;
+  const childSelected = feature.children?.some(child => child.path === selectedFeaturePath);
+
+  // Local state to control dropdown open state
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const handleClick = () => {
+    if (hasChildren) {
+      onExpandToggle(feature.id);
+    } else {
+      onFeatureClick(feature);
+    }
+  };
+
+  // When sidebar is collapsed, show icon with flyout menu for children
+  if (isCollapsed) {
+    // For items with children, use Shadcn dropdown
+    if (hasChildren) {
+      return (
+        <div className="py-1 relative group">
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`w-full flex justify-center items-center p-2 hover:bg-accent-hover rounded-[5px] transition-colors
+                  ${isSelected || childSelected ? 'bg-accent' : ''}`}
+                title={feature.label}
+              >
+                {feature.icon}
+              </button>
+            </DropdownMenuTrigger>
+
+            {/* Tooltip for collapsed view */}
+            <div className="absolute left-full ml-2 -mt-8 z-10 bg-card backdrop-blur-md text-card-foreground text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+              <p className="font-medium">{feature.label}</p>
+              <div className="absolute w-2 h-2 bg-card rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+            </div>
+
+            <DropdownMenuContent
+              side="right"
+              align="start"
+              className="mt-0 ml-2 z-50 bg-card backdrop-blur-md shadow-lg rounded-md border border-border w-48 overflow-hidden"
+              onInteractOutside={() => setDropdownOpen(false)}
+            >
+              <div className="p-2 text-md font-medium text-foreground font-[Anton] uppercase border-b border-border">
+                {feature.label}
+              </div>
+              <div className="py-1">
+                {feature.children?.map((child) => (
+                  <DropdownMenuItem
+                    key={child.id}
+                    className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent ${child.path === selectedFeaturePath ? 'bg-accent/50' : ''
+                      }`}
+                    onClick={() => {
+                      onFeatureClick(child);
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    {child.icon}
+                    <span className="text-sm font-medium text-foreground">{child.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      );
+    }
+
+    // For items without children
+    return (
+      <div className="py-1 relative group">
+        <button
+          className={`w-full flex justify-center items-center p-2 hover:bg-accent-hover rounded-[5px] transition-colors
+            ${isSelected ? 'bg-accent' : ''}`}
+          onClick={handleClick}
+          title={feature.label}
+        >
+          {feature.icon}
+        </button>
+
+        {/* Tooltip for collapsed view */}
+        <div className="absolute left-full ml-2 -mt-8 z-10 bg-card backdrop-blur-md text-card-foreground text-sm rounded-md px-2 py-1 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-r-2 border-blue-700">
+          <p className="font-medium">{feature.label}</p>
+          <div className="absolute w-2 h-2 bg-card rotate-45 left-0 top-1/2 -translate-y-1/2 -translate-x-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Expanded sidebar view
+  return (
+    <div className='px-2'>
+      <button
+        className={`w-full flex items-center gap-2 hover:bg-accent-hover rounded-[0.3rem] py-1.5
+      
+          ${isSelected || childSelected ? 'bg-accent' : ''}`}
+        onClick={handleClick}
+      // disabled={ feature.label === "Runbooks" || feature.label === "Investigations" ? true : false}
+      >
+        {hasChildren && (
+          <span className="mr-1">
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </span>
+        )}
+        {!hasChildren && <span className="w-4 mr-1" />}
+        {feature.icon}
+        <span
+          className={`text-sm font-medium text-foreground 
+          `}>
+          {feature.label}
+        </span>
+      </button>
+
+      {/* Render children if expanded */}
+      {hasChildren && isExpanded && (
+        <div className="ml-4 mt-1 space-y-1">
+          {feature.children?.map((child) => (
+            <button
+              key={child.id}
+              className={`w-full flex items-center gap-2 hover:bg-accent-hover rounded-[0.3rem] py-1 px-8
+                ${child.path === selectedFeaturePath ? 'bg-accent' : ''}`}
+              onClick={() => onFeatureClick(child)}
+            >
+              {child.icon}
+              <span className="text-sm font-medium text-foreground">{child.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FeatureMenuItem;

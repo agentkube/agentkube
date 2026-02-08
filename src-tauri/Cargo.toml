@@ -1,0 +1,64 @@
+[package]
+name = "agentkube"
+version = "0.1.0"
+description = "A Kubernetes Management IDE"
+authors = ["siddhantprateek"]
+license = "MIT"
+repository = "github.com/agentkube/platform"
+edition = "2021"
+rust-version = "1.71"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0-rc.13", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+dirs = "5.0"
+tauri = { version = "2.0.0-rc.17", features = ["protocol-asset", "unstable"] }
+tauri-plugin-log = "2.0.0-rc"
+tauri-plugin-http = { version = "2.0.0-rc.1", features = ["unsafe-headers"] }
+tauri-plugin-cors-fetch = "2.1.1"
+tauri-plugin-websocket = "2.0.0-rc"
+tauri-plugin-os = "2.0.0-rc"
+tauri-plugin-shell = "2.0.0-rc"
+tokio = "1.44.2"
+tauri-plugin-process = "2.0.0-rc"
+tauri-plugin-fs = "2.0.0-rc"
+tauri-plugin-dialog = "2.0.0-rc"
+serde_yaml = "0.9.34"
+url = "2.5.4"
+reqwest = "0.12"
+portable-pty = "0.8"
+anyhow = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+which = "4.4"
+tauri-plugin-deep-link = "2"
+
+# Platform-specific network monitoring dependencies
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.9"
+system-configuration = "0.6"
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = "4.0"
+libc = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.52", features = ["Win32_System_Console"] }
+libc = "0.2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-autostart = "2.0.0-rc"
+tauri-plugin-updater = "2.0.0-rc"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2.0.0-rc"

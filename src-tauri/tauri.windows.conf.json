@@ -1,0 +1,48 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Agentkube",
+  "version": "0.0.12",
+  "identifier": "platform.agentkube.app",
+  "mainBinaryName": "agentkube",
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Agentkube",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false,
+        "hiddenTitle": true,
+        "shadow": true,
+        "titleBarStyle": "Overlay",
+        "visible": false
+      },
+      {
+        "label": "splashscreen",
+        "url": "splashscreen.html",
+        "width": 600,
+        "height": 360,
+        "decorations": false,
+        "center": true,
+        "resizable": false,
+        "fullscreen": false,
+        "visible": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": false
+      }
+    ]
+  },
+  "bundle": {
+    "targets": "all",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "sidebarImage": "images/winsidebarImage.bmp"
+      }
+    }
+  }
+}

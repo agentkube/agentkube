@@ -1,0 +1,115 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Agentkube",
+  "version": "0.0.12",
+  "identifier": "platform.agentkube.app",
+  "mainBinaryName": "agentkube",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5422",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Agentkube",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "hiddenTitle": true,
+        "shadow": true,
+        "titleBarStyle": "Overlay",
+        "dragDropEnabled": true,
+        "visible": false
+      },
+      {
+        "label": "splashscreen",
+        "url": "splashscreen.html",
+        "width": 600,
+        "height": 360,
+        "decorations": false,
+        "center": true,
+        "resizable": false,
+        "fullscreen": false,
+        "visible": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "scope": {
+          "allow": [
+            "**/*"
+          ],
+          "requireLiteralLeadingDot": false
+        },
+        "enable": true
+      },
+      "capabilities": [
+        "default"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "macOS": {
+      "dmg": {
+        "background": "images/background.png"
+      },
+      "files": {},
+      "hardenedRuntime": false,
+      "minimumSystemVersion": "10.13"
+    },
+    "resources": [
+      "bin/operator/agentkube-operator-*",
+      "bin/orchestrator/agentkube-orchestrator-*"
+    ],
+    "externalBin": [],
+    "icon": [
+      "icons/16x16.png",
+      "icons/32x32.png",
+      "icons/48x48.png",
+      "icons/64x64.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/256x256.png",
+      "icons/512x512.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Agentkube, Inc.",
+    "homepage": "https://agentkube.com",
+    "copyright": "© 2025 Agentkube, Inc. All rights reserved.",
+    "license": "MIT",
+    "category": "Productivity",
+    "shortDescription": "Agentkube: AI-powered Kubernetes management platform.",
+    "longDescription": "Agentkube: AI-powered Kubernetes management platform"
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "agentkube"
+        ],
+        "name": "AgentKube Protocol",
+        "role": "Editor"
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBNTk0MjQxMTU1MkQ5QzUKUldURjJWSVZRVUpabXUycWVFNHN2NER6TStwZ1dpK2ZMR1p0NjNoT0NqbkxNUXhlVU9MbnJoZnAK",
+      "endpoints": [
+        "https://raw.githubusercontent.com/agentkube/agentkube/release/download/agentkube-latest.json"
+      ]
+    }
+  }
+}

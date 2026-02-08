@@ -1,0 +1,409 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Plus, Edit, Trash2, Save, X, UserCog, ClipboardList } from "lucide-react";
+import { SiKubernetes } from '@icons-pack/react-simple-icons';
+import { MinimalEditor } from '@/components/custom';
+import { getUserRules, updateUserRules, getClusterRules, updateClusterRules } from '@/api/settings';
+
+interface Rule {
+  id: number;
+  content: string;
+  name: string;
+}
+
+type RuleType = 'user' | 'cluster';
+
+interface ShowAddForm {
+  type: RuleType | null;
+  show: boolean;
+}
+
+interface AddRuleFormProps {
+  type: RuleType;
+  onSave: (type: RuleType, content: string) => Promise<void>;
+  onCancel: () => void;
+}
+
+interface RuleItemProps {
+  rule: Rule;
+  type: RuleType;
+  onEdit: (rule: Rule) => void;
+  onDelete: (type: RuleType, id: number) => Promise<void>;
+  onSaveEdit: (type: RuleType, id: number, content: string) => Promise<void>;
+  isEditing: boolean;
+  onCancelEdit: () => void;
+}
+
+const RulesSetting: React.FC = () => {
+  const [userRules, setUserRules] = useState<Rule[]>([]);
+  const [clusterRules, setClusterRules] = useState<Rule[]>([]);
+  const [editingRule, setEditingRule] = useState<Rule | null>(null);
+  const [showAddForm, setShowAddForm] = useState<ShowAddForm>({ type: null, show: false });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadRules();
+  }, []);
+
+  const loadRules = async () => {
+    try {
+      setIsLoading(true);
+      const [userResponse, clusterResponse] = await Promise.allSettled([
+        getUserRules(),
+        getClusterRules()
+      ]);
+
+      if (userResponse.status === 'fulfilled' && userResponse.value.content) {
+        setUserRules([{
+          id: 1,
+          content: userResponse.value.content,
+          name: 'user_rules.md'
+        }]);
+      }
+
+      if (clusterResponse.status === 'fulfilled' && clusterResponse.value.content) {
+        setClusterRules([{
+          id: 1,
+          content: clusterResponse.value.content,
+          name: 'cluster_rules.md'
+        }]);
+      }
+    } catch (error) {
+      console.error('Failed to load rules:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add new rule
+  const handleAddRule = (type: RuleType): void => {
+    setShowAddForm({ type, show: true });
+  };
+
+  // Save new rule
+  const handleSaveNewRule = async (type: RuleType, content: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+
+      if (type === 'user') {
+        await updateUserRules(content.trim());
+        setUserRules([{
+          id: 1,
+          content: content.trim(),
+          name: 'user_rules.md'
+        }]);
+      } else {
+        await updateClusterRules(content.trim());
+        setClusterRules([{
+          id: 1,
+          content: content.trim(),
+          name: 'cluster_rules.md'
+        }]);
+      }
+
+      setShowAddForm({ type: null, show: false });
+    } catch (error) {
+      console.error('Failed to save rule:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Delete rule
+  const handleDeleteRule = async (type: RuleType, id: number): Promise<void> => {
+    try {
+      setIsLoading(true);
+
+      if (type === 'user') {
+        await updateUserRules('');
+        setUserRules([]);
+      } else {
+        await updateClusterRules('');
+        setClusterRules([]);
+      }
+    } catch (error) {
+      console.error('Failed to delete rule:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Edit rule
+  const handleEditRule = (rule: Rule): void => {
+    setEditingRule(rule);
+  };
+
+  // Save edited rule
+  const handleSaveEdit = async (type: RuleType, id: number, newContent: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+
+      if (type === 'user') {
+        await updateUserRules(newContent.trim());
+        setUserRules(userRules.map(rule =>
+          rule.id === id ? { ...rule, content: newContent.trim() } : rule
+        ));
+      } else {
+        await updateClusterRules(newContent.trim());
+        setClusterRules(clusterRules.map(rule =>
+          rule.id === id ? { ...rule, content: newContent.trim() } : rule
+        ));
+      }
+
+      setEditingRule(null);
+    } catch (error) {
+      console.error('Failed to update rule:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const AddRuleForm: React.FC<AddRuleFormProps> = ({ type, onSave, onCancel }) => {
+    const [content, setContent] = useState<string>('');
+
+    const handleSave = async (): Promise<void> => {
+      if (content.trim()) {
+        await onSave(type, content);
+      }
+    };
+
+    const handleEditorChange = (value: string | undefined): void => {
+      if (value !== undefined) {
+        setContent(value);
+      }
+    };
+
+    return (
+      <div className="border-accent dark:border-gray-600 rounded-lg mt-2">
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-300 mb-2">
+            {type === 'user' ? 'User Rule' : 'Cluster Rule'}
+          </label>
+          <MinimalEditor
+            value={content}
+            onChange={handleEditorChange}
+            language="markdown"
+            height="150px"
+            placeholder={`Enter your ${type} rule here...`}
+          />
+        </div>
+        <div className="flex justify-end space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+          >
+            <X className="w-4 h-4 mr-1" />
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!content.trim() || isLoading}
+          >
+            <Save className="w-4 h-4 mr-1" />
+            {isLoading ? 'Saving...' : 'Save Rule'}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const RuleItem: React.FC<RuleItemProps> = ({
+    rule,
+    type,
+    onEdit,
+    onDelete,
+    onSaveEdit,
+    isEditing,
+    onCancelEdit
+  }) => {
+    const [editContent, setEditContent] = useState<string>(rule.content);
+
+    const handleSaveEdit = async (): Promise<void> => {
+      if (editContent.trim()) {
+        await onSaveEdit(type, rule.id, editContent);
+      }
+    };
+
+    const handleEditChange = (value: string | undefined): void => {
+      if (value !== undefined) {
+        setEditContent(value);
+      }
+    };
+
+    return (
+      <div className="border border-accent dark:border-accent/30 rounded-lg">
+        {isEditing ? (
+          <div>
+            <MinimalEditor
+              value={editContent}
+              onChange={handleEditChange}
+              language="markdown"
+              height="150px"
+              className="mb-3"
+            />
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCancelEdit}
+              >
+                <X className="w-4 h-4 mr-1" />
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={!editContent.trim()}
+              >
+                <Save className="w-4 h-4 mr-1" />
+                Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center p-1 mt-0.5">
+                <div className='p-1 rounded-md w-fit mr-2'>
+                  {type === 'user' ? (
+                    <UserCog className="w-4 h-4 text-red-500" />
+                  ) : (
+                    <SiKubernetes className="w-4 h-4 text-blue-500" />
+                  )}
+                </div>
+                <span className="text-sm text-foreground/60 dark:text-foreground/60">
+                  {rule.name}
+                </span>
+              </div>
+
+              <div className="flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit(rule)}
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onDelete(type, rule.id)}
+                  disabled={isLoading}
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-l border-gray-400/50 dark:border-gray-700"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className='flex items-center space-x-2'>
+        <ClipboardList className='text-rose-500' />
+        <h1 className='text-2xl font-medium'>Rules</h1>
+      </div>
+      {/* User Rules Section */}
+      <div>
+        <h3 className="text-sm font-medium text-foreground dark:text-foreground mb-4">
+          User Rules
+        </h3>
+        <div className="bg-card dark:bg-card rounded-lg p-2">
+          <p className="text-sm text-foreground/60 dark:text-foreground/60 mb-4">
+            Define usage preferences here, such as the output language for Agentkube, or whether code generation should include comments by default, etc. Agentkube will follow your personal preference rules during chats, and the rules will remain effective when switching projects.
+          </p>
+
+          {userRules.length > 0 && (
+            <div className="mb-4">
+              {userRules.map((rule: Rule) => (
+                <RuleItem
+                  key={rule.id}
+                  rule={rule}
+                  type="user"
+                  onEdit={handleEditRule}
+                  onDelete={handleDeleteRule}
+                  onSaveEdit={handleSaveEdit}
+                  isEditing={editingRule?.id === rule.id}
+                  onCancelEdit={() => setEditingRule(null)}
+                />
+              ))}
+            </div>
+          )}
+
+          {showAddForm.type === 'user' && showAddForm.show ? (
+            <AddRuleForm
+              type="user"
+              onSave={handleSaveNewRule}
+              onCancel={() => setShowAddForm({ type: null, show: false })}
+            />
+          ) : userRules.length === 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-gray-600 dark:text-foreground/60"
+              onClick={() => handleAddRule('user')}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Create user_rules.md
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Cluster Rules Section */}
+      <div>
+        <h3 className="text-sm font-medium text-foreground dark:text-gray-300 mb-4">
+          Cluster Rules
+        </h3>
+        <div className="bg-card dark:bg-card rounded-lg p-4">
+          <p className="text-sm text-gray-600 dark:text-foreground/60 mb-4">
+            Create the .agentkube/rules/cluster_rules.md file within a project to define the rules Agentkube should follow when conversing in the current project.
+          </p>
+
+          {clusterRules.length > 0 && (
+            <div className="mb-4">
+              {clusterRules.map((rule: Rule) => (
+                <RuleItem
+                  key={rule.id}
+                  rule={rule}
+                  type="cluster"
+                  onEdit={handleEditRule}
+                  onDelete={handleDeleteRule}
+                  onSaveEdit={handleSaveEdit}
+                  isEditing={editingRule?.id === rule.id}
+                  onCancelEdit={() => setEditingRule(null)}
+                />
+              ))}
+            </div>
+          )}
+
+          {showAddForm.type === 'cluster' && showAddForm.show ? (
+            <AddRuleForm
+              type="cluster"
+              onSave={handleSaveNewRule}
+              onCancel={() => setShowAddForm({ type: null, show: false })}
+            />
+          ) : clusterRules.length === 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-gray-600 dark:text-foreground/60"
+              onClick={() => handleAddRule('cluster')}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Create cluster_rules.md
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RulesSetting;

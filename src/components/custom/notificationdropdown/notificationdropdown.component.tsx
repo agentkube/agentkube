@@ -1,0 +1,213 @@
+import React, { useEffect, useState } from 'react';
+import { Bell, BellDot, X, Package, AlertCircle, Info, BellMinus, CheckCircle, Search, AlertTriangle, XCircle } from 'lucide-react';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import {
+	Notification,
+	NotificationType,
+	getNotifications,
+	markAsRead,
+	markAllAsRead,
+	removeNotification,
+	clearAllNotifications,
+	formatRelativeTime,
+} from '@/services/notification.service';
+
+interface NotificationDropdownProps {
+	className?: string;
+}
+
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className }) => {
+	const [notifications, setNotifications] = useState<Notification[]>([]);
+
+	// Load notifications on mount and listen for updates
+	useEffect(() => {
+		// Initial load
+		setNotifications(getNotifications());
+
+		// Listen for notification updates
+		const handleUpdate = () => {
+			setNotifications(getNotifications());
+		};
+
+		window.addEventListener('notification-added', handleUpdate);
+		window.addEventListener('notifications-updated', handleUpdate);
+
+		return () => {
+			window.removeEventListener('notification-added', handleUpdate);
+			window.removeEventListener('notifications-updated', handleUpdate);
+		};
+	}, []);
+
+	const unreadCount = notifications.filter(n => !n.read).length;
+
+	const handleMarkAsRead = (id: string) => {
+		markAsRead(id);
+	};
+
+	const handleMarkAllAsRead = () => {
+		markAllAsRead();
+	};
+
+	const handleClearAll = () => {
+		clearAllNotifications();
+	};
+
+	const handleRemove = (id: string, e: React.MouseEvent) => {
+		e.stopPropagation();
+		removeNotification(id);
+	};
+
+	const getNotificationIcon = (type: NotificationType) => {
+		switch (type) {
+			case 'investigation':
+				return { icon: Search, color: 'text-purple-400' };
+			case 'update':
+				return { icon: Package, color: 'text-blue-400' };
+			case 'warning':
+				return { icon: AlertTriangle, color: 'text-yellow-400' };
+			case 'success':
+				return { icon: CheckCircle, color: 'text-green-400' };
+			case 'error':
+				return { icon: XCircle, color: 'text-red-400' };
+			case 'info':
+			default:
+				return { icon: Info, color: 'text-gray-400' };
+		}
+	};
+
+	return (
+		<DropdownMenu>
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<DropdownMenuTrigger asChild>
+							<button
+								className={`relative text-gray-400/80 backdrop-blur-md hover:text-blue-500 cursor-pointer group hover:bg-gray-100/10 p-1 ${className}`}
+							>
+								{unreadCount > 0 ? (
+									<>
+										<BellDot className='h-[0.8rem]' />
+									</>
+								) : (
+									<Bell className='h-[0.8rem]' />
+								)}
+							</button>
+						</DropdownMenuTrigger>
+					</TooltipTrigger>
+					<TooltipContent className="bg-card text-foreground">
+						<p>Notifications {unreadCount > 0 && `(${unreadCount} unread)`}</p>
+					</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
+
+			<DropdownMenuContent
+				className="w-[28rem] bg-card backdrop-blur-md border-border rounded-lg max-h-96 "
+				align="end"
+				sideOffset={5}
+			>
+				<div className="flex items-center justify-between bg-secondary/50 backdrop-blur-md px-2 ">
+					<DropdownMenuLabel className="text-sm font-medium text-foreground">
+						Notifications
+					</DropdownMenuLabel>
+					<div className="flex items-center space-x-1">
+						{unreadCount > 0 && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleMarkAllAsRead}
+								className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
+							>
+								Mark all read
+							</Button>
+						)}
+						{notifications.length > 0 && (
+							<TooltipProvider>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<button
+											onClick={handleClearAll}
+											className="h-6 w-6 flex items-center justify-center hover:bg-accent rounded p-1 transition-colors"
+										>
+											<BellMinus className="h-[0.8rem] text-muted-foreground" />
+										</button>
+									</TooltipTrigger>
+									<TooltipContent className="bg-card text-foreground">
+										<p>Clear all notifications</p>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+						)}
+					</div>
+				</div>
+
+				{notifications.length === 0 ? (
+					<div className="p-4 text-center text-muted-foreground">
+						<Bell className="mx-auto h-8 w-8 mb-2 opacity-50" />
+						<p className="text-sm">No notifications</p>
+					</div>
+				) : (
+					<div className="max-h-80 overflow-y-auto  
+            [&::-webkit-scrollbar]:w-1.5 
+            [&::-webkit-scrollbar-track]:bg-transparent 
+            [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+						{notifications.map((notification) => {
+							const { icon: IconComponent, color } = getNotificationIcon(notification.type);
+							return (
+								<DropdownMenuItem
+									key={notification.id}
+									className={`p-3 cursor-pointer focus:bg-accent ${!notification.read ? 'bg-secondary' : ''
+										}`}
+									onClick={() => handleMarkAsRead(notification.id)}
+								>
+									<div className="flex items-start space-x-3 w-full">
+										<div className={`mt-0.5 ${color}`}>
+											<IconComponent className="h-4 w-4" />
+										</div>
+										<div className="flex-1 space-y-1">
+											<div className="flex items-start justify-between">
+												<p className="text-sm font-medium text-foreground leading-tight">
+													{notification.title}
+												</p>
+												<div className="flex items-center space-x-1 ml-2">
+													<button
+														onClick={(e) => handleRemove(notification.id, e)}
+														className="hover:bg-accent rounded p-0.5 transition-opacity"
+													>
+														<X className="h-3 w-3 text-gray-500" />
+													</button>
+												</div>
+											</div>
+											<p className="text-xs text-muted-foreground leading-tight">
+												{notification.message}
+											</p>
+											<p className="text-xs text-muted-foreground">
+												{formatRelativeTime(notification.timestamp)}
+											</p>
+										</div>
+									</div>
+								</DropdownMenuItem>
+							);
+						})}
+					</div>
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+};
+
+export default NotificationDropdown;
