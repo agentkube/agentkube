@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cpu } from 'lucide-react';
+import { Cpu, Plus } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -25,9 +25,9 @@ const ProviderFooter: React.FC = () => {
             <button
               id="provider-footer-btn"
               onClick={() => setOpen(true)}
-              className="flex items-center gap-1.5 text-muted-foreground backdrop-blur-md px-2 py-1 text-xs hover:bg-accent-hover hover:text-foreground transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 backdrop-blur-md px-2 py-1 text-xs hover:bg-accent-hover hover:text-foreground transition-colors cursor-pointer"
             >
-              <Cpu className="h-3 w-3 shrink-0" />
+              <Plus className="h-3 w-3 shrink-0" />
               <span className="max-w-[100px] truncate">
                 {activeProvider ? activeProvider.name : 'Connect provider'}
               </span>

@@ -18,7 +18,9 @@ import {
   SiGithub,
   SiVercel,
   SiMistralai,
+  SiX
 } from '@icons-pack/react-simple-icons';
+import { OpenRouter } from '@/assets/icons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,7 +45,7 @@ const PROVIDERS: Provider[] = [
   {
     id: 'openrouter',
     name: 'OpenRouter',
-    icon: <Shuffle className={IC} />,
+    icon: <OpenRouter className={IC} />,
     category: 'popular',
     connectDescription: 'Enter your OpenRouter API key to access hundreds of models through a unified API.',
     apiKeyLabel: 'OpenRouter API key',
@@ -109,7 +111,7 @@ const PROVIDERS: Provider[] = [
   {
     id: 'groq',
     name: 'Groq',
-    icon: <Cpu className={IC} />,
+    icon: <SiX className={IC} />,
     category: 'other',
     connectDescription: 'Enter your Groq API key to use ultra-fast inference for open-source models.',
     apiKeyLabel: 'Groq API key',
@@ -123,25 +125,7 @@ const PROVIDERS: Provider[] = [
     connectDescription: 'Enter your Cohere API key to connect your account and use Cohere models in AgentKube.',
     apiKeyLabel: 'Cohere API key',
     apiKeyPlaceholder: 'API key',
-  },
-  {
-    id: 'azure',
-    name: 'Azure OpenAI',
-    icon: <Triangle className={IC} />,
-    category: 'other',
-    connectDescription: 'Enter your Azure OpenAI API key and endpoint to use Azure-hosted OpenAI models.',
-    apiKeyLabel: 'Azure API key',
-    apiKeyPlaceholder: 'API key',
-  },
-  {
-    id: 'bedrock',
-    name: 'AWS Bedrock',
-    icon: <Triangle className={cn(IC, 'rotate-180')} />,
-    category: 'other',
-    connectDescription: 'Enter your AWS credentials to access foundation models via Amazon Bedrock.',
-    apiKeyLabel: 'AWS Access Key',
-    apiKeyPlaceholder: 'AKIA...',
-  },
+  }
 ];
 
 // ─── Provider Row ─────────────────────────────────────────────────────────────

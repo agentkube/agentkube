@@ -38,7 +38,7 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
   const [resourceYaml, setResourceYaml] = useState<string | undefined>(undefined)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const { user, loading } = useAuth()
+  const { user, loading, oauth2Enabled } = useAuth()
   const { currentContext } = useCluster()
   const navigate = useNavigate()
 
@@ -106,13 +106,13 @@ const EventAnalyzer: React.FC<EventAnalyzerProps> = ({
   const startAnalysis = async () => {
     if (isAnalyzing || hasFetched) return
 
-    // Check if user is authenticated and block the request if not
-    if (!user || !user.isAuthenticated) {
+    // Check if user is authenticated and block the request if not (only when auth is enabled)
+    if (oauth2Enabled && (!user || !user.isAuthenticated)) {
       return
     }
 
-    // Check if user has exceeded their usage limit
-    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+    // Check if user has exceeded their usage limit (only when auth is enabled)
+    if (oauth2Enabled && user && user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
       return
     }
 

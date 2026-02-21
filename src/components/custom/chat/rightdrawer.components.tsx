@@ -115,7 +115,7 @@ const RightDrawer: React.FC = () => {
   } | null>(null);
 
   const { currentContext } = useCluster();
-  const { user } = useAuth();
+  const { user, oauth2Enabled } = useAuth();
 
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
@@ -467,8 +467,8 @@ const RightDrawer: React.FC = () => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
-    // Check if user is authenticated and block the request if not
-    if (!user || !user.isAuthenticated) {
+    // Check if user is authenticated and block the request if not (only when auth is enabled)
+    if (oauth2Enabled && (!user || !user.isAuthenticated)) {
       setMessages(prev => [...prev,
       {
         role: 'user',
@@ -484,8 +484,8 @@ const RightDrawer: React.FC = () => {
       return;
     }
 
-    // Check if user has exceeded their usage limit
-    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+    // Check if user has exceeded their usage limit (only when auth is enabled)
+    if (oauth2Enabled && user && user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
       setMessages(prev => [...prev,
       {
         role: 'user',
@@ -949,8 +949,8 @@ const RightDrawer: React.FC = () => {
     // We just re-send the message to the API
     if (!userMessage.trim()) return;
 
-    // Check if user is authenticated and block the request if not
-    if (!user || !user.isAuthenticated) {
+    // Check if user is authenticated and block the request if not (only when auth is enabled)
+    if (oauth2Enabled && (!user || !user.isAuthenticated)) {
       setMessages(prev => [...prev,
       {
         role: 'assistant',
@@ -961,8 +961,8 @@ const RightDrawer: React.FC = () => {
       return;
     }
 
-    // Check if user has exceeded their usage limit
-    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+    // Check if user has exceeded their usage limit (only when auth is enabled)
+    if (oauth2Enabled && user && user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
       setMessages(prev => [...prev,
       {
         role: 'assistant',

@@ -106,7 +106,7 @@ import { CodeBlockProvider } from "./contexts/useCodeBlock";
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <AuthProvider enabled={false}>
         <AnalyticsProvider>
           <ModelsProvider>
             <WorkspaceProvider>

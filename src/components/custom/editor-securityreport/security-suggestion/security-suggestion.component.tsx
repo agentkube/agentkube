@@ -20,7 +20,7 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
   const [codeBlock, setCodeBlock] = useState<string>('');
-  const { user } = useAuth();
+  const { user, oauth2Enabled } = useAuth();
 
   // Extract code block from markdown response
   useEffect(() => {
@@ -39,16 +39,16 @@ const SecuritySuggestion: React.FC<SecuritySuggestionProps> = ({ yamlContent, mi
   const fetchSuggestion = async () => {
     if (isLoading || hasFetched) return;
 
-    // Check if user is authenticated and block the request if not
-    if (!user || !user.isAuthenticated) {
+    // Check if user is authenticated and block the request if not (only when auth is enabled)
+    if (oauth2Enabled && (!user || !user.isAuthenticated)) {
       sooner("Sign In Required", {
         description: "This feature requires you to be signed in. Please sign in to continue using the AI assistant and access your free credits.",
       });
       return;
     }
 
-    // Check if user has exceeded their usage limit
-    if (user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
+    // Check if user has exceeded their usage limit (only when auth is enabled)
+    if (oauth2Enabled && user && user.usage_limit && (user.usage_count || 0) >= user.usage_limit) {
       sooner("Usage Limit Exceeded", {
         description: `You have reached your usage limit of ${user.usage_limit} requests. Please upgrade your plan to continue using the AI assistant.`,
       });

@@ -23,8 +23,10 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const { user } = useAuth();
-  const isPremiumUser = user?.isAuthenticated || false;
+  const { user, oauth2Enabled } = useAuth();
+  // If auth is disabled, treat as premium user (guest has access to all models)
+  // If auth is enabled, check if user is authenticated
+  const isPremiumUser = !oauth2Enabled || user?.isAuthenticated || false;
 
   // Filter models based on enabled status
   const enabledModels = models.filter(model => 

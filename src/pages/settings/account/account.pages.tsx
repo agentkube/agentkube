@@ -22,15 +22,21 @@ const Account = () => {
   const {
     user,
     loginSession,
+    oauth2Enabled,
     initiateLogin,
     handleManualCallback,
     logout,
     setUser
   } = useAuth();
 
-  // Fetch latest user profile directly from API every time the account page is visited
+  // Fetch latest user profile directly from API only when auth is enabled and user is authenticated
   useEffect(() => {
     const fetchUserProfile = async () => {
+      // Only fetch if OAuth2 is enabled and user is authenticated
+      if (!oauth2Enabled || !user?.isAuthenticated) {
+        return;
+      }
+
       try {
         const profile = await getUserProfile();
 
@@ -41,7 +47,7 @@ const Account = () => {
             id: profile.id,
             email: profile.email,
             name: profile.name,
-            isAuthenticated: true, // Set authentication status to true
+            isAuthenticated: true,
             supabaseId: profile.supabaseId,
             usage_count: profile.usage_count,
             usage_limit: profile.usage_limit,
@@ -55,42 +61,44 @@ const Account = () => {
       }
     };
 
-    // Always fetch profile when component mounts if user is authenticated
     fetchUserProfile();
-  }, [setUser]); // Removed user?.isAuthenticated dependency to fetch on every mount
+  }, [setUser, oauth2Enabled, user?.isAuthenticated]);
 
   // Separate effect to handle authentication state changes
   useEffect(() => {
-    if (user?.isAuthenticated) {
-      // User successfully authenticated - close the login dialog
-      setIsLoginDialogOpen(false);
-      setAuthCode('');
-      setIsLoggingIn(false);
-
-      const fetchUserProfile = async () => {
-        try {
-          const profile = await getUserProfile();
-
-          setUser(prevUser => {
-            if (!prevUser) return null;
-            return {
-              ...prevUser,
-              supabaseId: profile.supabaseId,
-              usage_count: profile.usage_count,
-              usage_limit: profile.usage_limit,
-              subscription: profile.subscription,
-              createdAt: profile.createdAt,
-              updatedAt: profile.updatedAt
-            };
-          });
-        } catch (error) {
-          console.error('Failed to load user profile on auth change:', error);
-        }
-      };
-
-      fetchUserProfile();
+    // Only proceed if OAuth2 is enabled and user is authenticated
+    if (!oauth2Enabled || !user?.isAuthenticated) {
+      return;
     }
-  }, [user?.isAuthenticated, setUser]);
+
+    // User successfully authenticated - close the login dialog
+    setIsLoginDialogOpen(false);
+    setAuthCode('');
+    setIsLoggingIn(false);
+
+    const fetchUserProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            supabaseId: profile.supabaseId,
+            usage_count: profile.usage_count,
+            usage_limit: profile.usage_limit,
+            subscription: profile.subscription,
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt
+          };
+        });
+      } catch (error) {
+        console.error('Failed to load user profile on auth change:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.isAuthenticated, setUser, oauth2Enabled]);
 
   const handleLogout = async () => {
     try {
@@ -190,7 +198,47 @@ const Account = () => {
 
 
 
-  // If not authenticated, show login interface
+  // If OAuth2 is disabled, show guest user profile (simplified view)
+  if (!oauth2Enabled) {
+    return (
+      <div className="p-6 mx-auto space-y-4">
+        <div>
+          <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Account</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Manage your account settings and preferences
+          </p>
+        </div>
+
+        {/* Guest Profile Information */}
+        <Card className="bg-transparent dark:bg-transparent border border-gray-200 dark:border-gray-700/30 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-end">
+              <div className="bg-gray-100 dark:bg-gray-900/20 p-10 rounded-lg mr-4">
+                <User className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+              </div>
+              <div className="flex-1">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-gray-900 dark:text-gray-300">
+                      {user?.name || 'Guest'}
+                    </p>
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-200">
+                      Guest
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-900 dark:text-gray-400">
+                    {user?.email || 'guest@agentkube.com'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If OAuth2 enabled but not authenticated, show login interface
   if (!user?.isAuthenticated) {
     return (
       <div className="p-6 mx-auto space-y-8">

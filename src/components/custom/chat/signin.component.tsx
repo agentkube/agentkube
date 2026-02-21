@@ -5,26 +5,26 @@ import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const SignInContainer: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, oauth2Enabled } = useAuth();
   const [shouldShow, setShouldShow] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Only show sign in if user is not authenticated
-    if (!loading) {
+    // Only show sign in if auth is enabled and user is not authenticated
+    if (!loading && oauth2Enabled) {
       setShouldShow(!user || !user.isAuthenticated);
     } else {
       setShouldShow(false);
     }
-  }, [user, loading]);
+  }, [user, loading, oauth2Enabled]);
 
   const handleSignIn = () => {
     navigate('/settings/account');
   };
 
 
-  // Don't render anything while loading or if shouldn't show
-  if (loading || !shouldShow) {
+  // Don't render anything if auth is disabled, while loading, or if shouldn't show
+  if (!oauth2Enabled || loading || !shouldShow) {
     return null;
   }
 

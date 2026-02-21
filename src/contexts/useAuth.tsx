@@ -64,7 +64,12 @@ const getUserInfoFromSession = (): UserInfo | null => {
   return stored ? JSON.parse(stored) : null;
 };
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: ReactNode;
+  enabled?: boolean; // When false, uses guest user instead of authentication
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children, enabled = false }) => {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [loginSession, setLoginSession] = useState<LoginSession | null>(null);
@@ -81,13 +86,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         setLoading(true);
 
+        // If authentication is disabled, use guest user
+        if (!enabled) {
+          const guestUser: UserInfo = {
+            id: 'guest',
+            email: 'guest@agentkube.com',
+            name: 'Guest',
+            isAuthenticated: false
+          };
+          setUser(guestUser);
+          storeUserInfoInSession(guestUser);
+          setOauth2Enabled(false);
+          setLoading(false);
+          return;
+        }
+
         // Check if OAuth2 is enabled
         const config = await getOAuth2Config();
         setOauth2Enabled(config.oauth2_enabled);
 
         if (!config.oauth2_enabled) {
-          setUser(null);
-          storeUserInfoInSession(null);
+          const guestUser: UserInfo = {
+            id: 'guest',
+            email: 'guest@agentkube.com',
+            name: 'Guest',
+            isAuthenticated: false
+          };
+          setUser(guestUser);
+          storeUserInfoInSession(guestUser);
           setLoading(false);
           return;
         }
@@ -159,7 +185,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     initializeAuth();
-  }, [toast]);
+  }, [toast, enabled]);
 
   // Cleanup polling on unmount
   useEffect(() => {

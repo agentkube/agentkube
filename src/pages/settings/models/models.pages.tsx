@@ -32,8 +32,13 @@ import { getProviderIcon } from '@/utils/providerIconMap';
 import { openExternalUrl } from '@/api/external';
 
 // Sign In Banner Component
-const SignInBanner = ({ user }: { user: any }) => {
+const SignInBanner = ({ user, oauth2Enabled }: { user: any; oauth2Enabled: boolean }) => {
   const navigate = useNavigate();
+
+  // Don't show banner if auth is disabled
+  if (!oauth2Enabled) {
+    return null;
+  }
 
   if (user?.isAuthenticated) {
     // Check if user is close to usage limit (80% or more)
@@ -134,8 +139,10 @@ const SignInBanner = ({ user }: { user: any }) => {
 const ModelConfiguration = () => {
   const { models, toggleModel, addModel, removeModel, refreshModels } = useModels();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isPremiumUser = user?.isAuthenticated || false;
+  const { user, oauth2Enabled } = useAuth();
+  // If auth is disabled, treat as premium user (guest has access to all models)
+  // If auth is enabled, check if user is authenticated
+  const isPremiumUser = !oauth2Enabled || user?.isAuthenticated || false;
 
   const [showAddInput, setShowAddInput] = useState(false);
   const [newModelName, setNewModelName] = useState('');
@@ -324,7 +331,7 @@ const ModelConfiguration = () => {
       </div>
 
       {/* Sign In Banner */}
-      <SignInBanner user={user} />
+      <SignInBanner user={user} oauth2Enabled={oauth2Enabled} />
 
       {/* Search Input */}
       <div className="relative">

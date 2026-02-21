@@ -5,13 +5,13 @@ import { useAuth } from '@/contexts/useAuth';
 import { openExternalUrl } from '@/api/external';
 
 const UpgradeToProContainer: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, oauth2Enabled } = useAuth();
   const [shouldShow, setShouldShow] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Show upgrade if user is authenticated and close to limit or exceeded
-    if (!loading && user?.isAuthenticated) {
+    // Show upgrade if auth is enabled, user is authenticated, and close to limit or exceeded
+    if (!loading && oauth2Enabled && user?.isAuthenticated) {
       // Check if user has exceeded limit or is close to usage limit (80% or more)
       const usagePercentage = user.usage_limit && user.usage_count ? (user.usage_count / user.usage_limit) * 100 : 0;
       const hasExceededLimit = user.usage_limit && (user.usage_count || 0) >= user.usage_limit;
@@ -19,7 +19,7 @@ const UpgradeToProContainer: React.FC = () => {
     } else {
       setShouldShow(false);
     }
-  }, [user, loading]);
+  }, [user, loading, oauth2Enabled]);
 
   const handleUpgrade = () => {
     openExternalUrl("https://account.agentkube.com");
@@ -29,8 +29,8 @@ const UpgradeToProContainer: React.FC = () => {
     setIsDismissed(true);
   };
 
-  // Don't render anything while loading or if shouldn't show or if dismissed
-  if (loading || !shouldShow || !user?.isAuthenticated || isDismissed) {
+  // Don't render anything if auth is disabled, while loading, if shouldn't show, or if dismissed
+  if (!oauth2Enabled || loading || !shouldShow || !user?.isAuthenticated || isDismissed) {
     return null;
   }
 
