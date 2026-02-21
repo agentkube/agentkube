@@ -54,3 +54,12 @@ dist-ssr
 app.db
 
 dist_bin
+
+
+#python
+__pycache__
+.env
+.env.local
+build
+.venv
+venv 

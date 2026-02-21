@@ -21,8 +21,46 @@ import {
   SiX
 } from '@icons-pack/react-simple-icons';
 import { OpenRouter } from '@/assets/icons';
+import { patchConfig } from '@/api/settings';
+import { toast } from '@/hooks/use-toast';
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
+// Function to encode in base64
+const encodeBase64 = (str: string): string => {
+  try {
+    return btoa(str);
+  } catch (e) {
+    console.error('Failed to encode to base64:', e);
+    return '';
+  }
+};
+
+// Map dialog provider IDs to backend config keys
+const PROVIDER_ID_MAP: Record<string, string> = {
+  'github-copilot': 'github',
+  'openrouter': 'openrouter',
+  'openai': 'openai',
+  'anthropic': 'anthropic',
+  'google': 'google',
+  'vercel': 'vercel',
+  'mistral': 'mistral',
+  'groq': 'groq',
+  'cohere': 'cohere',
+  'azure': 'azure',
+  'ollama': 'ollama',
+  'vllm': 'vllm',
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface ProviderField {
+  name: string;
+  label: string;
+  placeholder: string;
+  type?: 'text' | 'password';
+  required?: boolean;
+}
 
 export interface Provider {
   id: string;
@@ -34,6 +72,7 @@ export interface Provider {
   connectDescription?: string;
   apiKeyLabel?: string;
   apiKeyPlaceholder?: string;
+  fields?: ProviderField[]; // For providers requiring multiple fields
 }
 
 // ─── Provider List ────────────────────────────────────────────────────────────
@@ -97,6 +136,40 @@ const PROVIDERS: Provider[] = [
     apiKeyLabel: 'Vercel API key',
     apiKeyPlaceholder: 'API key',
   },
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    icon: <Cpu className={IC} />,
+    category: 'popular',
+    badge: 'Local',
+    connectDescription: 'Connect to your local Ollama instance for completely offline, private AI inference.',
+    fields: [
+      {
+        name: 'endpoint',
+        label: 'Endpoint',
+        placeholder: 'http://127.0.0.1:11434/v1',
+        type: 'text',
+        required: true,
+      },
+    ],
+  },
+  {
+    id: 'vllm',
+    name: 'vLLM',
+    icon: <Shuffle className={IC} />,
+    category: 'popular',
+    badge: 'Local',
+    connectDescription: 'Connect to your local vLLM inference server for high-performance, production-ready AI.',
+    fields: [
+      {
+        name: 'endpoint',
+        label: 'Endpoint',
+        placeholder: 'http://localhost:8000',
+        type: 'text',
+        required: true,
+      },
+    ],
+  },
 
   // ── Other ──────────────────────────────────────────────────────────────────
   {
@@ -125,7 +198,37 @@ const PROVIDERS: Provider[] = [
     connectDescription: 'Enter your Cohere API key to connect your account and use Cohere models in AgentKube.',
     apiKeyLabel: 'Cohere API key',
     apiKeyPlaceholder: 'API key',
-  }
+  },
+  {
+    id: 'azure',
+    name: 'Azure OpenAI',
+    icon: <Triangle className={IC} />,
+    category: 'other',
+    connectDescription: 'Connect to Azure OpenAI for enterprise-grade AI with your own deployment.',
+    fields: [
+      {
+        name: 'baseUrl',
+        label: 'Base URL',
+        placeholder: 'https://your-resource.openai.azure.com',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'deploymentName',
+        label: 'Deployment Name',
+        placeholder: 'gpt-4',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'apiKey',
+        label: 'API Key',
+        placeholder: 'Enter your Azure OpenAI API key',
+        type: 'password',
+        required: true,
+      },
+    ],
+  },
 ];
 
 // ─── Provider Row ─────────────────────────────────────────────────────────────
@@ -253,20 +356,103 @@ const ListView: React.FC<ListViewProps> = ({ onSelect }) => {
 interface ConnectViewProps {
   provider: Provider;
   onBack: () => void;
-  onSubmit: (provider: Provider, apiKey: string) => void;
+  onSubmit: (provider: Provider, data: Record<string, string>) => void;
 }
 
 const ConnectView: React.FC<ConnectViewProps> = ({ provider, onBack, onSubmit }) => {
-  const [apiKey, setApiKey] = useState('');
+  const [formData, setFormData] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
+  // Initialize form data with default values if needed
+  React.useEffect(() => {
+    if (provider.fields) {
+      const initialData: Record<string, string> = {};
+      provider.fields.forEach(field => {
+        initialData[field.name] = '';
+      });
+      setFormData(initialData);
+    } else {
+      setFormData({ apiKey: '' });
+    }
+  }, [provider]);
+
+  const handleFieldChange = (fieldName: string, value: string) => {
+    setFormData(prev => ({ ...prev, [fieldName]: value }));
+  };
+
+  const isFormValid = () => {
+    if (provider.fields) {
+      return provider.fields
+        .filter(f => f.required !== false)
+        .every(field => formData[field.name]?.trim());
+    }
+    return formData.apiKey?.trim();
+  };
+
   const handleSubmit = async () => {
-    if (!apiKey.trim()) return;
+    if (!isFormValid()) return;
     setLoading(true);
-    // Simulate async save (replace with real logic later)
-    await new Promise((r) => setTimeout(r, 600));
-    setLoading(false);
-    onSubmit(provider, apiKey);
+
+    try {
+      // Get the backend config key for this provider
+      const configKey = PROVIDER_ID_MAP[provider.id] || provider.id;
+
+      // Build the config object based on provider type
+      let providerConfig: any = { enabled: true };
+
+      if (provider.fields) {
+        // Multi-field providers (Azure, Ollama, vLLM)
+        provider.fields.forEach(field => {
+          const value = formData[field.name];
+          if (value) {
+            if (field.name === 'apiKey') {
+              providerConfig.apiKey = encodeBase64(value);
+            } else {
+              providerConfig[field.name] = value;
+            }
+          }
+        });
+      } else {
+        // Single API key providers
+        if (formData.apiKey) {
+          providerConfig.apiKey = encodeBase64(formData.apiKey);
+        }
+      }
+
+      // Save to backend
+      const configUpdate = {
+        models: {
+          externalProviderSettings: {
+            [configKey]: providerConfig
+          }
+        }
+      };
+
+      await patchConfig(configUpdate);
+
+      toast({
+        title: 'Success',
+        description: `${provider.name} connected successfully`,
+        variant: 'default',
+      });
+
+      setLoading(false);
+      onSubmit(provider, formData);
+    } catch (error) {
+      console.error(`Error connecting ${provider.name}:`, error);
+      toast({
+        title: 'Error',
+        description: `Failed to connect ${provider.name}. Please try again.`,
+        variant: 'destructive',
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && isFormValid()) {
+      handleSubmit();
+    }
   };
 
   return (
@@ -290,6 +476,14 @@ const ConnectView: React.FC<ConnectViewProps> = ({ provider, onBack, onSubmit })
         <DialogTitle className="text-lg font-semibold text-foreground">
           Connect {provider.name}
         </DialogTitle>
+        {provider.badge && (
+          <Badge
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 h-4 border-border text-muted-foreground"
+          >
+            {provider.badge}
+          </Badge>
+        )}
       </div>
 
       {/* Description */}
@@ -298,23 +492,48 @@ const ConnectView: React.FC<ConnectViewProps> = ({ provider, onBack, onSubmit })
           `Enter your ${provider.name} API key to connect your account and use ${provider.name} models in AgentKube.`}
       </p>
 
-      {/* API Key field */}
-      <div className="px-6 pt-5 pb-6 space-y-2">
-        <Label className="text-xs text-muted-foreground">
-          {provider.apiKeyLabel ?? `${provider.name} API key`}
-        </Label>
-        <Input
-          autoFocus
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder={provider.apiKeyPlaceholder ?? 'API key'}
-          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        />
+      {/* Form fields */}
+      <div className="px-6 pt-5 pb-6 space-y-3">
+        {provider.fields ? (
+          // Multi-field form (Azure, Ollama, vLLM)
+          provider.fields.map((field, index) => (
+            <div key={field.name} className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                {field.label}
+                {field.required !== false && <span className="text-red-500 ml-1">*</span>}
+              </Label>
+              <Input
+                autoFocus={index === 0}
+                type={field.type ?? 'text'}
+                value={formData[field.name] || ''}
+                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                placeholder={field.placeholder}
+                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+          ))
+        ) : (
+          // Single API key field (default)
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              {provider.apiKeyLabel ?? `${provider.name} API key`}
+            </Label>
+            <Input
+              autoFocus
+              type="password"
+              value={formData.apiKey || ''}
+              onChange={(e) => handleFieldChange('apiKey', e.target.value)}
+              placeholder={provider.apiKeyPlaceholder ?? 'API key'}
+              className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+        )}
+
         <Button
           onClick={handleSubmit}
-          disabled={!apiKey.trim() || loading}
+          disabled={!isFormValid() || loading}
           className="mt-1 w-auto bg-foreground text-background hover:bg-foreground/90 font-medium"
         >
           {loading ? 'Connecting…' : 'Connect'}
@@ -329,7 +548,7 @@ const ConnectView: React.FC<ConnectViewProps> = ({ provider, onBack, onSubmit })
 export interface ProviderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectProvider?: (provider: Provider, apiKey: string) => void;
+  onSelectProvider?: (provider: Provider, data: Record<string, string>) => void;
 }
 
 const ProviderDialog: React.FC<ProviderDialogProps> = ({
@@ -341,8 +560,8 @@ const ProviderDialog: React.FC<ProviderDialogProps> = ({
 
   const handleBack = () => setSelected(null);
 
-  const handleSubmit = (provider: Provider, apiKey: string) => {
-    onSelectProvider?.(provider, apiKey);
+  const handleSubmit = (provider: Provider, data: Record<string, string>) => {
+    onSelectProvider?.(provider, data);
     // reset for next open
     setSelected(null);
     onOpenChange(false);

@@ -7,14 +7,6 @@ import { getSettings, patchConfig } from '@/api/settings';
 import { toast } from '@/hooks/use-toast'; // Assuming you have a toast component
 import { openExternalUrl } from '@/api/external';
 import { useAuth } from '@/contexts/useAuth';
-import {
-  validateOpenAIKey,
-  validateAnthropicKey,
-  validateGoogleKey,
-  validateAzureKey,
-  validateUrl,
-  validateAzureUrl
-} from '@/utils/key-validator.utils';
 
 interface ModelConfigProps {
   // You can add props here if needed
@@ -22,11 +14,12 @@ interface ModelConfigProps {
 
 
 const ModelConfig: React.FC<ModelConfigProps> = () => {
-  const { user } = useAuth();
+  const { user, oauth2Enabled } = useAuth();
 
   // Check if user has pro plan (developer, startup, or enterprise)
-  const hasProPlan = user?.subscription?.plan && user.subscription.plan !== 'free';
-  const isAuthenticated = user?.isAuthenticated || false;
+  // When auth is disabled, treat guest as having pro plan (full BYOK access)
+  const hasProPlan = !oauth2Enabled || (user?.subscription?.plan && user.subscription.plan !== 'free');
+  const isAuthenticated = !oauth2Enabled || user?.isAuthenticated || false;
 
   // API key states
   const [openAIKey, setOpenAIKey] = useState('');
@@ -733,60 +726,64 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
   return (
     <div className="p-6 space-y-8">
-      {/* Authentication and Plan Check Banner */}
-      {!isAuthenticated ? (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                Sign In Required
-              </h3>
-              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                Please sign in to your AgentKube account to configure external providers (BYOK/BYOM).
-              </p>
-              <Button
-                onClick={() => openExternalUrl("https://account.agentkube.com")}
-                className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
-                size="sm"
-              >
-                Sign In
-              </Button>
+      {/* Authentication and Plan Check Banner - only show when auth is enabled */}
+      {oauth2Enabled && (
+        <>
+          {!isAuthenticated ? (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Sign In Required
+                  </h3>
+                  <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                    Please sign in to your AgentKube account to configure external providers (BYOK/BYOM).
+                  </p>
+                  <Button
+                    onClick={() => openExternalUrl("https://account.agentkube.com")}
+                    className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
+                    size="sm"
+                  >
+                    Sign In
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      ) : !hasProPlan ? (
-        <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <Lock className="h-5 w-5 text-blue-600 dark:text-blue-500 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                Pro Plan Required
-              </h3>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                BYOK (Bring Your Own Key) and BYOM (Bring Your Own Model) features are only available on Pro plans. Upgrade to unlock external provider integration.
-              </p>
-              <Button
-                onClick={() => openExternalUrl("https://account.agentkube.com/settings?tab=plans")}
-                className="w-44 flex justify-between mt-3 bg-blue-600 hover:bg-blue-700 text-white"
-                size="sm"
-              >
-                <Rocket /> Upgrade Plan
-              </Button>
+          ) : !hasProPlan ? (
+            <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <Lock className="h-5 w-5 text-blue-600 dark:text-blue-500 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Pro Plan Required
+                  </h3>
+                  <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                    BYOK (Bring Your Own Key) and BYOM (Bring Your Own Model) features are only available on Pro plans. Upgrade to unlock external provider integration.
+                  </p>
+                  <Button
+                    onClick={() => openExternalUrl("https://account.agentkube.com/settings?tab=plans")}
+                    className="w-44 flex justify-between mt-3 bg-blue-600 hover:bg-blue-700 text-white"
+                    size="sm"
+                  >
+                    <Rocket /> Upgrade Plan
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-4">
-          <div className="flex items-center space-x-3">
-            <Check className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                You have access to BYOK (Bring Your Own Key) features. Configure your external providers below.
-              </p>
+          ) : (
+            <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-4">
+              <div className="flex items-center space-x-3">
+                <Check className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+                    You have access to BYOK (Bring Your Own Key) features. Configure your external providers below.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {/* OpenAI API Key Section */}
