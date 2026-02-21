@@ -31,6 +31,7 @@ import BackgroundTaskDialog from '../backgroundtaskdialog/backgroundtaskdialog.c
 import VulnScanFooterTool from '../vulnscanfootertool/vulnscanfootertool.component';
 import MetricsServerStatusFooter from '../metrics-server/metrics-server-status-footer.component';
 import ThemePickerDialog from '../themepicker/themepickerdialog.component';
+import ProviderFooter from '../providers/provider-footer.component';
 
 // Define types for Update object
 interface UpdateInfo {
@@ -205,6 +206,7 @@ const Footer: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className='flex items-center '>
           <TerminalContainer />
+          <ProviderFooter />
           {showClusterToolStats && <DriftAnalysisContainer />}
           {showClusterToolStats && (
             <div
