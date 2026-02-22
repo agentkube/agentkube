@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Anton", sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1a1a 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 28rem;
+            width: 100%;
+        }
+        
+        .card {
+            background: rgba(38, 38, 38, 0.5);
+            border: 1px solid rgba(64, 64, 64, 0.8);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo {
+            height: 2rem;
+            margin-right: 0.5rem;
+        }
+        
+        .logo-text {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .icon-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .success .icon-container {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .error .icon-container {
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .icon {
+            width: 2rem;
+            height: 2rem;
+        }
+        
+        .success .icon {
+            color: #10b981;
+        }
+        
+        .error .icon {
+            color: #ef4444;
+        }
+        
+        .title {
+            font-size: 1.5rem;
+            font-weight: lighter;
+            /* font-weight: 0; */
+            margin-bottom: 0.5rem;
+        }
+        
+        .success .title {
+            color: #10b981;
+        }
+        
+        .error .title {
+            color: #ef4444;
+        }
+        
+        .message {
+            color: #a3a3a3;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        
+        .user-info {
+            background: rgba(64, 64, 64, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .user-avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: rgba(16, 185, 129, 0.2);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #10b981;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .user-email {
+            font-size: 0.875rem;
+            color: #a3a3a3;
+        }
+        
+        .footer-note {
+            font-size: 0.875rem;
+            color: #737373;
+            margin-top: 1.5rem;
+        }
+        
+        /* Animation for success checkmark */
+        @keyframes checkmark {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .success .icon-container {
+            animation: checkmark 0.6s ease-out;
+        }
+        
+        /* Animation for error icon */
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-4px);
+            }
+            75% {
+                transform: translateX(4px);
+            }
+        }
+        
+        .error .icon-container {
+            animation: shake 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <svg class="logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                <span class="logo-text">Agentkube</span>
+            </div>
+            
+            <div class="{status}">
+                <div class="icon-container">
+                    {icon}
+                </div>
+                <h1 class="title">{title}</h1>
+                <p class="message">{message}</p>
+                
+                {user_info}
+                
+                <p class="footer-note">
+                    You can now close this browser window and return to the application.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

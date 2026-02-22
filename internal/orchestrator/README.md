@@ -1,1 +1,4 @@
-> Orchestrator code will be added soon
+# Orchestrator
+
+Orchestrator is Agentkube desktop app AI and Configuration services.
+
