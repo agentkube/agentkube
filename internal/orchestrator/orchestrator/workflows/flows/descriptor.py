@@ -42,7 +42,6 @@ def create_descriptor_agent(openai_client, model_name: str) -> Agent:
             openai_client=openai_client
         ),
         model_settings=ModelSettings(
-            parallel_tool_calls=True,
             temperature=0.1,
             extra_headers={
                 "HTTP-Referer": "https://agentkube.com",  

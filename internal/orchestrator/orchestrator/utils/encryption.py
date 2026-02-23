@@ -3,7 +3,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import binascii
 
-ENCRYPTION_SECRET = ""
+ENCRYPTION_SECRET = "0d1f689ddfb52e1790c640bcbf3adaf2b8f5562bf94744108c3d9bb9a64c078c"
 
 def encrypt_data(text: str) -> str:
     """

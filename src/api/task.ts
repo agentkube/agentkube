@@ -86,11 +86,26 @@ export const submitInvestigationTask = async (
           }
         }
       }
-    } finally {
-      // Close the stream - the task report page will reconnect
+    } catch (e) {
       reader.releaseLock();
       abortController.abort();
+      throw e;
     }
+
+    // Keep reading the stream in the background to prevent the connection from closing.
+    // Doing so allows the orchestrator to continue its investigation process without being disrupted by a disconnect.
+    (async () => {
+      try {
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+      } catch (e) {
+        console.debug('Background investigation stream closed:', e);
+      } finally {
+        reader.releaseLock();
+      }
+    })();
 
     if (!taskId) {
       throw new Error('No task_id received from investigation stream');
@@ -102,16 +117,6 @@ export const submitInvestigationTask = async (
       message: 'Investigation started'
     };
   } catch (error) {
-    // AbortError is expected when we intentionally close the stream
-    if ((error as Error).name === 'AbortError') {
-      console.log('Stream closed after getting task_id');
-      // Don't throw - this is expected behavior
-      return {
-        task_id: '', // This shouldn't happen as we return before abort
-        status: 'processing',
-        message: 'Investigation started'
-      };
-    }
     console.error('Error submitting investigation:', error);
     throw error;
   }

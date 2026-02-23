@@ -325,7 +325,7 @@ async def run_supervisor_investigation(
             model_name=model.replace("openai/", "")
         )
     
-    # Create OpenAI client
+    # OpenAI client
     client = AsyncOpenAI(
         base_url=provider_config.base_url,
         api_key=provider_config.api_key
@@ -385,10 +385,7 @@ async def run_supervisor_investigation(
             
             # Use parser agent to convert TOON output to structured data
             collected_data = await process_agent_output(result, parser_agent, trace_id)
-            
-            if await should_track_usage(provider_config.model_name):
-                # await update_oauth2_usage_async()
-                pass
+
             # print(result.final_output)
             # Add agent type and timestamp if it's a dict (parsed successfully)
             if isinstance(collected_data, dict):
@@ -476,9 +473,9 @@ async def run_supervisor_investigation(
             
             collected_data = await process_agent_output(result, parser_agent, trace_id)
             
-            if await should_track_usage(provider_config.model_name):
-                 # await update_oauth2_usage_async()
-                pass
+            # if await should_track_usage(model):
+            #      # await update_oauth2_usage_async()
+            #     pass
             # print(result.final_output)
             if isinstance(collected_data, dict):
                 if "tool_calls" in collected_data:
@@ -551,10 +548,10 @@ async def run_supervisor_investigation(
             
             collected_data = await process_agent_output(result, parser_agent, trace_id)
             
-            if await should_track_usage(provider_config.model_name):
-                # await update_oauth2_usage_async()
-                pass
-            # print(result.final_output)
+            # if await should_track_usage(model):
+            #     # await update_oauth2_usage_async()
+            #     pass
+
             if isinstance(collected_data, dict):
                 if "tool_calls" in collected_data:
                     final_json = collected_data.get("final_response", "{}")
@@ -637,9 +634,9 @@ Begin your investigation by gathering evidence using the available tools."""}
     accumulated_summary = ""
     accumulated_remediation = ""
 
-    if await should_track_usage(provider_config.model_name):
-        # await update_oauth2_usage_async()
-        pass
+    # if await should_track_usage(model):
+    #     # await update_oauth2_usage_async()
+    #     pass
     
     for iteration in range(max_iterations):
         logger.info(f"[Supervisor] Iteration {iteration + 1}/{max_iterations}")
@@ -652,7 +649,7 @@ Begin your investigation by gathering evidence using the available tools."""}
                 tools=tools_schema,
                 tool_choice="auto",
                 temperature=0.1,
-                max_tokens=50000,
+                # max_tokens=50000,
                 extra_headers={
                     "HTTP-Referer": "https://agentkube.com",
                     "X-Title": "Agentkube Investigation"
@@ -838,9 +835,9 @@ Begin your investigation by gathering evidence using the available tools."""}
                     draft_remediation=accumulated_remediation
                 )
                 
-                if await should_track_usage(provider_config.model_name):
-                    # await update_oauth2_usage_async()
-                    pass
+                # if await should_track_usage(model):
+                #     # await update_oauth2_usage_async()
+                #     pass
                 
                 yield {
                     "type": "critique_complete",

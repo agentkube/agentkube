@@ -116,7 +116,6 @@ async def stream_title_generation(
                 name="Agentkube: Title Generator Agent",
                 instructions=TITLE_GENERATION_SYSTEM_PROMPT,
                 model_settings=ModelSettings(
-                    parallel_tool_calls=False,
                     temperature=0.3,
                     extra_headers={
                         "HTTP-Referer": "https://agentkube.com",
@@ -130,8 +129,6 @@ async def stream_title_generation(
                         api_key=provider_config.api_key,
                     )
                 ),
-                # No tools needed for title generation - just text output
-                tools=[]
             )
             
             # Create prompt

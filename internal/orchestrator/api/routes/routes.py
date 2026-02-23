@@ -565,9 +565,9 @@ def setup_routes(api):
         )
 
         # # Only track usage if using OpenRouter (not BYOK)
-        if await should_track_usage(request.model or "openai/gpt-4o-mini"):
-            # background_tasks.add_task(update_oauth2_usage_async)
-            pass
+        # if await should_track_usage(request.model or "openai/gpt-4o-mini"):
+        #     # background_tasks.add_task(update_oauth2_usage_async)
+        #     pass
 
         return response
 
@@ -843,8 +843,8 @@ def setup_routes(api):
         )
 
         # Only track usage if using OpenRouter (not BYOK)
-        if await should_track_usage(request.model or "openai/gpt-4o-mini"):
-            background_tasks.add_task(update_oauth2_usage_async)
+        # if await should_track_usage(request.model or "openai/gpt-4o-mini"):
+        #     background_tasks.add_task(update_oauth2_usage_async)
         
         return response
     
@@ -856,9 +856,9 @@ def setup_routes(api):
             media_type="text/event-stream"
         )
 
-        # Only track usage if using OpenRouter (not BYOK)
-        if await should_track_usage(request.model or "openai/gpt-4o-mini"):
-            background_tasks.add_task(update_oauth2_usage_async)
+        # # Only track usage if using OpenRouter (not BYOK)
+        # if await should_track_usage(request.model or "openai/gpt-4o-mini"):
+        #     background_tasks.add_task(update_oauth2_usage_async)
 
         return response
 
@@ -871,8 +871,8 @@ def setup_routes(api):
         )
 
         # Only track usage if using OpenRouter (not BYOK)
-        if await should_track_usage(request.model or "openai/gpt-4o-mini"):
-            background_tasks.add_task(update_oauth2_usage_async)
+        # if await should_track_usage(request.model or "openai/gpt-4o-mini"):
+        #     background_tasks.add_task(update_oauth2_usage_async)
 
         return response
 
@@ -902,10 +902,6 @@ def setup_routes(api):
             stream_title_generation(request),
             media_type="text/event-stream"
         )
-
-        # Only track usage if using OpenRouter (not BYOK)
-        if await should_track_usage(request.model or "openai/gpt-4o-mini"):
-            background_tasks.add_task(update_oauth2_usage_async)
 
         return response
 
@@ -1288,8 +1284,8 @@ def setup_routes(api):
         )
 
         # Only track usage if using OpenRouter (not BYOK)
-        if await should_track_usage(request.model or "openai/gpt-4o-mini"):
-            background_tasks.add_task(update_oauth2_usage_async)
+        # if await should_track_usage(request.model or "openai/gpt-4o-mini"):
+        #     background_tasks.add_task(update_oauth2_usage_async)
         
         return response
     
