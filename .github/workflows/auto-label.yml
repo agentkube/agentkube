@@ -1,20 +1,18 @@
-// Testing keywords
-            if (content.match(/\b(test|testing|unit test|integration|spec)\b/)) {
-              labels.push('testing');
-            }name: Auto Label Issues
+name: Auto Label Issues and PRs
 
 on:
   issues:
     types: [opened, edited]
   pull_request:
-    types: [opened, edited]
+    types: [opened, edited, synchronize]
 
 permissions:
   issues: write
   pull-requests: write
+  contents: read
 
 jobs:
-  label:
+  auto-label:
     runs-on: ubuntu-latest
     steps:
       - name: Auto Label Issues and PRs
@@ -28,56 +26,60 @@ jobs:
             const labels = [];
             
             // Bug-related keywords
-            if (content.match(/\b(bug|error|issue|problem|broken|crash|fail|not working|doesn't work)\b/)) {
+            if (content.match(/\b(bug|error|issue|problem|broken|crash|fail|not working|doesn't work|fix)\b/)) {
               labels.push('bug');
             }
             
             // Enhancement/Feature keywords
-            if (content.match(/\b(feature|enhancement|improve|add|new|request|suggestion)\b/)) {
+            if (content.match(/\b(feature|enhancement|improve|add|new|request|suggestion|feat)\b/)) {
               labels.push('enhancement');
             }
             
             // Documentation keywords
-            if (content.match(/\b(documentation|docs|readme|guide|tutorial|help|example)\b/)) {
+            if (content.match(/\b(documentation|docs|readme|guide|tutorial|help|example|doc)\b/)) {
               labels.push('documentation');
             }
             
             // Question keywords
-            if (content.match(/\b(question|how to|help|support|unclear)\b/) || title.includes('?')) {
+            if (content.match(/\b(question|how to|help|support|unclear|why|what|when|where)\b/) || title.includes('?')) {
               labels.push('question');
             }
             
             // Security keywords
-            if (content.match(/\b(security|vulnerability|exploit|cve|unsafe|attack)\b/)) {
+            if (content.match(/\b(security|vulnerability|exploit|cve|unsafe|attack|auth|permission)\b/)) {
               labels.push('security');
             }
             
             // Performance keywords
-            if (content.match(/\b(performance|slow|optimization|speed|memory|cpu)\b/)) {
+            if (content.match(/\b(performance|slow|optimization|speed|memory|cpu|latency|timeout)\b/)) {
               labels.push('performance');
             }
             
             // Testing keywords
-            if (content.match(/\b(test|testing|unit test|integration|spec)\b/)) {
+            if (content.match(/\b(test|testing|unit test|integration|spec|ci|cd)\b/)) {
               labels.push('testing');
             }
             
             // Priority labels based on keywords
-            if (content.match(/\b(urgent|critical|high priority|asap|immediately)\b/)) {
+            if (content.match(/\b(urgent|critical|high priority|asap|immediately|blocker)\b/)) {
               labels.push('priority: high');
-            } else if (content.match(/\b(low priority|nice to have|minor|trivial)\b/)) {
+            } else if (content.match(/\b(low priority|nice to have|minor|trivial|someday)\b/)) {
               labels.push('priority: low');
-            } else {
+            } else if (content.match(/\b(medium|normal|standard)\b/)) {
               labels.push('priority: medium');
             }
             
-            // Technology specific labels for Tauri/Rust backend
+            // Technology specific labels for Agentkube
             const techLabels = {
-              'rust': /\b(rust|cargo|rustc|crate)\b/,
-              'tauri': /\b(tauri|webview|desktop|app)\b/,
-              'backend': /\b(backend|api|server|database|db|endpoint)\b/,
-              'build': /\b(build|compilation|compile|cargo build)\b/,
-              'dependencies': /\b(dependencies|deps|crate|cargo\.toml)\b/
+              'rust': /\b(rust|cargo|rustc|crate|tauri)\b/,
+              'frontend': /\b(react|typescript|vite|ui|frontend|web)\b/,
+              'backend': /\b(backend|api|server|database|db|endpoint|go|golang)\b/,
+              'orchestrator': /\b(orchestrator|python|ai|ml|agent)\b/,
+              'operator': /\b(operator|kubernetes|k8s|helm|cluster)\b/,
+              'build': /\b(build|compilation|compile|cargo build|github actions|ci)\b/,
+              'dependencies': /\b(dependencies|deps|crate|package\.json|go\.mod|requirements\.txt)\b/,
+              'deployment': /\b(deployment|deploy|release|docker|container)\b/,
+              'networking': /\b(network|port|connection|websocket|http|api)\b/
             };
             
             for (const [label, regex] of Object.entries(techLabels)) {
@@ -86,17 +88,50 @@ jobs:
               }
             }
             
+            // Component-specific labels
+            if (content.match(/\b(dashboard|ui|component|style|css|tailwind)\b/)) {
+              labels.push('component: ui');
+            }
+            
+            if (content.match(/\b(config|configuration|settings|environment)\b/)) {
+              labels.push('component: config');
+            }
+            
+            // Size estimation for PRs
+            if (context.payload.pull_request) {
+              const additions = context.payload.pull_request.additions || 0;
+              const deletions = context.payload.pull_request.deletions || 0;
+              const changes = additions + deletions;
+              
+              if (changes < 50) {
+                labels.push('size: small');
+              } else if (changes < 200) {
+                labels.push('size: medium');
+              } else if (changes < 500) {
+                labels.push('size: large');
+              } else {
+                labels.push('size: xl');
+              }
+            }
+            
             // Apply labels if any were found
             if (labels.length > 0) {
               const issueNumber = context.payload.issue?.number || context.payload.pull_request?.number;
               const isIssue = !!context.payload.issue;
               
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                labels: labels
-              });
-              
-              console.log(`Applied labels: ${labels.join(', ')} to ${isIssue ? 'issue' : 'PR'} #${issueNumber}`);
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: labels
+                });
+                
+                console.log(`Applied labels: ${labels.join(', ')} to ${isIssue ? 'issue' : 'PR'} #${issueNumber}`);
+              } catch (error) {
+                console.error(`Failed to apply labels: ${error.message}`);
+                // Don't fail the workflow if labeling fails
+              }
+            } else {
+              console.log('No matching labels found for this content');
             }
