@@ -463,6 +463,29 @@ const RightDrawer: React.FC = () => {
     }));
   };
 
+  // Extract clean error message from provider API errors
+  const extractErrorMessage = (error: Error | string): string => {
+    const raw = typeof error === 'string' ? error : error.message;
+    // Try to extract just the 'message' field from JSON-like error strings
+    // e.g.: "Error code: 401 - {'error': {'message': 'You didn't provide an API key...', ...}}"
+    try {
+      const jsonMatch = raw.match(/\{.*\}/);
+      if (jsonMatch) {
+        // Replace single quotes with double quotes for JSON.parse
+        const jsonStr = jsonMatch[0].replace(/'/g, '"').replace(/None/g, 'null').replace(/True/g, 'true').replace(/False/g, 'false');
+        const parsed = JSON.parse(jsonStr);
+        if (parsed?.error?.message) return parsed.error.message;
+        if (parsed?.message) return parsed.message;
+      }
+    } catch {
+      // Fall through to raw message
+    }
+    // Strip "Error in agent loop: Error code: NNN - " prefix if present
+    const prefixMatch = raw.match(/Error.*?:\s*Error code:\s*\d+\s*-\s*(.+)/s);
+    if (prefixMatch) return prefixMatch[1];
+    return raw;
+  };
+
   const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent): Promise<void> => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
@@ -763,7 +786,7 @@ const RightDrawer: React.FC = () => {
           },
           onError: (error) => {
             // Check if this is a cancellation error (backend sends "Request cancelled" as error message)
-            const errorMessage = typeof error === 'string' ? error : error.message;
+            const errorMessage = extractErrorMessage(error);
             if (errorMessage === 'Request cancelled') {
               // Save partial response if any
               if (textRef.current.trim() || eventsRef.current.length > 0) {
@@ -797,7 +820,7 @@ const RightDrawer: React.FC = () => {
               ...prev,
               {
                 role: 'assistant',
-                content: `Something went wrong during the chat.`,
+                content: errorMessage,
                 events: []
               }
             ]);
@@ -1213,7 +1236,7 @@ const RightDrawer: React.FC = () => {
             setCurrentTraceId(null);
           },
           onError: (error) => {
-            const errorMessage = typeof error === 'string' ? error : error.message;
+            const errorMessage = extractErrorMessage(error);
             if (errorMessage === 'Request cancelled') {
               if (textRef.current.trim() || eventsRef.current.length > 0) {
                 setMessages(prev => [
@@ -1242,7 +1265,7 @@ const RightDrawer: React.FC = () => {
               ...prev,
               {
                 role: 'assistant',
-                content: `Something went wrong during the chat.`,
+                content: errorMessage,
                 events: []
               }
             ]);

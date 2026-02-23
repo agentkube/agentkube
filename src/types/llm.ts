@@ -1,212 +1,130 @@
-// Define types for model data
-export interface ProviderIcon {
-  url: string;
-  invertRequired: boolean;
+// ── models.dev types ──
+// These types match the backend's models.dev-backed API responses
+
+export interface ModelsDevCost {
+  input: number;
+  output: number;
+  cache_read?: number;
+  cache_write?: number;
 }
 
-export interface DataPolicyDetails {
-  dataPolicyUrl?: string;
-  privacyPolicyURL?: string;
-  termsOfServiceURL?: string;
-  paidModels?: {
-    training: boolean;
-    retainsPrompts?: boolean;
-  };
-  requiresUserIDs?: boolean;
-  training?: boolean;
-  retainsPrompts?: boolean;
+export interface ModelsDevLimit {
+  context: number;
+  input?: number;
+  output: number;
 }
 
-export interface DetailedProviderInfo {
-  name: string;
-  displayName: string;
-  slug: string;
-  baseUrl: string;
-  dataPolicy: DataPolicyDetails;
-  headquarters: string;
-  datacenters?: string[];
-  hasChatCompletions: boolean;
-  hasCompletions: boolean;
-  isAbortable: boolean;
-  moderationRequired: boolean;
-  editors: string[];
-  owners: string[];
-  adapterName: string;
-  isMultipartSupported: boolean;
-  statusPageUrl: string | null;
-  byokEnabled: boolean;
-  icon: ProviderIcon;
-  ignoredProviderModels: string[];
+export interface ModelsDevModalities {
+  input: string[];   // ["text", "image", "audio", "video", "pdf"]
+  output: string[];  // ["text", "image", "audio"]
 }
 
-export interface EndpointModel {
-  slug: string;
-  hf_slug: string;
-  updated_at: string;
-  created_at: string;
-  hf_updated_at: string | null;
-  name: string;
-  short_name: string;
-  author: string;
-  description: string;
-  model_version_group_id: string | null;
-  context_length: number;
-  input_modalities: string[];
-  output_modalities: string[];
-  has_text_output: boolean;
-  group: string;
-  instruct_type: string | null;
-  default_system: string | null;
-  default_stops: string[];
-  hidden: boolean;
-  router: string | null;
-  warning_message: string;
-  permaslug: string;
-  reasoning_config: Record<string, unknown> | null;
-  features: Record<string, unknown> | null;
-}
-
-export interface Endpoint {
+/**
+ * A single model from the models.dev catalog.
+ * This is the canonical model type used throughout the app.
+ */
+export interface ModelsDevModel {
   id: string;
   name: string;
-  context_length: number;
-  model: EndpointModel;
-  model_variant_slug: string;
-  model_variant_permaslug: string;
-  adapter_name: string;
-  provider_name: string;
-  provider_info: DetailedProviderInfo;
-  provider_display_name: string;
-  provider_slug: string;
-  provider_model_id: string;
-  quantization: string | null;
-  variant: string;
-  is_free: boolean;
-  can_abort: boolean;
-  max_prompt_tokens: number | null;
-  max_completion_tokens: number | null;
-  max_prompt_images: number | null;
-  max_tokens_per_image: number | null;
-  supported_parameters: string[];
-  is_byok: boolean;
-  moderation_required: boolean;
-  data_policy: DataPolicyDetails;
-  pricing: ModelPricing;
-  variable_pricings: VariablePricing[];
-  is_hidden: boolean;
-  is_deranked: boolean;
-  is_disabled: boolean;
-  supports_tool_parameters: boolean;
-  supports_reasoning: boolean;
-  supports_multipart: boolean;
-  limit_rpm: number | null;
-  limit_rpd: number | null;
-  limit_rpm_cf: number | null;
-  has_completions: boolean;
-  has_chat_completions: boolean;
-  features: Record<string, unknown>;
-  provider_region: string | null;
+  provider_id: string;
+  full_id: string;           // "provider_id/model_id"
+  family?: string;
+  attachment: boolean;
+  reasoning: boolean;
+  tool_call: boolean;
+  temperature?: boolean;
+  knowledge?: string;
+  release_date?: string;
+  last_updated?: string;
+  modalities: ModelsDevModalities;
+  open_weights: boolean;
+  cost: ModelsDevCost;
+  limit: ModelsDevLimit;
+  status?: string;
+  structured_output?: boolean;
+  enabled?: boolean;         // from user's settings.json
 }
 
-export interface VariablePricing {
-  [key: string]: unknown;
+/**
+ * Provider info from models.dev catalog.
+ */
+export interface ModelsDevProvider {
+  id: string;
+  name: string;
+  env: string[];
+  api?: string;
+  doc?: string;
+  logo_url: string;         // https://models.dev/logos/{id}.svg
+  model_count: number;
+  connected?: boolean;
+  models?: Record<string, ModelsDevModel>;
 }
 
-export interface PerRequestLimits {
-  rpm?: number | null;
-  rpd?: number | null;
-  tokens_per_minute?: number | null;
-  tokens_per_day?: number | null;
-  [key: string]: unknown;
+
+// ── Backward-compatible Model type ──
+// Used by useModels context and components that expect the simpler shape
+
+export interface Model {
+  id: string;               // model_id (e.g., "claude-sonnet-4")
+  name: string;
+  provider: string;         // provider_id (e.g., "anthropic")
+  provider_id: string;      // same as provider
+  full_id: string;          // "provider_id/model_id"
+  enabled: boolean;
+  reasoning: boolean;
+  tool_call: boolean;
+  attachment: boolean;
+  cost: ModelsDevCost;
+  limit: ModelsDevLimit;
+  modalities: ModelsDevModalities;
+  open_weights: boolean;
+  family?: string;
+  knowledge?: string;
+  release_date?: string;
+  last_updated?: string;
+  status?: string;
+  structured_output?: boolean;
+  temperature?: boolean;
 }
 
-export interface ModelArchitecture {
-  modality: string;
-  input_modalities: string[];
-  output_modalities: string[];
-  tokenizer: string;
-  instruct_type: string | null;
-  has_text_output?: boolean;
-  group?: string;
-  default_system?: string | null;
-  default_stops?: string[];
-  reasoning_config?: Record<string, unknown> | null;
-  features?: Record<string, unknown> | null;
-}
 
-export interface ProviderInfo {
-  context_length: number | null;
-  max_completion_tokens: number | null;
-  is_moderated: boolean;
-  name?: string;
-  displayName?: string;
-  slug?: string;
-  baseUrl?: string;
-  headquarters?: string;
-  hasChatCompletions?: boolean;
-  hasCompletions?: boolean;
-  isAbortable?: boolean;
-  moderationRequired?: boolean;
-  adapterName?: string;
-  isMultipartSupported?: boolean;
-  statusPageUrl?: string | null;
-  byokEnabled?: boolean;
-  quantization?: string;
-  variant?: string;
-  is_free?: boolean;
-  can_abort?: boolean;
-  max_prompt_tokens?: number | null;
-  max_prompt_images?: number | null;
-  max_tokens_per_image?: number | null;
-  supported_parameters?: string[];
-  is_byok?: boolean;
-  supports_tool_parameters?: boolean;
-  supports_reasoning?: boolean;
-  supports_multipart?: boolean;
-  limit_rpm?: number | null;
-  limit_rpd?: number | null;
-  limit_rpm_cf?: number | null;
-  provider_region?: string | null;
-}
-
-export interface ModelPricing {
-  prompt: string;
-  completion: string;
-  request: string;
-  image: string;
-  web_search: string;
-  internal_reasoning: string;
-  input_cache_read: string;
-  input_cache_write: string;
-  discount?: number;
-}
-
+// ── ModelData type ──
+// Used by cost dashboard components that fetch from OpenRouter directly.
+// These components are independent of the models.dev migration.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ModelData {
   id: string;
   name: string;
   created: number;
   description: string;
   context_length: number;
-  architecture: ModelArchitecture;
-  pricing: ModelPricing;
-  top_provider: ProviderInfo;
-  per_request_limits: PerRequestLimits;
-  slug?: string;
-  hf_slug?: string;
-  updated_at?: string;
-  created_at?: string;
-  hf_updated_at?: string | null;
-  short_name?: string;
-  author?: string;
-  model_version_group_id?: string | null;
-  hidden?: boolean;
-  router?: string | null;
-  warning_message?: string;
-  permaslug?: string;
-  endpoint?: Endpoint;
-  is_hidden?: boolean;
-  is_deranked?: boolean;
-  is_disabled?: boolean;
-  variable_pricings?: VariablePricing[];
-  data_policy?: DataPolicyDetails;
+  architecture: {
+    modality: string;
+    input_modalities: string[];
+    output_modalities: string[];
+    tokenizer: string;
+    instruct_type: string | null;
+    reasoning_config?: Record<string, unknown> | null;
+  };
+  pricing: {
+    prompt: string;
+    completion: string;
+    request: string;
+    image: string;
+    web_search: string;
+    internal_reasoning: string;
+    input_cache_read: string;
+    input_cache_write: string;
+  };
+  top_provider: {
+    context_length: number | null;
+    max_completion_tokens: number | null;
+    is_moderated: boolean;
+  };
+  per_request_limits: Record<string, unknown>;
+  endpoint?: {
+    supports_reasoning?: boolean;
+    supports_tool_parameters?: boolean;
+    [key: string]: unknown;
+  };
 }

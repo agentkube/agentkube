@@ -1,54 +1,73 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { getModels, createModel, updateModel, deleteModel, toggleModelEnabled, Model, ModelCreate, ModelUpdate } from '@/api/models';
-import { useAuth } from '@/contexts/useAuth';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import {
+  getModels,
+  getAllModels,
+  getProviders,
+  enableModel as apiEnableModel,
+  disableModel as apiDisableModel,
+  connectProvider as apiConnectProvider,
+  disconnectProvider as apiDisconnectProvider,
+  searchModels as apiSearchModels,
+  Model,
+} from '@/api/models';
+import type { ModelsDevProvider } from '@/types/llm';
 
 interface ModelsContextType {
+  // Enabled models (from settings.json)
   models: Model[];
+  enabledModels: Model[];
+
+  // All models from catalog (lazy-loaded)
+  allModels: Model[];
+  loadAllModels: () => Promise<void>;
+
+  // Providers
+  providers: ModelsDevProvider[];
+  loadProviders: () => Promise<void>;
+
+  // State
   isLoading: boolean;
   error: string | null;
   selectedModel: string;
   setSelectedModel: (modelId: string) => void;
-  enabledModels: Model[];
+
+  // Actions
   refreshModels: () => Promise<void>;
-  addModel: (model: ModelCreate) => Promise<Model>;
-  updateModelById: (modelId: string, modelData: ModelUpdate) => Promise<Model>;
-  removeModel: (modelId: string) => Promise<boolean>;
-  toggleModel: (modelId: string, enabled: boolean) => Promise<Model>;
+  enableModel: (providerId: string, modelId: string) => Promise<void>;
+  disableModel: (providerId: string, modelId: string) => Promise<void>;
+  searchModels: (query: string) => Promise<Model[]>;
+
+  // Provider actions
+  connectProvider: (providerId: string, apiKey: string, baseUrl?: string) => Promise<void>;
+  disconnectProvider: (providerId: string) => Promise<void>;
 }
 
 const ModelsContext = createContext<ModelsContextType | undefined>(undefined);
 
 export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [models, setModels] = useState<Model[]>([]);
+  const [allModels, setAllModels] = useState<Model[]>([]);
+  const [providers, setProviders] = useState<ModelsDevProvider[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const { user, oauth2Enabled } = useAuth();
-  // If auth is disabled, treat as premium user (guest has access to all models)
-  // If auth is enabled, check if user is authenticated
-  const isPremiumUser = !oauth2Enabled || user?.isAuthenticated || false;
 
-  // Filter models based on enabled status
-  const enabledModels = models.filter(model => 
-    model.enabled && (!model.premiumOnly || (model.premiumOnly && isPremiumUser))
-  );
+  // All enabled models (same as models since backend only returns enabled ones)
+  const enabledModels = models;
 
-  const refreshModels = async () => {
+  const refreshModels = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const fetchedModels = await getModels();
       setModels(fetchedModels);
-      
+
       // Select a default model if none is selected
       if (!selectedModel && fetchedModels.length > 0) {
-        const defaultModel = fetchedModels.find(model => 
-          model.enabled && (!model.premiumOnly || (model.premiumOnly && isPremiumUser))
-        );
-        
+        const defaultModel = fetchedModels[0];
         if (defaultModel) {
-          setSelectedModel(`${defaultModel.provider}/${defaultModel.id}`);
+          setSelectedModel(defaultModel.full_id);
         }
       }
     } catch (err) {
@@ -57,115 +76,139 @@ export const ModelsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedModel]);
 
-  // Fetch models once on component mount
-  useEffect(() => {
-    // Initial fetch
-    refreshModels();
-    
-    // // Set up polling - commented out to fetch only once
-    // pollingTimerRef.current = setInterval(() => {
-    //   refreshModels();
-    // }, 20000);
-
-    // // Cleanup function
-    // return () => {
-    //   if (pollingTimerRef.current) {
-    //     clearInterval(pollingTimerRef.current);
-    //   }
-    // };
+  const loadAllModels = useCallback(async () => {
+    try {
+      const fetched = await getAllModels();
+      setAllModels(fetched);
+    } catch (err) {
+      console.error('Error fetching all models:', err);
+    }
   }, []);
 
-  // Add a new model
-  const addModel = async (modelData: ModelCreate): Promise<Model> => {
+  const loadProviders = useCallback(async () => {
     try {
-      const newModel = await createModel(modelData);
-      await refreshModels();
-      return newModel;
+      const fetched = await getProviders();
+      setProviders(fetched);
     } catch (err) {
-      console.error('Error adding model:', err);
-      setError('Failed to add model. Please try again.');
+      console.error('Error fetching providers:', err);
+    }
+  }, []);
+
+  // Fetch enabled models on mount
+  useEffect(() => {
+    refreshModels();
+  }, []);
+
+  // Enable a model
+  const enableModel = useCallback(async (providerId: string, modelId: string) => {
+    try {
+      await apiEnableModel(providerId, modelId);
+      await refreshModels();
+      // Refresh allModels if loaded
+      if (allModels.length > 0) {
+        await loadAllModels();
+      }
+    } catch (err) {
+      console.error('Error enabling model:', err);
+      setError('Failed to enable model. Please try again.');
       throw err;
     }
-  };
+  }, [refreshModels, allModels.length, loadAllModels]);
 
-  // Update an existing model
-  const updateModelById = async (modelId: string, modelData: ModelUpdate): Promise<Model> => {
+  // Disable a model
+  const disableModel = useCallback(async (providerId: string, modelId: string) => {
     try {
-      const updatedModel = await updateModel(modelId, modelData);
+      await apiDisableModel(providerId, modelId);
       await refreshModels();
-      return updatedModel;
+      if (allModels.length > 0) {
+        await loadAllModels();
+      }
     } catch (err) {
-      console.error(`Error updating model ${modelId}:`, err);
-      setError('Failed to update model. Please try again.');
+      console.error('Error disabling model:', err);
+      setError('Failed to disable model. Please try again.');
       throw err;
     }
-  };
+  }, [refreshModels, allModels.length, loadAllModels]);
 
-  // Remove a model
-  const removeModel = async (modelId: string): Promise<boolean> => {
+  // Search models
+  const searchModels = useCallback(async (query: string): Promise<Model[]> => {
     try {
-      await deleteModel(modelId);
-      await refreshModels();
-      return true;
+      return await apiSearchModels(query);
     } catch (err) {
-      console.error(`Error removing model ${modelId}:`, err);
-      setError('Failed to remove model. Please try again.');
-      return false;
+      console.error('Error searching models:', err);
+      return [];
     }
-  };
+  }, []);
 
-  // Toggle model enabled status
-  const toggleModel = async (modelId: string, enabled: boolean): Promise<Model> => {
+  // Connect a provider
+  const connectProvider = useCallback(async (providerId: string, apiKey: string, baseUrl?: string) => {
     try {
-      const updatedModel = await toggleModelEnabled(modelId, enabled);
-      await refreshModels();
-      return updatedModel;
+      await apiConnectProvider(providerId, apiKey, baseUrl);
+      // Refresh providers list to show updated connection status
+      if (providers.length > 0) {
+        await loadProviders();
+      }
     } catch (err) {
-      console.error(`Error toggling model ${modelId}:`, err);
-      setError('Failed to update model. Please try again.');
+      console.error('Error connecting provider:', err);
+      setError('Failed to connect provider. Please try again.');
       throw err;
     }
-  };
+  }, [providers.length, loadProviders]);
+
+  // Disconnect a provider
+  const disconnectProvider = useCallback(async (providerId: string) => {
+    try {
+      await apiDisconnectProvider(providerId);
+      if (providers.length > 0) {
+        await loadProviders();
+      }
+    } catch (err) {
+      console.error('Error disconnecting provider:', err);
+      setError('Failed to disconnect provider. Please try again.');
+      throw err;
+    }
+  }, [providers.length, loadProviders]);
 
   // Update selected model if current selection becomes unavailable
   useEffect(() => {
     if (selectedModel && models.length > 0) {
-      const [provider, modelId] = selectedModel.split('/');
-      const currentModel = models.find(m => m.id === modelId && m.provider === provider);
-      
-      // If model is premium and user is not premium, or if model is not enabled
-      if (
-        !currentModel || 
-        !currentModel.enabled || 
-        (currentModel.premiumOnly && !isPremiumUser)
-      ) {
-        // Find first available enabled model
-        const fallbackModel = models.find(m => 
-          m.enabled && (!m.premiumOnly || (m.premiumOnly && isPremiumUser))
-        );
-        
-        if (fallbackModel) {
-          setSelectedModel(`${fallbackModel.provider}/${fallbackModel.id}`);
+      const currentFound = models.find(m => m.full_id === selectedModel);
+      if (!currentFound) {
+        // Selected model was removed — fall back to first enabled model
+        const fallback = models[0];
+        if (fallback) {
+          setSelectedModel(fallback.full_id);
         }
       }
     }
-  }, [models, selectedModel, isPremiumUser]);
+  }, [models, selectedModel]);
 
-  const value = {
+  const value = useMemo(() => ({
     models,
+    enabledModels,
+    allModels,
+    loadAllModels,
+    providers,
+    loadProviders,
     isLoading,
     error,
     selectedModel,
     setSelectedModel,
-    enabledModels,
     refreshModels,
-    addModel,
-    updateModelById,
-    removeModel,
-    toggleModel
-  };
+    enableModel,
+    disableModel,
+    searchModels,
+    connectProvider,
+    disconnectProvider,
+  }), [
+    models, enabledModels, allModels, loadAllModels,
+    providers, loadProviders,
+    isLoading, error, selectedModel,
+    refreshModels, enableModel, disableModel, searchModels,
+    connectProvider, disconnectProvider,
+  ]);
 
   return (
     <ModelsContext.Provider value={value}>

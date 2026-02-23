@@ -90,7 +90,7 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
   const [activeTab, setActiveTab] = useState("overview");
   const [copied, setCopied] = useState(false);
   const [isAddingModel, setIsAddingModel] = useState(false);
-  const { addModel } = useModels();
+  const { enableModel } = useModels();
 
   if (!model) return null;
 
@@ -152,36 +152,31 @@ const ModelViewDialog: React.FC<ModelViewDialogProps> = ({
     return parts.length > 1 ? parts[1] : modelId;
   };
 
-  // Handle adding model to user's configuration
+  // Handle adding model to user's enabled models
   const handleAddModel = async () => {
     if (isAddingModel) return;
 
     setIsAddingModel(true);
 
     try {
+      const providerId = getProviderFromId(model.id);
       const modelName = getModelNameFromId(model.id);
 
-      await addModel({
-        id: modelName,
-        name: modelName,
-        provider: getProviderFromId(model.id),
-        enabled: true,
-        premium_only: false
-      });
+      await enableModel(providerId, modelName);
 
       toast({
-        title: "Model Added",
-        description: `${modelName} has been added to your model configuration.`,
+        title: "Model Enabled",
+        description: `${modelName} has been added to your enabled models.`,
         duration: 3000,
       });
 
       // Optionally close the dialog after successful addition
       onOpenChange(false);
     } catch (error) {
-      console.error('Error adding model:', error);
+      console.error('Error enabling model:', error);
       toast({
         title: "Error",
-        description: "Failed to add model. Please try again.",
+        description: "Failed to enable model. Please try again.",
         variant: "destructive",
         duration: 3000,
       });

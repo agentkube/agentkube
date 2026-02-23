@@ -419,10 +419,10 @@ const ConnectView: React.FC<ConnectViewProps> = ({ provider, onBack, onSubmit })
         }
       }
 
-      // Save to backend
+      // Save to backend using the new models.providers path in settings.json
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             [configKey]: providerConfig
           }
         }

@@ -52,13 +52,14 @@ export interface AgentKubeConfig {
   };
   models: {
     currentModel: string;
+    enabledModels?: string[];     // ["anthropic/claude-sonnet-4", ...]
     settings: {
       streaming: boolean;
       maxTokens: number;
       temperature: number;
       contextSize: number;
     };
-    externalProviderSettings?: {
+    providers?: {
       openai?: {
         apiKey: string;
         baseUrl?: string;
@@ -86,6 +87,14 @@ export interface AgentKubeConfig {
         endpoint: string;
         enabled: boolean;
       };
+      [key: string]: {
+        apiKey?: string;
+        enabled?: boolean;
+        endpoint?: string;
+        baseUrl?: string;
+        deploymentName?: string;
+        [field: string]: unknown;
+      } | undefined;
     };
   };
   terminal: {

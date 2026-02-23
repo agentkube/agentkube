@@ -12,7 +12,7 @@ const ProviderFooter: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState<Provider | null>(null);
 
-  const handleSelectProvider = (provider: Provider, _apiKey: string) => {
+  const handleSelectProvider = (provider: Provider, _data: Record<string, string>) => {
     setActiveProvider(provider);
     setOpen(false);
   };

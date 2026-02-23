@@ -1,16 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Check, Plus, X, Trash2, AlertTriangle, AlertCircle, Brain, ChevronDown, ChevronRight, Key, ArrowUpRight, Rocket, Sparkles, Search } from 'lucide-react';
+import { Check, X, Brain, Key, ArrowUpRight, Rocket, Sparkles, Search, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { getModels } from '@/api/models';
 import {
   Accordion,
   AccordionContent,
@@ -18,18 +9,61 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ModelConfig } from '@/components/custom';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
 import { AgentModelMap } from '@/components/custom';
-import { getProviderIcon } from '@/utils/providerIconMap';
 import { openExternalUrl } from '@/api/external';
+import type { Model } from '@/types/llm';
+
+const MODELS_DEV_LOGO_BASE = 'https://models.dev/logos';
+
+// Provider logo from models.dev with fallback
+const ProviderLogo: React.FC<{ provider: string; size?: number }> = ({ provider, size = 16 }) => {
+  const [failed, setFailed] = React.useState(false);
+  if (failed) {
+    return (
+      <span
+        className="inline-flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase"
+        style={{ width: size, height: size }}
+      >
+        {provider.charAt(0)}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={`${MODELS_DEV_LOGO_BASE}/${provider}.svg`}
+      alt={provider}
+      className="inline-block rounded dark:invert"
+      style={{ width: size, height: size }}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
+// Provider display name map
+const PROVIDER_NAMES: Record<string, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  google: 'Google',
+  openrouter: 'OpenRouter',
+  deepseek: 'DeepSeek',
+  xai: 'xAI',
+  mistral: 'Mistral',
+  groq: 'Groq',
+  cohere: 'Cohere',
+  meta: 'Meta',
+  ollama: 'Ollama',
+  vllm: 'vLLM',
+  azure: 'Azure',
+  perplexity: 'Perplexity',
+  together: 'Together',
+  local: 'Local',
+};
+
+const providerDisplayName = (provider: string) =>
+  PROVIDER_NAMES[provider] || provider.charAt(0).toUpperCase() + provider.slice(1);
 
 // Sign In Banner Component
 const SignInBanner = ({ user, oauth2Enabled }: { user: any; oauth2Enabled: boolean }) => {
@@ -137,185 +171,122 @@ const SignInBanner = ({ user, oauth2Enabled }: { user: any; oauth2Enabled: boole
 };
 
 const ModelConfiguration = () => {
-  const { models, toggleModel, addModel, removeModel, refreshModels } = useModels();
-  const navigate = useNavigate();
+  const { allModels, loadAllModels, enableModel, disableModel, refreshModels, enabledModels } = useModels();
   const { user, oauth2Enabled } = useAuth();
-  // If auth is disabled, treat as premium user (guest has access to all models)
-  // If auth is enabled, check if user is authenticated
-  const isPremiumUser = !oauth2Enabled || user?.isAuthenticated || false;
-
-  const [showAddInput, setShowAddInput] = useState(false);
-  const [newModelName, setNewModelName] = useState('');
-  const [newModelProvider, setNewModelProvider] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
 
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [modelToDelete, setModelToDelete] = useState<string | null>(null);
-
-  // Fetch latest models directly from API every time the models page is visited
+  // Load ALL models on mount (not just enabled)
   useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        await refreshModels();
-      } catch (error) {
-        console.error('Failed to load models:', error);
-      }
-    };
-
-    // Always fetch models when component mounts
-    fetchModels();
-  }, [refreshModels]);
+    loadAllModels();
+    refreshModels();
+  }, []);
 
   // Filter models based on search term
   const filteredModels = useMemo(() => {
-    if (!searchTerm.trim()) return models;
+    const allModelsMap = new Map<string, Model>();
+    allModels.forEach(m => allModelsMap.set(m.full_id, m));
+
+    // Include user's custom models from enabledModels if not in allModels catalog
+    enabledModels.forEach(m => {
+      if (!allModelsMap.has(m.full_id)) {
+        allModelsMap.set(m.full_id, { ...m, status: 'Custom' });
+      }
+    });
+
+    const allModelsList = Array.from(allModelsMap.values());
+
+    if (!searchTerm.trim()) return allModelsList;
 
     const search = searchTerm.toLowerCase().trim();
-    return models.filter(model =>
-      model.name.toLowerCase().includes(search) ||
-      model.provider.toLowerCase().includes(search)
-    );
-  }, [models, searchTerm]);
+    return allModelsList.filter(model => {
+      return (
+        model.name.toLowerCase().includes(search) ||
+        model.provider.toLowerCase().includes(search) ||
+        model.full_id.toLowerCase().includes(search)
+      );
+    });
+  }, [allModels, enabledModels, searchTerm]);
 
-  const toggleModelEnabled = async (modelId: string) => {
-    const modelToToggle = models.find(model => model.id === modelId);
-
-    if (!modelToToggle) return;
-
-    if (modelToToggle.premiumOnly && !isPremiumUser) {
-      return;
+  // Group models by provider
+  const groupedModels = useMemo(() => {
+    const groups: Record<string, Model[]> = {};
+    for (const model of filteredModels) {
+      const provider = model.provider;
+      if (!groups[provider]) groups[provider] = [];
+      groups[provider].push(model);
     }
 
+    // Sort providers alphabetically, models within each provider alphabetically
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([provider, models]) => ({
+        provider,
+        models: models.sort((a, b) => a.name.localeCompare(b.name)),
+        enabledCount: models.filter(m => m.enabled).length,
+        totalCount: models.length,
+      }));
+  }, [filteredModels]);
+
+  const toggleModelEnabled = async (model: Model) => {
     try {
-      await toggleModel(modelId, !modelToToggle.enabled);
+      if (model.enabled) {
+        await disableModel(model.provider_id, model.id);
+      } else {
+        await enableModel(model.provider_id, model.id);
+      }
+      // Refresh the full catalog to update enabled flags
+      await loadAllModels();
     } catch (error) {
       console.error('Error toggling model:', error);
     }
   };
 
-  // Add new model
-  const handleAddModel = async () => {
-    if (newModelName.trim()) {
-      try {
-        await addModel({
-          id: newModelName.trim().toLowerCase().replace(/\s+/g, '-'),
-          name: newModelName.trim(),
-          provider: newModelProvider || 'custom',
-          enabled: false,
-          premium_only: false
-        });
-
-        setNewModelName('');
-        setNewModelProvider('');
-        setShowAddInput(false);
-      } catch (error) {
-        console.error('Error adding model:', error);
+  const toggleProviderExpanded = (provider: string) => {
+    setExpandedProviders(prev => {
+      const next = new Set(prev);
+      if (next.has(provider)) {
+        next.delete(provider);
+      } else {
+        next.add(provider);
       }
-    }
+      return next;
+    });
   };
 
-  // Open delete confirmation dialog
-  const openDeleteDialog = (e: React.MouseEvent, modelId: string) => {
-    e.stopPropagation();
-    setModelToDelete(modelId);
-    setShowDeleteDialog(true);
-  };
-
-  const confirmDelete = async () => {
-    if (modelToDelete) {
-      try {
-        await removeModel(modelToDelete);
-        setShowDeleteDialog(false);
-        setModelToDelete(null);
-      } catch (error) {
-        console.error('Error deleting model:', error);
-      }
-    }
-  };
-
-  const cancelDelete = () => {
-    setShowDeleteDialog(false);
-    setModelToDelete(null);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleAddModel();
-    }
-  };
-
-  const getModelNameToDelete = () => {
-    if (!modelToDelete) return '';
-    const model = models.find(m => m.id === modelToDelete);
-    return model ? model.name : '';
-  };
-
-  const renderModelItem = (model: typeof models[0]) => {
-    if (model.premiumOnly && !isPremiumUser) {
-      return (
-        <TooltipProvider key={model.id}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center py-2 px-3 cursor-not-allowed group">
-                <div className="w-6 flex items-center justify-center">
-                  <div className="w-4 h-4 border border-gray-500/30 bg-gray-300/20 dark:bg-gray-700/20 rounded-sm flex items-center justify-center">
-                    {/* <AlertCircle className="w-3 h-3 text-amber-500" /> */}
-                  </div>
-                </div>
-
-                <span className="text-sm w-full ml-2 text-gray-500/80 dark:text-gray-400/60 flex justify-between items-center">
-                  <span>{model.name}</span>
-                  <span className="ml-2 text-xs px-1.5 py-0.5 bg-gray-300/30 dark:bg-blue-500/10 text-gray-800 dark:text-blue-500 rounded-[0.3rem]">Sign In Required</span>
-                </span>
-
-                {model.isCustom && (
-                  <div className="ml-auto">
-                    <button
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                      onClick={(e) => openDeleteDialog(e, model.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="bg-gray-100 dark:bg-gray-800/20 text-gray-800 dark:text-gray-100 backdrop-blur-sm">
-              <p>Sign in required to access this model. <a onClick={() => navigate('/settings/account')} className="text-blue-500 hover:text-blue-600">Sign In Now</a></p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
+  const renderModelItem = (model: Model) => {
     return (
       <div
-        key={model.id}
-        className="flex items-center py-2 px-3 cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/50 rounded-sm group"
-        onClick={() => toggleModelEnabled(model.id)}
+        key={model.full_id}
+        className="flex items-center py-1.5 px-3 cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-800/50 rounded-sm group"
+        onClick={() => toggleModelEnabled(model)}
       >
         <div className="w-6 flex items-center">
-          <div className={`w-4 h-4 border ${model.enabled ? 'bg-gray-300 dark:bg-gray-700 border-gray-300 dark:border-gray-700' : 'border-gray-600/50 bg-transparent'} rounded-sm flex items-center justify-center`}>
+          <div className={`w-4 h-4 border ${model.enabled ? 'bg-gray-300 dark:bg-gray-700 border-gray-300 dark:border-gray-700' : 'border-gray-600/50 bg-transparent'} rounded-sm flex items-center justify-center transition-colors`}>
             {model.enabled && <Check className="w-3 h-3 text-black dark:text-white" />}
           </div>
         </div>
 
-        <div className={`flex items-center ${model.enabled ? 'text-black dark:text-white' : 'text-gray-500'}`}>
-          {getProviderIcon(model.provider)}
-          <span className={`text-sm ml-1 `}>
+        <div className={`flex items-center flex-1 ${model.enabled ? 'text-black dark:text-white' : 'text-gray-500 dark:text-gray-500'}`}>
+          <span className="text-sm ml-1">
             {model.name}
           </span>
+          {model.status && (
+            <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 rounded">
+              {model.status}
+            </span>
+          )}
         </div>
 
-        {model.isCustom && (
-          <div className="ml-auto">
-            <button
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              onClick={(e) => openDeleteDialog(e, model.id)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+        {model.cost?.input > 0 && (
+          <span className="text-[10px] text-gray-400 dark:text-gray-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+            ${model.cost.input < 1 ? model.cost.input.toFixed(3) : model.cost.input.toFixed(2)}/M
+          </span>
+        )}
+        {model.cost?.input === 0 && (
+          <span className="text-[10px] text-green-500 dark:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity">
+            Free
+          </span>
         )}
       </div>
     );
@@ -326,7 +297,7 @@ const ModelConfiguration = () => {
       <div>
         <h1 className="text-4xl font-[Anton] uppercase text-gray-700/20 dark:text-gray-200/20 font-medium">Model Names</h1>
         <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">
-          Add new models to agentkube. Often used to configure the latest OpenAI models or OpenRouter models.
+          Enable or disable models from your catalog. Models are sourced from models.dev.
         </p>
       </div>
 
@@ -353,56 +324,48 @@ const ModelConfiguration = () => {
         )}
       </div>
 
+      {/* Models grouped by provider */}
       <div className="space-y-1">
-        {filteredModels.length > 0 ? (
-          filteredModels.map(model => renderModelItem(model))
+        {groupedModels.length > 0 ? (
+          groupedModels.map(({ provider, models: providerModels, enabledCount, totalCount }) => {
+            const isExpanded = expandedProviders.has(provider);
+            return (
+              <div key={provider} className="border border-gray-200 dark:border-gray-800/40 rounded-md overflow-hidden">
+                {/* Provider header */}
+                <div
+                  className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-colors"
+                  onClick={() => toggleProviderExpanded(provider)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <ChevronRight
+                      size={14}
+                      className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <ProviderLogo provider={provider} size={16} />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {providerDisplayName(provider)}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-600">
+                      {enabledCount}/{totalCount}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Models list */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 dark:border-gray-800/30">
+                    {providerModels.map(model => renderModelItem(model))}
+                  </div>
+                )}
+              </div>
+            );
+          })
         ) : (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No models found matching "{searchTerm}"</p>
             <p className="text-xs mt-1">Try adjusting your search term</p>
           </div>
-        )}
-
-        {(!searchTerm || filteredModels.length > 0) && (
-          showAddInput ? (
-            <div className="flex flex-col space-y-2 mt-2">
-              <input
-                type="text"
-                className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
-                placeholder="New model name"
-                value={newModelName}
-                onChange={(e) => setNewModelName(e.target.value)}
-                onKeyPress={handleKeyPress}
-                autoFocus
-              />
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  className="bg-transparent dark:bg-gray-700/10 border border-gray-300 dark:border-gray-800/60 w-full py-2 px-3 rounded text-black dark:text-white text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600"
-                  placeholder="Provider (e.g. openai, anthropic)"
-                  value={newModelProvider}
-                  onChange={(e) => setNewModelProvider(e.target.value)}
-                />
-                <Button
-                  // variant="outline"
-                  className="px-4 py-2 h-full rounded text-sm"
-                  onClick={handleAddModel}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Model
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="flex items-center py-2 px-3 w-full mt-2 hover:bg-gray-300/50 dark:hover:bg-gray-800/50 rounded-sm text-gray-500 dark:text-gray-400"
-              onClick={() => setShowAddInput(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              <span className="text-sm">Add model</span>
-            </button>
-          )
         )}
       </div>
 
@@ -434,39 +397,6 @@ const ModelConfiguration = () => {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-md bg-gray-100 dark:bg-gray-800/20 backdrop-blur-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Confirm Delete
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the model <span className="font-medium">{getModelNameToDelete()}</span>?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-start">
-            <div className="flex gap-2 w-full justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={cancelDelete}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={confirmDelete}
-              >
-                Delete
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

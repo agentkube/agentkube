@@ -1,43 +1,52 @@
 import { ORCHESTRATOR_URL } from '@/config';
+import type { ModelsDevModel, ModelsDevProvider, Model } from '@/types/llm';
 
-export interface Model {
-  id: string;
-  name: string;
-  provider: string;
-  enabled: boolean;
-  isCustom: boolean;
-  premiumOnly: boolean;
+// ── Types ──
+
+export type { Model, ModelsDevModel, ModelsDevProvider };
+
+// ── Helper: Convert backend ModelsDevModel to frontend Model ──
+
+export function toModel(m: ModelsDevModel): Model {
+  return {
+    id: m.id,
+    name: m.name,
+    provider: m.provider_id,
+    provider_id: m.provider_id,
+    full_id: m.full_id,
+    enabled: m.enabled ?? false,
+    reasoning: m.reasoning,
+    tool_call: m.tool_call,
+    attachment: m.attachment,
+    cost: m.cost,
+    limit: m.limit,
+    modalities: m.modalities,
+    open_weights: m.open_weights,
+    family: m.family,
+    knowledge: m.knowledge,
+    release_date: m.release_date,
+    last_updated: m.last_updated,
+    status: m.status,
+    structured_output: m.structured_output,
+    temperature: m.temperature,
+  };
 }
 
-export interface ModelCreate {
-  id: string;
-  name: string;
-  provider: string;
-  enabled?: boolean;
-  premium_only?: boolean;
-}
 
-export interface ModelUpdate {
-  name?: string;
-  provider?: string;
-  enabled?: boolean;
-  premium_only?: boolean;
-}
+// ── API Functions ──
 
 /**
- * Fetches all available models
- * @returns Promise with the list of models
+ * Fetch user's enabled models (from settings.json).
+ * Backward compatible — this is the same endpoint as the old getModels().
  */
 export const getModels = async (): Promise<Model[]> => {
   try {
     const response = await fetch(`${ORCHESTRATOR_URL}/api/models`);
-    
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
     }
-    
-    const data = await response.json();
-    return data as Model[];
+    const data: ModelsDevModel[] = await response.json();
+    return data.map(toModel);
   } catch (error) {
     console.error('Error fetching models:', error);
     throw error;
@@ -45,113 +54,173 @@ export const getModels = async (): Promise<Model[]> => {
 };
 
 /**
- * Fetches a specific model by ID
- * @param modelId The ID of the model to fetch
- * @returns Promise with the model data
+ * Fetch ALL models from catalog with enabled status.
  */
-export const getModel = async (modelId: string): Promise<Model> => {
+export const getAllModels = async (): Promise<Model[]> => {
   try {
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/${modelId}`);
-    
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/all`);
     if (!response.ok) {
-      throw new Error(`Failed to fetch model: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch all models: ${response.status} ${response.statusText}`);
     }
-    
-    const data = await response.json();
-    return data as Model;
+    const data: ModelsDevModel[] = await response.json();
+    return data.map(toModel);
   } catch (error) {
-    console.error(`Error fetching model ${modelId}:`, error);
+    console.error('Error fetching all models:', error);
     throw error;
   }
 };
 
 /**
- * Creates a new custom model
- * @param model The model data to create
- * @returns Promise with the created model
+ * Fetch the full models.dev catalog (providers list with metadata).
  */
-export const createModel = async (model: ModelCreate): Promise<Model> => {
+export const getProviders = async (): Promise<ModelsDevProvider[]> => {
   try {
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/models`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/providers`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch providers: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching providers:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch a specific provider with its models.
+ */
+export const getProviderDetail = async (providerId: string): Promise<ModelsDevProvider> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/providers/${providerId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch provider: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching provider ${providerId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Search models by name, family, or provider.
+ */
+export const searchModels = async (query: string): Promise<Model[]> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error(`Search failed: ${response.status} ${response.statusText}`);
+    }
+    const data: ModelsDevModel[] = await response.json();
+    return data.map(toModel);
+  } catch (error) {
+    console.error('Error searching models:', error);
+    throw error;
+  }
+};
+
+/**
+ * Enable a model (add to settings.json enabledModels list).
+ */
+export const enableModel = async (providerId: string, modelId: string): Promise<{ status: string; full_id: string; enabled: boolean }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/enable`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(model),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider_id: providerId, model_id: modelId }),
     });
-    
     if (!response.ok) {
-      throw new Error(`Failed to create model: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to enable model: ${response.status} ${response.statusText}`);
     }
-    
-    const data = await response.json();
-    return data as Model;
+    return await response.json();
   } catch (error) {
-    console.error('Error creating model:', error);
+    console.error('Error enabling model:', error);
     throw error;
   }
 };
 
 /**
- * Updates an existing model
- * @param modelId The ID of the model to update
- * @param model The model data to update
- * @returns Promise with the updated model
+ * Disable a model (remove from settings.json enabledModels list).
  */
-export const updateModel = async (modelId: string, model: ModelUpdate): Promise<Model> => {
+export const disableModel = async (providerId: string, modelId: string): Promise<{ status: string; full_id: string; enabled: boolean }> => {
   try {
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/${modelId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(model),
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/disable`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider_id: providerId, model_id: modelId }),
     });
-    
     if (!response.ok) {
-      throw new Error(`Failed to update model: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to disable model: ${response.status} ${response.statusText}`);
     }
-    
-    const data = await response.json();
-    return data as Model;
+    return await response.json();
   } catch (error) {
-    console.error(`Error updating model ${modelId}:`, error);
+    console.error('Error disabling model:', error);
     throw error;
   }
 };
 
 /**
- * Deletes a custom model
- * @param modelId The ID of the model to delete
- * @returns Promise with the deletion status
+ * Connect a provider (store API key in settings.json).
  */
-export const deleteModel = async (modelId: string): Promise<{ status: string; message: string }> => {
+export const connectProvider = async (
+  providerId: string,
+  apiKey: string,
+  baseUrl?: string,
+  endpoint?: string,
+): Promise<{ status: string; provider_id: string; connected: boolean }> => {
   try {
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/models/${modelId}`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/providers/connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider_id: providerId,
+        api_key: apiKey,
+        ...(baseUrl ? { base_url: baseUrl } : {}),
+        ...(endpoint ? { endpoint } : {}),
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to connect provider: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error connecting provider:', error);
+    throw error;
+  }
+};
+
+/**
+ * Disconnect a provider (remove API key from settings.json).
+ */
+export const disconnectProvider = async (providerId: string): Promise<{ status: string; provider_id: string; connected: boolean }> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/providers/${providerId}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
-    
     if (!response.ok) {
-      throw new Error(`Failed to delete model: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to disconnect provider: ${response.status} ${response.statusText}`);
     }
-    
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
-    console.error(`Error deleting model ${modelId}:`, error);
+    console.error('Error disconnecting provider:', error);
     throw error;
   }
 };
 
 /**
- * Enables or disables a model
- * @param modelId The ID of the model to toggle
- * @param enabled Whether the model should be enabled or disabled
- * @returns Promise with the updated model
+ * Get connection status for all providers.
  */
-export const toggleModelEnabled = async (modelId: string, enabled: boolean): Promise<Model> => {
-  return updateModel(modelId, { enabled });
+export const getProvidersStatus = async (): Promise<Record<string, boolean>> => {
+  try {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/providers/status`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch provider status: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.statuses || {};
+  } catch (error) {
+    console.error('Error fetching provider status:', error);
+    throw error;
+  }
 };

@@ -1,104 +1,57 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, ChevronUp, Search, Lock, Sparkles, Brain, Plus, Zap, DollarSign, Database } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Check, ChevronDown, ChevronUp, Search, Plus, Zap, DollarSign, Database } from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
 import { useModels } from '@/contexts/useModel';
-import { getModels } from '@/api/models';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getProviderIcon } from '@/utils/providerIconMap';
 import { useNavigate } from 'react-router-dom';
-import { ModelData } from '@/types/llm';
-import LoadingSpinner from '@/utils/loader.utils';
-import MarkdownContent from '@/utils/markdown-formatter';
+import type { Model } from '@/types/llm';
+
+const MODELS_DEV_LOGO_BASE = 'https://models.dev/logos';
+
+// Provider logo from models.dev with fallback
+const ProviderLogo: React.FC<{ provider: string; size?: number }> = ({ provider, size = 14 }) => {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span
+        className="inline-flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase"
+        style={{ width: size, height: size }}
+      >
+        {provider.charAt(0)}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={`${MODELS_DEV_LOGO_BASE}/${provider}.svg`}
+      alt={provider}
+      className="inline-block rounded dark:invert"
+      style={{ width: size, height: size }}
+      onError={() => setFailed(true)}
+    />
+  );
+};
 
 interface ModelSelectorProps {
   selectedModel: string;
   onModelChange: (modelId: string) => void;
 }
 
-// Cache
-let openRouterModelsCache: ModelData[] | null = null;
-let cachePromise: Promise<ModelData[]> | null = null;
+// ── Model Info Tooltip (using models.dev data from our Model type) ──
 
-// Fetch models once and cache
-const fetchOpenRouterModels = async (): Promise<ModelData[]> => {
-  if (openRouterModelsCache) {
-    return openRouterModelsCache;
-  }
-
-  if (cachePromise) {
-    return cachePromise;
-  }
-
-  cachePromise = (async () => {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/models');
-      if (response.ok) {
-        const data = await response.json();
-        if (data && Array.isArray(data.data)) {
-          openRouterModelsCache = data.data;
-          return data.data;
-        }
-      }
-      return [];
-    } catch (error) {
-      console.error('Failed to fetch OpenRouter model data:', error);
-      return [];
-    } finally {
-      cachePromise = null;
-    }
-  })();
-
-  return cachePromise;
-};
-
-const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: React.ReactNode }> = ({ modelId, provider, children }) => {
-  const [openRouterModel, setOpenRouterModel] = useState<ModelData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showFullDescription, setShowFullDescription] = useState(false);
+const ModelInfoTooltip: React.FC<{ model: Model; children: React.ReactNode }> = ({ model, children }) => {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
-  // Find model in cached data
-  const findModelInCache = async () => {
-    if (openRouterModel || loading) return;
-
-    setLoading(true);
-    try {
-      const models = await fetchOpenRouterModels();
-      // Find the model by matching the full ID (provider/model)
-      const fullModelId = `${provider}/${modelId}`;
-      const foundModel = models.find((model: ModelData) =>
-        model.id === fullModelId ||
-        model.id === modelId ||
-        model.name.toLowerCase().includes(modelId.toLowerCase())
-      );
-
-      if (foundModel) {
-        setOpenRouterModel(foundModel);
-      }
-    } catch (error) {
-      console.error('Failed to find model in cache:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Format price display
-  const formatPrice = (price: string) => {
-    if (price === "-1") return "Variable";
-    if (price === "0") return "Free";
-
-    const priceNum = parseFloat(price);
-
-    if (priceNum === 0) return "$0.00";
-    if (priceNum < 0.000001) return `$${(priceNum * 1000000).toFixed(4)}µ`;
-    if (priceNum < 0.001) return `$${(priceNum * 1000).toFixed(4)}m`;
-
-    return `$${priceNum.toFixed(6)}`;
+  // Format price display (cost per million tokens)
+  const formatCost = (cost: number) => {
+    if (cost === 0) return 'Free';
+    if (cost < 0.01) return `$${cost.toFixed(4)}/M`;
+    return `$${cost.toFixed(2)}/M`;
   };
 
   // Format token count
@@ -108,120 +61,20 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
     return count.toString();
   };
 
-  // Format date from timestamp
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString("en-US", {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  // Get capability badges
-  const getCapabilities = (model: ModelData) => {
-    const capabilities = [];
-
-    if (model.architecture?.input_modalities?.includes("image")) {
-      capabilities.push({ label: "Vision", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300" });
-    }
-
-    if (model.endpoint?.supports_reasoning || model.architecture?.reasoning_config) {
-      capabilities.push({ label: "Reasoning", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300" });
-    }
-
-    if (model.endpoint?.supports_tool_parameters) {
-      capabilities.push({ label: "Tools", color: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" });
-    }
-
-    return capabilities;
-  };
-
-  // Helper function to truncate description
-  const getTruncatedDescription = (description: string, maxLength: number = 120) => {
-    if (description.length <= maxLength) {
-      return description;
-    }
-    return description.substring(0, maxLength).trim() + '...';
-  };
-
-  // Helper function to check if description needs truncation
-  const needsTruncation = (description: string, maxLength: number = 120) => {
-    return description && description.length > maxLength;
-  };
-
-  if (!openRouterModel && !loading) {
-    return (
-      <TooltipProvider>
-        <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen} delayDuration={300}>
-          <TooltipTrigger
-            asChild
-            onMouseEnter={() => {
-              findModelInCache();
-              setIsTooltipOpen(true);
-            }}
-            onMouseLeave={() => {
-              if (!showFullDescription) {
-                setIsTooltipOpen(false);
-              }
-            }}
-          >
-            {children}
-          </TooltipTrigger>
-          <TooltipContent
-            side="left"
-            align="center"
-            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-card/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
-            sideOffset={8}
-            onMouseEnter={() => setIsTooltipOpen(true)}
-            onMouseLeave={() => setIsTooltipOpen(false)}
-          >
-            <div className="text-center text-sm text-gray-500 py-2">
-              <LoadingSpinner />
-              <p className=" ">Loading model info.</p>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+  // Build capability badges
+  const capabilities: { label: string; color: string }[] = [];
+  if (model.reasoning) {
+    capabilities.push({ label: 'Reasoning', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' });
   }
-
-  if (!openRouterModel) {
-    return (
-      <TooltipProvider>
-        <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen} delayDuration={300}>
-          <TooltipTrigger
-            asChild
-            onMouseEnter={() => setIsTooltipOpen(true)}
-            onMouseLeave={() => {
-              if (!showFullDescription) {
-                setIsTooltipOpen(false);
-              }
-            }}
-          >
-            {children}
-          </TooltipTrigger>
-          <TooltipContent
-            side="left"
-            align="center"
-            className="w-64 p-3 border-0 shadow-2xl bg-white dark:bg-card/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
-            sideOffset={8}
-            onMouseEnter={() => setIsTooltipOpen(true)}
-            onMouseLeave={() => setIsTooltipOpen(false)}
-          >
-            <div className="text-center py-2">
-              <p className="text-sm text-gray-500">Model info not available</p>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+  if (model.tool_call) {
+    capabilities.push({ label: 'Tools', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' });
   }
-
-  const capabilities = getCapabilities(openRouterModel);
-  const isMultimodal = openRouterModel.architecture?.input_modalities?.includes("image");
-  const hasDescription = openRouterModel.description && openRouterModel.description.trim().length > 0;
-  const descriptionNeedsTruncation = hasDescription && needsTruncation(openRouterModel.description);
+  if (model.attachment) {
+    capabilities.push({ label: 'Vision', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' });
+  }
+  if (model.structured_output) {
+    capabilities.push({ label: 'Structured', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300' });
+  }
 
   return (
     <TooltipProvider>
@@ -229,134 +82,92 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
         <TooltipTrigger
           asChild
           onMouseEnter={() => setIsTooltipOpen(true)}
-          onMouseLeave={() => {
-            if (!showFullDescription) {
-              setIsTooltipOpen(false);
-            }
-          }}
+          onMouseLeave={() => setIsTooltipOpen(false)}
         >
           {children}
         </TooltipTrigger>
         <TooltipContent
           side="left"
           align="center"
-          className="w-80 p-0 border-0 shadow-2xl bg-white dark:bg-card/5  backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 "
+          className="w-72 p-0 border-0 shadow-2xl bg-white dark:bg-card/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50"
           sideOffset={8}
           onMouseEnter={() => setIsTooltipOpen(true)}
-          onMouseLeave={() => {
-            setIsTooltipOpen(false);
-            setShowFullDescription(false); // Reset when tooltip closes
-          }}
+          onMouseLeave={() => setIsTooltipOpen(false)}
         >
-          <div className="">
+          <div>
             {/* Header */}
-            <div className="p-4 flex items-start justify-between">
+            <div className="p-3 flex items-start justify-between">
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                  {openRouterModel.name}
+                  {model.name}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                  {provider}
+                  {model.provider}
                 </p>
-                {openRouterModel.created && (
+                {model.release_date && (
                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Released {formatDate(openRouterModel.created)}
+                    Released {model.release_date}
                   </p>
                 )}
               </div>
-              {/* Capabilities */}
               {capabilities.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {capabilities.map((capability, index) => (
-                    <span
-                      key={index}
-                      className={`text-xs px-2 py-1 rounded-md ${capability.color}`}
-                    >
-                      {capability.label}
+                <div className="flex flex-wrap gap-1 ml-2">
+                  {capabilities.map((cap, i) => (
+                    <span key={i} className={`text-xs px-1.5 py-0.5 rounded ${cap.color}`}>
+                      {cap.label}
                     </span>
                   ))}
                 </div>
               )}
-
             </div>
 
-            <div className='bg-white dark:bg-card/40 p-4 space-y-3'>
-              {/* Description with Read More */}
-              {hasDescription && (
-                <div className="space-y-1">
-                  <div className="text-xs leading-relaxed [&>div]:space-y-1 [&_h1]:text-xs [&_h1]:font-semibold [&_h2]:text-xs [&_h2]:font-semibold [&_h3]:text-xs [&_h3]:font-medium [&_p]:text-xs [&_p]:text-gray-300 [&_p]:dark:text-gray-300 [&_p]:mb-1 [&_li]:text-xs [&_li]:text-gray-300 [&_li]:dark:text-gray-300 [&_ul]:mb-1 [&_ol]:mb-1 [&_code]:text-xs [&_code]:bg-gray-600/20 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded">
-                    <MarkdownContent
-                      content={showFullDescription || !descriptionNeedsTruncation
-                        ? openRouterModel.description
-                        : getTruncatedDescription(openRouterModel.description)
-                      }
-                    />
-                  </div>
-                  {descriptionNeedsTruncation && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowFullDescription(!showFullDescription);
-                        setIsTooltipOpen(true); // Keep tooltip open
-                      }}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      className="text-xs text-blue-500 hover:text-blue-300 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer underline focus:outline-none"
-                    >
-                      {showFullDescription ? 'Show less' : 'Read more'}
-                    </button>
-                  )}
-                </div>
-              )}
-
-
+            <div className='bg-white dark:bg-card/40 p-3 space-y-2'>
               {/* Specs Grid */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 gap-2">
                 {/* Context Length */}
-                <div className="flex items-center space-x-2">
-                  <Database size={12} className="text-gray-500" />
-                  <div>
-                    <p className="text-xs font-medium text-gray-900 dark:text-white">
-                      {formatTokenCount(openRouterModel.context_length)}
-                    </p>
-                    <p className="text-xs text-gray-500">Context</p>
+                {model.limit?.context > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Database size={12} className="text-gray-500" />
+                    <div>
+                      <p className="text-xs font-medium text-gray-900 dark:text-white">
+                        {formatTokenCount(model.limit.context)}
+                      </p>
+                      <p className="text-xs text-gray-500">Context</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Modality */}
                 <div className="flex items-center space-x-2">
                   <Zap size={12} className="text-gray-500" />
                   <div>
                     <p className="text-xs font-medium text-gray-900 dark:text-white">
-                      {openRouterModel.architecture?.modality || 'text->text'}
+                      {model.modalities?.input?.join(', ') || 'text'} → {model.modalities?.output?.join(', ') || 'text'}
                     </p>
-                    <p className="text-xs text-gray-500">Type</p>
+                    <p className="text-xs text-gray-500">Modality</p>
                   </div>
                 </div>
 
-                {/* Input Price */}
-                {openRouterModel.pricing?.prompt && (
+                {/* Input Cost */}
+                {model.cost?.input > 0 && (
                   <div className="flex items-center space-x-2">
                     <DollarSign size={12} className="text-gray-500" />
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white font-mono">
-                        {formatPrice(openRouterModel.pricing.prompt)}
+                        {formatCost(model.cost.input)}
                       </p>
                       <p className="text-xs text-gray-500">Input</p>
                     </div>
                   </div>
                 )}
 
-                {/* Output Price */}
-                {openRouterModel.pricing?.completion && (
+                {/* Output Cost */}
+                {model.cost?.output > 0 && (
                   <div className="flex items-center space-x-2">
                     <DollarSign size={12} className="text-gray-500" />
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white font-mono">
-                        {formatPrice(openRouterModel.pricing.completion)}
+                        {formatCost(model.cost.output)}
                       </p>
                       <p className="text-xs text-gray-500">Output</p>
                     </div>
@@ -364,47 +175,12 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
                 )}
               </div>
 
-              {/* Additional features */}
-              {openRouterModel.endpoint && (
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">Features:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {openRouterModel.endpoint.supports_tool_parameters && (
-                      <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded">
-                        Tools
-                      </span>
-                    )}
-                    {openRouterModel.endpoint.supports_reasoning && (
-                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded">
-                        Reasoning
-                      </span>
-                    )}
-                    {openRouterModel.endpoint.supports_multipart && (
-                      <span className="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 rounded">
-                        Multipart
-                      </span>
-                    )}
-                    {openRouterModel.endpoint.is_free && (
-                      <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded">
-                        Free Tier
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Rate limits */}
-              {openRouterModel.per_request_limits && (openRouterModel.per_request_limits.rpm || openRouterModel.per_request_limits.rpd) && (
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">Rate Limits:</p>
-                  <div className="text-xs text-gray-300 dark:text-gray-300 space-y-0.5">
-                    {openRouterModel.per_request_limits.rpm && (
-                      <div>{openRouterModel.per_request_limits.rpm}/min requests</div>
-                    )}
-                    {openRouterModel.per_request_limits.rpd && (
-                      <div>{openRouterModel.per_request_limits.rpd}/day requests</div>
-                    )}
-                  </div>
+              {/* Output Limit */}
+              {model.limit?.output > 0 && (
+                <div className="pt-1 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500">
+                    Max output: <span className="font-mono text-gray-300">{formatTokenCount(model.limit.output)}</span> tokens
+                  </p>
                 </div>
               )}
             </div>
@@ -415,6 +191,8 @@ const ModelInfoTooltip: React.FC<{ modelId: string; provider: string; children: 
   );
 };
 
+// ── Model Selector (grouped by provider, like opencode) ──
+
 const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -424,277 +202,168 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const isLicensed = user?.isAuthenticated || false;
   const navigate = useNavigate();
+
+  // Use full_id for selection matching (e.g., "openrouter/openai/gpt-4o-mini" vs "openai/gpt-4o-mini")
+  const selectedFullId = selectedModel || '';
 
   // Fetch models whenever the dropdown opens
   useEffect(() => {
     if (isOpen) {
-      const fetchModels = async () => {
-        try {
-          await getModels();
-          await refreshModels();
-        } catch (error) {
-          console.error('Failed to load models:', error);
-        }
-      };
-      fetchModels();
+      refreshModels();
+      setTimeout(() => searchInputRef.current?.focus(), 50);
     }
-  }, [isOpen, refreshModels]);
+  }, [isOpen]);
 
-  const selectedModelId = selectedModel.includes('/')
-    ? selectedModel.split('/')[1]
-    : selectedModel;
-
-  // Handle click outside
+  // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+  // Filter models by search query
+  const filteredModels = useMemo(() => {
+    return enabledModels.filter(model =>
+      model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      model.provider.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [enabledModels, searchQuery]);
+
+  // Group models by provider (like opencode)
+  const groupedModels = useMemo(() => {
+    const groups: Record<string, Model[]> = {};
+    for (const model of filteredModels) {
+      const provider = model.provider;
+      if (!groups[provider]) groups[provider] = [];
+      groups[provider].push(model);
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
+    // Sort providers alphabetically, then models within each provider
+    const sortedEntries = Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([provider, models]) => [
+        provider,
+        models.sort((a, b) => a.name.localeCompare(b.name)),
+      ] as [string, Model[]]);
+    return sortedEntries;
+  }, [filteredModels]);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Cmd+/ to toggle dropdown (Mac) or Ctrl+/ (Windows/Linux)
-      if ((event.metaKey || event.ctrlKey) && event.key === '/') {
-        event.preventDefault();
-        toggleDropdown();
-        return;
+  // Build flat list for keyboard navigation
+  const flatSelectableItems = useMemo(() => {
+    const items: { type: 'model'; model: Model }[] = [];
+    for (const [, models] of groupedModels) {
+      for (const model of models) {
+        items.push({ type: 'model', model });
       }
+    }
+    return items;
+  }, [groupedModels]);
 
-      // Only handle arrow keys when dropdown is open
-      if (!isOpen) return;
+  const selectedModelObj = models.find(model => model.full_id === selectedFullId);
+  const currentModel = selectedModelObj?.name || selectedModel || 'Select model';
+  const currentProvider = selectedModelObj?.provider;
 
-      switch (event.key) {
+  const totalSelectableCount = flatSelectableItems.length + 1; // +1 for "Manage models"
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
         case 'ArrowDown':
-          event.preventDefault();
-          setHighlightedIndex(prev => {
-            const maxIndex = getTotalSelectableCount() - 1;
-            return prev < maxIndex ? prev + 1 : 0;
-          });
+          e.preventDefault();
+          setHighlightedIndex(prev => Math.min(prev + 1, totalSelectableCount - 1));
           break;
         case 'ArrowUp':
-          event.preventDefault();
-          setHighlightedIndex(prev => {
-            const maxIndex = getTotalSelectableCount() - 1;
-            return prev > 0 ? prev - 1 : maxIndex;
-          });
+          e.preventDefault();
+          setHighlightedIndex(prev => Math.max(prev - 1, -1));
           break;
         case 'Enter':
-          event.preventDefault();
-          handleEnterKey();
+          e.preventDefault();
+          if (highlightedIndex >= 0 && highlightedIndex < flatSelectableItems.length) {
+            const item = flatSelectableItems[highlightedIndex];
+            onModelChange(item.model.full_id);
+            setIsOpen(false);
+            setHighlightedIndex(-1);
+          } else if (highlightedIndex === totalSelectableCount - 1) {
+            navigate("/settings/models");
+            setIsOpen(false);
+          }
           break;
         case 'Escape':
-          event.preventDefault();
+          e.preventDefault();
           setIsOpen(false);
+          setHighlightedIndex(-1);
           break;
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, highlightedIndex]);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, highlightedIndex, flatSelectableItems, totalSelectableCount, navigate, onModelChange]);
 
-  // Reset highlighted index when search query changes
+  // Scroll highlighted item into view
   useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchQuery]);
-
-  // Focus search input when dropdown opens
-  useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  // Auto-scroll to highlighted item
-  useEffect(() => {
-    if (highlightedIndex >= 0 && scrollContainerRef.current) {
-      const scrollContainer = scrollContainerRef.current;
-      const items = scrollContainer.querySelectorAll('[data-selectable="true"]');
-      const highlightedItem = items[highlightedIndex] as HTMLElement;
-
-      if (highlightedItem) {
-        // Use scrollIntoView for more reliable scrolling
-        highlightedItem.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'nearest'
-        });
-      }
+    if (highlightedIndex < 0 || !scrollContainerRef.current) return;
+    const items = scrollContainerRef.current.querySelectorAll('[data-selectable="true"]');
+    const item = items[highlightedIndex];
+    if (item) {
+      item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   }, [highlightedIndex]);
-
-  // Handle premium model fallback
-  useEffect(() => {
-    const currentSelectedModel = models.find(m => m.id === selectedModelId);
-    if (currentSelectedModel?.premiumOnly && !isLicensed) {
-      const fallbackModel = models.find(m => !m.premiumOnly && m.enabled);
-      if (fallbackModel) {
-        onModelChange(`${fallbackModel.provider}/${fallbackModel.id}`);
-      }
-    }
-  }, [isLicensed, selectedModel, models, onModelChange, selectedModelId]);
-
-  // Filter and sort models
-  const filteredModels = enabledModels
-    .filter(model => {
-      return model.name.toLowerCase().includes(searchQuery.toLowerCase());
-    })
-    .sort((a, b) => {
-      if (isLicensed) {
-        if (a.premiumOnly && !b.premiumOnly) return -1;
-        if (!a.premiumOnly && b.premiumOnly) return 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
-
-  const currentModel = models.find(model => model.id === selectedModelId)?.name || 'Select model';
-
-  // Get all selectable items (models + "Add Model" option)
-  const getSelectableItems = () => {
-    return filteredModels.filter(model => !(model.premiumOnly && !isLicensed));
-  };
-
-  const getTotalSelectableCount = () => {
-    return getSelectableItems().length + 1; // +1 for "Add Model" option
-  };
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
     setHighlightedIndex(-1);
-    if (!isOpen) {
-      setSearchQuery('');
-    }
+    if (!isOpen) setSearchQuery('');
   };
 
-  const selectModel = (modelId: string, provider: string, premiumOnly?: boolean) => {
-    if (premiumOnly && !isLicensed) {
-      return;
-    }
-
-    onModelChange(`${provider}/${modelId}`);
-    setIsOpen(false);
-    setHighlightedIndex(-1);
+  // Capitalize provider name for display
+  const providerDisplayName = (provider: string) => {
+    const names: Record<string, string> = {
+      openai: 'OpenAI',
+      anthropic: 'Anthropic',
+      google: 'Google',
+      openrouter: 'OpenRouter',
+      deepseek: 'DeepSeek',
+      xai: 'xAI',
+      mistral: 'Mistral',
+      groq: 'Groq',
+      cohere: 'Cohere',
+      meta: 'Meta',
+      ollama: 'Ollama',
+      vllm: 'vLLM',
+      azure: 'Azure',
+    };
+    return names[provider] || provider.charAt(0).toUpperCase() + provider.slice(1);
   };
 
-  const handleEnterKey = () => {
-    const selectableModels = getSelectableItems();
-    const totalCount = getTotalSelectableCount();
-
-    if (highlightedIndex >= 0 && highlightedIndex < totalCount) {
-      // If it's the last index, it's the "Add Model" option
-      if (highlightedIndex === totalCount - 1) {
-        navigate("/settings/models");
-        setIsOpen(false);
-      } else if (highlightedIndex < selectableModels.length) {
-        // It's a model selection
-        const model = selectableModels[highlightedIndex];
-        selectModel(model.id, model.provider, model.premiumOnly);
-      }
-    }
-  };
-
-  const renderModelItem = (model: typeof models[0], index: number) => {
-    const isPremium = model.premiumOnly === true;
-    const isSelected = model.id === selectedModelId;
-    const isDisabled = isPremium && !isLicensed;
-
-    // Calculate the actual index in selectable items
-    const selectableModels = getSelectableItems();
-    const selectableIndex = selectableModels.findIndex(item => item.id === model.id);
-    const isHighlighted = selectableIndex === highlightedIndex && selectableIndex >= 0;
-
-    if (isDisabled) {
-      return (
-        <TooltipProvider key={model.id}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div
-                className="px-3 py-2 text-xs cursor-not-allowed flex items-center justify-between text-gray-400"
-              >
-                <div className="flex items-center">
-                  <Lock size={12} className="mr-1.5 text-gray-500" />
-                  <span>{model.name}</span>
-                </div>
-                <span className="flex items-center ml-2 text-xxs px-1.5 py-0.5 bg-gray-300/30 dark:bg-green-500/10 text-gray-800 dark:text-green-500 rounded-[0.3rem]">
-                  <Sparkles size={12} className="mr-1 w-3 h-3" />
-                  <span>Pro</span>
-                </span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-100 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50">
-              <p>Requires Pro Plan. Activate a license to unlock premium models.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
-    const modelItemContent = (
-      <div
-        key={model.id}
-        data-selectable="true"
-        className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between transition-colors ${isSelected
-          ? 'bg-gray-300 dark:bg-gray-800/30 dark:text-white'
-          : isHighlighted
-            ? 'bg-gray-200 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200'
-            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-700/20'
-          }`}
-        onClick={() => selectModel(model.id, model.provider, model.premiumOnly)}
-        onMouseEnter={() => {
-          const selectableModels = getSelectableItems();
-          const selectableIndex = selectableModels.findIndex(item => item.id === model.id);
-          if (selectableIndex >= 0) {
-            setHighlightedIndex(selectableIndex);
-          }
-        }}
-      >
-        <div className="flex items-center space-x-1.5">
-          {getProviderIcon(model.provider)}
-          <span>{model.name}</span>
-        </div>
-        {isSelected && <Check size={16} className="text-gray-300" />}
-        {isPremium && !isSelected && !isLicensed &&
-          <span className="ml-2 text-xxs px-1.5 py-0.5 bg-gray-300/30 dark:bg-green-500/10 text-gray-800 dark:text-green-500 rounded-[0.3rem]">
-            Pro
-          </span>
-        }
-      </div>
-    );
-
-    // Wrap with tooltip only if not disabled
-    return (
-      <ModelInfoTooltip key={model.id} modelId={model.id} provider={model.provider}>
-        {modelItemContent}
-      </ModelInfoTooltip>
-    );
-  };
+  // Track flat index for keyboard navigation
+  let flatIndex = 0;
 
   return (
     <div ref={dropdownRef} className="relative inline-block text-left">
       <div
-        className="inline-flex items-center cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center cursor-pointer text-xs text-muted-foreground hover:text-foreground hover:bg-gray-800/20 px-1.5 py-1 rounded transition-colors"
         onClick={toggleDropdown}
       >
+        {currentProvider && (
+          <div className="mr-1.5">
+            <ProviderLogo provider={currentProvider} size={14} />
+          </div>
+        )}
         <span>{currentModel}</span>
         {isOpen ? <ChevronUp size={14} className="ml-1" /> : <ChevronDown size={14} className="ml-1" />}
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md shadow-lg dark:bg-card/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 border border-gray-400/30 dark:border-gray-800/50 z-50">
+        <div className="absolute right-0 bottom-full mb-1 w-60 rounded-md shadow-lg dark:bg-card/5 backdrop-blur-md border border-gray-400/30 dark:border-gray-800/50 z-50">
+          {/* Search */}
           <div className="p-2">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -708,46 +377,98 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
               />
             </div>
           </div>
+
+          {/* Models list grouped by provider */}
           <div
             ref={scrollContainerRef}
-            className="max-h-40 overflow-y-auto 
+            className="max-h-52 overflow-y-auto 
             [&::-webkit-scrollbar]:w-1.5 
             [&::-webkit-scrollbar-track]:bg-transparent 
             [&::-webkit-scrollbar-thumb]:bg-gray-700/30 
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50">
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-700/50"
+          >
+            {groupedModels.map(([provider, providerModels]) => {
+              return (
+                <div key={provider}>
+                  {/* Provider header */}
+                  <div className="px-3 py-1.5 flex items-center gap-1.5 text-[11px] font-medium text-gray-500 dark:text-gray-500 tracking-wider sticky top-0 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
 
-            {filteredModels.map((model, index) => renderModelItem(model, index))}
+                    {providerDisplayName(provider)}
+                  </div>
+                  {providerModels.map((model) => {
+                    const currentFlatIndex = flatIndex;
+                    flatIndex++;
+                    const isSelected = model.full_id === selectedFullId;
+                    const isHighlighted = currentFlatIndex === highlightedIndex;
 
+                    const modelItemContent = (
+                      <div
+                        data-selectable="true"
+                        className={`px-3 py-1.5 text-xs cursor-pointer flex items-center justify-between transition-colors ${isSelected
+                          ? 'bg-gray-300 dark:bg-gray-800/30 dark:text-white'
+                          : isHighlighted
+                            ? 'bg-gray-200 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-700/20'
+                          }`}
+                        onClick={() => {
+                          onModelChange(model.full_id);
+                          setIsOpen(false);
+                          setHighlightedIndex(-1);
+                        }}
+                        onMouseEnter={() => setHighlightedIndex(currentFlatIndex)}
+                      >
+                        <div className="flex items-center space-x-1.5">
+                          <ProviderLogo provider={provider} size={14} />
+                          <span>{model.name}</span>
+                          {model.status && (
+                            <span className="text-[9px] px-1 py-0.5 bg-gray-200 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 rounded">
+                              {model.status === 'beta' ? 'Beta' : model.status === 'deprecated' ? 'Deprecated' : model.status}
+                            </span>
+                          )}
+                        </div>
+                        {isSelected && <Check size={14} className="text-gray-300 shrink-0" />}
+                      </div>
+                    );
+
+                    return (
+                      <ModelInfoTooltip key={model.full_id} model={model}>
+                        {modelItemContent}
+                      </ModelInfoTooltip>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {/* Manage models link */}
             <div
               data-selectable="true"
-              className={`flex items-center px-1 py-2 text-xs w-full transition-colors cursor-pointer ${highlightedIndex === getTotalSelectableCount() - 1
+              className={`flex items-center px-3 py-2 text-xs w-full transition-colors cursor-pointer border-t border-gray-400/20 dark:border-gray-800/50 ${highlightedIndex === totalSelectableCount - 1
                 ? 'bg-gray-200 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200'
-                : 'hover:bg-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-800 text-gray-300 dark:text-gray-300'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400'
                 }`}
               onClick={() => {
                 navigate("/settings/models");
                 setIsOpen(false);
               }}
-              onMouseEnter={() => setHighlightedIndex(getTotalSelectableCount() - 1)}
+              onMouseEnter={() => setHighlightedIndex(totalSelectableCount - 1)}
             >
-              <Plus className='h-3' />
-              Add Model
+              <Plus className='h-3 w-3 mr-1' />
+              Manage models
             </div>
 
             {filteredModels.length === 0 && (
-              <div className="px-3 py-2 text-xs text-gray-500 text-center">
+              <div className="px-3 py-4 text-xs text-gray-500 text-center">
                 No models found
               </div>
             )}
           </div>
+
+          {/* Footer */}
           <div className="border-t border-gray-400/30 dark:border-gray-800/50 py-1 px-3">
             <div className="text-xs text-gray-500 flex justify-between items-center">
               <span>⌘/ toggle</span>
-              {!isLicensed && (
-                <></>
-                // <span className="text-xxs text-gray-400">Some models require Pro Plan</span>
-              )}
             </div>
           </div>
         </div>

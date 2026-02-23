@@ -52,11 +52,11 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       try {
         const settings = await getSettings();
 
-        const externalProviderSettings = settings.models?.externalProviderSettings;
-        if (externalProviderSettings) {
+        const providers = settings.models?.providers;
+        if (providers) {
           // Decode and set keys if they exist
-          if (externalProviderSettings.openai) {
-            const openaiConfig = externalProviderSettings.openai;
+          if (providers.openai) {
+            const openaiConfig = providers.openai;
             if (openaiConfig.apiKey) {
               try {
                 setOpenAIKey(atob(openaiConfig.apiKey));
@@ -73,8 +73,8 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
             }
           }
 
-          if (externalProviderSettings.anthropic) {
-            const anthropicConfig = externalProviderSettings.anthropic;
+          if (providers.anthropic) {
+            const anthropicConfig = providers.anthropic;
             if (anthropicConfig.apiKey) {
               try {
                 setAnthropicKey(atob(anthropicConfig.apiKey));
@@ -85,8 +85,8 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
             setAnthropicEnabled(anthropicConfig.enabled || false);
           }
 
-          if (externalProviderSettings.google) {
-            const googleConfig = externalProviderSettings.google;
+          if (providers.google) {
+            const googleConfig = providers.google;
             if (googleConfig.apiKey) {
               try {
                 setGoogleKey(atob(googleConfig.apiKey));
@@ -98,8 +98,8 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           }
 
           // Load Azure config if it exists
-          if (externalProviderSettings.azure) {
-            const azureConfig = externalProviderSettings.azure;
+          if (providers.azure) {
+            const azureConfig = providers.azure;
             setAzureEnabled(azureConfig.enabled || false);
             setAzureBaseURL(azureConfig.baseUrl || '');
             setAzureDeploymentName(azureConfig.deploymentName || '');
@@ -117,15 +117,15 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
           }
 
           // Load Ollama config if it exists
-          if (externalProviderSettings.ollama) {
-            const ollamaConfig = externalProviderSettings.ollama;
+          if (providers.ollama) {
+            const ollamaConfig = providers.ollama;
             setOllamaEnabled(ollamaConfig.enabled || false);
             setOllamaEndpoint(ollamaConfig.endpoint || 'http://127.0.0.1:11434/v1');
           }
 
           // Load vLLM config if it exists
-          if (externalProviderSettings.vllm) {
-            const vllmConfig = externalProviderSettings.vllm;
+          if (providers.vllm) {
+            const vllmConfig = providers.vllm;
             setVllmEnabled(vllmConfig.enabled || false);
             setVllmEndpoint(vllmConfig.endpoint || 'http://localhost:8000');
           }
@@ -169,7 +169,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       // Save the OpenAI key
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             openai: {
               apiKey: encodeBase64(openAIKey),
               enabled: openaiEnabled,
@@ -211,7 +211,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       // Save the Anthropic key
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             anthropic: {
               apiKey: encodeBase64(anthropicKey),
               enabled: anthropicEnabled
@@ -252,7 +252,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       // Save the Google key
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             google: {
               apiKey: encodeBase64(googleKey),
               enabled: googleEnabled
@@ -293,7 +293,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
       // Save the Azure config
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             azure: {
               baseUrl: azureBaseURL,
               deploymentName: azureDeploymentName,
@@ -359,7 +359,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             openai: openaiConfig
           }
         }
@@ -409,7 +409,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             anthropic: anthropicConfig
           }
         }
@@ -459,7 +459,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             google: googleConfig
           }
         }
@@ -517,7 +517,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             azure: azureConfig
           }
         }
@@ -569,7 +569,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             ollama: ollamaConfig
           }
         }
@@ -621,7 +621,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             vllm: vllmConfig
           }
         }
@@ -659,7 +659,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             ollama: {
               endpoint: ollamaEndpoint,
               enabled: ollamaEnabled
@@ -698,7 +698,7 @@ const ModelConfig: React.FC<ModelConfigProps> = () => {
 
       const configUpdate = {
         models: {
-          externalProviderSettings: {
+          providers: {
             vllm: {
               endpoint: vllmEndpoint,
               enabled: vllmEnabled
