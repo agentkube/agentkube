@@ -53,7 +53,7 @@ jobs:
             This release includes builds for all supported platforms:
             - **Linux** (x86_64, ARM64)
             - **macOS** (Intel x86_64, Apple Silicon ARM64) 
-            - **Windows** (x86_64, i686, ARM64)
+            - **Windows** (x86_64, ARM64)
 
             ### Tauri Applications
             - Linux: .deb, .rpm, .AppImage packages
@@ -81,12 +81,16 @@ jobs:
         include:
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
+          - platform: windows-latest
+            target: aarch64-pc-windows-msvc
           - platform: macos-latest
             target: aarch64-apple-darwin
           - platform: macos-latest
             target: x86_64-apple-darwin
           - platform: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+          - platform: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -150,9 +154,11 @@ jobs:
           # Determine platform for build script
           case "${{ matrix.target }}" in
             x86_64-unknown-linux-gnu) platform="linux" ;;
+            aarch64-unknown-linux-gnu) platform="linux-arm" ;;
             aarch64-apple-darwin) platform="mac-arm" ;;
             x86_64-apple-darwin) platform="mac" ;;
             x86_64-pc-windows-msvc) platform="win64" ;;
+            aarch64-pc-windows-msvc) platform="win-arm" ;;
             *) platform="linux" ;;
           esac
           
@@ -167,6 +173,9 @@ jobs:
             x86_64-unknown-linux-gnu) 
               export GOOS=linux GOARCH=amd64
               binary_name="agentkube-operator-x86_64-unknown-linux-gnu" ;;
+            aarch64-unknown-linux-gnu) 
+              export GOOS=linux GOARCH=arm64
+              binary_name="agentkube-operator-aarch64-unknown-linux-gnu" ;;
             aarch64-apple-darwin) 
               export GOOS=darwin GOARCH=arm64
               binary_name="agentkube-operator-aarch64-apple-darwin" ;;
@@ -176,6 +185,9 @@ jobs:
             x86_64-pc-windows-msvc) 
               export GOOS=windows GOARCH=amd64
               binary_name="agentkube-operator-x86_64-pc-windows-msvc.exe" ;;
+            aarch64-pc-windows-msvc) 
+              export GOOS=windows GOARCH=arm64
+              binary_name="agentkube-operator-aarch64-pc-windows-msvc.exe" ;;
             *) 
               export GOOS=linux GOARCH=amd64
               binary_name="agentkube-operator-x86_64-unknown-linux-gnu" ;;

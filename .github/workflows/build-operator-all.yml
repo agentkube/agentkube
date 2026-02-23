@@ -32,14 +32,8 @@ jobs:
             goarch: amd64
             name: agentkube-operator-x86_64-unknown-linux-gnu
           - goos: linux
-            goarch: "386"
-            name: agentkube-operator-i686-unknown-linux-gnu
-          - goos: linux
             goarch: arm64
             name: agentkube-operator-aarch64-unknown-linux-gnu
-          - goos: linux
-            goarch: arm
-            name: agentkube-operator-arm-unknown-linux-gnueabihf
 
     runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
 
