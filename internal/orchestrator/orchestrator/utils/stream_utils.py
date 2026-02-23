@@ -33,7 +33,6 @@ from extension.mcp import MCPServerStdio, MCPServerSse
 from config import get_mcp_config, get_openrouter_api_key, get_openrouter_api_url, get_openai_api_key, get_web_search_enabled, get_cluster_config
 from orchestrator.core.prompt.base_prompt import get_default_system_prompt, format_message_with_files
 from orchestrator.services.byok.provider import get_provider_for_model
-from orchestrator.services.account.session import get_user_plan
 from orchestrator.utils.tool_mapper import get_component_for_tool, should_emit_custom_component, prepare_component_props
 from orchestrator.session import Session, SessionInfo, SessionStatus, get_or_create_session, cleanup_session_state, SESSION_ABORT_SIGNALS, TextPart, ToolPart, ReasoningPart, TodoPart, MessagePart
 import asyncio
@@ -86,9 +85,6 @@ SESSION_APPROVALS: Dict[str, set] = {}
 # Redirect instructions (keyed by trace_id, stores new instruction message)
 REDIRECT_INSTRUCTIONS: Dict[str, str] = {}
 
-# Global registry for todo states (keyed by trace_id/session_id)
-# Each entry contains: List[TodoItem] where TodoItem = {id: str, content: str, status: str, priority: str, ...}
-# This syncs with the file-based storage in ~/.agentkube/storage/todo/{session_id}.json
 TODO_STATES: Dict[str, List[Dict[str, Any]]] = {}
 
 def assess_tool_safety(tool_name: str, arguments: Dict[str, Any]) -> str:
@@ -236,16 +232,7 @@ async def run_agent_loop(
     max_iterations: int = 100
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
-    Main agent loop using raw OpenAI API calls (NO agents SDK Runner).
-
-    This implementation:
-    1. Calls OpenAI chat completions API directly
-    2. Handles tool calling loop manually (Gemini CLI pattern)
-    3. Streams responses in real-time
-    4. Allows user termination at any point
-    5. Supports both FunctionTool (agents SDK) and regular Python functions
-    6. Supports MCP tools via MCP servers
-    7. Supports auto-approval of tool executions
+    Main agent loop
 
     Args:
         openai_client: AsyncOpenAI client instance
@@ -314,7 +301,7 @@ async def run_agent_loop(
                 stream=True,
                 stream_options={"include_usage": True},  # Enable token usage in stream
                 temperature=0.1,
-                reasoning_effort=reasoning_effort,
+                # reasoning_effort=reasoning_effort,
                 extra_headers={
                     "HTTP-Referer": "https://agentkube.com",
                     "X-Title": "Agentkube", 
@@ -822,8 +809,23 @@ async def run_agent_loop(
                 # Continue to next iteration - LLM will see tool results
 
         except Exception as e:
-            # Fatal error in loop logic
-            error_msg = f"Error in agent loop: {str(e)}"
+            # Extract clean error message from provider API errors
+            error_msg = str(e)
+            try:
+                # OpenAI SDK errors have a response with JSON body
+                if hasattr(e, 'response'):
+                    body = e.response.json()
+                    if isinstance(body, dict) and 'error' in body:
+                        err = body['error']
+                        if isinstance(err, dict) and 'message' in err:
+                            error_msg = err['message']
+                elif hasattr(e, 'body') and isinstance(e.body, dict):
+                    err = e.body.get('error', {})
+                    if isinstance(err, dict) and 'message' in err:
+                        error_msg = err['message']
+            except Exception:
+                pass  # Fall back to str(e)
+
             print(f"FATAL ERROR: {error_msg}")
             import traceback
             traceback.print_exc()
@@ -1211,11 +1213,6 @@ async def stream_agent_response(
     Session.add_message(current_session_id, "user", message)
 
 
-    # =========================================================================
-    # OPENCODE-STYLE PARTS ACCUMULATOR FOR ASSISTANT RESPONSE
-    # Parts are stored in order as they arrive during streaming
-    # This ensures proper interleaving of text and tool calls
-    # =========================================================================
     accumulated_parts: List[MessagePart] = []  # Parts in order of arrival
     current_text_part: Optional[TextPart] = None  # Current text part being streamed
     accumulated_todos = []  # List of todo items created/updated during this response
@@ -1254,16 +1251,6 @@ async def stream_agent_response(
             # Connect MCP servers
             mcp_servers = await setup_mcp_servers()
 
-            # ============================================================================
-            # OPENCODE-STYLE TOOL SETUP
-            # Using only agent_tools which follow the OpenCode pattern:
-            # - Memory tools (save_memory, get_memory)
-            # - Todo tools with session-scoping (todo_write, todo_read, todo_update, todo_delete, todo_clear)
-            # - File tools (read_file, write_file, edit_file, glob, grep, list_tool)
-            # - Shell tool (shell)
-            # - Web fetch tool (web_fetch)
-            # ============================================================================
-            
             # Comment out original Kubernetes tools - keeping for reference
             # enabled_tools = kubectl_tools + helm_tools + terminal_tools + filesystem_tools + drift_tools + [scan_image] + get_enabled_tools(kubecontext)
             
@@ -1272,17 +1259,9 @@ async def stream_agent_response(
 
             enable_websearch = ":online" if get_web_search_enabled() else ""
 
-            # Get user plan to determine provider
-            user_plan = await get_user_plan()
+            provider_config = get_provider_for_model(model_name)
 
-            # Get provider configuration based on plan
-            # Free plan users use default OpenRouter provider
-            if user_plan == "free":
-                provider_config = get_provider_for_model(model_name, "default")
-            else:
-                provider_config = get_provider_for_model(model_name)
-
-            # Create OpenAI client with provider config (NO agents SDK)
+            # Create OpenAI client with provider config
             openai_client = AsyncOpenAI(
                 base_url=provider_config.base_url,
                 api_key=provider_config.api_key,

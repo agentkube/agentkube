@@ -8,7 +8,6 @@ from orchestrator.core.prompt.security_prompt import SECURITY_REMEDIATION_PROMPT
 
 from config.config import get_openrouter_api_key, get_openrouter_api_url
 from orchestrator.services.byok.provider import get_provider_for_model
-from orchestrator.services.account.session import get_user_plan
 
 async def stream_security_remediation(
     manifest_content: str,
@@ -32,15 +31,8 @@ async def stream_security_remediation(
     set_default_openai_api("chat_completions")
     formatted_message = format_security_message(manifest_content, vulnerability_context)
 
-    # Get user plan to determine provider
-    user_plan = await get_user_plan()
-
-    # Get provider configuration based on plan
-    # Free plan users use default OpenRouter provider
-    if user_plan == "free":
-        provider_config = get_provider_for_model(model_name, "default")
-    else:
-        provider_config = get_provider_for_model(model_name)
+    # Get provider configuration directly
+    provider_config = get_provider_for_model(model_name)
 
     agent = Agent(
         name="Kubernetes Security Remediation",

@@ -25,7 +25,6 @@ from config import get_openrouter_api_key, get_openrouter_api_url, get_web_searc
 from orchestrator.core.prompt.base_prompt import format_message_with_files
 from orchestrator.utils.stream_utils import process_stream_events, setup_openai_client, prepare_input_messages
 from orchestrator.services.byok.provider import get_provider_for_model
-from orchestrator.services.account.session import get_user_plan
 
 
 def create_log_analysis_prompt(request: LogAnalysisRequest) -> str:
@@ -176,15 +175,8 @@ async def stream_log_analysis(
         try:
             set_kubecontext(request.kubecontext)
 
-            # Get user plan to determine provider
-            user_plan = await get_user_plan()
-
-            # Get provider configuration based on plan
-            # Free plan users use default OpenRouter provider
-            if user_plan == "free":
-                provider_config = get_provider_for_model(request.model, "default")
-            else:
-                provider_config = get_provider_for_model(request.model)
+            # Get provider configuration directly
+            provider_config = get_provider_for_model(request.model)
             
             log_analyzer_agent = Agent(
                 name="Agentkube: Log Analysis Agent2",

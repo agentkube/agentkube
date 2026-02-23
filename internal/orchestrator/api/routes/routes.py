@@ -16,7 +16,16 @@ from orchestrator.db.db import get_db, Base, engine
 from orchestrator.db.models.command import ExecuteCommandRequest
 from orchestrator.db.models.config import ConfigUpdate, McpUpdate, RulesUpdate, KubeignoreUpdate, ClusterConfigUpdate
 from orchestrator.db.models.chat import ChatRequest
-from orchestrator.db.models.model import ModelCreate, ModelUpdate, ModelResponse
+from orchestrator.db.models.model import (
+    ModelResponse,
+    ProviderResponse,
+    ProviderDetailResponse,
+    EnableModelRequest,
+    DisableModelRequest,
+    ConnectProviderRequest,
+    DisconnectProviderRequest,
+    ProviderStatusResponse,
+)
 from orchestrator.db.models.chat import ChatMessage, CompletionRequest, SecurityChatRequest
 from orchestrator.db.models.conversation import ConversationCreate, ConversationUpdate
 from orchestrator.db.models.investigate import InvestigationTaskRequest, InvestigationTask
@@ -69,13 +78,7 @@ def setup_routes(api):
     """
     Base.metadata.create_all(bind=engine)
     
-    # Initialize default models on startup
-    from orchestrator.db.db import SessionLocal
-    db = SessionLocal()
-    try:
-        ModelService.initialize_default_models(db)
-    finally:
-        db.close()
+    # Models now come from models.dev catalog — no DB initialization needed
     
     @api.get("/health")
     async def health_check(db = Depends(get_db)):
@@ -1102,127 +1105,126 @@ def setup_routes(api):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to execute tool: {str(e)}")
             
-    # Models
-    @api.get("/orchestrator/api/models", response_model=List[ModelResponse])
-    async def list_models(db: Session = Depends(get_db)):
-        """List all available models."""
-        models = ModelService.list_models(db)
-        return [
-            ModelResponse(
-                id=model.id,
-                name=model.name,
-                provider=model.provider,
-                enabled=model.enabled,
-                isCustom=model.is_custom,
-                premiumOnly=model.premium_only
-            ) for model in models
-        ]
-    
-    @api.get("/orchestrator/api/models/{model_id}", response_model=ModelResponse)
-    async def get_model(model_id: str, db: Session = Depends(get_db)):
-        """Get a specific model by ID."""
-        model = ModelService.get_model(db, model_id)
-        if not model:
-            raise HTTPException(status_code=404, detail=f"Model with ID {model_id} not found")
-        
-        return ModelResponse(
-            id=model.id,
-            name=model.name,
-            provider=model.provider,
-            enabled=model.enabled,
-            isCustom=model.is_custom,
-            premiumOnly=model.premium_only
-        )
-    
-    @api.post("/orchestrator/api/models", response_model=ModelResponse, status_code=201)
-    async def create_model(model: ModelCreate, db: Session = Depends(get_db)):
-        """Create a new custom model."""
-        # Check if model with this ID already exists
-        existing_model = ModelService.get_model(db, model.id)
-        if existing_model:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Model with ID {model.id} already exists"
+    # ── Models (models.dev catalog + settings.json) ──
+
+    @api.get("/orchestrator/api/models/catalog")
+    async def get_models_catalog():
+        """Get the full models.dev catalog grouped by provider."""
+        try:
+            providers = await ModelService.get_providers()
+            return providers
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch catalog: {str(e)}")
+
+    @api.get("/orchestrator/api/models/providers", response_model=List[ProviderResponse])
+    async def list_providers():
+        """List all providers with metadata and connection status."""
+        try:
+            providers = await ModelService.get_providers()
+            return providers
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch providers: {str(e)}")
+
+    @api.get("/orchestrator/api/models/providers/{provider_id}")
+    async def get_provider_detail(provider_id: str):
+        """Get a specific provider with its models."""
+        try:
+            detail = await ModelService.get_provider_detail(provider_id)
+            if not detail:
+                raise HTTPException(status_code=404, detail=f"Provider '{provider_id}' not found")
+            return detail
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch provider: {str(e)}")
+
+    @api.get("/orchestrator/api/models")
+    async def list_enabled_models():
+        """List user's enabled models (from settings.json)."""
+        try:
+            models = await ModelService.list_enabled_models()
+            return models
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch models: {str(e)}")
+
+    @api.get("/orchestrator/api/models/all")
+    async def list_all_models():
+        """List ALL models from catalog with enabled status."""
+        try:
+            models = await ModelService.list_all_models()
+            return models
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch models: {str(e)}")
+
+    @api.get("/orchestrator/api/models/search")
+    async def search_models(q: str = Query("", description="Search query")):
+        """Search models by name, family, or provider."""
+        try:
+            if not q.strip():
+                return []
+            results = await ModelService.search_models(q)
+            return results
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+    @api.post("/orchestrator/api/models/enable")
+    async def enable_model(request: EnableModelRequest):
+        """Enable a model (add to settings.json enabledModels list)."""
+        try:
+            result = await ModelService.enable_model(request.provider_id, request.model_id)
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to enable model: {str(e)}")
+
+    @api.post("/orchestrator/api/models/disable")
+    async def disable_model(request: DisableModelRequest):
+        """Disable a model (remove from settings.json enabledModels list)."""
+        try:
+            result = await ModelService.disable_model(request.provider_id, request.model_id)
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to disable model: {str(e)}")
+
+    @api.post("/orchestrator/api/providers/connect")
+    async def connect_provider(request: ConnectProviderRequest):
+        """Store API key for a provider in settings.json."""
+        try:
+            success = config_manager.connect_provider(
+                request.provider_id,
+                request.api_key,
+                base_url=request.base_url or "",
+                endpoint=request.endpoint or "",
             )
-        
-        # Convert Pydantic model to dict for service
-        model_data = model.model_dump()
-        new_model = ModelService.create_model(db, model_data)
-        
-        if not new_model:
-            raise HTTPException(
-                status_code=400, 
-                detail="Failed to create model"
-            )
-        
-        return ModelResponse(
-            id=new_model.id,
-            name=new_model.name,
-            provider=new_model.provider,
-            enabled=new_model.enabled,
-            isCustom=new_model.is_custom,
-            premiumOnly=new_model.premium_only
-        )
-    
-    @api.patch("/orchestrator/api/models/{model_id}", response_model=ModelResponse)
-    async def update_model(model_id: str, model: ModelUpdate, db: Session = Depends(get_db)):
-        """Update an existing model."""
-        # Check if model exists
-        existing_model = ModelService.get_model(db, model_id)
-        if not existing_model:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"Model with ID {model_id} not found"
-            )
-        
-        # Convert Pydantic model to dict for service
-        model_data = model.model_dump(exclude_unset=True)
-        
-        updated_model = ModelService.update_model(db, model_id, model_data)
-        
-        if not updated_model:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Failed to update model with ID {model_id}"
-            )
-        
-        return ModelResponse(
-            id=updated_model.id,
-            name=updated_model.name,
-            provider=updated_model.provider,
-            enabled=updated_model.enabled,
-            isCustom=updated_model.is_custom,
-            premiumOnly=updated_model.premium_only
-        )
-    
-    @api.delete("/orchestrator/api/models/{model_id}")
-    async def delete_model(model_id: str, db: Session = Depends(get_db)):
-        """Delete a custom model."""
-        # Check if model exists
-        existing_model = ModelService.get_model(db, model_id)
-        if not existing_model:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"Model with ID {model_id} not found"
-            )
-        
-        # Don't allow deletion of default models
-        if not existing_model.is_custom:
-            raise HTTPException(
-                status_code=403, 
-                detail=f"Cannot delete default model with ID {model_id}"
-            )
-        
-        # Delete the model
-        success = ModelService.delete_model(db, model_id)
-        
-        if not success:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Failed to delete model with ID {model_id}"
-            )
-        
-        return {"status": "success", "message": f"Model with ID {model_id} deleted successfully"}
+            if not success:
+                raise HTTPException(status_code=500, detail="Failed to save provider config")
+            return {"status": "success", "provider_id": request.provider_id, "connected": True}
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to connect provider: {str(e)}")
+
+    @api.delete("/orchestrator/api/providers/{provider_id}")
+    async def disconnect_provider(provider_id: str):
+        """Remove API key for a provider from settings.json."""
+        try:
+            success = config_manager.disconnect_provider(provider_id)
+            if not success:
+                raise HTTPException(status_code=500, detail="Failed to remove provider config")
+            return {"status": "success", "provider_id": provider_id, "connected": False}
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to disconnect provider: {str(e)}")
+
+    @api.get("/orchestrator/api/providers/status")
+    async def get_providers_status():
+        """Get connection status for all configured providers."""
+        try:
+            providers = await ModelService.get_providers()
+            statuses = {p["id"]: p.get("connected", False) for p in providers}
+            return {"statuses": statuses}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
     
     
     # Conversations

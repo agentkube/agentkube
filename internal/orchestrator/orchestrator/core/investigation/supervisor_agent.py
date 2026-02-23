@@ -1,11 +1,5 @@
 """
 Supervisor Agent Module
-
-Real-time investigation supervisor using raw OpenAI streaming (no agents SDK).
-Streams investigation events as SSE for the frontend.
-
-Tools are auto-registered from their function signatures (like stream_utils.py).
-Sub-agent tools (log_analysis) use agents SDK pattern from investigator.py.
 """
 
 import json
@@ -17,7 +11,7 @@ from pathlib import Path
 from openai import AsyncOpenAI
 
 from orchestrator.services.byok.provider import get_provider_for_model
-from orchestrator.services.account.session import get_user_plan, should_track_usage, update_oauth2_usage_async
+from orchestrator.services.account.session import should_track_usage, update_oauth2_usage_async
 # Import tools (raw functions)
 from orchestrator.tools.kubectl import (
     get_resource_yaml,
@@ -321,11 +315,7 @@ async def run_supervisor_investigation(
     
     # Get provider configuration
     try:
-        user_plan = await get_user_plan()
-        if user_plan == "free":
-            provider_config = get_provider_for_model(model, "default")
-        else:
-            provider_config = get_provider_for_model(model)
+        provider_config = get_provider_for_model(model)
     except Exception as e:
         logger.warning(f"Failed to get provider config: {e}, using defaults")
         from orchestrator.services.byok.provider import ProviderConfig

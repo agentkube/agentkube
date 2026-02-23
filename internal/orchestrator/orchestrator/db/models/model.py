@@ -1,57 +1,111 @@
-from sqlalchemy import Column, String, Boolean, DateTime
-from sqlalchemy.sql import func
-from orchestrator.db.db import Base
+"""
+Pydantic models for the models.dev-backed API.
+
+No more SQLAlchemy Model — all data comes from models.dev + settings.json.
+"""
+
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional, Dict, Any
 
 
-class Model(Base):
-    """SQLAlchemy Model class for AI models."""
-    __tablename__ = "models"
+# ── Request models ──
 
-    id = Column(String, primary_key=True, index=True)
-    name = Column(String, index=True)
-    provider = Column(String, index=True)
-    enabled = Column(Boolean, default=True)
-    is_custom = Column(Boolean, default=True)
-    premium_only = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    
-    def to_dict(self):
-        """Convert model to dictionary."""
-        return {
-            "id": self.id,
-            "name": self.name,
-            "provider": self.provider,
-            "enabled": self.enabled,
-            "isCustom": self.is_custom,
-            "premiumOnly": self.premium_only,
-            "createdAt": self.created_at.isoformat() if self.created_at else None,
-            "updatedAt": self.updated_at.isoformat() if self.updated_at else None
-        }
+class EnableModelRequest(BaseModel):
+    """Request to enable a model."""
+    provider_id: str
+    model_id: str
 
 
-# Pydantic models for API request/response validation
-class ModelCreate(BaseModel):
-    id: str
-    name: str
-    provider: str
-    enabled: bool = True
-    premium_only: bool = False
-    
+class DisableModelRequest(BaseModel):
+    """Request to disable a model."""
+    provider_id: str
+    model_id: str
 
-class ModelUpdate(BaseModel):
-    name: Optional[str] = None
-    provider: Optional[str] = None
-    enabled: Optional[bool] = None
-    premium_only: Optional[bool] = None
+
+class ConnectProviderRequest(BaseModel):
+    """Request to connect a provider with API key."""
+    provider_id: str
+    api_key: str
+    base_url: Optional[str] = None
+    endpoint: Optional[str] = None  # For local providers like Ollama
+
+
+class DisconnectProviderRequest(BaseModel):
+    """Request to disconnect a provider."""
+    provider_id: str
+
+
+# ── Response models ──
+
+class CostResponse(BaseModel):
+    """Model cost per million tokens."""
+    input: float = 0.0
+    output: float = 0.0
+    cache_read: float = 0.0
+    cache_write: float = 0.0
+
+
+class LimitResponse(BaseModel):
+    """Model token limits."""
+    context: int = 0
+    input: int = 0
+    output: int = 0
+
+
+class ModalitiesResponse(BaseModel):
+    """Model input/output modalities."""
+    input: List[str] = ["text"]
+    output: List[str] = ["text"]
 
 
 class ModelResponse(BaseModel):
+    """Single model from the models.dev catalog."""
     id: str
     name: str
-    provider: str
-    enabled: bool
-    isCustom: bool
-    premiumOnly: bool
+    provider_id: str = ""
+    full_id: str = ""
+    family: str = ""
+    attachment: bool = False
+    reasoning: bool = False
+    tool_call: bool = False
+    temperature: bool = True
+    knowledge: str = ""
+    release_date: str = ""
+    last_updated: str = ""
+    modalities: ModalitiesResponse = ModalitiesResponse()
+    open_weights: bool = False
+    cost: CostResponse = CostResponse()
+    limit: LimitResponse = LimitResponse()
+    status: str = ""
+    structured_output: bool = False
+    enabled: bool = False
+
+
+class ProviderResponse(BaseModel):
+    """Provider info from models.dev."""
+    id: str
+    name: str
+    env: List[str] = []
+    api: str = ""
+    doc: str = ""
+    logo_url: str = ""
+    model_count: int = 0
+    connected: bool = False
+
+
+class ProviderDetailResponse(BaseModel):
+    """Provider with its models."""
+    id: str
+    name: str
+    env: List[str] = []
+    api: str = ""
+    doc: str = ""
+    logo_url: str = ""
+    model_count: int = 0
+    connected: bool = False
+    models: Dict[str, ModelResponse] = {}
+
+
+class ProviderStatusResponse(BaseModel):
+    """Aggregated provider connection status."""
+    statuses: Dict[str, bool] = {}

@@ -24,7 +24,6 @@ from agents import trace, gen_trace_id
 
 from orchestrator.db.models.stream import MessageStreamStatus
 from orchestrator.services.byok.provider import get_provider_for_model
-from orchestrator.services.account.session import get_user_plan
 from orchestrator.utils.stream_utils import process_stream_events, setup_openai_client
 
 
@@ -109,14 +108,8 @@ async def stream_title_generation(
     
     with trace(workflow_name="Title Generation", trace_id=trace_id):
         try:
-            # Get user plan to determine provider
-            user_plan = await get_user_plan()
-            
-            # Get provider configuration based on plan
-            if user_plan == "free":
-                provider_config = get_provider_for_model(request.model, "default")
-            else:
-                provider_config = get_provider_for_model(request.model)
+            # Get provider configuration directly
+            provider_config = get_provider_for_model(request.model)
             
             # Create title generator agent (same pattern as log_analyzer_agent)
             title_generator_agent = Agent(
@@ -198,14 +191,8 @@ async def generate_title_sync(
         str: Generated title
     """
     try:
-        # Get user plan to determine provider
-        user_plan = await get_user_plan()
-        
-        # Get provider configuration based on plan
-        if user_plan == "free":
-            provider_config = get_provider_for_model(model, "default")
-        else:
-            provider_config = get_provider_for_model(model)
+        # Get provider configuration directly
+        provider_config = get_provider_for_model(model)
         
         openai_client = AsyncOpenAI(
             base_url=provider_config.base_url,
