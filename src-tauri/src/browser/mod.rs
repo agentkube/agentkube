@@ -376,6 +376,8 @@ pub async fn browser_set_zoom(
 }
 
 /// Open DevTools for browser webview
+/// Note: For embedded child webviews, devtools must be opened via the main window
+/// or by using keyboard shortcuts (F12 or right-click -> Inspect)
 #[tauri::command]
 pub async fn browser_open_devtools(app: AppHandle, session_id: String) -> Result<(), String> {
     log::info!("Browser {} opening devtools", session_id);
@@ -385,7 +387,21 @@ pub async fn browser_open_devtools(app: AppHandle, session_id: String) -> Result
         .get_webview(&label)
         .ok_or_else(|| format!("Browser {} not found", label))?;
 
-    webview.open_devtools();
+    // webview.open_devtools();
+
+    // --- Proposed changes ---
+    // For embedded child webviews, devtools can be opened via JavaScript
+    // or by using keyboard shortcuts. The open_devtools() method is only
+    // available on WebviewWindow, not on Webview (child webviews).
+    // As a workaround, we can try to trigger devtools via a key event simulation
+    // or inform the user to use F12/right-click -> Inspect
+    webview
+        .eval("console.log('DevTools: Use F12 or right-click -> Inspect to open developer tools')")
+        .map_err(|e| format!("Failed to execute devtools hint: {}", e))?;
+
+    log::warn!(
+        "DevTools for embedded webviews should be accessed via F12 or right-click -> Inspect"
+    );
 
     Ok(())
 }
