@@ -1,0 +1,265 @@
+name: "Windows i686 (32-bit) Build Automation"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for the release (e.g., 1.0.0)'
+        required: true
+        type: string
+      create_release:
+        description: 'Create/update draft release'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-windows-i686:
+    name: Build Windows i686 (32-bit) Binaries
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # Setup Python for orchestrator build
+      - name: Set up Python for orchestrator
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          architecture: 'x86'  # Use 32-bit Python
+      
+      # Setup Go for operator build
+      - name: Set up Go for operator
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      
+      # Setup Rust for Tauri
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: i686-pc-windows-msvc
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> src-tauri/target
+      
+      # Setup Node.js
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          architecture: 'x86'  # Use 32-bit Node.js
+      
+      - name: Install bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      # Build orchestrator binary for i686
+      - name: Install orchestrator dependencies
+        working-directory: internal/orchestrator
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      - name: Build orchestrator for Windows i686
+        working-directory: internal/orchestrator
+        run: |
+          python build.py --platform win32
+      
+      # Build operator binary for i686
+      - name: Get operator build info
+        id: operator_build_info
+        working-directory: internal/operator
+        run: |
+          $VERSION = git describe --tags --always --dirty 2>$null
+          if (-not $VERSION) { $VERSION = "dev" }
+          $BUILD_TIME = Get-Date -Format "yyyy-MM-ddTHH:mm:sszzz"
+          echo "version=$VERSION" >> $env:GITHUB_OUTPUT
+          echo "build_time=$BUILD_TIME" >> $env:GITHUB_OUTPUT
+      
+      - name: Create operator dist directory
+        working-directory: internal/operator
+        run: New-Item -ItemType Directory -Force -Path ./dist
+      
+      - name: Build operator for Windows i686
+        working-directory: internal/operator
+        env:
+          GOOS: windows
+          GOARCH: "386"  # 32-bit architecture
+          CGO_ENABLED: 0
+        run: |
+          $LDFLAGS = "-s -w -X main.version=${{ steps.operator_build_info.outputs.version }} -X main.buildTime=${{ steps.operator_build_info.outputs.build_time }}"
+          go build -trimpath -ldflags "$LDFLAGS" -o ./dist/agentkube-operator-i686-pc-windows-msvc.exe ./cmd/server/main.go
+      
+      # Create directories and copy binaries to Tauri structure
+      - name: Prepare Tauri binary directories
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/bin/orchestrator
+          New-Item -ItemType Directory -Force -Path src-tauri/bin/operator
+      
+      - name: Copy built binaries to Tauri structure
+        run: |
+          # Copy i686 binaries
+          if (Test-Path "internal/orchestrator/dist/agentkube-orchestrator-i686-pc-windows-msvc.exe") {
+            Copy-Item internal/orchestrator/dist/agentkube-orchestrator-i686-pc-windows-msvc.exe src-tauri/bin/orchestrator/
+          }
+          if (Test-Path "internal/operator/dist/agentkube-operator-i686-pc-windows-msvc.exe") {
+            Copy-Item internal/operator/dist/agentkube-operator-i686-pc-windows-msvc.exe src-tauri/bin/operator/
+          }
+          
+          # List copied files
+          Get-ChildItem -Recurse src-tauri/bin
+      
+      # Install frontend dependencies
+      - name: Install frontend dependencies
+        run: bun install
+      
+      # Build Tauri application for i686
+      - name: Build Tauri application for Windows i686
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          Write-Host "Building Tauri app for Windows i686 (32-bit)"
+          bunx tauri build --target i686-pc-windows-msvc
+      
+      # Find and list all build artifacts
+      - name: List build artifacts
+        run: |
+          Write-Host "Build artifacts in target directory:"
+          Get-ChildItem -Recurse src-tauri/target -Include "*.msi", "*.exe", "*.zip" | ForEach-Object {
+            $size = [math]::Round($_.Length / 1MB, 2)
+            Write-Host "$($_.FullName) (Size: ${size} MB)"
+          }
+      
+      # Upload build artifacts
+      - name: Upload Windows i686 binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-i686-binaries
+          path: |
+            internal/orchestrator/dist/agentkube-orchestrator-i686-pc-windows-msvc.exe
+            internal/operator/dist/agentkube-operator-i686-pc-windows-msvc.exe
+          retention-days: 7
+      
+      - name: Upload Tauri build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-i686-tauri-build
+          path: |
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/**/*
+          retention-days: 7
+      
+      # Create or update release if requested
+      - name: Create or update draft release
+        if: ${{ inputs.create_release }}
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ inputs.version }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const version = process.env.VERSION;
+            const tagName = `v${version}`;
+            
+            // Check if release already exists
+            let release;
+            try {
+              const { data } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tagName
+              });
+              release = data;
+              console.log(`Found existing release: ${release.id}`);
+            } catch (error) {
+              if (error.status === 404) {
+                // Create new release
+                const { data } = await github.rest.repos.createRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag_name: tagName,
+                  name: `Agentkube v${version}`,
+                  body: `# Agentkube v${version}
+            
+            ## Windows i686 (32-bit) Build
+            
+            This release includes:
+            - Windows i686 (32-bit) binaries (orchestrator & operator)
+            - Tauri application (.msi) installer for 32-bit Windows
+            - Signed binaries and packages
+            - Compatible with older Windows systems
+            
+            ### Installation (Windows 32-bit)
+            1. Download the i686 .msi installer
+            2. Run the installer and follow the setup wizard
+            3. Launch Agentkube from Start Menu or Desktop shortcut
+            
+            ### System Requirements
+            - Windows 7 SP1 or later (32-bit)
+            - 2 GB RAM minimum
+            - 500 MB available disk space
+            
+            ### Manual Installation
+            If you prefer manual installation:
+            1. Download the individual i686 binaries (.exe files)
+            2. Place them in your preferred directory
+            3. Add to PATH if needed
+            
+            ---
+            
+            *This release was automatically generated using GitHub Actions*
+            `,
+                  draft: true,
+                  prerelease: false
+                });
+                release = data;
+                console.log(`Created new release: ${release.id}`);
+              } else {
+                throw error;
+              }
+            }
+            
+            console.log(`Release URL: ${release.html_url}`);
+            return release.id;
+
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: build-windows-i686
+    if: always()
+    
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## Windows i686 (32-bit) Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Architecture**: i686 (32-bit)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Create Release**: ${{ inputs.create_release }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.build-windows-i686.result }}" == "success" ]; then
+            echo "**✅ Build completed successfully**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**❌ Build failed**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Target Systems" >> $GITHUB_STEP_SUMMARY
+          echo "- Legacy Windows systems (32-bit)" >> $GITHUB_STEP_SUMMARY
+          echo "- Windows 7 SP1 and later" >> $GITHUB_STEP_SUMMARY
+          echo "- Systems with limited memory/resources" >> $GITHUB_STEP_SUMMARY

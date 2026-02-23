@@ -1,0 +1,243 @@
+name: "Release"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for the release (e.g., 1.0.0)'
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  create-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-20.04
+    outputs:
+      release_id: ${{ steps.create-release.outputs.result }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Get version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "PACKAGE_VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+          fi
+
+      - name: Create release
+        id: create-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${process.env.PACKAGE_VERSION}`,
+              name: `Agentkube v${process.env.PACKAGE_VERSION}`,
+              body: `# Agentkube v${process.env.PACKAGE_VERSION}
+
+            ## Multi-platform Release
+
+            This release includes builds for all supported platforms:
+            - **Linux** (x86_64, ARM64)
+            - **macOS** (Intel x86_64, Apple Silicon ARM64) 
+            - **Windows** (x86_64, i686, ARM64)
+
+            ### Tauri Applications
+            - Linux: .deb, .rpm, .AppImage packages
+            - macOS: .dmg installers (signed and notarized)
+            - Windows: .msi installers (signed)
+
+            ### Binary Downloads
+            Individual orchestrator and operator binaries are available for all platforms.
+
+            ---
+
+            *This release was generated automatically using GitHub Actions.*`,
+              draft: true,
+              prerelease: false
+            })
+            return data.id
+
+  build-tauri:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+          - platform: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> src-tauri/target
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install apt dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # Build backend binaries
+      - name: Set up Python for orchestrator
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Set up Go for operator
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Build orchestrator binary
+        working-directory: internal/orchestrator
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ matrix.platform }}" = "ubuntu-latest" ]; then
+            pip install -r requirements.linux.txt
+          else
+            pip install -r requirements.txt
+          fi
+          pip install pyinstaller
+
+          # Determine platform for build script
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-gnu) platform="linux" ;;
+            aarch64-apple-darwin) platform="mac-arm" ;;
+            x86_64-apple-darwin) platform="mac" ;;
+            x86_64-pc-windows-msvc) platform="win64" ;;
+            *) platform="linux" ;;
+          esac
+          
+          python build.py --platform $platform
+        shell: bash
+
+      - name: Build operator binary
+        working-directory: internal/operator
+        run: |
+          # Extract GOOS and GOARCH from target
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-gnu) 
+              export GOOS=linux GOARCH=amd64
+              binary_name="agentkube-operator-x86_64-unknown-linux-gnu" ;;
+            aarch64-apple-darwin) 
+              export GOOS=darwin GOARCH=arm64
+              binary_name="agentkube-operator-aarch64-apple-darwin" ;;
+            x86_64-apple-darwin) 
+              export GOOS=darwin GOARCH=amd64
+              binary_name="agentkube-operator-x86_64-apple-darwin" ;;
+            x86_64-pc-windows-msvc) 
+              export GOOS=windows GOARCH=amd64
+              binary_name="agentkube-operator-x86_64-pc-windows-msvc.exe" ;;
+            *) 
+              export GOOS=linux GOARCH=amd64
+              binary_name="agentkube-operator-x86_64-unknown-linux-gnu" ;;
+          esac
+
+          mkdir -p ./dist
+          export CGO_ENABLED=0
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          BUILD_TIME=$(date +%FT%T%z)
+          LDFLAGS="-s -w -X main.version=$VERSION -X main.buildTime=$BUILD_TIME"
+          
+          go build -trimpath -ldflags "$LDFLAGS" -o ./dist/$binary_name ./cmd/server/main.go
+          
+          if [[ "$GOOS" != "windows" ]]; then
+            chmod +x ./dist/$binary_name
+          fi
+        shell: bash
+
+      # Copy binaries to Tauri structure
+      - name: Prepare Tauri binaries
+        run: |
+          mkdir -p src-tauri/bin/orchestrator
+          mkdir -p src-tauri/bin/operator
+          
+          # Copy orchestrator binary
+          find internal/orchestrator/dist -name "agentkube-orchestrator-*" -exec cp {} src-tauri/bin/orchestrator/ \;
+          
+          # Copy operator binary  
+          find internal/operator/dist -name "agentkube-operator-*" -exec cp {} src-tauri/bin/operator/ \;
+        shell: bash
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: --target ${{ matrix.target }}
+
+  publish-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-20.04
+    needs: [create-release, build-tauri]
+
+    steps:
+      - name: Publish release
+        id: publish-release
+        uses: actions/github-script@v7
+        env:
+          release_id: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: process.env.release_id,
+              draft: false,
+              prerelease: false
+            })

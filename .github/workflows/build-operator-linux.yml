@@ -1,0 +1,61 @@
+name: Build Operator - Linux Artifacts
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            name: agentkube-operator-x86_64-unknown-linux-gnu
+          - goos: linux
+            goarch: arm64
+            name: agentkube-operator-aarch64-unknown-linux-gnu
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for git describe
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Get build info
+      id: build_info
+      run: |
+        VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+        BUILD_TIME=$(date +%FT%T%z)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+    
+    - name: Create dist directory
+      working-directory: internal/operator
+      run: mkdir -p ./dist
+    
+    - name: Build binary
+      working-directory: internal/operator
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        LDFLAGS="-s -w -X main.version=${{ steps.build_info.outputs.version }} -X main.buildTime=${{ steps.build_info.outputs.build_time }}"
+        go build -trimpath -ldflags "$LDFLAGS" -o ./dist/${{ matrix.name }} ./cmd/server/main.go
+    
+    - name: Make binary executable
+      working-directory: internal/operator
+      run: chmod +x ./dist/${{ matrix.name }}
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}
+        path: internal/operator/dist/${{ matrix.name }}
+        retention-days: 2

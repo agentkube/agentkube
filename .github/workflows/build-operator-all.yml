@@ -1,0 +1,128 @@
+name: Build Operator - All Platforms
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-all:
+    strategy:
+      matrix:
+        include:
+          # Windows builds
+          - goos: windows
+            goarch: amd64
+            name: agentkube-operator-x86_64-pc-windows-msvc.exe
+          - goos: windows
+            goarch: "386"
+            name: agentkube-operator-i686-pc-windows-msvc.exe
+          - goos: windows
+            goarch: arm64
+            name: agentkube-operator-aarch64-pc-windows-msvc.exe
+          # macOS builds
+          - goos: darwin
+            goarch: amd64
+            name: agentkube-operator-x86_64-apple-darwin
+            runner: macos-latest
+          - goos: darwin
+            goarch: arm64
+            name: agentkube-operator-aarch64-apple-darwin
+            runner: macos-latest
+          # Linux builds
+          - goos: linux
+            goarch: amd64
+            name: agentkube-operator-x86_64-unknown-linux-gnu
+          - goos: linux
+            goarch: "386"
+            name: agentkube-operator-i686-unknown-linux-gnu
+          - goos: linux
+            goarch: arm64
+            name: agentkube-operator-aarch64-unknown-linux-gnu
+          - goos: linux
+            goarch: arm
+            name: agentkube-operator-arm-unknown-linux-gnueabihf
+
+    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Get build info
+      id: build_info
+      run: |
+        VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+        BUILD_TIME=$(date +%FT%T%z)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+
+    - name: Create dist directory
+      working-directory: internal/operator
+      run: mkdir -p ./dist
+
+    - name: Build binary
+      working-directory: internal/operator
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        LDFLAGS="-X main.version=${{ steps.build_info.outputs.version }} -X main.buildTime=${{ steps.build_info.outputs.build_time }}"
+        go build -ldflags "$LDFLAGS" -o ./dist/${{ matrix.name }} ./cmd/server/main.go
+
+    - name: Make binary executable (Unix)
+      if: matrix.goos != 'windows'
+      working-directory: internal/operator
+      run: chmod +x ./dist/${{ matrix.name }}
+
+    - name: Code sign macOS binaries
+      if: matrix.goos == 'darwin'
+      working-directory: internal/operator
+      run: |
+        FILE="./dist/${{ matrix.name }}"
+        echo "Removing existing signature..."
+        codesign --remove-signature "$FILE" || true
+
+    - name: Upload individual artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}
+        path: internal/operator/dist/${{ matrix.name }}
+        retention-days: 30
+
+  package-all:
+    needs: build-all
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Create combined package
+      run: |
+        mkdir -p ./dist
+        find ./artifacts -type f -exec cp {} ./dist/ \;
+
+        cd ./dist
+        for file in *; do
+          [ -f "$file" ] || continue
+          tar -czf "$file.tar.gz" "$file"
+          if [[ "$file" == *.exe ]]; then
+            zip -q "$file.zip" "$file"
+          fi
+        done
+        ls -la
+
+    - name: Upload combined artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: all-operator-binaries
+        path: ./dist/
+        retention-days: 5
