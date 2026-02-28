@@ -63,6 +63,13 @@ jobs:
       run: |
         find dist/ -type f -name "agentkube-orchestrator-*-linux-gnu" -exec chmod +x {} \;
     
+    - name: Remove code signature from macOS binaries
+      if: matrix.os == 'macos-latest'
+      working-directory: internal/orchestrator
+      run: |
+        echo "Removing existing signature (if any) from macOS binaries..."
+        find dist/ -type f -name "agentkube-orchestrator-*-apple-darwin" -exec codesign --remove-signature {} \; || true
+    
     - name: Upload all artifacts
       uses: actions/upload-artifact@v4
       with:

@@ -75,12 +75,13 @@ jobs:
       working-directory: internal/operator
       run: chmod +x ./dist/${{ matrix.name }}
 
-    - name: Code sign macOS binaries
+    - name: Remove code signature from binary
       if: matrix.goos == 'darwin'
       working-directory: internal/operator
       run: |
         FILE="./dist/${{ matrix.name }}"
-        echo "Removing existing signature..."
+        
+        echo "Removing existing signature (if any)..."
         codesign --remove-signature "$FILE" || true
 
     - name: Upload individual artifact
