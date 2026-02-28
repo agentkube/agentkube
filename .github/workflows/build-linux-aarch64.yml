@@ -315,15 +315,50 @@ jobs:
               }
             }
             
-            // Upload ARM64 binaries
-            await uploadAssetIfExists(
-              'internal/orchestrator/dist/agentkube-orchestrator-aarch64-unknown-linux-gnu',
-              'agentkube-orchestrator-aarch64-unknown-linux-gnu'
-            );
-            await uploadAssetIfExists(
-              'internal/operator/dist/agentkube-operator-aarch64-unknown-linux-gnu',
-              'agentkube-operator-aarch64-unknown-linux-gnu'
-            );
+            // Upload Tauri packages
+            const bundlePath = 'src-tauri/target/aarch64-unknown-linux-gnu/release/bundle';
+            
+            // Find DEB file
+            if (fs.existsSync(path.join(bundlePath, 'deb'))) {
+              const debFiles = fs.readdirSync(path.join(bundlePath, 'deb'))
+                .filter(file => file.endsWith('.deb'));
+              
+              for (const debFile of debFiles) {
+                await uploadAssetIfExists(
+                  `src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/${debFile}`,
+                  debFile
+                );
+              }
+            }
+            
+            // Find RPM file
+            if (fs.existsSync(path.join(bundlePath, 'rpm'))) {
+              const rpmFiles = fs.readdirSync(path.join(bundlePath, 'rpm'))
+                .filter(file => file.endsWith('.rpm'));
+              
+              for (const rpmFile of rpmFiles) {
+                await uploadAssetIfExists(
+                  `src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/${rpmFile}`,
+                  rpmFile
+                );
+              }
+            }
+            
+            // Upload signature files
+            const sigFiles = ['src-tauri/target/aarch64-unknown-linux-gnu/release']
+              .flatMap(dir => {
+                if (fs.existsSync(dir)) {
+                  return fs.readdirSync(dir)
+                    .filter(file => file.endsWith('.sig'))
+                    .map(file => path.join(dir, file));
+                }
+                return [];
+              });
+            
+            for (const sigFile of sigFiles) {
+              const sigName = path.basename(sigFile);
+              await uploadAssetIfExists(sigFile, sigName);
+            }
             
             console.log(`Release URL: ${release.html_url}`);
             return release.id;
