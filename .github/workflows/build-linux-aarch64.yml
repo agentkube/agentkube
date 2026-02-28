@@ -133,40 +133,86 @@ jobs:
         run: bun install
       
       # Install additional dependencies for Linux ARM64 builds
-      - name: Install cross-compilation tools for ARM64
+      # Setup cross-compilation toolchain
+      - name: Install cross-compilation dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          # For cross-compilation of system dependencies
-          export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
-          export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
-          export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
-          export STRIP_aarch64_unknown_linux_gnu=aarch64-linux-gnu-strip
-      
-      - name: Install system dependencies for cross-compilation
-        run: |
-          # Add ARM64 architecture support
           sudo dpkg --add-architecture arm64
+
+          # Ubuntu 24.04 uses DEB822 format in /etc/apt/sources.list.d/ubuntu.sources
+          # We need to constrain it to amd64 only by adding Architectures line
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            # Add architecture constraint to DEB822 format file
+            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+
+          # Also handle traditional format sources.list if it exists
+          if [ -f /etc/apt/sources.list ]; then
+            sudo sed -i 's/^deb \(http\|https\)/deb [arch=amd64] \1/g' /etc/apt/sources.list 2>/dev/null || true
+          fi
+
+          # Constrain any other .list files in sources.list.d
+          for f in /etc/apt/sources.list.d/*.list; do
+            if [ -f "$f" ] && [ "$(basename "$f")" != "arm64.list" ]; then
+              sudo sed -i 's/^deb \(http\|https\)/deb [arch=amd64] \1/g' "$f" 2>/dev/null || true
+            fi
+          done
+
+          # Create arm64 sources pointing to ports.ubuntu.com (where arm64 packages live)
+          sudo bash -c 'cat > /etc/apt/sources.list.d/arm64.list <<EOF
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ noble main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ noble-updates main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ noble-backports main restricted universe multiverse
+          EOF'
+
           sudo apt-get update
-          
-          # Note: For ARM64 cross-compilation, we would need ARM64 versions of webkit, gtk, etc.
-          # This is complex and typically done in Docker or dedicated ARM64 runners
-          echo "Cross-compilation setup for ARM64 completed"
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu \
+            pkg-config \
+            libwebkit2gtk-4.1-dev:arm64 \
+            libjavascriptcoregtk-4.1-dev:arm64 \
+            libgtk-3-dev:arm64 \
+            libayatana-appindicator3-dev:arm64 \
+            libglib2.0-dev:arm64 \
+            libcairo2-dev:arm64 \
+            libpango1.0-dev:arm64 \
+            libgdk-pixbuf2.0-dev:arm64 \
+            libsoup-3.0-dev:arm64 \
+            libatk1.0-dev:arm64 \
+            libatk-bridge2.0-dev:arm64 \
+            libssl-dev:arm64
+
+          # Create a pkg-config wrapper for cross-compilation
+          # Include both arch-specific and shared pkgconfig directories
+          sudo bash -c 'cat > /usr/local/bin/aarch64-linux-gnu-pkg-config <<EOF
+          #!/bin/sh
+          export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
+          export PKG_CONFIG_LIBDIR="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
+          export PKG_CONFIG_SYSROOT_DIR="/"
+          exec pkg-config "\$@"
+          EOF'
+          sudo chmod +x /usr/local/bin/aarch64-linux-gnu-pkg-config
       
-      # Build Tauri application for ARM64 (note: this is challenging for cross-compilation)
+      # Build Tauri application for ARM64
       - name: Build Tauri application for Linux ARM64
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
-          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
-          STRIP_aarch64_unknown_linux_gnu: aarch64-linux-gnu-strip
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          PKG_CONFIG_SYSROOT_DIR: /
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+          PKG_CONFIG_LIBDIR: /usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+          PKG_CONFIG_ALLOW_CROSS: 1
+          PKG_CONFIG: /usr/local/bin/aarch64-linux-gnu-pkg-config
+          G_MESSAGES_DEBUG: all
+          WEBKIT_DISABLE_COMPOSITING_MODE: 1
+          WINIT_UNIX_BACKEND: x11
+          GDK_BACKEND: x11
         run: |
-          # Note: This may fail due to cross-compilation complexity
-          # ARM64 builds might be better done on native ARM64 runners
-          echo "Attempting ARM64 cross-compilation (may be limited)"
-          bunx tauri build --target aarch64-unknown-linux-gnu || echo "Cross-compilation may have limitations"
+          bunx tauri build --target aarch64-unknown-linux-gnu
       
       # Upload build artifacts (at least the binaries will be available)
       - name: Upload Linux ARM64 binaries
