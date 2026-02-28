@@ -272,6 +272,84 @@ jobs:
               }
             }
             
+            // Function to upload asset if it exists
+            async function uploadAssetIfExists(filePath, assetName) {
+              const fullPath = path.join(process.cwd(), filePath);
+              if (fs.existsSync(fullPath)) {
+                const content = fs.readFileSync(fullPath);
+                try {
+                  await github.rest.repos.uploadReleaseAsset({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    release_id: release.id,
+                    name: assetName,
+                    data: content,
+                  });
+                  console.log(`Uploaded: ${assetName}`);
+                } catch (uploadError) {
+                  console.log(`Failed to upload ${assetName}: ${uploadError.message}`);
+                }
+              } else {
+                console.log(`File not found: ${fullPath}`);
+              }
+            }
+            
+            // Upload binaries
+            await uploadAssetIfExists(
+              'internal/orchestrator/dist/agentkube-orchestrator-i686-pc-windows-msvc.exe',
+              'agentkube-orchestrator-i686-pc-windows-msvc.exe'
+            );
+            
+            await uploadAssetIfExists(
+              'internal/operator/dist/agentkube-operator-i686-pc-windows-msvc.exe',
+              'agentkube-operator-i686-pc-windows-msvc.exe'
+            );
+            
+            // Upload Tauri installer and signature files
+            const bundlePath = 'src-tauri/target/i686-pc-windows-msvc/release/bundle';
+            
+            // Find MSI file
+            if (fs.existsSync(path.join(bundlePath, 'msi'))) {
+              const msiFiles = fs.readdirSync(path.join(bundlePath, 'msi'))
+                .filter(file => file.endsWith('.msi'));
+              
+              for (const msiFile of msiFiles) {
+                await uploadAssetIfExists(
+                  `src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/${msiFile}`,
+                  msiFile
+                );
+              }
+            }
+            
+            // Find NSIS installer
+            if (fs.existsSync(path.join(bundlePath, 'nsis'))) {
+              const nsisFiles = fs.readdirSync(path.join(bundlePath, 'nsis'))
+                .filter(file => file.endsWith('.exe'));
+              
+              for (const nsisFile of nsisFiles) {
+                await uploadAssetIfExists(
+                  `src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/${nsisFile}`,
+                  nsisFile
+                );
+              }
+            }
+            
+            // Upload signature files
+            const sigFiles = ['src-tauri/target/i686-pc-windows-msvc/release']
+              .flatMap(dir => {
+                if (fs.existsSync(dir)) {
+                  return fs.readdirSync(dir)
+                    .filter(file => file.endsWith('.sig'))
+                    .map(file => path.join(dir, file));
+                }
+                return [];
+              });
+            
+            for (const sigFile of sigFiles) {
+              const sigName = path.basename(sigFile);
+              await uploadAssetIfExists(sigFile, sigName);
+            }
+            
             console.log(`Release URL: ${release.html_url}`);
             return release.id;
 

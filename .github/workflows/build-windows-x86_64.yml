@@ -176,7 +176,7 @@ jobs:
             const version = process.env.VERSION;
             const tagName = `v${version}`;
             
-            // Check if release already exists
+            // First, try to find existing draft release by tag
             let release;
             try {
               const { data } = await github.rest.repos.getReleaseByTag({
@@ -185,16 +185,55 @@ jobs:
                 tag: tagName
               });
               release = data;
-              console.log(`Found existing release: ${release.id}`);
+              console.log(`Found existing release by tag: ${release.id}`);
             } catch (error) {
               if (error.status === 404) {
-                // Create new release
-                const { data } = await github.rest.repos.createRelease({
+                // If no release found by tag, check for draft releases with same version
+                const { data: releases } = await github.rest.repos.listReleases({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  tag_name: tagName,
-                  name: `Agentkube v${version}`,
-                  body: `# Agentkube v${version}
+                  per_page: 100
+                });
+                
+                // Look for existing draft release with same name/version
+                const existingDraft = releases.find(r => 
+                  r.draft === true && 
+                  (r.name === `Agentkube v${version}` || r.tag_name === tagName)
+                );
+                
+                if (existingDraft) {
+                  release = existingDraft;
+                  console.log(`Found existing draft release: ${release.id}`);
+                  
+                  // Update the existing draft release body to append new build info
+                  const currentBody = release.body || '';
+                  const newBuildInfo = `\n\n## Windows x86_64 (64-bit) Build\n\nThis release includes:\n- Windows x86_64 (64-bit) binaries (orchestrator & operator)\n- Tauri application (.msi) installer for 64-bit Windows\n- Signed binaries and packages\n- Signature files (.sig)\n- Compatible with modern Windows systems\n\n### Installation (Windows 64-bit)\n1. Download the x86_64 .msi installer\n2. Run the installer as administrator\n3. Launch Agentkube from Start Menu or Desktop shortcut\n\n### System Requirements\n- Windows 10 or later (64-bit)\n- 4 GB RAM minimum\n- 1 GB available disk space\n\n### Manual Installation\nIf you prefer manual installation:\n1. Download the individual x86_64 binaries (.exe files)\n2. Place them in your preferred directory\n3. Add to PATH if needed`;
+                  
+                  let updatedBody;
+                  if (currentBody.includes('## Windows x86_64 (64-bit) Build')) {
+                    // Replace existing x86_64 section
+                    updatedBody = currentBody.replace(/## Windows x86_64 \(64-bit\) Build[\s\S]*?(?=\n##|\n---|\n\*This release|$)/, newBuildInfo.substring(2));
+                  } else {
+                    // Append new x86_64 section
+                    updatedBody = currentBody + newBuildInfo;
+                  }
+                  
+                  await github.rest.repos.updateRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    release_id: release.id,
+                    body: updatedBody,
+                    tag_name: tagName
+                  });
+                  console.log(`Updated existing draft release: ${release.id}`);
+                } else {
+                  // Create new release
+                  const { data } = await github.rest.repos.createRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    tag_name: tagName,
+                    name: `Agentkube v${version}`,
+                    body: `# Agentkube v${version}
             
             ## Windows x86_64 (64-bit) Build
             
@@ -225,11 +264,12 @@ jobs:
             
             *This release was automatically generated using GitHub Actions*
             `,
-                  draft: true,
-                  prerelease: false
-                });
-                release = data;
-                console.log(`Created new release: ${release.id}`);
+                    draft: true,
+                    prerelease: false
+                  });
+                  release = data;
+                  console.log(`Created new release: ${release.id}`);
+                }
               } else {
                 throw error;
               }
