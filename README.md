@@ -28,9 +28,26 @@ Agentkube is an AI-powered Kubernetes IDE that bridges the gap between developer
 
 Whether you’re a developer looking to scale your application or a DevOps engineer streamlining operations, Agentkube reduces the to reduce incident response time while maintaining enterprise-grade reliability.
 
+## Features
+- **Bring Your Own Key** — Supports 20+ LLM providers including OpenAI, Anthropic, Google Gemini, Mistral, Cohere, and more.
+- **Local LLM Support** — Run models locally with Ollama and vLLM for air-gapped and privacy-first environments.
+- **Human in the Loop** — Approve or reject agent tool calls before execution for full operational control.
+- **Deep Investigation & Root Cause Analysis** — Multi-agent orchestration system that automatically investigates cluster issues, analyzes resource states, and surfaces actionable root causes.
+- **Log Viewer with LogQL Query Builder** — Explore and query logs with a built-in LogQL interface for structured log exploration.
+- **PromQL Query Builder** — Query Prometheus metrics and execute them directly from the spotlight interface.
+- **Recon Mode** — Restrict cluster access to read-only operations.
+- **Custom Monitoring Dashboard** — Build and view real-time monitoring dashboards tailored to your cluster workloads.
+- **Quick Log & Event Analysis** — AI-powered log and event analyzers that surface anomalies and patterns in seconds.
+- **Built-in Grype Integration** — Scan container images for vulnerabilities directly from the resource panel.
+- **Resource Canvas & Attack Path Analysis** — Interactive map view of how Kubernetes resources connect with each other. Visualizes dependencies, traffic flows, and attack paths to help engineers understand cluster structure and debug issues.
 
-> **⚠️ Open Source Transition Notice**
-> We're actively working on open-sourcing Agentkube! As part of this transition, you may notice that some binaries and portions of the codebase are not yet publicly available. We're committed to preparing a clean, well-documented open-source release and expect to complete this process soon. Thank you for your patience and support as we work towards full transparency. Stay tuned for updates!
+<img width="1514" height="1052" alt="image" src="https://github.com/user-attachments/assets/3063c4b3-643e-47b1-8bb5-84d26942840a" />
+
+- **16+ UI Themes** — Pick a color scheme that fits your workflow, from minimal to dark matter.
+- **MCP Marketplace** — Discover and install plugins with one click, directly inside the IDE. No manual setup required.
+- **Kubernetes Resource Recommender (KRR)** — Built-in resource recommendation engine for right-sizing CPU and memory requests across workloads.
+- **Integration** — Trivy, ArgoCD and more.
+
 
 ## Getting Started
 
@@ -48,11 +65,11 @@ Install via Homebrew (macOS):
 brew install --cask agentkube
 ```
 
-Or download the latest version (v0.0.11) directly:
+Or download the latest version (v0.0.12) directly:
 
-- **Mac** [[Arm](https://github.com/agentkube/agentkube/releases/download/v0.0.11/Agentkube_0.0.11_aarch64.dmg)] [[Intel](https://github.com/agentkube/agentkube/releases/download/v0.0.11/Agentkube_0.0.11_x64.dmg)]
-- **Windows** [[64-bit](https://github.com/agentkube/agentkube/releases/download/v0.0.11/Agentkube_0.0.11_x64-setup.exe)] [[32-bit](https://github.com/agentkube/agentkube/releases/download/v0.0.11/Agentkube_0.0.11_x86-setup.exe)]
-- **Linux** [[Deb](https://github.com/agentkube/agentkube/releases/download/v0.0.11/Agentkube_0.0.11_amd64.deb)] [[RPM](https://github.com/agentkube/agentkube/releases/download/v0.0.11/Agentkube-0.0.11-1.x86_64.rpm)]
+- **Mac** [[Arm](https://github.com/agentkube/agentkube/releases/download/v0.0.12/Agentkube_0.0.12_aarch64.dmg)] [[Intel](https://github.com/agentkube/agentkube/releases/download/v0.0.12/Agentkube_0.0.12_x64.dmg)]
+- **Windows** [[64-bit](https://github.com/agentkube/agentkube/releases/download/v0.0.12/Agentkube_0.0.12_x64-setup.exe)] [[32-bit](https://github.com/agentkube/agentkube/releases/download/v0.0.12/Agentkube_0.0.12_x86-setup.exe)]
+- **Linux** [[Deb](https://github.com/agentkube/agentkube/releases/download/v0.0.12/Agentkube_0.0.12_amd64.deb)] [[RPM](https://github.com/agentkube/agentkube/releases/download/v0.0.12/Agentkube-0.0.12-1.x86_64.rpm)]
 
 > **Note:** Windows version is not signed - choose "More info > Run anyway" when prompted.
 
